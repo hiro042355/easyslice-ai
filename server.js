@@ -67,7 +67,10 @@ app.post('/youtube-download', async (req, res) => {
     await ytDlp.execPromise([
       url,
       '-f',
+      'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best',
+      '--merge-output-format',
       'mp4',
+      '--force-overwrites',
       '-o',
       'downloaded.mp4',
     ]);
@@ -82,10 +85,32 @@ app.post('/youtube-download', async (req, res) => {
   } catch (err) {
     console.error('❌ ダウンロードエラー');
     console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    res.status(500).json({
-      error: err.message,
-    });
+
+app.get('/download-test', async (req, res) => {
+  try {
+    console.log('テスト開始');
+
+   await ytDlp.execPromise([
+  url,
+  '-f',
+  'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best',
+  '--merge-output-format',
+  'mp4',
+  '--force-overwrites',
+  '-o',
+  'downloaded.mp4',
+]);
+
+    console.log('テスト成功');
+    res.send('OK');
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -93,14 +118,14 @@ app.get('/download-test', async (req, res) => {
   try {
     console.log('テスト開始');
 
-    await ytDlp.execPromise([
-      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      '-f',
-      'mp4',
-      '-o',
-      'downloaded.mp4',
-    ]);
-
+  await ytDlp.execPromise([
+  '-f',
+  'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+  '--merge-output-format',
+  'mp4',
+  '-o',
+  'downloaded.mp4',
+]);
     console.log('テスト成功');
 
     res.send('OK');

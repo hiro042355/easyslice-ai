@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { writeFile, readFile, unlink } from "fs/promises";
+import { readFile, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
 import AdmZip from "adm-zip";
@@ -21,26 +21,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const videoRes = await fetch(
-    "http://localhost:3001/downloads/downloaded.mp4"
-  );
-
-  if (!videoRes.ok) {
-    return NextResponse.json(
-      { error: "ダウンロード済み動画が見つかりません" },
-      { status: 404 }
-    );
-  }
-
-  const inputPath = path.join(
-    os.tmpdir(),
-    `multi-input-${Date.now()}.mp4`
-  );
-
-  await writeFile(
-    inputPath,
-    Buffer.from(await videoRes.arrayBuffer())
-  );
+  const inputPath = path.resolve('./downloaded.mp4');
 
   const zip = new AdmZip();
   const outputPaths: string[] = [];
@@ -64,7 +45,7 @@ export async function POST(req: Request) {
         `clip-${Date.now()}-${index}.mp4`
       );
 
-      const cmd = `ffmpeg -y -i "${inputPath}" -ss ${start} -to ${end} -c:v libx264 -c:a aac "${outputPath}"`;
+      const cmd = `ffmpeg -y -ss ${start} -to ${end} -i "${inputPath}" -c:v copy -c:a aac "${outputPath}"`;
 
       console.log("生成開始", outputPath);
       await execAsync(cmd);
@@ -90,8 +71,6 @@ export async function POST(req: Request) {
       },
     });
   } finally {
-    await unlink(inputPath).catch(() => {});
-
     for (const outputPath of outputPaths) {
       await unlink(outputPath).catch(() => {});
     }

@@ -5,6 +5,9 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 export default function Home() {
+  const [summary, setSummary] = useState("");
+const [fullText, setFullText] = useState("");
+const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([]);
   const [start, setStart] = useState("0");
   const [end, setEnd] = useState("");
   const [clips, setClips] = useState([
@@ -285,6 +288,19 @@ const handleAiSuggest = async () => {
     setLoading(false);
   }
 };
+const handleAudioAnalyze = async () => {
+  const res = await fetch(
+    "/api/audio-analyze",
+    {
+      method: "POST",
+    }
+  );
+
+  const data = await res.json();
+
+  console.log(data);
+  alert("解析完了");
+};
 const setCurrentTimeAsStart = () => {
   if (!videoRef.current) return;
 
@@ -296,7 +312,101 @@ const setCurrentTimeAsStart = () => {
     )
   );
 };
+const handleAudioPeaks = async () => {
+  const res = await fetch("/api/audio-peaks", { method: "POST" });
+  const data = await res.json();
 
+  console.log("silenceEnds:", data.silenceEnds);
+
+  if (data.silenceEnds && data.silenceEnds.length > 0) {
+    const ends: number[] = data.silenceEnds;
+    
+    const newClips = ends.slice(0, 5).map((second: number, index: number) => {
+      // 次の無音区間の開始を終了秒にする（なければ+30秒）
+      const nextSecond = ends[index + 1] ?? second + 30;
+      return {
+        start: String(second),
+        end: String(nextSecond),
+        reason: `無音明け ${second}秒`,
+      };
+    });
+
+    setClips(newClips);
+    setSuccessMessage(`🎵 ${ends.length}件の候補を検出`);
+  } else {
+    alert("無音区間が検出されませんでした");
+  }
+};
+const handleSubtitle = async () => {
+  try {
+    const res = await fetch(
+      "/api/subtitle",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: youtubeUrl,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    console.log(data.highlights);
+
+    if (data.highlights && data.highlights.length > 0) {
+      const newClips = data.highlights.slice(0, 5).map(
+  (highlight: { second: number; text: string; score: number }) => ({
+    start: String(highlight.second),
+    end: String(highlight.second + 30),
+    reason: highlight.text + ` (score:${highlight.score})`,
+  })
+);
+
+      setClips(newClips);
+      setClips(newClips);
+setFullText(data.fullText ?? ""); // ← ここに追加
+setSubtitles(data.subtitles ?? []);
+setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
+      setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
+    } else {
+      alert("ハイライトが見つかりませんでした");
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+const handleSummary = async () => {
+  try {
+    const res = await fetch("/api/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: fullText.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(), subtitles }),
+    });
+    console.log("fullText:", fullText.slice(0, 200));
+const data = await res.json();
+console.log("fullText1000:", fullText.slice(0, 1000));
+console.log("highlights:", data.highlights);
+    setSummary(
+  data.highlights
+    .map((item: any) => item.sentence)
+    .join("\n\n")
+);
+if (data.highlights && data.highlights.length > 0) {
+  const newClips = data.highlights.map((item: any) => ({
+    start: String(Math.max(0, item.second - 5)),
+    end: String(item.second + 25),
+    reason: item.sentence,
+  }));
+  setClips(newClips);
+  setSuccessMessage(`🤖 ${data.highlights.length}件のAI候補を生成`);
+}
+  } catch (err) {
+    console.error(err);
+  }
+};
 const setCurrentTimeAsEnd = () => {
   if (!videoRef.current) return;
 
@@ -320,11 +430,11 @@ const setCurrentTimeAsEnd = () => {
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 text-white p-6">
       <div className="max-w-xl mx-auto mt-10 backdrop-blur-md bg-white/10 p-8 rounded-xl shadow-xl border border-white/20 animate-fadeIn">
-        <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-          EasySlice.AI
-        </h1>
+       <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+  NEXCUT AI
+</h1>
 <p className="text-zinc-400 text-sm mt-2">
-AI Video Clipper for Shorts & TikTok
+  Smart Video Clipping Platform
 </p>
         {/* YouTube URL */}
         <div className="mb-4">
@@ -508,6 +618,32 @@ hover:shadow-cyan-500/40
 >
   AI候補生成
 </button>
+<button
+  onClick={handleAudioAnalyze}
+  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500"
+>
+  音量解析
+</button>
+<button
+  onClick={handleAudioPeaks}
+  className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500"
+>
+  音量ピーク取得
+</button>
+<button
+  type="button"
+  onClick={handleSubtitle}
+  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
+>
+  字幕取得
+</button>
+<button
+  type="button"
+  onClick={handleSummary}
+  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
+>
+  AI要約
+</button>
     <button
       type="button"
       onClick={handleMultiCut}
@@ -534,7 +670,12 @@ hover:shadow-cyan-500/40
     </div>
   )}
 </div>
-
+{summary && (
+  <div className="mt-4 p-4 rounded-xl bg-zinc-800">
+    <p className="font-bold mb-2">AI要約</p>
+    <p className="text-sm text-gray-300">{summary}</p>
+  </div>
+)}
 {/* プレビュー */}
 {(video || videoSrc) && (
   <video

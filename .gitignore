@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# NEXCUT AI
+downloaded.mp4
+downloaded.*.mp4
+subtitle*.json3
+yt-dlp.exe
