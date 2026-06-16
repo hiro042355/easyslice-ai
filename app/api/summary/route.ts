@@ -5,43 +5,33 @@ export async function POST(req: Request) {
   const text = body.text || "";
   const subtitles = body.subtitles || [];
 
-const cleanText = text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
-const words = cleanText.split(/\s+/);
-const sentences: string[] = [];
-for (let i = 0; i < words.length; i += 100) {
-  sentences.push(words.slice(i, i + 100).join(" "));
-}
+  const cleanText = text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = cleanText.split(/\s+/);
+  const sentences: string[] = [];
+  for (let i = 0; i < words.length; i += 100) {
+    sentences.push(words.slice(i, i + 100).join(" "));
+  }
 
-console.log("sentences count:", sentences.length);
-console.log("sentences[0]:", sentences[0]);
-console.log("sentences[1]:", sentences[1]);
- const keywords = [
-  "重要", "結論", "衝撃", "驚き", "やばい",
-  "知らない", "危険", "稼げる", "失敗", "成功",
-  "never", "amazing", "incredible", "important", "secret",
-  "problem", "solution", "best", "worst", "always",
-  "actually", "realize", "discovered", "found", "think",
-  "procrastin", "deadline", "monkey", "decision",
-];
+  console.log("sentences count:", sentences.length);
+
+  const keywords = [
+    "重要", "結論", "衝撃", "驚き", "やばい", "知らない", "危険", "稼げる", "失敗", "成功",
+    "never", "amazing", "incredible", "important", "secret",
+    "problem", "solution", "best", "worst", "always",
+    "actually", "realize", "discovered", "found", "think",
+    "procrastin", "deadline", "monkey", "decision",
+  ];
 
   const ranked = sentences.map((sentence: string) => {
     let score = 0;
     keywords.forEach((word) => {
-      if (sentence.toLowerCase().includes(word.toLowerCase())) {
-        score++;
-      }
+      if (sentence.toLowerCase().includes(word.toLowerCase())) score++;
     });
-
-// タイムスタンプ検索
-const match = subtitles.find((s: { second: number; text: string }) => {
-  const words = sentence.toLowerCase().split(" ").filter(Boolean).slice(0, 3);
-  return words.some(word => word.length > 3 && s.text.toLowerCase().includes(word));
-});
-    return {
-      sentence,
-      score,
-      second: match?.second ?? 0,
-    };
+    const match = subtitles.find((s: { second: number; text: string }) => {
+      const words = sentence.toLowerCase().split(" ").filter(Boolean).slice(0, 3);
+      return words.some(word => word.length > 3 && s.text.toLowerCase().includes(word));
+    });
+    return { sentence, score, second: match?.second ?? 0 };
   });
 
   const highlights = ranked
@@ -49,8 +39,5 @@ const match = subtitles.find((s: { second: number; text: string }) => {
     .sort((a: any, b: any) => b.score - a.score)
     .slice(0, 5);
 
-  return NextResponse.json({
-    success: true,
-    highlights,
-  });
+  return NextResponse.json({ success: true, highlights });
 }
