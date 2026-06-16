@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const inputPath = path.resolve('./downloaded.mp4');
+  const inputPath = path.resolve('.//tmp/downloaded.mp4');
 
   const zip = new AdmZip();
   const outputPaths: string[] = [];

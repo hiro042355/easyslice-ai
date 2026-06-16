@@ -4,7 +4,7 @@ import { exec } from "child_process";
 export async function POST() {
   return new Promise<NextResponse>((resolve) => {
     exec(
-      `ffmpeg -i downloaded.mp4 -vn -af silencedetect=noise=-20dB:d=0.2 -f null NUL`,
+      `ffmpeg -i /tmp/downloaded.mp4 -vn -af silencedetect=noise=-20dB:d=0.2 -f null NUL`,
       (error, stdout, stderr) => {
         const silenceEnds: number[] = [];
         const regex = /silence_end:\s([\d.]+)/g;

@@ -4,7 +4,7 @@ import { exec } from "child_process";
 export async function POST() {
   return new Promise<NextResponse>((resolve) => {
     exec(
-      `ffmpeg -i downloaded.mp4 -af astats=metadata=1:reset=5 -f null NUL`,
+      `ffmpeg -i /tmp/downloaded.mp4 -af astats=metadata=1:reset=5 -f null NUL`,
       (error, stdout, stderr) => {
         console.log(stderr);
 

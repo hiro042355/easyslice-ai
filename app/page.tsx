@@ -124,7 +124,7 @@ setLoading(false);
   }, 500);
 
   try {
-    const infoRes = await fetch("http://localhost:3001/youtube", {
+    const infoRes = await fetch("/api/youtube-info", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -142,7 +142,7 @@ setLoading(false);
     setVideoDuration(info.duration || 0);
     setThumbnail(info.thumbnail || "");
 
-    const downloadRes = await fetch("http://localhost:3001/youtube-download", {
+    const downloadRes = await fetch("/api/youtube-download", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -156,9 +156,7 @@ setLoading(false);
 
     console.log(result);
 
-    setVideoSrc(
-      "http://localhost:3001/downloads/downloaded.mp4?t=" + Date.now()
-    );
+   setVideoSrc("/api/video");
 
     setProgress(100);
     alert("ダウンロード完了");
@@ -366,11 +364,10 @@ const handleSubtitle = async () => {
 );
 
       setClips(newClips);
-      setClips(newClips);
 setFullText(data.fullText ?? ""); // ← ここに追加
 setSubtitles(data.subtitles ?? []);
 setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
-      setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
+     
     } else {
       alert("ハイライトが見つかりませんでした");
     }
