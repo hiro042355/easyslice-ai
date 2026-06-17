@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     console.log("exec開始:", ytDlpPath);
     exec(
-      `"${ytDlpPath}" --write-auto-sub --sub-lang en --skip-download --sub-format json3 -o "subtitle" "${url}"`,
+      `"${ytDlpPath}" --write-auto-sub --sub-lang en --skip-download --sub-format json3 -o "/tmp/subtitle" "${url}"`,
       async (error, stdout, stderr) => {
         console.log("error:", error);
         console.log("stderr:", stderr);
