@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const outputPath = path.join(os.tmpdir(), 'downloaded.mp4');
 
     exec(
-      `"${ytDlpPath}" "${url}" -f "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best" --merge-output-format mp4 --force-overwrites -o "${outputPath}"`,
+      `"${ytDlpPath}" --extractor-args "youtube:player_client=android" "${url}" -f "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best" --merge-output-format mp4 --force-overwrites -o "${outputPath}"`,
       (error, stdout, stderr) => {
         if (error) {
           resolve(NextResponse.json({ success: false, error: stderr }, { status: 500 }));

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       : 'yt-dlp';
 
     exec(
-      `"${ytDlpPath}" "${url}" --dump-json`,
+      `"${ytDlpPath}" --extractor-args "youtube:player_client=android" "${url}" --dump-json`,
       (error, stdout, stderr) => {
         if (error) {
           resolve(NextResponse.json({ success: false, error: stderr }, { status: 500 }));
