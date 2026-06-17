@@ -15,9 +15,8 @@ export async function POST(req: Request) {
 
     // cookiesファイルを環境変数から生成
     const cookiesPath = path.join(os.tmpdir(), 'cookies.txt');
-   if (process.env.YOUTUBE_COOKIES) {
-  const cookiesContent = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
-  fs.writeFileSync(cookiesPath, cookiesContent);
+  if (process.env.YOUTUBE_COOKIES) {
+  fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES);
 }
 
     const cookiesArg = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
