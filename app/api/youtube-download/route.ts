@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import path from "path";
 import os from "os";
+import fs from "fs";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -13,9 +14,18 @@ export async function POST(req: Request) {
       : 'yt-dlp';
 
     const outputPath = path.join(os.tmpdir(), 'downloaded.mp4');
+    
+    // cookiesファイルを環境変数から生成
+    const cookiesPath = path.join(os.tmpdir(), 'cookies.txt');
+    if (process.env.YOUTUBE_COOKIES) {
+  const cookiesContent = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
+  fs.writeFileSync(cookiesPath, cookiesContent);
+}
+
+    const cookiesArg = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
 
     exec(
-      `"${ytDlpPath}" --extractor-args "youtube:player_client=android" "${url}" -f "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best" --merge-output-format mp4 --force-overwrites -o "${outputPath}"`,
+      `"${ytDlpPath}" --extractor-args "youtube:player_client=android" ${cookiesArg} -f "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best" --merge-output-format mp4 --force-overwrites -o "${outputPath}" "${url}"`,
       (error, stdout, stderr) => {
         if (error) {
           resolve(NextResponse.json({ success: false, error: stderr }, { status: 500 }));

@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import path from "path";
+import os from "os";
+import fs from "fs";
 
 export async function POST(req: Request) {
   const body = await req.json();
   const url = body.url;
 
   return new Promise<NextResponse>((resolve) => {
-    const ytDlpPath = process.platform === "win32" 
+    const ytDlpPath = process.platform === "win32"
       ? path.resolve('./yt-dlp.exe')
       : 'yt-dlp';
 
+    // cookiesファイルを環境変数から生成
+    const cookiesPath = path.join(os.tmpdir(), 'cookies.txt');
+   if (process.env.YOUTUBE_COOKIES) {
+  const cookiesContent = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
+  fs.writeFileSync(cookiesPath, cookiesContent);
+}
+
+    const cookiesArg = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
+
     exec(
-      `"${ytDlpPath}" --extractor-args "youtube:player_client=android" "${url}" --dump-json`,
+      `"${ytDlpPath}" --extractor-args "youtube:player_client=android" ${cookiesArg} "${url}" --dump-json`,
       (error, stdout, stderr) => {
         if (error) {
           resolve(NextResponse.json({ success: false, error: stderr }, { status: 500 }));
