@@ -15,6 +15,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+RUN yt-dlp -U
 RUN npm run build
 
 EXPOSE 3000
