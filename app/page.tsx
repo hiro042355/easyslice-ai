@@ -808,6 +808,12 @@ const handleAudioEnergy = async () => {
        <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
   NEXCUT AI
 </h1>
+<a
+  href="/landing"
+  className="mb-6 inline-block text-sm font-semibold text-cyan-300 hover:text-cyan-200"
+>
+  ← 紹介ページへ戻る
+</a>
 <p className="text-zinc-400 text-sm mt-2">
   Smart Video Clipping Platform
 </p>
