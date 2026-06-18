@@ -54,7 +54,9 @@ export async function POST(req: Request) {
         `clip-${Date.now()}-${index}.mp4`
       );
 
-      const cmd = `ffmpeg -y -i "${inputPath}" -ss ${start} -to ${end} -c:v libx264 -c:a aac "${outputPath}"`;
+      const duration = end - start;
+
+const cmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 -map 0:a? -vf "scale='min(720,iw)':-2,fps=30" -c:v libx264 -preset ultrafast -crf 28 -threads 1 -c:a aac -b:a 96k "${outputPath}"`;
 
       console.log("生成開始", outputPath);
       await execAsync(cmd);
