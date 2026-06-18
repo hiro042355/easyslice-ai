@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { readFile, unlink } from "fs/promises";
+import { access, readFile, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
 import AdmZip from "adm-zip";
@@ -21,7 +21,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const inputPath = path.resolve('.//tmp/downloaded.mp4');
+  const inputPath = path.join(os.tmpdir(), "downloaded.mp4");
+
+  try {
+    await access(inputPath);
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "ダウンロード済み動画が見つかりません" },
+      { status: 404 }
+    );
+  }
 
   const zip = new AdmZip();
   const outputPaths: string[] = [];
@@ -45,7 +54,7 @@ export async function POST(req: Request) {
         `clip-${Date.now()}-${index}.mp4`
       );
 
-      const cmd = `ffmpeg -y -ss ${start} -to ${end} -i "${inputPath}" -c:v copy -c:a aac "${outputPath}"`;
+      const cmd = `ffmpeg -y -i "${inputPath}" -ss ${start} -to ${end} -c:v libx264 -c:a aac "${outputPath}"`;
 
       console.log("生成開始", outputPath);
       await execAsync(cmd);
@@ -53,8 +62,13 @@ export async function POST(req: Request) {
 
       const fileBuffer = await readFile(outputPath);
 
+      const safeTitle =
+        typeof clip.title === "string" && clip.title.trim() !== ""
+          ? clip.title.replace(/[\\/:*?"<>|]/g, "_")
+          : `clip${index}`;
+
       zip.addFile(
-        `clip${index}_${start}-${end}.mp4`,
+        `clip${index}_${safeTitle}_${start}-${end}.mp4`,
         fileBuffer
       );
 

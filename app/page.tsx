@@ -5,6 +5,14 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 export default function Home() {
+  const [currentYoutubeUrl, setCurrentYoutubeUrl] = useState("");
+  const [zipFileName, setZipFileName] = useState("");
+const [generatedClipCount, setGeneratedClipCount] = useState(0);
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
+  const [localVideoUrl, setLocalVideoUrl] = useState("");
+  const [previewEnd, setPreviewEnd] = useState<number | null>(null);
+  const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [summary, setSummary] = useState("");
 const [fullText, setFullText] = useState("");
 const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([]);
@@ -15,6 +23,8 @@ const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([])
     start: "",
     end: "",
     reason: "",
+    title: "",
+    score: 0,
   },
 ]);
 const [successMessage, setSuccessMessage] = useState("");
@@ -25,6 +35,8 @@ const addClip = () => {
       start: "",
       end: "",
       reason: "",
+      title: "",
+      score: 0,
     },
   ]);
 };
@@ -143,22 +155,49 @@ setLoading(false);
     setThumbnail(info.thumbnail || "");
 
     const downloadRes = await fetch("/api/youtube-download", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: youtubeUrl,
-      }),
-    });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: youtubeUrl,
+  }),
+});
 
-    const result = await downloadRes.json();
+const result = await downloadRes.json();
 
-    console.log(result);
+console.log(result);
 
-   setVideoSrc("/api/video");
+if (!downloadRes.ok || !result.success) {
+  throw new Error(result.error || "動画ダウンロードに失敗しました");
+}
 
-    setProgress(100);
+setVideoSrc(`/api/video?t=${Date.now()}`);
+setCurrentYoutubeUrl(youtubeUrl);
+setClips([
+  {
+    start: "",
+    end: "",
+    reason: "",
+    title: "",
+    score: 0,
+  },
+]);
+
+setSuccessMessage("");
+setZipFileName("");
+setGeneratedClipCount(0);
+setPreviewEnd(null);
+setActivePreviewIndex(null);
+setDownloadUrl("");
+setCutVideoUrl("");
+setSummary("");
+setFullText("");
+setSubtitles([]);
+setStart("0");
+setEnd("");
+setProgress(100);
+    setCurrentYoutubeUrl(youtubeUrl);
     alert("ダウンロード完了");
   } catch (err) {
     console.error(err);
@@ -169,23 +208,43 @@ setLoading(false);
   }
 };
 const handleMultiCut = async () => {
-  const validClips = clips.filter(
-    (clip) =>
-      clip.start.trim() !== "" &&
-      clip.end.trim() !== ""
-  );
+  const durationLimit =
+    videoDuration && videoDuration > 0
+      ? videoDuration
+      : Infinity;
+
+  const validClips = clips
+    .filter(
+      (clip) =>
+        clip.start.trim() !== "" &&
+        clip.end.trim() !== ""
+    )
+    .map((clip) => {
+      const start = Math.max(0, Number(clip.start));
+      const end = Math.min(durationLimit, Number(clip.end));
+
+      return {
+        ...clip,
+        start: String(start),
+        end: String(end),
+      };
+    })
+    .filter((clip) => Number(clip.end) > Number(clip.start));
 
   if (validClips.length === 0) {
-    alert("クリップを入力してください");
+    alert("動画の長さ内に収まるクリップがありません");
     return;
   }
 
-  const hasInvalidClip = validClips.some(
-    (clip) => Number(clip.end) <= Number(clip.start)
+  const totalSeconds = validClips.reduce((total, clip) => {
+    return total + (Number(clip.end) - Number(clip.start));
+  }, 0);
+
+  const ok = window.confirm(
+    `${validClips.length}本 / 合計${totalSeconds}秒のクリップを生成します。よろしいですか？`
   );
 
-  if (hasInvalidClip) {
-    alert("終了時間は開始時間より後にしてください");
+  if (!ok) {
     return;
   }
 
@@ -216,12 +275,17 @@ const handleMultiCut = async () => {
         ? videoTitle.replace(/[\\/:*?"<>|]/g, "_")
         : "clips";
 
+    const fileName = `${safeTitle}_clips.zip`;
+
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${safeTitle}_clips.zip`;
+    a.download = fileName;
     a.click();
 
     URL.revokeObjectURL(url);
+
+    setZipFileName(fileName);
+    setGeneratedClipCount(validClips.length);
 
     setSuccessMessage(
       `🎉 ${validClips.length}個のクリップ生成完了`
@@ -238,42 +302,169 @@ const handleMultiCut = async () => {
     setLoading(false);
   }
 };
-const handleAiSuggest = async () => {
+const handleSubtitle = async () => {
+  if (!currentYoutubeUrl) {
+    alert("先に動画を取得してください");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/subtitle", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: currentYoutubeUrl,
+      }),
+    });
+
+    const data = await res.json();
+
+    setFullText(data.fullText ?? "");
+    setSubtitles(data.subtitles ?? []);
+
+    console.log(data.highlights);
+    console.log(data.subtitles);
+
+    if (data.highlights && data.highlights.length > 0) {
+      const newClips = data.highlights.slice(0, 5).map(
+        (highlight: { second: number; text: string; score: number }) => ({
+          start: String(highlight.second),
+          end: String(highlight.second + 30),
+          reason: highlight.text + ` (score:${highlight.score})`,
+          title: "字幕ハイライト候補",
+          score: highlight.score ?? 0,
+        })
+      );
+
+      setClips(newClips);
+      setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
+    } else if (data.subtitles && data.subtitles.length > 0) {
+      setSuccessMessage("字幕を取得しました。AI候補生成を使えます");
+    } else {
+      setSuccessMessage(
+        "字幕が見つかりませんでした。音楽・字幕なし動画の場合は「音声ハイライト生成」を使ってください。"
+      );
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+useEffect(() => {
+  const video = videoRef.current;
+
+  if (!video || previewEnd === null) return;
+
+  const handleTimeUpdate = () => {
+    if (video.currentTime >= previewEnd) {
+  video.pause();
+  setPreviewEnd(null);
+  setActivePreviewIndex(null);
+}
+  };
+
+  video.addEventListener("timeupdate", handleTimeUpdate);
+
+  return () => {
+    video.removeEventListener("timeupdate", handleTimeUpdate);
+  };
+}, [previewEnd]);
+ useEffect(() => {
+  if (!video) {
+    setLocalVideoUrl("");
+    return;
+  }
+
+  const url = URL.createObjectURL(video);
+  setLocalVideoUrl(url);
+
+  return () => {
+    URL.revokeObjectURL(url);
+  };
+}, [video]);
+const previewVideoUrl = videoSrc || localVideoUrl;
+const validClips = clips.filter(
+  (clip) =>
+    clip.start.trim() !== "" &&
+    clip.end.trim() !== "" &&
+    Number(clip.end) > Number(clip.start)
+);
+
+const totalClipSeconds = validClips.reduce((total, clip) => {
+  return total + (Number(clip.end) - Number(clip.start));
+}, 0);
+const resetClips = () => {
+  setClips([
+    {
+      start: "",
+      end: "",
+      reason: "",
+      title: "",
+      score: 0,
+    },
+  ]);
+
+  setSuccessMessage("");
+  setZipFileName("");
+  setGeneratedClipCount(0);
+  setPreviewEnd(null);
+  setActivePreviewIndex(null);
+};
+const singleClipDuration = Math.max(
+  0,
+  Number(end || 0) - Number(start || 0)
+);
+const handleUploadVideo = async (file: File | null) => {
+  if (!file) {
+    return;
+  }
+
   try {
     setLoading(true);
     setSuccessMessage("");
 
-   const res = await fetch(
-  "/api/ai-suggest",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      duration: videoDuration,
-    }),
-  }
-);
+    const formData = new FormData();
+    formData.append("video", file);
 
-    if (!res.ok) {
-      const message = await res.text();
-      throw new Error(message || "AI候補生成に失敗しました");
-    }
+    const res = await fetch("/api/upload-video", {
+      method: "POST",
+      body: formData,
+    });
 
     const data = await res.json();
 
-    setClips(
-  data.clips.map(
-    (clip: { start: string; end: string; reason: string }) => ({
-      start: clip.start,
-      end: clip.end,
-      reason: clip.reason,
-    })
-  )
-);
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "動画アップロードに失敗しました");
+    }
 
-    setSuccessMessage("AI候補を生成しました");
+    setVideo(file);
+    setVideoSrc(`/api/video?t=${Date.now()}`);
+    setCurrentYoutubeUrl("");
+
+    setClips([
+      {
+        start: "",
+        end: "",
+        reason: "",
+        title: "",
+        score: 0,
+      },
+    ]);
+
+    setSuccessMessage("動画をアップロードしました");
+    setZipFileName("");
+    setGeneratedClipCount(0);
+    setPreviewEnd(null);
+    setActivePreviewIndex(null);
+    setDownloadUrl("");
+    setCutVideoUrl("");
+    setSummary("");
+    setFullText("");
+    setSubtitles([]);
+    setStart("0");
+    setEnd("");
+    setProgress(0);
   } catch (err) {
     console.error(err);
 
@@ -286,144 +477,331 @@ const handleAiSuggest = async () => {
     setLoading(false);
   }
 };
-const handleAudioAnalyze = async () => {
-  const res = await fetch(
-    "/api/audio-analyze",
-    {
-      method: "POST",
-    }
-  );
+const parseTimeToSeconds = (timeText: string) => {
+  const normalized = timeText.replace(",", ".");
+  const parts = normalized.split(":");
 
-  const data = await res.json();
-
-  console.log(data);
-  alert("解析完了");
-};
-const setCurrentTimeAsStart = () => {
-  if (!videoRef.current) return;
-
-  setStart(
-    String(
-      Math.floor(
-        videoRef.current.currentTime
-      )
-    )
-  );
-};
-const handleAudioPeaks = async () => {
-  const res = await fetch("/api/audio-peaks", { method: "POST" });
-  const data = await res.json();
-
-  console.log("silenceEnds:", data.silenceEnds);
-
-  if (data.silenceEnds && data.silenceEnds.length > 0) {
-    const ends: number[] = data.silenceEnds;
-    
-    const newClips = ends.slice(0, 5).map((second: number, index: number) => {
-      // 次の無音区間の開始を終了秒にする（なければ+30秒）
-      const nextSecond = ends[index + 1] ?? second + 30;
-      return {
-        start: String(second),
-        end: String(nextSecond),
-        reason: `無音明け ${second}秒`,
-      };
-    });
-
-    setClips(newClips);
-    setSuccessMessage(`🎵 ${ends.length}件の候補を検出`);
-  } else {
-    alert("無音区間が検出されませんでした");
+  if (parts.length === 1) {
+    return Number(parts[0]);
   }
+
+  if (parts.length === 2) {
+    const minutes = Number(parts[0]);
+    const seconds = Number(parts[1]);
+
+    return minutes * 60 + seconds;
+  }
+
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+  const seconds = Number(parts[2]);
+
+  return hours * 3600 + minutes * 60 + seconds;
 };
-const handleSubtitle = async () => {
-  try {
-    const res = await fetch(
-      "/api/subtitle",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: youtubeUrl,
-        }),
-      }
+
+const parseSubtitleText = (text: string) => {
+  const normalized = text.replace(/\r/g, "");
+  const blocks = normalized.split(/\n\s*\n/);
+
+  const parsedFromBlocks = blocks
+  .map((block) => {
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const timeLine = lines.find((line) => line.includes("-->"));
+
+    if (!timeLine) {
+      return null;
+    }
+
+    const [startText] = timeLine.split("-->");
+    const second = Math.floor(parseTimeToSeconds(startText.trim()));
+
+    const textLines = lines.filter(
+      (line) =>
+        !line.includes("-->") &&
+        !/^\d+$/.test(line) &&
+        line.toUpperCase() !== "WEBVTT"
     );
 
-    const data = await res.json();
+    const subtitleText = textLines.join(" ").trim();
 
-    console.log(data.highlights);
-
-    if (data.highlights && data.highlights.length > 0) {
-      const newClips = data.highlights.slice(0, 5).map(
-  (highlight: { second: number; text: string; score: number }) => ({
-    start: String(highlight.second),
-    end: String(highlight.second + 30),
-    reason: highlight.text + ` (score:${highlight.score})`,
-  })
-);
-
-      setClips(newClips);
-setFullText(data.fullText ?? ""); // ← ここに追加
-setSubtitles(data.subtitles ?? []);
-setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
-     
-    } else {
-      alert("ハイライトが見つかりませんでした");
+    if (!Number.isFinite(second) || subtitleText === "") {
+      return null;
     }
+
+    return {
+      second,
+      text: subtitleText,
+    };
+  })
+  .filter((item) => item !== null) as {
+    second: number;
+    text: string;
+  }[];
+
+  if (parsedFromBlocks.length > 0) {
+    return parsedFromBlocks;
+  }
+
+  return normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [secondText, ...words] = line.split(/\s+/);
+      const second = Number(secondText);
+
+      return {
+        second,
+        text: words.join(" "),
+      };
+    })
+    .filter((item) => Number.isFinite(item.second) && item.text !== "");
+};
+const handleSubtitleFileUpload = async (file: File | null) => {
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const parsedSubtitles = parseSubtitleText(text);
+
+    if (parsedSubtitles.length === 0) {
+      alert("字幕ファイルを読み取れませんでした");
+      return;
+    }
+
+    const safeSubtitles = parsedSubtitles.filter((item) => {
+      if (!videoDuration || videoDuration <= 0) return true;
+
+      return item.second >= 0 && item.second <= videoDuration;
+    });
+
+    if (safeSubtitles.length === 0) {
+      alert("動画の長さ内にある字幕がありません");
+      return;
+    }
+
+    setSubtitles(safeSubtitles);
+    setFullText(safeSubtitles.map((item) => item.text).join(" "));
+
+    setSuccessMessage(
+      `字幕ファイルを読み込みました: ${safeSubtitles.length}行`
+    );
   } catch (err) {
     console.error(err);
+    alert("字幕ファイルの読み込みに失敗しました");
   }
+};
+const hasPreviewVideo = Boolean(previewVideoUrl);
+const hasSubtitles = subtitles.length > 0;
+const getScoreClassName = (score: number) => {
+  if (score >= 7) {
+    return "border-green-400/30 bg-green-400/10 text-green-300";
+  }
+
+  if (score >= 4) {
+    return "border-yellow-400/30 bg-yellow-400/10 text-yellow-300";
+  }
+
+  return "border-gray-400/30 bg-gray-400/10 text-gray-300";
+};
+
+const previewClip = (
+  clip: { start: string; end: string },
+  index: number
+) => {
+  const video = videoRef.current;
+
+  if (!video) {
+    alert("プレビュー動画がありません");
+    return;
+  }
+
+  const startSecond = Number(clip.start);
+  const endSecond = Number(clip.end);
+
+  if (isNaN(startSecond) || isNaN(endSecond) || endSecond <= startSecond) {
+    alert("開始秒・終了秒が不正です");
+    return;
+  }
+
+  setPreviewEnd(endSecond);
+  setActivePreviewIndex(index);
+
+  video.pause();
+  video.currentTime = startSecond;
+
+  video.addEventListener(
+    "seeked",
+    () => {
+      video.play().catch(console.error);
+    },
+    { once: true }
+  );
 };
 const handleSummary = async () => {
   try {
     const res = await fetch("/api/summary", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: fullText.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(), subtitles }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: fullText.replace(/\n/g, " ").replace(/\s+/g, " ").trim(),
+        subtitles,
+      }),
     });
-    console.log("fullText:", fullText.slice(0, 200));
-const data = await res.json();
-console.log("fullText1000:", fullText.slice(0, 1000));
-console.log("highlights:", data.highlights);
+
+    const data = await res.json();
+
     setSummary(
-  data.highlights
-    .map((item: any) => item.sentence)
-    .join("\n\n")
-);
-if (data.highlights && data.highlights.length > 0) {
-  const newClips = data.highlights.map((item: any) => ({
-    start: String(Math.max(0, item.second - 5)),
-    end: String(item.second + 25),
-    reason: item.sentence,
-  }));
-  setClips(newClips);
-  setSuccessMessage(`🤖 ${data.highlights.length}件のAI候補を生成`);
-}
+      data.highlights
+        ?.map((item: any) => item.sentence)
+        .join("\n\n") ?? ""
+    );
+
+    if (data.highlights && data.highlights.length > 0) {
+      const newClips = data.highlights.map((item: any) => ({
+        start: String(Math.max(0, item.second - 5)),
+        end: String(item.second + 25),
+        reason: item.sentence,
+        title: "AI要約候補",
+        score: item.score ?? 0,
+      }));
+
+      setClips(newClips);
+      setSuccessMessage(`🤖 ${data.highlights.length}件のAI候補を生成`);
+    }
   } catch (err) {
     console.error(err);
   }
 };
-const setCurrentTimeAsEnd = () => {
-  if (!videoRef.current) return;
 
-  setEnd(
-    String(
-      Math.floor(
-        videoRef.current.currentTime
-      )
-    )
-  );
-};
-  // ⏱ 開始時間でプレビュー移動
-  useEffect(() => {
-    if (!videoRef.current) return;
-    const sec = Number(start);
-    if (!isNaN(sec)) {
-      videoRef.current.currentTime = sec;
+const handleAiHighlight = async () => {
+  if (aiLoading) {
+    return;
+  }
+
+  if (subtitles.length === 0) {
+    alert("先に字幕を取得してください");
+    return;
+  }
+
+  try {
+    setAiLoading(true);
+    setSuccessMessage("");
+
+    const res = await fetch("/api/ai-highlight", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        subtitles,
+        videoDuration,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "AIハイライト生成に失敗しました");
     }
-  }, [start]);
 
+    const sortedClips = [...data.clips].sort(
+      (a, b) => Number(b.score || 0) - Number(a.score || 0)
+    );
+
+    setClips(
+      sortedClips.map(
+        (clip: {
+          start: string;
+          end: string;
+          reason: string;
+          title?: string;
+          score?: number;
+        }) => ({
+          start: String(clip.start),
+          end: String(clip.end),
+          reason: clip.reason,
+          title: clip.title ?? "",
+          score: clip.score ?? 0,
+        })
+      )
+    );
+
+    setSuccessMessage(
+      `${sortedClips.length}個のAIハイライト候補を生成しました`
+    );
+  } catch (err) {
+    console.error(err);
+
+    const message =
+      err instanceof Error
+        ? err.message
+        : "不明なエラー";
+
+    setSuccessMessage(
+      message.includes("混雑") || message.includes("上限")
+        ? message
+        : `AI候補生成に失敗しました。理由: ${message}`
+    );
+  } finally {
+    setAiLoading(false);
+  }
+};
+
+const handleAudioEnergy = async () => {
+  try {
+    setLoading(true);
+    setSuccessMessage("");
+
+    const res = await fetch("/api/audio-energy", {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "音声ハイライト生成に失敗しました");
+    }
+
+    setClips(
+      data.clips.map(
+        (clip: {
+          start: string;
+          end: string;
+          reason: string;
+          title: string;
+          score: number;
+        }) => ({
+          start: String(clip.start),
+          end: String(clip.end),
+          reason: clip.reason,
+          title: clip.title,
+          score: clip.score,
+        })
+      )
+    );
+
+    setSuccessMessage(
+      `🎧 ${data.clips.length}件の音声ハイライト候補を生成`
+    );
+  } catch (err) {
+    console.error(err);
+
+    alert(
+      err instanceof Error
+        ? err.message
+        : "不明なエラー"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 text-white p-6">
       <div className="max-w-xl mx-auto mt-10 backdrop-blur-md bg-white/10 p-8 rounded-xl shadow-xl border border-white/20 animate-fadeIn">
@@ -489,11 +867,53 @@ hover:shadow-cyan-500/40
         {/* ファイル選択 */}
         <label className="block mb-2">動画ファイルを選択</label>
         <input
-          type="file"
-          accept="video/*"
-          onChange={(e) => setVideo(e.target.files?.[0] || null)}
-          className="mb-4"
-        />
+  type="file"
+  accept="video/*"
+  onChange={(e) => handleUploadVideo(e.target.files?.[0] || null)}
+  className="mb-4"
+/>
+<div className="mt-4">
+  <label className="block mb-2 text-sm text-gray-300">
+    字幕ファイルを選択（txt）
+  </label>
+
+  <input
+    type="file"
+    accept=".txt,.srt,.vtt"
+    onChange={(e) =>
+      handleSubtitleFileUpload(e.target.files?.[0] || null)
+    }
+    className="mb-4"
+  />
+</div>
+<div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+  <div className="rounded-xl border border-white/10 bg-zinc-900/70 p-4">
+    <p className="text-sm text-gray-400">
+      動画
+    </p>
+
+    <p className={hasPreviewVideo ? "mt-1 font-semibold text-green-300" : "mt-1 font-semibold text-gray-500"}>
+      {hasPreviewVideo
+        ? `アップロード済み / ${Math.floor(videoDuration || 0)}秒`
+        : "未アップロード"}
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-white/10 bg-zinc-900/70 p-4">
+    <p className="text-sm text-gray-400">
+      字幕
+    </p>
+
+    <p className={hasSubtitles ? "mt-1 font-semibold text-green-300" : "mt-1 font-semibold text-gray-500"}>
+      {hasSubtitles
+        ? `${subtitles.length}行 読み込み済み`
+        : "未読み込み"}
+    </p>
+  </div>
+</div>
+<p className="mt-3 text-xs text-gray-400">
+  字幕がある動画は「AIが内容から候補生成」、字幕がない動画や音楽は「音声ハイライト生成」を使ってください。
+</p>
 
         {/* 切り抜き範囲 */}
 <div className="mb-6">
@@ -530,7 +950,27 @@ hover:shadow-cyan-500/40
     <h2 className="text-lg font-semibold text-cyan-300">
       複数クリップ
     </h2>
+{zipFileName && generatedClipCount > 0 && (
+  <div className="mt-4 rounded-xl border border-green-400/20 bg-green-400/10 p-4">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-green-300">
+          一括生成完了
+        </p>
+        <p className="mt-1 text-sm text-gray-300">
+          {generatedClipCount}本のクリップをZIPにまとめました
+        </p>
+        <p className="mt-1 text-xs text-gray-400">
+          {zipFileName}
+        </p>
+      </div>
 
+      <span className="rounded-full border border-green-400/30 px-3 py-1 text-xs font-semibold text-green-300">
+        ZIP
+      </span>
+    </div>
+  </div>
+)}
     <span className="text-sm text-gray-400">
       {clips.length} clips
     </span>
@@ -539,109 +979,230 @@ hover:shadow-cyan-500/40
   {clips.map((clip, index) => (
     <div
       key={index}
-      className="mb-4 rounded-xl border border-white/10 bg-zinc-800 p-4"
+      className={
+  activePreviewIndex === index
+    ? "mb-4 rounded-xl border border-cyan-400 bg-cyan-500/10 p-4 shadow-lg shadow-cyan-500/20"
+    : "mb-4 rounded-xl border border-white/10 bg-zinc-800 p-4"
+}
     >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-cyan-300 font-semibold">
-          Clip {index + 1}
+     <div className="flex items-start justify-between gap-4 mb-3">
+  <div className="min-w-0 flex-1">
+    <p className="text-cyan-300 font-semibold">
+      Clip {index + 1}
+    </p>
+
+    {clip.title && (
+      <p className="mt-1 text-sm font-semibold text-white">
+        {clip.title}
+      </p>
+    )}
+
+    {clip.reason && (
+      <div className="mt-1">
+        <p
+          className={
+            expandedClipIndex === index
+              ? "text-sm text-purple-300"
+              : "line-clamp-4 text-sm text-purple-300"
+          }
+        >
+          {clip.reason}
         </p>
-{clip.reason && (
-  <p className="mb-3 text-sm text-purple-300">
-    {clip.reason}
-  </p>
-)}
-        {clips.length > 1 && (
+
+        {clip.reason.length > 120 && (
           <button
             type="button"
-            onClick={() => removeClip(index)}
-            className="text-sm text-red-400 hover:text-red-300"
+            onClick={() =>
+              setExpandedClipIndex(
+                expandedClipIndex === index ? null : index
+              )
+            }
+            className="mt-2 text-xs font-semibold text-cyan-300 hover:text-cyan-200"
           >
-            削除
+            {expandedClipIndex === index ? "閉じる" : "全文を見る"}
           </button>
         )}
       </div>
+    )}
+  </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block mb-1 text-xs text-gray-400">
-            開始秒
-          </label>
-          <input
-            type="number"
-            placeholder="10"
-            value={clip.start}
-            onChange={(e) =>
-              updateClip(index, "start", e.target.value)
-            }
-            className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
-          />
-        </div>
+  <div className="ml-4 flex shrink-0 flex-col items-end gap-3">
+    {clip.score > 0 && (
+      <span
+        className={`rounded-full border px-3 py-2 text-xs font-semibold ${getScoreClassName(
+          clip.score
+        )}`}
+      >
+        score {clip.score}
+      </span>
+    )}
 
-        <div>
-          <label className="block mb-1 text-xs text-gray-400">
-            終了秒
-          </label>
-          <input
-            type="number"
-            placeholder="20"
-            value={clip.end}
-            onChange={(e) =>
-              updateClip(index, "end", e.target.value)
-            }
-            className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
-          />
-        </div>
-      </div>
+    <button
+      type="button"
+      onClick={() => previewClip(clip, index)}
+      className="rounded-lg border border-cyan-400/30 px-3 py-1 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+    >
+      プレビュー
+    </button>
+
+    {clips.length > 1 && (
+      <button
+        type="button"
+        onClick={() => removeClip(index)}
+        className="rounded-lg border border-red-400/30 px-3 py-1 text-sm font-semibold text-red-400 hover:bg-red-400/10"
+      >
+        削除
+      </button>
+    )}
+  </div>
+</div>
+
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <div>
+    <label className="block mb-1 text-xs text-gray-400">
+      開始秒
+    </label>
+
+    <input
+      type="number"
+      placeholder="10"
+      value={clip.start}
+      onChange={(e) =>
+        updateClip(index, "start", e.target.value)
+      }
+      className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
+    />
+
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          updateClip(
+            index,
+            "start",
+            String(Math.max(0, Number(clip.start) - 5))
+          )
+        }
+        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+      >
+        -5秒
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          updateClip(
+            index,
+            "start",
+            String(Number(clip.start) + 5)
+          )
+        }
+        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+      >
+        +5秒
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <label className="block mb-1 text-xs text-gray-400">
+      終了秒
+    </label>
+
+    <input
+      type="number"
+      placeholder="20"
+      value={clip.end}
+      onChange={(e) =>
+        updateClip(index, "end", e.target.value)
+      }
+      className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
+    />
+
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          updateClip(
+            index,
+            "end",
+            String(Math.max(0, Number(clip.end) - 5))
+          )
+        }
+        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+      >
+        -5秒
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          updateClip(
+            index,
+            "end",
+            String(Number(clip.end) + 5)
+          )
+        }
+        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+      >
+        +5秒
+      </button>
+    </div>
+  </div>
+</div>
     </div>
   ))}
-
-  <div className="flex gap-2">
+<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-sm text-gray-300">
+  生成予定:{" "}
+  <span className="font-semibold text-cyan-300">
+    {validClips.length}
+  </span>
+  本 / 合計{" "}
+  <span className="font-semibold text-cyan-300">
+    {totalClipSeconds}
+  </span>
+  秒
+</div>
+  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
     <button
       type="button"
       onClick={addClip}
-      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 transition"
+      className="w-full px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 transition"
     >
       ＋ クリップ追加
     </button>
 <button
   type="button"
-  onClick={handleAiSuggest}
-  disabled={loading}
+  onClick={handleSubtitle}
+  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
+>
+  YouTube字幕取得
+</button>
+<button
+  type="button"
+  onClick={handleAiHighlight}
+  disabled={aiLoading || subtitles.length === 0}
   className={
-    loading
+    aiLoading || subtitles.length === 0
       ? "px-4 py-2 rounded-xl bg-gray-600 cursor-not-allowed"
       : "px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 transition"
   }
 >
-  AI候補生成
+  {aiLoading ? "AI解析中..." : "字幕AIハイライト"}
 </button>
-<button
-  onClick={handleAudioAnalyze}
-  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500"
->
-  音量解析
-</button>
-<button
-  onClick={handleAudioPeaks}
-  className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500"
->
-  音量ピーク取得
-</button>
-<button
-  type="button"
-  onClick={handleSubtitle}
-  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
->
-  字幕取得
-</button>
+{aiLoading && (
+  <div className="mt-4 animate-pulse text-purple-300 font-semibold">
+    AIが字幕を解析中...
+  </div>
+)}
 <button
   type="button"
   onClick={handleSummary}
   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
 >
-  AI要約
+  字幕要約
 </button>
-    <button
+       <button
       type="button"
       onClick={handleMultiCut}
       disabled={loading}
@@ -651,13 +1212,32 @@ hover:shadow-cyan-500/40
           : "px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 transition"
       }
     >
-      {loading ? "生成中..." : "一括生成"}
+      {loading ? "生成中..." : "ZIP一括生成"}
     </button>
+    <button
+  type="button"
+  onClick={resetClips}
+  className="w-full rounded-xl bg-zinc-700 px-4 py-2 transition hover:bg-zinc-600"
+>
+  リセット
+</button>
+<button
+  type="button"
+  onClick={handleAudioEnergy}
+  disabled={loading}
+  className={
+    loading
+      ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
+      : "w-full rounded-xl bg-emerald-600 px-4 py-2 transition hover:bg-emerald-500"
+  }
+>
+  音声ハイライト
+</button>
   </div>
 
-  {loading && (
+    {loading && (
     <div className="mt-4 animate-pulse text-cyan-300 font-semibold">
-      📦 ZIP生成中...
+      ZIP生成中... クリップ数が多い場合は少し時間がかかります
     </div>
   )}
 
@@ -667,70 +1247,29 @@ hover:shadow-cyan-500/40
     </div>
   )}
 </div>
+
 {summary && (
   <div className="mt-4 p-4 rounded-xl bg-zinc-800">
     <p className="font-bold mb-2">AI要約</p>
     <p className="text-sm text-gray-300">{summary}</p>
   </div>
 )}
+
 {/* プレビュー */}
-{(video || videoSrc) && (
-  <video
-    ref={videoRef}
-    src={videoSrc}
-    controls
-    className="w-full rounded"
-  />
+{previewVideoUrl && (
+<video
+  ref={videoRef}
+  src={previewVideoUrl}
+  controls
+  preload="metadata"
+  onLoadedMetadata={(e) => {
+    setVideoDuration(Math.floor(e.currentTarget.duration));
+  }}
+  className="w-full rounded"
+/>
 )}
 
-<div className="flex gap-2 mt-3">
-  <button
-  onClick={setStartFromCurrent}
- className="
-px-4 py-2
-bg-zinc-700
-hover:bg-zinc-600
-text-white
-rounded-xl
-transition
-shadow-md
-"
->
-  現在位置を開始に設定
-</button>
 
-<button
-  onClick={setEndFromCurrent}
- className="
-px-4 py-2
-bg-zinc-700
-hover:bg-zinc-600
-text-white
-rounded-xl
-transition
-shadow-md
-ml-2
-"
->
-  現在位置を終了に設定
-</button>
-</div>
-
-{/* 切り抜き */}
-<form onSubmit={(e) => e.preventDefault()}>
-  <button
-  type="button"
-  onClick={handleCut}
-    disabled={loading}
-    className={
-      loading
-        ? "w-full py-3 mt-4 rounded-lg font-semibold bg-gray-500 cursor-not-allowed"
-        : "w-full py-3 mt-4 rounded-lg font-semibold bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-400 hover:to-cyan-300 transition-all duration-300 shadow-lg hover:shadow-cyan-400/40 hover:scale-[1.02]"
-    }
-  >
-    ✂️ 切り抜きを開始する
-  </button>
-</form>
 
 {loading && (
   <div className="mt-6">
@@ -775,7 +1314,7 @@ ml-2
         </h2>
 
         <p className="mt-1 text-sm text-gray-400">
-          {start}秒 → {end}秒 / 長さ {Number(end) - Number(start)} 秒
+          {start}秒 → {end}秒 / 長さ {Math.max(0, Math.max(0, Number(end) - Number(start)))} 秒
         </p>
       </div>
 
@@ -821,7 +1360,7 @@ ml-2
           Duration
         </p>
         <p className="font-semibold text-white">
-          {Number(end) - Number(start)}s
+          {Math.max(0, Number(end) - Number(start))}s
         </p>
       </div>
     </div>

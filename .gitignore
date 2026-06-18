@@ -43,4 +43,8 @@ next-env.d.ts
 downloaded.mp4
 downloaded.*.mp4
 subtitle*.json3
+cookies.txt
+tmp
+*.mp4
+*.zip
 yt-dlp.exe
