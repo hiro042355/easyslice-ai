@@ -802,6 +802,8 @@ const handleAudioEnergy = async () => {
     setLoading(false);
   }
 };
+const enableYoutube =
+  process.env.NEXT_PUBLIC_ENABLE_YOUTUBE === "true";
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 text-white p-6">
       <div className="max-w-xl mx-auto mt-10 backdrop-blur-md bg-white/10 p-8 rounded-xl shadow-xl border border-white/20 animate-fadeIn">
@@ -817,23 +819,38 @@ const handleAudioEnergy = async () => {
 <p className="text-zinc-400 text-sm mt-2">
   Smart Video Clipping Platform
 </p>
-<h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
-  YouTubeから取得
-</h2>
-        {/* YouTube URL */}
-        <div className="mb-4">
-          <label className="block mb-2 font-semibold">YouTube URL</label>
-          <input
-            type="text"
-            value={youtubeUrl}
-            onChange={(e) => setYoutubeUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=xxxx"
-            className="w-full p-2 rounded bg-white/20 border border-white/30"
-          />
-        </div>
-        <p className="mt-2 mb-4 text-xs text-yellow-300">
-  YouTube取得はローカル環境向けの実験機能です。公開版では動画アップロードを推奨します。
-</p>
+{enableYoutube && (
+  <>
+    <h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
+      YouTubeから取得
+    </h2>
+
+    {/* YouTube URL */}
+    <div className="mb-4">
+      <label className="block mb-2 font-semibold">YouTube URL</label>
+      <input
+        type="text"
+        value={youtubeUrl}
+        onChange={(e) => setYoutubeUrl(e.target.value)}
+        placeholder="https://www.youtube.com/watch?v=xxxx"
+        className="w-full p-2 rounded bg-white/20 border border-white/30"
+      />
+    </div>
+
+    <p className="mt-2 mb-4 text-xs text-yellow-300">
+      YouTube取得はローカル環境向けの実験機能です。公開版では動画アップロードを推奨します。
+    </p>
+
+    <button
+      type="button"
+      onClick={handleFetchYoutube}
+      disabled={loading}
+      className="w-full py-3 mb-4 rounded-lg font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 transition-all duration-300 shadow-lg hover:shadow-red-500/40"
+    >
+      YouTubeから動画を取得
+    </button>
+  </>
+)}
 {videoTitle && (
   <div className="mb-6 overflow-hidden rounded-xl border border-cyan-500/20 bg-zinc-900 shadow-xl shadow-cyan-500/10 hover:shadow-cyan-500/30 transition-all duration-300">
     
@@ -857,24 +874,7 @@ const handleAudioEnergy = async () => {
 
   </div>
 )}
-        <button
-          onClick={handleFetchYoutube}
-          className="
-w-full py-3 mb-4 rounded-xl
-font-semibold
-bg-gradient-to-r
-from-cyan-500
-to-blue-500
-hover:from-cyan-400
-hover:to-blue-400
-transition-all
-duration-300
-shadow-lg
-hover:shadow-cyan-500/40
-"
-        >
-          🔽 YouTube から動画を取得する
-        </button>
+
 <h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
   動画をアップロード
 </h2>
@@ -1188,13 +1188,15 @@ hover:shadow-cyan-500/40
     >
       ＋ クリップ追加
     </button>
-<button
-  type="button"
-  onClick={handleSubtitle}
-  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
->
-  YouTube字幕取得
-</button>
+{enableYoutube && (
+  <button
+    type="button"
+    onClick={handleSubtitle}
+    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition"
+  >
+    YouTube字幕取得
+  </button>
+)}
 <button
   type="button"
   onClick={handleAiHighlight}
