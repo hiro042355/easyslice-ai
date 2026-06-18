@@ -15,6 +15,7 @@
 
 - [ ] `.env.local` をGitHubにコミットしていない
 - [ ] `GEMINI_API_KEY` を本番環境の環境変数に設定する
+- [ ] `NEXT_PUBLIC_ENABLE_YOUTUBE=false` を公開環境に設定する
 - [ ] Gemini APIキーをフロントエンドに書いていない
 - [ ] `NEXT_PUBLIC_GEMINI_API_KEY` を使っていない
 
