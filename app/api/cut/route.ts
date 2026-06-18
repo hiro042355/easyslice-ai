@@ -21,9 +21,16 @@ export async function POST(req: Request) {
   let shouldDeleteInput = false;
 
   if (isYoutube) {
-    inputPath = path.join(tmpDir, "downloaded.mp4");
-  } else {
-    const bytes = await file.arrayBuffer();
+  inputPath = path.join(tmpDir, "downloaded.mp4");
+} else {
+  if (!file) {
+    return NextResponse.json(
+      { error: "動画ファイルがありません" },
+      { status: 400 }
+    );
+  }
+
+  const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
     inputPath = path.join(tmpDir, `input-${Date.now()}.mp4`);
