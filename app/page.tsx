@@ -811,6 +811,9 @@ const handleAudioEnergy = async () => {
 <p className="text-zinc-400 text-sm mt-2">
   Smart Video Clipping Platform
 </p>
+<h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
+  YouTubeから取得
+</h2>
         {/* YouTube URL */}
         <div className="mb-4">
           <label className="block mb-2 font-semibold">YouTube URL</label>
@@ -822,6 +825,9 @@ const handleAudioEnergy = async () => {
             className="w-full p-2 rounded bg-white/20 border border-white/30"
           />
         </div>
+        <p className="mt-2 mb-4 text-xs text-yellow-300">
+  YouTube取得はローカル環境向けの実験機能です。公開版では動画アップロードを推奨します。
+</p>
 {videoTitle && (
   <div className="mb-6 overflow-hidden rounded-xl border border-cyan-500/20 bg-zinc-900 shadow-xl shadow-cyan-500/10 hover:shadow-cyan-500/30 transition-all duration-300">
     
@@ -863,7 +869,9 @@ hover:shadow-cyan-500/40
         >
           🔽 YouTube から動画を取得する
         </button>
-
+<h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
+  動画をアップロード
+</h2>
         {/* ファイル選択 */}
         <label className="block mb-2">動画ファイルを選択</label>
         <input
@@ -873,9 +881,12 @@ hover:shadow-cyan-500/40
   className="mb-4"
 />
 <div className="mt-4">
+  <h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
+  字幕ファイル
+</h2>
   <label className="block mb-2 text-sm text-gray-300">
-    字幕ファイルを選択（txt）
-  </label>
+  字幕ファイルを選択（txt / srt / vtt）
+</label>
 
   <input
     type="file"
