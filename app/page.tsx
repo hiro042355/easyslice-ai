@@ -804,6 +804,45 @@ const handleAudioEnergy = async () => {
 };
 const enableYoutube =
   process.env.NEXT_PUBLIC_ENABLE_YOUTUBE === "true";
+  const handleVideoFileUpload = async (file: File | null) => {
+  if (!file) return;
+
+  try {
+    setLoading(true);
+    setSuccessMessage("");
+
+    setVideo(file);
+
+    const formData = new FormData();
+    formData.append("video", file);
+
+    const res = await fetch("/api/upload-video", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error("動画アップロードに失敗しました");
+    }
+
+    setVideoSrc(`/api/video?t=${Date.now()}`);
+    setVideoDuration(0);
+    setDownloadUrl("");
+    setCutVideoUrl("");
+
+    setSuccessMessage("動画アップロード完了");
+  } catch (err) {
+    console.error(err);
+
+    alert(
+      err instanceof Error
+        ? err.message
+        : "動画アップロードに失敗しました"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 text-white p-6">
       <div className="max-w-xl mx-auto mt-10 backdrop-blur-md bg-white/10 p-8 rounded-xl shadow-xl border border-white/20 animate-fadeIn">
@@ -875,33 +914,61 @@ const enableYoutube =
   </div>
 )}
 
-<h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
+<h2 className="mb-3 text-lg font-semibold text-cyan-300">
   動画をアップロード
 </h2>
-        {/* ファイル選択 */}
-        <label className="block mb-2">動画ファイルを選択</label>
-        <input
+
+<label className="block cursor-pointer rounded-xl border-2 border-dashed border-cyan-500/40 bg-zinc-900/60 p-5 transition hover:border-cyan-400 hover:bg-cyan-500/10">
+  <input
   type="file"
   accept="video/*"
-  onChange={(e) => handleUploadVideo(e.target.files?.[0] || null)}
-  className="mb-4"
+  onChange={(e) => handleVideoFileUpload(e.target.files?.[0] || null)}
+  className="hidden"
 />
+
+  <div className="text-center">
+    <p className="text-base font-semibold text-white">
+      ここをクリックして動画を選択
+    </p>
+
+    <p className="mt-2 text-sm text-gray-400">
+      MP4などの動画ファイルをアップロードできます
+    </p>
+
+    <p className="mt-3 text-sm font-semibold text-cyan-300">
+      {video ? video.name : "未選択"}
+    </p>
+  </div>
+</label>
 <div className="mt-4">
-  <h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
+  <h2 className="mb-3 text-lg font-semibold text-cyan-300">
   字幕ファイル
 </h2>
-  <label className="block mb-2 text-sm text-gray-300">
-  字幕ファイルを選択（txt / srt / vtt）
-</label>
 
+<label className="block cursor-pointer rounded-xl border-2 border-dashed border-purple-500/40 bg-zinc-900/60 p-5 transition hover:border-purple-400 hover:bg-purple-500/10">
   <input
     type="file"
     accept=".txt,.srt,.vtt"
-    onChange={(e) =>
-      handleSubtitleFileUpload(e.target.files?.[0] || null)
-    }
-    className="mb-4"
+    onChange={(e) => handleSubtitleFileUpload(e.target.files?.[0] || null)}
+    className="hidden"
   />
+
+  <div className="text-center">
+    <p className="text-base font-semibold text-white">
+      ここをクリックして字幕ファイルを選択
+    </p>
+
+    <p className="mt-2 text-sm text-gray-400">
+      .txt / .srt / .vtt に対応しています
+    </p>
+
+    <p className="mt-3 text-sm font-semibold text-purple-300">
+      {subtitles.length > 0
+        ? `${subtitles.length}行の字幕を読み込み済み`
+        : "未選択"}
+    </p>
+  </div>
+</label>
 </div>
 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
   <div className="rounded-xl border border-white/10 bg-zinc-900/70 p-4">
@@ -1278,11 +1345,14 @@ const enableYoutube =
 {previewVideoUrl && (
 <video
   ref={videoRef}
-  src={previewVideoUrl}
+  src={videoSrc}
   controls
-  preload="metadata"
   onLoadedMetadata={(e) => {
-    setVideoDuration(Math.floor(e.currentTarget.duration));
+    const duration = Math.floor(e.currentTarget.duration);
+
+    if (Number.isFinite(duration) && duration > 0) {
+      setVideoDuration(duration);
+    }
   }}
   className="w-full rounded"
 />
