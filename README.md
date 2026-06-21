@@ -98,3 +98,10 @@ NEXT_PUBLIC_ENABLE_YOUTUBE=true
 - `false`: YouTube関連UIを非表示
 
 公開版では、YouTube機能は不安定になる可能性があるため、`false` を推奨します。
+
+### 今後の予定
+
+- Shorts / TikTok / Reels向けの9:16出力
+- 1080×1920の縦動画生成
+- まずは中央クロップで対応
+- 将来的に人物・顔追尾クロップに対応

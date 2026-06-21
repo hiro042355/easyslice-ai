@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toPng } from "html-to-image";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+
 
 export default function Home() {
  const [postAssets, setPostAssets] = useState<
@@ -986,6 +988,35 @@ const handleScriptGenerate = async () => {
     setLoading(false);
   }
 };
+const copyText = async (text: string) => {
+  if (!text.trim()) {
+    alert("コピーする内容がありません");
+    return;
+  }
+
+  await navigator.clipboard.writeText(text);
+  setSuccessMessage("コピーしました");
+};
+const downloadThumbnail = async (clipIndex: number) => {
+  const element = document.getElementById(`thumbnail-preview-${clipIndex}`);
+
+  if (!element) {
+    alert("サムネプレビューが見つかりません");
+    return;
+  }
+
+  const dataUrl = await toPng(element, {
+    cacheBust: true,
+    pixelRatio: 2,
+  });
+
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = `thumbnail-${clipIndex}.png`;
+  a.click();
+
+  setSuccessMessage("サムネ画像を保存しました");
+};
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 text-white p-6">
       <div className="max-w-xl mx-auto mt-10 backdrop-blur-md bg-white/10 p-8 rounded-xl shadow-xl border border-white/20 animate-fadeIn">
@@ -1569,12 +1600,23 @@ const handleScriptGenerate = async () => {
       </div>
 
       <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
-        <p className="text-sm font-semibold text-amber-300">
-          Full Script
-        </p>
-        <p className="mt-2 whitespace-pre-wrap leading-7 text-gray-100">
-          {scriptResult.fullScript}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+  <p className="text-sm font-semibold text-amber-300">
+    Full Script
+  </p>
+
+  <button
+    type="button"
+    onClick={() => copyText(scriptResult.fullScript)}
+    className="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500"
+  >
+    台本をコピー
+  </button>
+</div>
+
+<p className="mt-2 whitespace-pre-wrap leading-7 text-gray-100">
+  {scriptResult.fullScript}
+</p>
       </div>
     </div>
   </div>
@@ -1602,14 +1644,52 @@ const handleScriptGenerate = async () => {
             Clip {item.clipIndex}
           </p>
 
-          <h3 className="mt-2 font-bold text-white">
-            {item.postTitle}
-          </h3>
+         <div className="mt-2 flex items-start justify-between gap-3">
+  <h3 className="font-bold text-white">
+    {item.postTitle}
+  </h3>
 
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-300">
-            {item.description}
-          </p>
+  <button
+    type="button"
+    onClick={() => copyText(item.postTitle)}
+    className="shrink-0 rounded-lg bg-fuchsia-600 px-3 py-1 text-xs font-semibold text-white hover:bg-fuchsia-500"
+  >
+    タイトルコピー
+  </button>
+</div>
 
+          <div className="mt-3 rounded-lg bg-zinc-900/60 p-3">
+  <div className="mb-2 flex items-center justify-between gap-3">
+    <p className="text-xs font-semibold text-gray-400">
+      説明文
+    </p>
+
+    <button
+      type="button"
+      onClick={() => copyText(item.description)}
+      className="rounded-lg bg-fuchsia-600 px-3 py-1 text-xs font-semibold text-white hover:bg-fuchsia-500"
+    >
+      説明文コピー
+    </button>
+  </div>
+
+  <p className="whitespace-pre-wrap text-sm leading-6 text-gray-300">
+    {item.description}
+  </p>
+</div>
+<div className="mt-3 flex items-center justify-between gap-3">
+  <p className="text-xs font-semibold text-gray-400">
+    ハッシュタグ
+  </p>
+
+  <button
+    type="button"
+    onClick={() => copyText(item.hashtags.join(" "))}
+    className="rounded-lg bg-fuchsia-600 px-3 py-1 text-xs font-semibold text-white hover:bg-fuchsia-500"
+  >
+    タグコピー
+  </button>
+</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {item.hashtags.map((tag) => (
               <span
@@ -1626,12 +1706,43 @@ const handleScriptGenerate = async () => {
             item.thumbnailLayout ||
             item.thumbnailMood) && (
             <div className="mt-4 rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4">
-              <p className="text-sm font-semibold text-yellow-300">
-                サムネ案
-              </p>
+             <div className="flex items-center justify-between gap-3">
+  <p className="text-sm font-semibold text-yellow-300">
+    サムネ案
+  </p>
+
+  <button
+    type="button"
+    onClick={() =>
+      copyText(
+        [
+          item.thumbnailText,
+          item.thumbnailSubText,
+          item.thumbnailLayout ? `構成: ${item.thumbnailLayout}` : "",
+          item.thumbnailMood ? `雰囲気: ${item.thumbnailMood}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      )
+    }
+    className="rounded-lg bg-yellow-600 px-3 py-1 text-xs font-semibold text-white hover:bg-yellow-500"
+  >
+    サムネ案コピー
+  </button>
+  <button
+  type="button"
+  onClick={() => downloadThumbnail(item.clipIndex)}
+  className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+>
+  PNG保存
+</button>
+</div>
 
               {item.thumbnailText && (
-                <div className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10">
+               <div
+  id={`thumbnail-preview-${item.clipIndex}`}
+  className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
+>
                   <div className="flex h-full flex-col justify-between">
                     <div className="flex items-center justify-between">
                       <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950">
