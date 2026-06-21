@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
       const duration = end - start;
 
-const cmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 -map 0:a? -vf "scale='min(720,iw)':-2,fps=30" -c:v libx264 -preset ultrafast -crf 28 -threads 1 -c:a aac -b:a 96k "${outputPath}"`;
+const cmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 -map 0:a? -c copy -avoid_negative_ts make_zero -movflags +faststart "${outputPath}"`;
 
       console.log("生成開始", outputPath);
       await execAsync(cmd);
