@@ -905,7 +905,6 @@ const handlePostAssets = async () => {
   try {
     setLoading(true);
     setSuccessMessage("");
-    setScriptResult(null);
 
     const res = await fetch("/api/post-assets", {
       method: "POST",
@@ -1529,13 +1528,6 @@ const handleScriptGenerate = async () => {
     </div>
   </div>
 )}
-
-{postAssets.length > 0 && (
-  <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
-    <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-fuchsia-300">
-        投稿素材
-      </h2>
 {scriptResult && (
   <div className="mt-6 rounded-xl border border-amber-500/20 bg-zinc-900/70 p-4">
     <div className="mb-4 flex items-center justify-between">
@@ -1587,6 +1579,14 @@ const handleScriptGenerate = async () => {
     </div>
   </div>
 )}
+
+{postAssets.length > 0 && (
+  <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
+    <div className="mb-4 flex items-center justify-between">
+      <h2 className="text-lg font-semibold text-fuchsia-300">
+        投稿素材
+      </h2>
+
       <span className="text-sm text-gray-400">
         {postAssets.length} items
       </span>
@@ -1684,7 +1684,6 @@ const handleScriptGenerate = async () => {
     </div>
   </div>
 )}
-
 {summary && (
   <div className="mt-4 p-4 rounded-xl bg-zinc-800">
     <p className="font-bold mb-2">AI要約</p>
