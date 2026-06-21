@@ -5,12 +5,16 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 export default function Home() {
-  const [postAssets, setPostAssets] = useState<
+ const [postAssets, setPostAssets] = useState<
   {
     clipIndex: number;
     postTitle: string;
     description: string;
     hashtags: string[];
+    thumbnailText?: string;
+    thumbnailSubText?: string;
+    thumbnailLayout?: string;
+    thumbnailMood?: string;
   }[]
 >([]);
   const [currentYoutubeUrl, setCurrentYoutubeUrl] = useState("");
@@ -1478,6 +1482,65 @@ const handlePostAssets = async () => {
               </span>
             ))}
           </div>
+
+          {(item.thumbnailText ||
+            item.thumbnailSubText ||
+            item.thumbnailLayout ||
+            item.thumbnailMood) && (
+            <div className="mt-4 rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4">
+              <p className="text-sm font-semibold text-yellow-300">
+                サムネ案
+              </p>
+
+              {item.thumbnailText && (
+                <div className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10">
+                  <div className="flex h-full flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950">
+                        SHORTS
+                      </span>
+
+                      <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
+                        NEXCUT AI
+                      </span>
+                    </div>
+
+                    <div className="max-w-[85%]">
+                      <p className="text-3xl font-black leading-tight text-white drop-shadow-lg">
+                        {item.thumbnailText}
+                      </p>
+
+                      {item.thumbnailSubText && (
+                        <p className="mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950">
+                          {item.thumbnailSubText}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2 text-sm leading-6 text-gray-300">
+                {item.thumbnailLayout && (
+                  <p>
+                    <span className="font-semibold text-yellow-300">
+                      構成:
+                    </span>{" "}
+                    {item.thumbnailLayout}
+                  </p>
+                )}
+
+                {item.thumbnailMood && (
+                  <p>
+                    <span className="font-semibold text-yellow-300">
+                      雰囲気:
+                    </span>{" "}
+                    {item.thumbnailMood}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -1492,24 +1555,22 @@ const handlePostAssets = async () => {
 )}
 
 {/* プレビュー */}
-{previewVideoUrl && (
-<video
-  ref={videoRef}
-  src={videoSrc}
-  controls
-  onLoadedMetadata={(e) => {
-    const duration = Math.floor(e.currentTarget.duration);
+{videoSrc && (
+  <video
+    ref={videoRef}
+    src={videoSrc}
+    controls
+    onLoadedMetadata={(e) => {
+      const duration = Math.floor(e.currentTarget.duration);
 
-    if (Number.isFinite(duration) && duration > 0) {
-      setVideoDuration(duration);
-    }
-  }}
-  className="w-full rounded"
-/>
+      if (Number.isFinite(duration) && duration > 0) {
+        setVideoDuration(duration);
+      }
+    }}
+    className="w-full rounded"
+  />
 )}
-
-
-
+  
 {loading && (
   <div className="mt-6">
 

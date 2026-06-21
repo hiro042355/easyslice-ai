@@ -65,6 +65,10 @@ export async function POST(req: Request) {
 - ハッシュタグは日本語と英語を混ぜてよい
 - 必ずJSONだけで返す
 - Markdownや説明文は不要
+- thumbnailTextは短く強い言葉にする
+- thumbnailSubTextは補足として使える短い文章にする
+- thumbnailLayoutは文字配置や見せ方を具体的に書く
+- thumbnailMoodはサムネ全体の印象を短く書く
 
 返却形式:
 {
@@ -73,7 +77,11 @@ export async function POST(req: Request) {
       "clipIndex": 1,
       "postTitle": "投稿タイトル案",
       "description": "投稿説明文",
-      "hashtags": ["#shorts", "#動画編集"]
+      "hashtags": ["#shorts", "#動画編集"],
+      "thumbnailText": "サムネのメイン文言",
+      "thumbnailSubText": "サムネの補足文言",
+      "thumbnailLayout": "サムネの構成案",
+      "thumbnailMood": "サムネの雰囲気"
     }
   ]
 }
