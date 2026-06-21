@@ -52,6 +52,16 @@ const addClip = () => {
     },
   ]);
 };
+const [scriptLength, setScriptLength] = useState<"15" | "30" | "60" | "90">("30");
+
+const [scriptResult, setScriptResult] = useState<{
+  hook: string;
+  script: string;
+  ending: string;
+  fullScript: string;
+  length: string;
+} | null>(null);
+
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -446,6 +456,7 @@ const resetClips = () => {
   setGeneratedClipCount(0);
   setPreviewEnd(null);
   setActivePreviewIndex(null);
+  setScriptResult(null);
 };
 const singleClipDuration = Math.max(
   0,
@@ -894,6 +905,7 @@ const handlePostAssets = async () => {
   try {
     setLoading(true);
     setSuccessMessage("");
+    setScriptResult(null);
 
     const res = await fetch("/api/post-assets", {
       method: "POST",
@@ -921,6 +933,55 @@ const handlePostAssets = async () => {
       err instanceof Error
         ? err.message
         : "投稿素材生成に失敗しました"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+const handleScriptGenerate = async () => {
+  const validClips = clips.filter(
+    (clip) =>
+      clip.start.trim() !== "" &&
+      clip.end.trim() !== ""
+  );
+
+  if (validClips.length === 0) {
+    alert("先にクリップ候補を作成してください");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setSuccessMessage("");
+
+    const res = await fetch("/api/script", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        clips: validClips,
+        videoTitle,
+        summary,
+        length: scriptLength,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "台本生成に失敗しました");
+    }
+
+    setScriptResult(data.script);
+    setSuccessMessage(`${scriptLength}秒台本を生成しました`);
+  } catch (err) {
+    console.error(err);
+
+    alert(
+      err instanceof Error
+        ? err.message
+        : "台本生成に失敗しました"
     );
   } finally {
     setLoading(false);
@@ -1403,6 +1464,33 @@ const handlePostAssets = async () => {
 >
   投稿素材生成
 </button>
+<div className="grid grid-cols-2 gap-2">
+  <select
+    value={scriptLength}
+    onChange={(e) =>
+      setScriptLength(e.target.value as "15" | "30" | "60" | "90")
+    }
+    className="w-full rounded-xl bg-zinc-700 px-4 py-2 text-white"
+  >
+    <option value="15">15秒台本</option>
+    <option value="30">30秒台本</option>
+    <option value="60">60秒台本</option>
+    <option value="90">90秒台本</option>
+  </select>
+
+  <button
+    type="button"
+    onClick={handleScriptGenerate}
+    disabled={loading || clips.length === 0}
+    className={
+      loading || clips.length === 0
+        ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
+        : "w-full rounded-xl bg-amber-600 px-4 py-2 transition hover:bg-amber-500"
+    }
+  >
+    AI台本生成
+  </button>
+</div>
   </div>
 
     {loading && (
@@ -1448,7 +1536,57 @@ const handlePostAssets = async () => {
       <h2 className="text-lg font-semibold text-fuchsia-300">
         投稿素材
       </h2>
+{scriptResult && (
+  <div className="mt-6 rounded-xl border border-amber-500/20 bg-zinc-900/70 p-4">
+    <div className="mb-4 flex items-center justify-between">
+      <h2 className="text-lg font-semibold text-amber-300">
+        AI台本
+      </h2>
 
+      <span className="text-sm text-gray-400">
+        {scriptResult.length}秒
+      </span>
+    </div>
+
+    <div className="space-y-4">
+      <div className="rounded-xl border border-white/10 bg-zinc-800 p-4">
+        <p className="text-sm font-semibold text-cyan-300">
+          Hook
+        </p>
+        <p className="mt-2 text-white">
+          {scriptResult.hook}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-zinc-800 p-4">
+        <p className="text-sm font-semibold text-cyan-300">
+          Script
+        </p>
+        <p className="mt-2 whitespace-pre-wrap leading-7 text-gray-300">
+          {scriptResult.script}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-zinc-800 p-4">
+        <p className="text-sm font-semibold text-cyan-300">
+          Ending
+        </p>
+        <p className="mt-2 text-white">
+          {scriptResult.ending}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+        <p className="text-sm font-semibold text-amber-300">
+          Full Script
+        </p>
+        <p className="mt-2 whitespace-pre-wrap leading-7 text-gray-100">
+          {scriptResult.fullScript}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
       <span className="text-sm text-gray-400">
         {postAssets.length} items
       </span>
