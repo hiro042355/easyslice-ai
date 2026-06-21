@@ -107,6 +107,7 @@ YouTube URL取得は、以下の理由で公開版の主軸にしない。
 npm run build
 git status
 ```
+
 ## リリース後確認
 
 - [x] `/landing` が開ける
