@@ -1562,9 +1562,14 @@ const downloadThumbnail = async (clipIndex: number) => {
 {scriptResult && (
   <div className="mt-6 rounded-xl border border-amber-500/20 bg-zinc-900/70 p-4">
     <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-amber-300">
-        AI台本
-      </h2>
+      <div>
+  <h2 className="text-lg font-semibold text-amber-300">
+    AI台本
+  </h2>
+  <p className="mt-1 text-xs text-gray-400">
+    Hook・本文・締め・全文台本
+  </p>
+</div>
 
       <span className="text-sm text-gray-400">
         {scriptResult.length}秒
@@ -1625,174 +1630,196 @@ const downloadThumbnail = async (clipIndex: number) => {
 {postAssets.length > 0 && (
   <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
     <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-fuchsia-300">
-        投稿素材
-      </h2>
+      <div>
+  <h2 className="text-lg font-semibold text-fuchsia-300">
+    投稿素材
+  </h2>
+  <p className="mt-1 text-xs text-gray-400">
+    投稿タイトル・説明文・ハッシュタグ・サムネ案
+  </p>
+</div>
 
       <span className="text-sm text-gray-400">
         {postAssets.length} items
       </span>
     </div>
 
-    <div className="space-y-4">
-      {postAssets.map((item) => (
-        <div
-          key={item.clipIndex}
-          className="rounded-xl border border-white/10 bg-zinc-800 p-4"
-        >
-          <p className="text-sm font-semibold text-cyan-300">
-            Clip {item.clipIndex}
+   <div className="space-y-4">
+  {postAssets.map((item) => (
+    <div
+      key={item.clipIndex}
+      className="rounded-xl border border-white/10 bg-zinc-800 p-4"
+    >
+      <p className="text-sm font-semibold text-cyan-300">
+        Clip {item.clipIndex}
+      </p>
+
+      <div className="mt-3 rounded-lg border border-white/10 bg-zinc-900/70 p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-cyan-300">
+            投稿タイトル
           </p>
 
-         <div className="mt-2 flex items-start justify-between gap-3">
-  <h3 className="font-bold text-white">
-    {item.postTitle}
-  </h3>
+          <button
+            type="button"
+            onClick={() => copyText(item.postTitle)}
+            className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+          >
+            コピー
+          </button>
+        </div>
 
-  <button
-    type="button"
-    onClick={() => copyText(item.postTitle)}
-    className="shrink-0 rounded-lg bg-fuchsia-600 px-3 py-1 text-xs font-semibold text-white hover:bg-fuchsia-500"
-  >
-    タイトルコピー
-  </button>
-</div>
+        <h3 className="font-bold text-white">
+          {item.postTitle}
+        </h3>
+      </div>
 
-          <div className="mt-3 rounded-lg bg-zinc-900/60 p-3">
-  <div className="mb-2 flex items-center justify-between gap-3">
-    <p className="text-xs font-semibold text-gray-400">
-      説明文
-    </p>
+      <div className="mt-3 rounded-lg border border-white/10 bg-zinc-900/70 p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-cyan-300">
+            説明文
+          </p>
 
-    <button
-      type="button"
-      onClick={() => copyText(item.description)}
-      className="rounded-lg bg-fuchsia-600 px-3 py-1 text-xs font-semibold text-white hover:bg-fuchsia-500"
-    >
-      説明文コピー
-    </button>
-  </div>
+          <button
+            type="button"
+            onClick={() => copyText(item.description)}
+            className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+          >
+            コピー
+          </button>
+        </div>
 
-  <p className="whitespace-pre-wrap text-sm leading-6 text-gray-300">
-    {item.description}
-  </p>
-</div>
-<div className="mt-3 flex items-center justify-between gap-3">
-  <p className="text-xs font-semibold text-gray-400">
-    ハッシュタグ
-  </p>
+        <p className="whitespace-pre-wrap text-sm leading-6 text-gray-300">
+          {item.description}
+        </p>
+      </div>
 
-  <button
-    type="button"
-    onClick={() => copyText(item.hashtags.join(" "))}
-    className="rounded-lg bg-fuchsia-600 px-3 py-1 text-xs font-semibold text-white hover:bg-fuchsia-500"
-  >
-    タグコピー
-  </button>
-</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {item.hashtags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-1 text-xs font-semibold text-fuchsia-300"
+      <div className="mt-3 rounded-lg border border-white/10 bg-zinc-900/70 p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-cyan-300">
+            ハッシュタグ
+          </p>
+
+          <button
+            type="button"
+            onClick={() => copyText(item.hashtags.join(" "))}
+            className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+          >
+            コピー
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {item.hashtags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-1 text-xs font-semibold text-fuchsia-300"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {(item.thumbnailText ||
+        item.thumbnailSubText ||
+        item.thumbnailLayout ||
+        item.thumbnailMood) && (
+        <div className="mt-4 rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-yellow-300">
+              サムネ案
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  copyText(
+                    [
+                      item.thumbnailText,
+                      item.thumbnailSubText,
+                      item.thumbnailLayout
+                        ? `構成: ${item.thumbnailLayout}`
+                        : "",
+                      item.thumbnailMood
+                        ? `雰囲気: ${item.thumbnailMood}`
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join("\n")
+                  )
+                }
+                className="rounded-lg bg-yellow-600 px-3 py-1 text-xs font-semibold text-white hover:bg-yellow-500"
               >
-                {tag}
-              </span>
-            ))}
+                コピー
+              </button>
+
+              <button
+                type="button"
+                onClick={() => downloadThumbnail(item.clipIndex)}
+                className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+              >
+                PNG保存
+              </button>
+            </div>
           </div>
 
-          {(item.thumbnailText ||
-            item.thumbnailSubText ||
-            item.thumbnailLayout ||
-            item.thumbnailMood) && (
-            <div className="mt-4 rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4">
-             <div className="flex items-center justify-between gap-3">
-  <p className="text-sm font-semibold text-yellow-300">
-    サムネ案
-  </p>
+          {item.thumbnailText && (
+            <div
+              id={`thumbnail-preview-${item.clipIndex}`}
+              className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
+            >
+              <div className="flex h-full flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950">
+                    SHORTS
+                  </span>
 
-  <button
-    type="button"
-    onClick={() =>
-      copyText(
-        [
-          item.thumbnailText,
-          item.thumbnailSubText,
-          item.thumbnailLayout ? `構成: ${item.thumbnailLayout}` : "",
-          item.thumbnailMood ? `雰囲気: ${item.thumbnailMood}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
-      )
-    }
-    className="rounded-lg bg-yellow-600 px-3 py-1 text-xs font-semibold text-white hover:bg-yellow-500"
-  >
-    サムネ案コピー
-  </button>
-  <button
-  type="button"
-  onClick={() => downloadThumbnail(item.clipIndex)}
-  className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
->
-  PNG保存
-</button>
-</div>
-
-              {item.thumbnailText && (
-               <div
-  id={`thumbnail-preview-${item.clipIndex}`}
-  className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
->
-                  <div className="flex h-full flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950">
-                        SHORTS
-                      </span>
-
-                      <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
-                        NEXCUT AI
-                      </span>
-                    </div>
-
-                    <div className="max-w-[85%]">
-                      <p className="text-3xl font-black leading-tight text-white drop-shadow-lg">
-                        {item.thumbnailText}
-                      </p>
-
-                      {item.thumbnailSubText && (
-                        <p className="mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950">
-                          {item.thumbnailSubText}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
+                    NEXCUT AI
+                  </span>
                 </div>
-              )}
 
-              <div className="mt-4 space-y-2 text-sm leading-6 text-gray-300">
-                {item.thumbnailLayout && (
-                  <p>
-                    <span className="font-semibold text-yellow-300">
-                      構成:
-                    </span>{" "}
-                    {item.thumbnailLayout}
+                <div className="max-w-[85%]">
+                  <p className="text-3xl font-black leading-tight text-white drop-shadow-lg">
+                    {item.thumbnailText}
                   </p>
-                )}
 
-                {item.thumbnailMood && (
-                  <p>
-                    <span className="font-semibold text-yellow-300">
-                      雰囲気:
-                    </span>{" "}
-                    {item.thumbnailMood}
-                  </p>
-                )}
+                  {item.thumbnailSubText && (
+                    <p className="mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950">
+                      {item.thumbnailSubText}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           )}
+
+          <div className="mt-4 space-y-2 text-sm leading-6 text-gray-300">
+            {item.thumbnailLayout && (
+              <p>
+                <span className="font-semibold text-yellow-300">
+                  構成:
+                </span>{" "}
+                {item.thumbnailLayout}
+              </p>
+            )}
+
+            {item.thumbnailMood && (
+              <p>
+                <span className="font-semibold text-yellow-300">
+                  雰囲気:
+                </span>{" "}
+                {item.thumbnailMood}
+              </p>
+            )}
+          </div>
         </div>
-      ))}
+      )}
     </div>
+  ))}
+</div>
   </div>
 )}
 {summary && (
