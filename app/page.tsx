@@ -436,6 +436,7 @@ const resetClips = () => {
     },
   ]);
 
+  setPostAssets([]);
   setSuccessMessage("");
   setZipFileName("");
   setGeneratedClipCount(0);
@@ -1121,71 +1122,7 @@ const handlePostAssets = async () => {
     <h2 className="text-lg font-semibold text-cyan-300">
       複数クリップ
     </h2>
-{zipFileName && generatedClipCount > 0 && (
-  <div className="mt-4 rounded-xl border border-green-400/20 bg-green-400/10 p-4">
-    <div className="flex items-center justify-between gap-3">
-      <div>
-        <p className="text-sm font-semibold text-green-300">
-          一括生成完了
-        </p>
-        <p className="mt-1 text-sm text-gray-300">
-          {generatedClipCount}本のクリップをZIPにまとめました
-        </p>
-        <p className="mt-1 text-xs text-gray-400">
-          {zipFileName}
-        </p>
-      </div>
-{postAssets.length > 0 && (
-  <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
-    <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-fuchsia-300">
-        投稿素材
-      </h2>
 
-      <span className="text-sm text-gray-400">
-        {postAssets.length} items
-      </span>
-    </div>
-
-    <div className="space-y-4">
-      {postAssets.map((item) => (
-        <div
-          key={item.clipIndex}
-          className="rounded-xl border border-white/10 bg-zinc-800 p-4"
-        >
-          <p className="text-sm font-semibold text-cyan-300">
-            Clip {item.clipIndex}
-          </p>
-
-          <h3 className="mt-2 font-bold text-white">
-            {item.postTitle}
-          </h3>
-
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-300">
-            {item.description}
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {item.hashtags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-1 text-xs font-semibold text-fuchsia-300"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-      <span className="rounded-full border border-green-400/30 px-3 py-1 text-xs font-semibold text-green-300">
-        ZIP
-      </span>
-    </div>
-  </div>
-)}
     <span className="text-sm text-gray-400">
       {clips.length} clips
     </span>
@@ -1435,7 +1372,7 @@ const handlePostAssets = async () => {
   type="button"
   onClick={resetClips}
   className="w-full rounded-xl bg-zinc-700 px-4 py-2 transition hover:bg-zinc-600"
->setPostAssets([]);
+>
   リセット
 </button>
 <button
@@ -1476,6 +1413,76 @@ const handlePostAssets = async () => {
     </div>
   )}
 </div>
+
+{zipFileName && generatedClipCount > 0 && (
+  <div className="mt-6 rounded-xl border border-green-400/20 bg-green-400/10 p-4">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-green-300">
+          一括生成完了
+        </p>
+
+        <p className="mt-1 text-sm text-gray-300">
+          {generatedClipCount}本のクリップをZIPにまとめました
+        </p>
+
+        <p className="mt-1 text-xs text-gray-400">
+          {zipFileName}
+        </p>
+      </div>
+
+      <span className="rounded-full border border-green-400/30 px-3 py-1 text-xs font-semibold text-green-300">
+        ZIP
+      </span>
+    </div>
+  </div>
+)}
+
+{postAssets.length > 0 && (
+  <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
+    <div className="mb-4 flex items-center justify-between">
+      <h2 className="text-lg font-semibold text-fuchsia-300">
+        投稿素材
+      </h2>
+
+      <span className="text-sm text-gray-400">
+        {postAssets.length} items
+      </span>
+    </div>
+
+    <div className="space-y-4">
+      {postAssets.map((item) => (
+        <div
+          key={item.clipIndex}
+          className="rounded-xl border border-white/10 bg-zinc-800 p-4"
+        >
+          <p className="text-sm font-semibold text-cyan-300">
+            Clip {item.clipIndex}
+          </p>
+
+          <h3 className="mt-2 font-bold text-white">
+            {item.postTitle}
+          </h3>
+
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-300">
+            {item.description}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {item.hashtags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-1 text-xs font-semibold text-fuchsia-300"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
 {summary && (
   <div className="mt-4 p-4 rounded-xl bg-zinc-800">
