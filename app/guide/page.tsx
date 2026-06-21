@@ -74,7 +74,23 @@ export default function GuidePage() {
             音楽、スポーツ、字幕なし動画に向いています。
           </p>
         </section>
+<section className="mb-10">
+  <h2 className="mb-4 text-2xl font-bold text-white">
+    AI台本生成
+  </h2>
 
+  <p className="mb-4 text-gray-300">
+    Clip候補をもとに、ショート動画向けのナレーション台本を生成できます。
+    15秒、30秒、60秒、90秒の長さを選べます。
+  </p>
+
+  <div className="rounded-xl border border-white/10 bg-zinc-900 p-4 text-sm text-gray-300">
+    <p className="font-semibold text-amber-300">例</p>
+    <p className="mt-3">Hook: この一言、あなたはどう感じますか？</p>
+    <p className="mt-2">Script: 今回の動画では、心に残る瞬間を短く紹介します...</p>
+    <p className="mt-2">Ending: あなたならどうしますか？コメントで教えてください。</p>
+  </div>
+</section>
         <section className="mb-10">
           <h2 className="mb-4 text-2xl font-bold text-white">
             画質について
