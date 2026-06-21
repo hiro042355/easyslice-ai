@@ -13,25 +13,40 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-300">
-              字幕AIと音声解析を使って、動画から切り抜き候補を自動生成。
-              Clipを確認して、複数のMP4をZIPでまとめて保存できます。
+              アップロードした動画や字幕ファイルをもとに、字幕AIと音声解析で切り抜き候補を自動生成。
+Clipをプレビューして、複数のMP4をZIPでまとめて保存できます。
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href="/"
-                className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
-              >
-                アプリを試す
-              </a>
+           <div className="mt-8 flex flex-wrap gap-3">
+  <a
+    href="/"
+    className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
+  >
+    無料で試す
+  </a>
 
-              <a
-                href="#features"
-                className="rounded-lg border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                機能を見る
-              </a>
-            </div>
+  <a
+    href="/guide"
+    className="rounded-lg border border-cyan-400/40 px-5 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+  >
+    使い方を見る
+  </a>
+
+  <a
+    href="#features"
+    className="rounded-lg border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+  >
+    機能を見る
+  </a>
+</div>
+
+<div className="mt-5 flex flex-wrap gap-3 text-sm text-zinc-400">
+  <span>動画アップロード対応</span>
+  <span>字幕AIハイライト</span>
+  <span>音声ハイライト</span>
+  <span>ZIP一括生成</span>
+  <span>元動画に近い画質で出力</span>
+</div>
           </div>
 
           <div className="rounded-xl border border-cyan-400/20 bg-zinc-900 p-4 shadow-2xl shadow-cyan-500/10">
