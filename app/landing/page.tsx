@@ -136,12 +136,21 @@ export default function LandingPage() {
             公開版では、動画アップロード、字幕ファイル、音声ハイライト、字幕AIハイライトを中心に提供します。
           </p>
 
-          <a
-            href="/"
-            className="mt-6 inline-block rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
-          >
-            NEXCUT AIを開く
-          </a>
+   <div className="mt-6 flex flex-wrap gap-3">
+  <a
+    href="/"
+    className="inline-block rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
+  >
+    NEXCUT AIを開く
+  </a>
+
+  <a
+    href="/guide"
+    className="inline-block rounded-lg border border-cyan-400/40 px-5 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+  >
+    使い方を見る
+  </a>
+</div>
         </div>
       </section>
     </main>
