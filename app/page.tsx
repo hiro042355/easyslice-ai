@@ -65,6 +65,24 @@ const [scriptResult, setScriptResult] = useState<{
   length: string;
 } | null>(null);
 const [resultTab, setResultTab] = useState<"assets" | "script">("assets");
+const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+const steps = [
+  { id: 1, label: "Upload" },
+  { id: 2, label: "Analyze" },
+  { id: 3, label: "Clips" },
+  { id: 4, label: "Assets" },
+  { id: 5, label: "Export" },
+] as const;
+
+const canGoStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
+  if (stepId === 1) return true;
+  if (stepId === 2) return Boolean(videoSrc || video);
+  if (stepId === 3) return clips.length > 0;
+  if (stepId === 4) return clips.length > 0;
+  if (stepId === 5) return clips.length > 0;
+
+  return false;
+};
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -1026,38 +1044,48 @@ const downloadThumbnail = async (clipIndex: number) => {
        <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
   NEXCUT AI
 </h1>
-<div className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-950/70 p-4">
-  <p className="mb-3 text-sm font-semibold text-cyan-300">
-    使う順番
-  </p>
+<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+  <div className="mb-3 flex items-center justify-between">
+    <p className="text-sm font-semibold text-cyan-300">
+      Story Wizard
+    </p>
 
-  <div className="grid grid-cols-1 gap-2 text-sm text-gray-300 sm:grid-cols-5">
-    <div className="rounded-lg bg-zinc-900 p-3">
-      <p className="font-semibold text-white">1. 動画</p>
-      <p className="mt-1 text-xs text-gray-400">アップロード</p>
-    </div>
+    <p className="text-xs text-gray-400">
+      STEP {currentStep} / 5
+    </p>
+  </div>
 
-    <div className="rounded-lg bg-zinc-900 p-3">
-      <p className="font-semibold text-white">2. 解析</p>
-      <p className="mt-1 text-xs text-gray-400">AI / 音声</p>
-    </div>
+  <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+    {steps.map((step) => {
+      const canGo = canGoStep(step.id);
+      const isActive = currentStep === step.id;
 
-    <div className="rounded-lg bg-zinc-900 p-3">
-      <p className="font-semibold text-white">3. Clip</p>
-      <p className="mt-1 text-xs text-gray-400">確認・調整</p>
-    </div>
-
-    <div className="rounded-lg bg-zinc-900 p-3">
-      <p className="font-semibold text-white">4. 投稿素材</p>
-      <p className="mt-1 text-xs text-gray-400">タイトル・台本</p>
-    </div>
-
-    <div className="rounded-lg bg-zinc-900 p-3">
-      <p className="font-semibold text-white">5. 出力</p>
-      <p className="mt-1 text-xs text-gray-400">ZIP保存</p>
-    </div>
+      return (
+        <button
+          key={step.id}
+          type="button"
+          disabled={!canGo}
+          onClick={() => setCurrentStep(step.id)}
+          className={
+            isActive
+              ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-3 text-left text-sm font-semibold text-cyan-200"
+              : canGo
+                ? "rounded-lg border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm font-semibold text-gray-300 hover:bg-zinc-800"
+                : "cursor-not-allowed rounded-lg border border-white/5 bg-zinc-900/50 px-3 py-3 text-left text-sm font-semibold text-gray-600"
+          }
+        >
+          <span className="block text-xs opacity-70">
+            0{step.id}
+          </span>
+          <span>
+            {step.label}
+          </span>
+        </button>
+      );
+    })}
   </div>
 </div>
+ 
 <div className="mb-6 flex flex-wrap gap-4">
   <a
     href="/landing"
