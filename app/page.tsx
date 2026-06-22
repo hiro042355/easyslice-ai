@@ -83,6 +83,13 @@ const canGoStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
 
   return false;
 };
+const currentStepGuide = {
+  1: "動画ファイルをアップロードします。字幕がある場合は字幕ファイルも追加できます。",
+  2: "字幕AIハイライト、または音声ハイライトで切り抜き候補を作ります。",
+  3: "Clip候補をプレビューして、開始秒・終了秒を調整します。",
+  4: "投稿タイトル、説明文、ハッシュタグ、サムネ案、AI台本を生成します。",
+  5: "確認できたClipをZIPで一括生成して保存します。",
+} as const;
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -1124,6 +1131,14 @@ const downloadThumbnail = async (clipIndex: number) => {
   >
     次へ
   </button>
+</div>
+<div className="mt-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-3">
+  <p className="text-xs font-semibold text-cyan-300">
+    STEP {currentStep}
+  </p>
+  <p className="mt-1 text-sm leading-6 text-gray-300">
+    {currentStepGuide[currentStep]}
+  </p>
 </div>
 <div className="mb-6 flex flex-wrap gap-4">
   <a
