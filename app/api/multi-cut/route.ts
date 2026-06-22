@@ -13,7 +13,7 @@ const execAsync = promisify(exec);
 export async function POST(req: Request) {
   const body = await req.json();
   const clips = body.clips;
-
+const outputFormat = body.outputFormat === "shorts" ? "shorts" : "original";
   if (!clips || clips.length === 0) {
     return NextResponse.json(
       { error: "クリップがありません" },
@@ -56,7 +56,11 @@ export async function POST(req: Request) {
 
       const duration = end - start;
 
-const cmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 -map 0:a? -c copy -avoid_negative_ts make_zero -movflags +faststart "${outputPath}"`;
+const originalCmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 -map 0:a? -c copy -avoid_negative_ts make_zero -movflags +faststart "${outputPath}"`;
+
+const shortsCmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -vf "crop='min(iw,ih*9/16)':'min(ih,iw*16/9)':(iw-min(iw,ih*9/16))/2:(ih-min(ih,iw*16/9))/2,scale=1080:1920" -map 0:v:0 -map 0:a? -c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k -movflags +faststart "${outputPath}"`;
+
+const cmd = outputFormat === "shorts" ? shortsCmd : originalCmd;
 
       console.log("生成開始", outputPath);
       await execAsync(cmd);
@@ -69,10 +73,12 @@ const cmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 
           ? clip.title.replace(/[\\/:*?"<>|]/g, "_")
           : `clip${index}`;
 
-      zip.addFile(
-        `clip${index}_${safeTitle}_${start}-${end}.mp4`,
-        fileBuffer
-      );
+      const formatLabel = outputFormat === "shorts" ? "shorts-9x16" : "original";
+
+zip.addFile(
+  `clip${index}_${formatLabel}_${safeTitle}_${start}-${end}.mp4`,
+  fileBuffer
+);
 
       outputPaths.push(outputPath);
       index++;

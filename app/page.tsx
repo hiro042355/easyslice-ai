@@ -108,6 +108,7 @@ const scrollToStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
     });
   }
 };
+const [outputFormat, setOutputFormat] = useState<"original" | "shorts">("original");
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -331,9 +332,12 @@ const handleMultiCut = async () => {
     return total + (Number(clip.end) - Number(clip.start));
   }, 0);
 
-  const ok = window.confirm(
-    `${validClips.length}本 / 合計${totalSeconds}秒のクリップを生成します。よろしいですか？`
-  );
+  const outputLabel =
+  outputFormat === "shorts" ? "Shorts 9:16" : "通常";
+
+const ok = window.confirm(
+  `${validClips.length}本 / 合計${totalSeconds}秒 / ${outputLabel} でクリップを生成します。よろしいですか？`
+);
 
   if (!ok) {
     return;
@@ -349,8 +353,9 @@ const handleMultiCut = async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        clips: validClips,
-      }),
+  clips: validClips,
+  outputFormat,
+}),
     });
 
     if (!res.ok) {
@@ -1590,6 +1595,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 >
   字幕要約
 </button>
+<div id="step-export" />
 <div id="step-export" />
        <button
       type="button"
