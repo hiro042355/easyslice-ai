@@ -1026,6 +1026,38 @@ const downloadThumbnail = async (clipIndex: number) => {
        <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
   NEXCUT AI
 </h1>
+<div className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-950/70 p-4">
+  <p className="mb-3 text-sm font-semibold text-cyan-300">
+    使う順番
+  </p>
+
+  <div className="grid grid-cols-1 gap-2 text-sm text-gray-300 sm:grid-cols-5">
+    <div className="rounded-lg bg-zinc-900 p-3">
+      <p className="font-semibold text-white">1. 動画</p>
+      <p className="mt-1 text-xs text-gray-400">アップロード</p>
+    </div>
+
+    <div className="rounded-lg bg-zinc-900 p-3">
+      <p className="font-semibold text-white">2. 解析</p>
+      <p className="mt-1 text-xs text-gray-400">AI / 音声</p>
+    </div>
+
+    <div className="rounded-lg bg-zinc-900 p-3">
+      <p className="font-semibold text-white">3. Clip</p>
+      <p className="mt-1 text-xs text-gray-400">確認・調整</p>
+    </div>
+
+    <div className="rounded-lg bg-zinc-900 p-3">
+      <p className="font-semibold text-white">4. 投稿素材</p>
+      <p className="mt-1 text-xs text-gray-400">タイトル・台本</p>
+    </div>
+
+    <div className="rounded-lg bg-zinc-900 p-3">
+      <p className="font-semibold text-white">5. 出力</p>
+      <p className="mt-1 text-xs text-gray-400">ZIP保存</p>
+    </div>
+  </div>
+</div>
 <div className="mb-6 flex flex-wrap gap-4">
   <a
     href="/landing"
