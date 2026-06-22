@@ -958,16 +958,19 @@ const handlePostAssets = async () => {
     setLoading(true);
     setSuccessMessage("");
 
-    const res = await fetch("/api/post-assets", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        clips: validClips,
-        videoTitle,
-      }),
-    });
+   const postAssetClips = clips
+  .filter((clip) => clip.start.trim() !== "" && clip.end.trim() !== "")
+  .slice(0, 3);
+
+const res = await fetch("/api/post-assets", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    clips: postAssetClips,
+  }),
+});
 
     const data = await res.json();
 
@@ -1680,6 +1683,9 @@ const downloadThumbnail = async (clipIndex: number) => {
 >
   投稿素材生成
 </button>
+<p className="col-span-full text-xs leading-5 text-gray-400">
+  投稿素材は負荷を抑えるため、入力済みClipの上位3件まで生成します。
+</p>
 <div className="grid grid-cols-2 gap-2">
   <select
     value={scriptLength}
