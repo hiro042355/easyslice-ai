@@ -54,6 +54,7 @@ const addClip = () => {
     },
   ]);
 };
+
 const [scriptLength, setScriptLength] = useState<"15" | "30" | "60" | "90">("30");
 
 const [scriptResult, setScriptResult] = useState<{
@@ -63,7 +64,7 @@ const [scriptResult, setScriptResult] = useState<{
   fullScript: string;
   length: string;
 } | null>(null);
-
+const [resultTab, setResultTab] = useState<"assets" | "script">("assets");
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -926,6 +927,7 @@ const handlePostAssets = async () => {
     }
 
     setPostAssets(data.items ?? []);
+    setResultTab("assets");
     setSuccessMessage("投稿タイトル・説明文・ハッシュタグを生成しました");
   } catch (err) {
     console.error(err);
@@ -975,6 +977,7 @@ const handleScriptGenerate = async () => {
     }
 
     setScriptResult(data.script);
+    setResultTab("script");
     setSuccessMessage(`${scriptLength}秒台本を生成しました`);
   } catch (err) {
     console.error(err);
@@ -1559,7 +1562,7 @@ const downloadThumbnail = async (clipIndex: number) => {
     </div>
   </div>
 )}
-{scriptResult && (
+{resultTab === "script" && scriptResult && (
   <div className="mt-6 rounded-xl border border-amber-500/20 bg-zinc-900/70 p-4">
     <div className="mb-4 flex items-center justify-between">
       <div>
@@ -1626,8 +1629,36 @@ const downloadThumbnail = async (clipIndex: number) => {
     </div>
   </div>
 )}
+{(postAssets.length > 0 || scriptResult) && (
+  <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
+    <div className="grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() => setResultTab("assets")}
+        className={
+          resultTab === "assets"
+            ? "rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white"
+            : "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+        }
+      >
+        投稿素材
+      </button>
 
-{postAssets.length > 0 && (
+      <button
+        type="button"
+        onClick={() => setResultTab("script")}
+        className={
+          resultTab === "script"
+            ? "rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white"
+            : "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+        }
+      >
+        AI台本
+      </button>
+    </div>
+  </div>
+)}
+{resultTab === "assets" && postAssets.length > 0 && (
   <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
     <div className="mb-4 flex items-center justify-between">
       <div>
