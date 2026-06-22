@@ -58,7 +58,7 @@ const outputFormat = body.outputFormat === "shorts" ? "shorts" : "original";
 
 const originalCmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -map 0:v:0 -map 0:a? -c copy -avoid_negative_ts make_zero -movflags +faststart "${outputPath}"`;
 
-const shortsCmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" -map 0:v:0 -map 0:a? -c:v libx264 -preset veryfast -crf 18 -c:a aac -b:a 128k -movflags +faststart "${outputPath}"`;
+const shortsCmd = `ffmpeg -y -ss ${start} -i "${inputPath}" -t ${duration} -vf "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280" -map 0:v:0 -map 0:a? -c:v libx264 -preset ultrafast -crf 21 -c:a aac -b:a 128k -movflags +faststart "${outputPath}"`;
 
 const cmd = outputFormat === "shorts" ? shortsCmd : originalCmd;
 
