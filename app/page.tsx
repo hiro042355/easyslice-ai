@@ -90,6 +90,24 @@ const currentStepGuide = {
   4: "投稿タイトル、説明文、ハッシュタグ、サムネ案、AI台本を生成します。",
   5: "確認できたClipをZIPで一括生成して保存します。",
 } as const;
+const scrollToStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
+  const stepTargets = {
+    1: "step-upload",
+    2: "step-analyze",
+    3: "step-clips",
+    4: "step-assets",
+    5: "step-export",
+  } as const;
+
+  const element = document.getElementById(stepTargets[stepId]);
+
+  if (element) {
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+};
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -1072,7 +1090,10 @@ const downloadThumbnail = async (clipIndex: number) => {
           key={step.id}
           type="button"
           disabled={!canGo}
-          onClick={() => setCurrentStep(step.id)}
+          onClick={() => {
+  setCurrentStep(step.id);
+  scrollToStep(step.id);
+}}
           className={
             isActive
               ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-3 text-left text-sm font-semibold text-cyan-200"
@@ -1213,7 +1234,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 
   </div>
 )}
-
+<div id="step-upload" />
 <h2 className="mb-3 text-lg font-semibold text-cyan-300">
   動画をアップロード
 </h2>
@@ -1300,7 +1321,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 </p>
 
         {/* 切り抜き範囲 */}
-<div className="mb-6">
+<div id="step-upload" className="mb-6">
   <label className="block text-sm font-semibold mb-2 text-gray-300">
     切り抜き範囲
   </label>
@@ -1329,7 +1350,7 @@ const downloadThumbnail = async (clipIndex: number) => {
     複数クリップ
   </h2>
 {/* 複数クリップ */}
-<div className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-4">
+<div id="step-clips" className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-4">
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-lg font-semibold text-cyan-300">
       複数クリップ
@@ -1527,6 +1548,7 @@ const downloadThumbnail = async (clipIndex: number) => {
   </span>
   秒
 </div>
+<div id="step-analyze" />
   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
     <button
       type="button"
@@ -1568,6 +1590,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 >
   字幕要約
 </button>
+<div id="step-export" />
        <button
       type="button"
       onClick={handleMultiCut}
@@ -1743,6 +1766,7 @@ const downloadThumbnail = async (clipIndex: number) => {
     </div>
   </div>
 )}
+<div id="step-assets" />
 {(postAssets.length > 0 || scriptResult) && (
   <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
     <div className="grid grid-cols-2 gap-2">
