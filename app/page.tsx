@@ -1642,6 +1642,11 @@ const downloadThumbnail = async (clipIndex: number) => {
         }
       >
         投稿素材
+        {postAssets.length > 0 && (
+          <span className="ml-2 text-xs opacity-80">
+            {postAssets.length}
+          </span>
+        )}
       </button>
 
       <button
@@ -1654,6 +1659,11 @@ const downloadThumbnail = async (clipIndex: number) => {
         }
       >
         AI台本
+        {scriptResult && (
+          <span className="ml-2 text-xs opacity-80">
+            {scriptResult.length}秒
+          </span>
+        )}
       </button>
     </div>
   </div>
