@@ -1596,26 +1596,64 @@ const downloadThumbnail = async (clipIndex: number) => {
   字幕要約
 </button>
 <div id="step-export" />
-<div id="step-export" />
-       <button
+
+<div className="col-span-full mb-4 rounded-xl border border-white/10 bg-zinc-900 p-4">
+  <p className="mb-3 text-sm font-semibold text-cyan-300">
+    出力形式
+  </p>
+
+  <div className="grid grid-cols-2 gap-2">
+    <button
       type="button"
-      onClick={handleMultiCut}
-      disabled={loading}
+      onClick={() => setOutputFormat("original")}
       className={
-        loading
-          ? "px-4 py-2 rounded-xl bg-gray-600 cursor-not-allowed"
-          : "px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 transition"
+        outputFormat === "original"
+          ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-3 text-sm font-semibold text-cyan-200"
+          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
       }
     >
-      {loading ? "生成中..." : "ZIP一括生成"}
+      通常
     </button>
+
     <button
+      type="button"
+      onClick={() => setOutputFormat("shorts")}
+      className={
+        outputFormat === "shorts"
+          ? "rounded-lg border border-pink-400 bg-pink-500/20 px-4 py-3 text-sm font-semibold text-pink-200"
+          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      Shorts 9:16
+    </button>
+  </div>
+
+  <p className="mt-3 text-xs leading-5 text-gray-400">
+    Shorts 9:16は中央クロップで縦動画として出力します。
+  </p>
+</div>
+
+<button
+  type="button"
+  onClick={handleMultiCut}
+  disabled={loading}
+  className={
+    loading
+      ? "px-4 py-2 rounded-xl bg-gray-600 cursor-not-allowed"
+      : "px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 transition"
+  }
+>
+  {loading ? "生成中..." : "ZIP一括生成"}
+</button>
+
+<button
   type="button"
   onClick={resetClips}
   className="w-full rounded-xl bg-zinc-700 px-4 py-2 transition hover:bg-zinc-600"
 >
   リセット
 </button>
+
 <button
   type="button"
   onClick={handleAudioEnergy}
@@ -1628,6 +1666,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 >
   音声ハイライト
 </button>
+
 <button
   type="button"
   onClick={handlePostAssets}
