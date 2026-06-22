@@ -109,6 +109,7 @@ const scrollToStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
   }
 };
 const [outputFormat, setOutputFormat] = useState<"original" | "shorts">("original");
+const [thumbnailTemplate, setThumbnailTemplate] = useState<"impact" | "clean" | "news">("impact");
 const removeClip = (index: number) => {
   setClips(clips.filter((_, i) => i !== index));
 };
@@ -1553,6 +1554,36 @@ const downloadThumbnail = async (clipIndex: number) => {
   </span>
   秒
 </div>
+<div className="col-span-full mb-4 rounded-xl border border-white/10 bg-zinc-900 p-4">
+  <p className="mb-3 text-sm font-semibold text-cyan-300">
+    出力形式
+  </p>
+
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={() => setOutputFormat("original")}
+      className={
+        outputFormat === "original"
+          ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-3 text-sm font-semibold text-cyan-200"
+          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      通常
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setOutputFormat("shorts")}
+      className={
+        outputFormat === "shorts"
+          ? "rounded-lg border border-pink-400 bg-pink-500/20 px-4 py-3 text-sm font-semibold text-pink-200"
+          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      Shorts 9:16
+    </button>
+  </div>
 <div id="step-analyze" />
   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
     <button
@@ -1597,36 +1628,6 @@ const downloadThumbnail = async (clipIndex: number) => {
 </button>
 <div id="step-export" />
 
-<div className="col-span-full mb-4 rounded-xl border border-white/10 bg-zinc-900 p-4">
-  <p className="mb-3 text-sm font-semibold text-cyan-300">
-    出力形式
-  </p>
-
-  <div className="grid grid-cols-2 gap-2">
-    <button
-      type="button"
-      onClick={() => setOutputFormat("original")}
-      className={
-        outputFormat === "original"
-          ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-3 text-sm font-semibold text-cyan-200"
-          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
-      }
-    >
-      通常
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setOutputFormat("shorts")}
-      className={
-        outputFormat === "shorts"
-          ? "rounded-lg border border-pink-400 bg-pink-500/20 px-4 py-3 text-sm font-semibold text-pink-200"
-          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
-      }
-    >
-      Shorts 9:16
-    </button>
-  </div>
 
   <p className="mt-3 text-xs leading-5 text-gray-400">
     Shorts 9:16は中央クロップで縦動画として出力します。
@@ -1858,6 +1859,34 @@ const downloadThumbnail = async (clipIndex: number) => {
   <h2 className="text-lg font-semibold text-fuchsia-300">
     投稿素材
   </h2>
+  <div className="mb-4 rounded-xl border border-white/10 bg-zinc-950/70 p-3">
+  <p className="mb-2 text-xs font-semibold text-gray-400">
+    サムネテンプレート
+  </p>
+
+  <div className="grid grid-cols-3 gap-2">
+    {[
+      ["impact", "Impact"],
+      ["clean", "Clean"],
+      ["news", "News"],
+    ].map(([value, label]) => (
+      <button
+        key={value}
+        type="button"
+        onClick={() =>
+          setThumbnailTemplate(value as "impact" | "clean" | "news")
+        }
+        className={
+          thumbnailTemplate === value
+            ? "rounded-lg border border-fuchsia-400 bg-fuchsia-500/20 px-3 py-2 text-xs font-semibold text-fuchsia-200"
+            : "rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-xs font-semibold text-gray-300 hover:bg-zinc-700"
+        }
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
   <p className="mt-1 text-xs text-gray-400">
     投稿タイトル・説明文・ハッシュタグ・サムネ案
   </p>
@@ -1992,29 +2021,63 @@ const downloadThumbnail = async (clipIndex: number) => {
           {item.thumbnailText && (
             <div
               id={`thumbnail-preview-${item.clipIndex}`}
-              className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
+              className={
+  thumbnailTemplate === "impact"
+    ? "mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
+    : thumbnailTemplate === "clean"
+      ? "mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-zinc-100 p-5 shadow-lg"
+      : "mt-3 aspect-video overflow-hidden rounded-lg border border-yellow-400/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-yellow-950 p-5 shadow-lg shadow-yellow-500/10"
+}
             >
-              <div className="flex h-full flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950">
-                    SHORTS
-                  </span>
+             <div className="flex h-full flex-col justify-between">
+  <div className="flex items-center justify-between">
+    <span
+      className={
+        thumbnailTemplate === "clean"
+          ? "rounded-full bg-zinc-950 px-3 py-1 text-xs font-black text-white"
+          : thumbnailTemplate === "news"
+            ? "rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white"
+            : "rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950"
+      }
+    >
+      SHORTS
+    </span>
 
-                  <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
-                    NEXCUT AI
-                  </span>
-                </div>
+    <span
+  className={
+    thumbnailTemplate === "clean"
+      ? "rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold text-zinc-950"
+      : thumbnailTemplate === "news"
+        ? "rounded-full border border-yellow-400/40 bg-black px-3 py-1 text-xs font-semibold text-yellow-300"
+        : "rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white"
+  }
+>
+  NEXCUT AI
+</span>
+  </div>
 
-                <div className="max-w-[85%]">
-                  <p className="text-3xl font-black leading-tight text-white drop-shadow-lg">
-                    {item.thumbnailText}
-                  </p>
+               <div className="max-w-[85%]">
+  <p
+    className={
+      thumbnailTemplate === "clean"
+        ? "text-3xl font-black leading-tight text-zinc-950"
+        : thumbnailTemplate === "news"
+          ? "text-3xl font-black leading-tight text-yellow-300 drop-shadow-lg"
+          : "text-3xl font-black leading-tight text-white drop-shadow-lg"
+    }
+  >
+    {item.thumbnailText}
+  </p>
 
-                  {item.thumbnailSubText && (
-                    <p className="mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950">
-                      {item.thumbnailSubText}
-                    </p>
-                  )}
+                  <p
+  className={
+    thumbnailTemplate === "clean"
+      ? "mt-2 inline-block rounded bg-zinc-950 px-2 py-1 text-sm font-bold text-white"
+      : thumbnailTemplate === "news"
+        ? "mt-2 inline-block rounded bg-yellow-400 px-2 py-1 text-sm font-bold text-zinc-950"
+        : "mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950"
+  }
+></p>
                 </div>
               </div>
             </div>
