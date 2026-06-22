@@ -1085,7 +1085,46 @@ const downloadThumbnail = async (clipIndex: number) => {
     })}
   </div>
 </div>
- 
+ <div className="mt-3 grid grid-cols-2 gap-3">
+  <button
+    type="button"
+    onClick={() =>
+      setCurrentStep((prev) =>
+        prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3 | 4 | 5)
+      )
+    }
+    disabled={currentStep === 1}
+    className={
+      currentStep === 1
+        ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
+        : "rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600"
+    }
+  >
+    戻る
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      const nextStep = Math.min(5, currentStep + 1) as 1 | 2 | 3 | 4 | 5;
+
+      if (!canGoStep(nextStep)) {
+        alert("このステップに進むには、先に必要な操作を完了してください");
+        return;
+      }
+
+      setCurrentStep(nextStep);
+    }}
+    disabled={currentStep === 5}
+    className={
+      currentStep === 5
+        ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
+        : "rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+    }
+  >
+    次へ
+  </button>
+</div>
 <div className="mb-6 flex flex-wrap gap-4">
   <a
     href="/landing"
