@@ -958,19 +958,16 @@ const handlePostAssets = async () => {
     setLoading(true);
     setSuccessMessage("");
 
-   const postAssetClips = clips
-  .filter((clip) => clip.start.trim() !== "" && clip.end.trim() !== "")
-  .slice(0, 3);
-
-const res = await fetch("/api/post-assets", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    clips: postAssetClips,
-  }),
-});
+    const res = await fetch("/api/post-assets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        clips: validClips,
+        videoTitle,
+      }),
+    });
 
     const data = await res.json();
 
@@ -1188,6 +1185,8 @@ const downloadThumbnail = async (clipIndex: number) => {
 <p className="text-zinc-400 text-sm mt-2">
   Smart Video Clipping Platform
 </p>
+{currentStep === 1 && (
+  <div id="step-upload">
 {enableYoutube && (
   <>
     <h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
@@ -1243,7 +1242,6 @@ const downloadThumbnail = async (clipIndex: number) => {
 
   </div>
 )}
-<div id="step-upload" />
 <h2 className="mb-3 text-lg font-semibold text-cyan-300">
   動画をアップロード
 </h2>
@@ -1328,9 +1326,10 @@ const downloadThumbnail = async (clipIndex: number) => {
 <p className="mt-3 text-xs text-gray-400">
   字幕がある動画は「AIが内容から候補生成」、字幕がない動画や音楽は「音声ハイライト生成」を使ってください。
 </p>
-
+  </div>
+)}
         {/* 切り抜き範囲 */}
-<div id="step-upload" className="mb-6">
+<div className="mb-6">
   <label className="block text-sm font-semibold mb-2 text-gray-300">
     切り抜き範囲
   </label>
@@ -1355,240 +1354,214 @@ const downloadThumbnail = async (clipIndex: number) => {
   />
 </div>
 
-  <h2 className="text-lg font-semibold mb-4">
-    複数クリップ
-  </h2>
-{/* 複数クリップ */}
-<div id="step-clips" className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-4">
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-lg font-semibold text-cyan-300">
-      複数クリップ
-    </h2>
+{currentStep === 3 && (
+  <div
+    id="step-clips"
+    className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-4"
+  >
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-semibold text-cyan-300">
+        複数クリップ
+      </h2>
 
-    <span className="text-sm text-gray-400">
-      {clips.length} clips
-    </span>
-  </div>
-
-  {clips.map((clip, index) => (
-    <div
-      key={index}
-      className={
-  activePreviewIndex === index
-    ? "mb-4 rounded-xl border border-cyan-400 bg-cyan-500/10 p-4 shadow-lg shadow-cyan-500/20"
-    : "mb-4 rounded-xl border border-white/10 bg-zinc-800 p-4"
-}
-    >
-     <div className="flex items-start justify-between gap-4 mb-3">
-  <div className="min-w-0 flex-1">
-    <p className="text-cyan-300 font-semibold">
-      Clip {index + 1}
-    </p>
-
-    {clip.title && (
-      <p className="mt-1 text-sm font-semibold text-white">
-        {clip.title}
-      </p>
-    )}
-
-    {clip.reason && (
-      <div className="mt-1">
-        <p
-          className={
-            expandedClipIndex === index
-              ? "text-sm text-purple-300"
-              : "line-clamp-4 text-sm text-purple-300"
-          }
-        >
-          {clip.reason}
-        </p>
-
-        {clip.reason.length > 120 && (
-          <button
-            type="button"
-            onClick={() =>
-              setExpandedClipIndex(
-                expandedClipIndex === index ? null : index
-              )
-            }
-            className="mt-2 text-xs font-semibold text-cyan-300 hover:text-cyan-200"
-          >
-            {expandedClipIndex === index ? "閉じる" : "全文を見る"}
-          </button>
-        )}
-      </div>
-    )}
-  </div>
-
-  <div className="ml-4 flex shrink-0 flex-col items-end gap-3">
-    {clip.score > 0 && (
-      <span
-        className={`rounded-full border px-3 py-2 text-xs font-semibold ${getScoreClassName(
-          clip.score
-        )}`}
-      >
-        score {clip.score}
+      <span className="text-sm text-gray-400">
+        {clips.length} clips
       </span>
-    )}
+    </div>
 
-    <button
-      type="button"
-      onClick={() => previewClip(clip, index)}
-      className="rounded-lg border border-cyan-400/30 px-3 py-1 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
-    >
-      プレビュー
-    </button>
-
-    {clips.length > 1 && (
-      <button
-        type="button"
-        onClick={() => removeClip(index)}
-        className="rounded-lg border border-red-400/30 px-3 py-1 text-sm font-semibold text-red-400 hover:bg-red-400/10"
-      >
-        削除
-      </button>
-    )}
-  </div>
-</div>
-
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-  <div>
-    <label className="block mb-1 text-xs text-gray-400">
-      開始秒
-    </label>
-
-    <input
-      type="number"
-      placeholder="10"
-      value={clip.start}
-      onChange={(e) =>
-        updateClip(index, "start", e.target.value)
-      }
-      className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
-    />
-
-    <div className="mt-2 grid grid-cols-2 gap-2">
-      <button
-        type="button"
-        onClick={() =>
-          updateClip(
-            index,
-            "start",
-            String(Math.max(0, Number(clip.start) - 5))
-          )
+    {clips.map((clip, index) => (
+      <div
+        key={index}
+        className={
+          activePreviewIndex === index
+            ? "mb-4 rounded-xl border border-cyan-400 bg-cyan-500/10 p-4 shadow-lg shadow-cyan-500/20"
+            : "mb-4 rounded-xl border border-white/10 bg-zinc-800 p-4"
         }
-        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
       >
-        -5秒
-      </button>
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-cyan-300 font-semibold">
+              Clip {index + 1}
+            </p>
 
-      <button
-        type="button"
-        onClick={() =>
-          updateClip(
-            index,
-            "start",
-            String(Number(clip.start) + 5)
-          )
-        }
-        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
-      >
-        +5秒
-      </button>
+            {clip.title && (
+              <p className="mt-1 text-sm font-semibold text-white">
+                {clip.title}
+              </p>
+            )}
+
+            {clip.reason && (
+              <div className="mt-1">
+                <p
+                  className={
+                    expandedClipIndex === index
+                      ? "text-sm text-purple-300"
+                      : "line-clamp-4 text-sm text-purple-300"
+                  }
+                >
+                  {clip.reason}
+                </p>
+
+                {clip.reason.length > 120 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedClipIndex(
+                        expandedClipIndex === index ? null : index
+                      )
+                    }
+                    className="mt-2 text-xs font-semibold text-cyan-300 hover:text-cyan-200"
+                  >
+                    {expandedClipIndex === index ? "閉じる" : "全文を見る"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="ml-4 flex shrink-0 flex-col items-end gap-3">
+            {clip.score > 0 && (
+              <span
+                className={`rounded-full border px-3 py-2 text-xs font-semibold ${getScoreClassName(
+                  clip.score
+                )}`}
+              >
+                score {clip.score}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => previewClip(clip, index)}
+              className="rounded-lg border border-cyan-400/30 px-3 py-1 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+            >
+              プレビュー
+            </button>
+
+            {clips.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeClip(index)}
+                className="rounded-lg border border-red-400/30 px-3 py-1 text-sm font-semibold text-red-400 hover:bg-red-400/10"
+              >
+                削除
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block mb-1 text-xs text-gray-400">
+              開始秒
+            </label>
+
+            <input
+              type="number"
+              placeholder="10"
+              value={clip.start}
+              onChange={(e) =>
+                updateClip(index, "start", e.target.value)
+              }
+              className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
+            />
+
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  updateClip(
+                    index,
+                    "start",
+                    String(Math.max(0, Number(clip.start) - 5))
+                  )
+                }
+                className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+              >
+                -5秒
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  updateClip(
+                    index,
+                    "start",
+                    String(Number(clip.start) + 5)
+                  )
+                }
+                className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+              >
+                +5秒
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-gray-400">
+              終了秒
+            </label>
+
+            <input
+              type="number"
+              placeholder="20"
+              value={clip.end}
+              onChange={(e) =>
+                updateClip(index, "end", e.target.value)
+              }
+              className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
+            />
+
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  updateClip(
+                    index,
+                    "end",
+                    String(Math.max(0, Number(clip.end) - 5))
+                  )
+                }
+                className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+              >
+                -5秒
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  updateClip(
+                    index,
+                    "end",
+                    String(Number(clip.end) + 5)
+                  )
+                }
+                className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
+              >
+                +5秒
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+
+    <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-sm text-gray-300">
+      生成予定:{" "}
+      <span className="font-semibold text-cyan-300">
+        {validClips.length}
+      </span>
+      本 / 合計{" "}
+      <span className="font-semibold text-cyan-300">
+        {totalClipSeconds}
+      </span>
+      秒
     </div>
   </div>
-
-  <div>
-    <label className="block mb-1 text-xs text-gray-400">
-      終了秒
-    </label>
-
-    <input
-      type="number"
-      placeholder="20"
-      value={clip.end}
-      onChange={(e) =>
-        updateClip(index, "end", e.target.value)
-      }
-      className="w-full rounded-lg bg-zinc-700 p-2 border border-white/10 focus:outline-none focus:border-cyan-400"
-    />
-
-    <div className="mt-2 grid grid-cols-2 gap-2">
-      <button
-        type="button"
-        onClick={() =>
-          updateClip(
-            index,
-            "end",
-            String(Math.max(0, Number(clip.end) - 5))
-          )
-        }
-        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
-      >
-        -5秒
-      </button>
-
-      <button
-        type="button"
-        onClick={() =>
-          updateClip(
-            index,
-            "end",
-            String(Number(clip.end) + 5)
-          )
-        }
-        className="rounded-lg bg-zinc-700 px-3 py-2 text-xs font-semibold hover:bg-zinc-600"
-      >
-        +5秒
-      </button>
-    </div>
-  </div>
-</div>
-    </div>
-  ))}
-<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-sm text-gray-300">
-  生成予定:{" "}
-  <span className="font-semibold text-cyan-300">
-    {validClips.length}
-  </span>
-  本 / 合計{" "}
-  <span className="font-semibold text-cyan-300">
-    {totalClipSeconds}
-  </span>
-  秒
-</div>
-<div className="col-span-full mb-4 rounded-xl border border-white/10 bg-zinc-900 p-4">
-  <p className="mb-3 text-sm font-semibold text-cyan-300">
-    出力形式
-  </p>
-
-  <div className="grid grid-cols-2 gap-2">
-    <button
-      type="button"
-      onClick={() => setOutputFormat("original")}
-      className={
-        outputFormat === "original"
-          ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-3 text-sm font-semibold text-cyan-200"
-          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
-      }
-    >
-      通常
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setOutputFormat("shorts")}
-      className={
-        outputFormat === "shorts"
-          ? "rounded-lg border border-pink-400 bg-pink-500/20 px-4 py-3 text-sm font-semibold text-pink-200"
-          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
-      }
-    >
-      Shorts 9:16
-    </button>
-  </div>
-<div id="step-analyze" />
-  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+)}
+{currentStep === 2 && (
+  <div id="step-analyze">
+    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
     <button
       type="button"
       onClick={addClip}
@@ -1629,8 +1602,54 @@ const downloadThumbnail = async (clipIndex: number) => {
 >
   字幕要約
 </button>
-<div id="step-export" />
+<button
+  type="button"
+  onClick={handleAudioEnergy}
+  disabled={loading}
+  className={
+    loading
+      ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
+      : "w-full rounded-xl bg-emerald-600 px-4 py-2 transition hover:bg-emerald-500"
+  }
+>
+  音声ハイライト
+</button>
+    </div>
+  </div>
+)}
+{currentStep === 5 && (
+  <div id="step-export">
 
+<div className="col-span-full mb-4 rounded-xl border border-white/10 bg-zinc-900 p-4">
+  <p className="mb-3 text-sm font-semibold text-cyan-300">
+    出力形式
+  </p>
+
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={() => setOutputFormat("original")}
+      className={
+        outputFormat === "original"
+          ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-3 text-sm font-semibold text-cyan-200"
+          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      通常
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setOutputFormat("shorts")}
+      className={
+        outputFormat === "shorts"
+          ? "rounded-lg border border-pink-400 bg-pink-500/20 px-4 py-3 text-sm font-semibold text-pink-200"
+          : "rounded-lg border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      Shorts 9:16
+    </button>
+  </div>
 
   <p className="mt-3 text-xs leading-5 text-gray-400">
     Shorts 9:16は中央クロップで縦動画として出力します。
@@ -1658,62 +1677,9 @@ const downloadThumbnail = async (clipIndex: number) => {
   リセット
 </button>
 
-<button
-  type="button"
-  onClick={handleAudioEnergy}
-  disabled={loading}
-  className={
-    loading
-      ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
-      : "w-full rounded-xl bg-emerald-600 px-4 py-2 transition hover:bg-emerald-500"
-  }
->
-  音声ハイライト
-</button>
 
-<button
-  type="button"
-  onClick={handlePostAssets}
-  disabled={loading || clips.length === 0}
-  className={
-    loading || clips.length === 0
-      ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
-      : "w-full rounded-xl bg-fuchsia-600 px-4 py-2 transition hover:bg-fuchsia-500"
-  }
->
-  投稿素材生成
-</button>
-<p className="col-span-full text-xs leading-5 text-gray-400">
-  投稿素材は負荷を抑えるため、入力済みClipの上位3件まで生成します。
-</p>
-<div className="grid grid-cols-2 gap-2">
-  <select
-    value={scriptLength}
-    onChange={(e) =>
-      setScriptLength(e.target.value as "15" | "30" | "60" | "90")
-    }
-    className="w-full rounded-xl bg-zinc-700 px-4 py-2 text-white"
-  >
-    <option value="15">15秒台本</option>
-    <option value="30">30秒台本</option>
-    <option value="60">60秒台本</option>
-    <option value="90">90秒台本</option>
-  </select>
 
-  <button
-    type="button"
-    onClick={handleScriptGenerate}
-    disabled={loading || clips.length === 0}
-    className={
-      loading || clips.length === 0
-        ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
-        : "w-full rounded-xl bg-amber-600 px-4 py-2 transition hover:bg-amber-500"
-    }
-  >
-    AI台本生成
-  </button>
-</div>
-  </div>
+
 
     {loading && (
     <div className="mt-4 animate-pulse text-cyan-300 font-semibold">
@@ -1726,7 +1692,6 @@ const downloadThumbnail = async (clipIndex: number) => {
       {successMessage}
     </div>
   )}
-</div>
 
 {zipFileName && generatedClipCount > 0 && (
   <div className="mt-6 rounded-xl border border-green-400/20 bg-green-400/10 p-4">
@@ -1749,6 +1714,8 @@ const downloadThumbnail = async (clipIndex: number) => {
         ZIP
       </span>
     </div>
+  </div>
+)}
   </div>
 )}
 {resultTab === "script" && scriptResult && (
@@ -1818,7 +1785,57 @@ const downloadThumbnail = async (clipIndex: number) => {
     </div>
   </div>
 )}
-<div id="step-assets" />
+{currentStep === 4 && (
+  <div id="step-assets">
+    <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
+  <h2 className="mb-4 text-lg font-semibold text-fuchsia-300">
+    投稿素材を生成
+  </h2>
+  <button
+  type="button"
+  onClick={handlePostAssets}
+  disabled={loading || clips.length === 0}
+  className={
+    loading || clips.length === 0
+      ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
+      : "w-full rounded-xl bg-fuchsia-600 px-4 py-2 transition hover:bg-fuchsia-500"
+  }
+>
+  投稿素材生成
+</button>
+<p className="mt-3 text-xs leading-5 text-gray-400">
+  投稿素材は負荷を抑えるため、入力済みClipの上位3件まで生成します。
+</p>
+
+<div className="mt-4 grid grid-cols-2 gap-2">
+  <select
+    value={scriptLength}
+    onChange={(e) =>
+      setScriptLength(e.target.value as "15" | "30" | "60" | "90")
+    }
+    className="w-full rounded-xl bg-zinc-700 px-4 py-2 text-white"
+  >
+    <option value="15">15秒台本</option>
+    <option value="30">30秒台本</option>
+    <option value="60">60秒台本</option>
+    <option value="90">90秒台本</option>
+  </select>
+
+  <button
+    type="button"
+    onClick={handleScriptGenerate}
+    disabled={loading || clips.length === 0}
+    className={
+      loading || clips.length === 0
+        ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
+        : "w-full rounded-xl bg-amber-600 px-4 py-2 transition hover:bg-amber-500"
+    }
+  >
+    AI台本生成
+  </button>
+</div>
+</div>
+
 {(postAssets.length > 0 || scriptResult) && (
   <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
     <div className="grid grid-cols-2 gap-2">
@@ -2027,63 +2044,29 @@ const downloadThumbnail = async (clipIndex: number) => {
           {item.thumbnailText && (
             <div
               id={`thumbnail-preview-${item.clipIndex}`}
-              className={
-  thumbnailTemplate === "impact"
-    ? "mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
-    : thumbnailTemplate === "clean"
-      ? "mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-zinc-100 p-5 shadow-lg"
-      : "mt-3 aspect-video overflow-hidden rounded-lg border border-yellow-400/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-yellow-950 p-5 shadow-lg shadow-yellow-500/10"
-}
+              className="mt-3 aspect-video overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black via-fuchsia-950 to-cyan-950 p-5 shadow-lg shadow-fuchsia-500/10"
             >
-             <div className="flex h-full flex-col justify-between">
-  <div className="flex items-center justify-between">
-    <span
-      className={
-        thumbnailTemplate === "clean"
-          ? "rounded-full bg-zinc-950 px-3 py-1 text-xs font-black text-white"
-          : thumbnailTemplate === "news"
-            ? "rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white"
-            : "rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950"
-      }
-    >
-      SHORTS
-    </span>
+              <div className="flex h-full flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-black text-zinc-950">
+                    SHORTS
+                  </span>
 
-    <span
-  className={
-    thumbnailTemplate === "clean"
-      ? "rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold text-zinc-950"
-      : thumbnailTemplate === "news"
-        ? "rounded-full border border-yellow-400/40 bg-black px-3 py-1 text-xs font-semibold text-yellow-300"
-        : "rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white"
-  }
->
-  NEXCUT AI
-</span>
-  </div>
+                  <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
+                    NEXCUT AI
+                  </span>
+                </div>
 
-               <div className="max-w-[85%]">
-  <p
-    className={
-      thumbnailTemplate === "clean"
-        ? "text-3xl font-black leading-tight text-zinc-950"
-        : thumbnailTemplate === "news"
-          ? "text-3xl font-black leading-tight text-yellow-300 drop-shadow-lg"
-          : "text-3xl font-black leading-tight text-white drop-shadow-lg"
-    }
-  >
-    {item.thumbnailText}
-  </p>
+                <div className="max-w-[85%]">
+                  <p className="text-3xl font-black leading-tight text-white drop-shadow-lg">
+                    {item.thumbnailText}
+                  </p>
 
-                  <p
-  className={
-    thumbnailTemplate === "clean"
-      ? "mt-2 inline-block rounded bg-zinc-950 px-2 py-1 text-sm font-bold text-white"
-      : thumbnailTemplate === "news"
-        ? "mt-2 inline-block rounded bg-yellow-400 px-2 py-1 text-sm font-bold text-zinc-950"
-        : "mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950"
-  }
-></p>
+                  {item.thumbnailSubText && (
+                    <p className="mt-2 inline-block rounded bg-cyan-400 px-2 py-1 text-sm font-bold text-zinc-950">
+                      {item.thumbnailSubText}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -2113,6 +2096,8 @@ const downloadThumbnail = async (clipIndex: number) => {
     </div>
   ))}
 </div>
+  </div>
+)}
   </div>
 )}
 {summary && (
@@ -2174,7 +2159,7 @@ const downloadThumbnail = async (clipIndex: number) => {
       <div>
         <div className="inline-flex items-center gap-2 text-green-400 text-sm font-semibold">
           <span>●</span>
-          <span>エンコード完了</span>
+<span>エンコード完了</span>
         </div>
 
         <h2 className="mt-2 text-xl font-bold text-cyan-300">
@@ -2233,7 +2218,7 @@ const downloadThumbnail = async (clipIndex: number) => {
       </div>
     </div>
 
-    <div className="border-t border-white/10 p-4">
+       <div className="border-t border-white/10 p-4">
       <a
         href={downloadUrl}
         download="cut.mp4"
@@ -2245,7 +2230,7 @@ const downloadThumbnail = async (clipIndex: number) => {
   </div>
 )}
 
-      </div>
+            </div>
     </main>
   )
 }
