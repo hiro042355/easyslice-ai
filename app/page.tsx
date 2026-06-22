@@ -1563,13 +1563,13 @@ const downloadThumbnail = async (clipIndex: number) => {
   <div className="mt-6 rounded-xl border border-amber-500/20 bg-zinc-900/70 p-4">
     <div className="mb-4 flex items-center justify-between">
       <div>
-  <h2 className="text-lg font-semibold text-amber-300">
-    AI台本
-  </h2>
-  <p className="mt-1 text-xs text-gray-400">
-    Hook・本文・締め・全文台本
-  </p>
-</div>
+        <h2 className="text-lg font-semibold text-amber-300">
+          AI台本
+        </h2>
+        <p className="mt-1 text-xs text-gray-400">
+          Hook・本文・締め・全文台本
+        </p>
+      </div>
 
       <span className="text-sm text-gray-400">
         {scriptResult.length}秒
@@ -1605,23 +1605,23 @@ const downloadThumbnail = async (clipIndex: number) => {
       </div>
 
       <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
-        <div className="flex items-center justify-between gap-3">
-  <p className="text-sm font-semibold text-amber-300">
-    Full Script
-  </p>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-amber-300">
+            Full Script
+          </p>
 
-  <button
-    type="button"
-    onClick={() => copyText(scriptResult.fullScript)}
-    className="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500"
-  >
-    台本をコピー
-  </button>
-</div>
+          <button
+            type="button"
+            onClick={() => copyText(scriptResult.fullScript)}
+            className="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500"
+          >
+            コピー
+          </button>
+        </div>
 
-<p className="mt-2 whitespace-pre-wrap leading-7 text-gray-100">
-  {scriptResult.fullScript}
-</p>
+        <p className="mt-2 whitespace-pre-wrap leading-7 text-gray-100">
+          {scriptResult.fullScript}
+        </p>
       </div>
     </div>
   </div>
