@@ -42,6 +42,7 @@ const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([])
   },
 ]);
 const [successMessage, setSuccessMessage] = useState("");
+const [errorMessage, setErrorMessage] = useState("");
 const addClip = () => {
   setClips([
     ...clips,
@@ -84,11 +85,11 @@ const canGoStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
   return false;
 };
 const currentStepGuide = {
-  1: "動画ファイルをアップロードします。字幕がある場合は字幕ファイルも追加できます。",
-  2: "字幕AIハイライト、または音声ハイライトで切り抜き候補を作ります。",
-  3: "Clip候補をプレビューして、開始秒・終了秒を調整します。",
+  1: "動画と字幕ファイルを追加します。字幕がない動画でも次のSTEPで音声解析できます。",
+  2: "字幕AIまたは音声ハイライトで、切り抜き候補を作成します。",
+  3: "候補Clipを確認し、開始秒・終了秒を微調整します。",
   4: "投稿タイトル、説明文、ハッシュタグ、サムネ案、AI台本を生成します。",
-  5: "確認できたClipをZIPで一括生成して保存します。",
+  5: "出力形式を選び、複数ClipをZIPで一括保存します。",
 } as const;
 const scrollToStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
   const stepTargets = {
@@ -284,13 +285,13 @@ setProgress(100);
       message.includes("Too Many Requests");
 
     if (isYoutubeBlocked) {
-      alert(
+      setErrorMessage(
         "YouTubeから動画を取得できませんでした。\n\n" +
           "YouTube側の制限により、取得がブロックされた可能性があります。\n\n" +
           "動画ファイルをダウンロードしてから、動画アップロード機能を使ってください。"
       );
     } else {
-      alert(
+      setErrorMessage(
         message ||
           "YouTubeから動画を取得できませんでした。動画アップロード機能を使ってください。"
       );
@@ -390,7 +391,7 @@ const ok = window.confirm(
   } catch (err) {
     console.error(err);
 
-    alert(
+    setErrorMessage(
       err instanceof Error
         ? err.message
         : "不明なエラー"
@@ -567,7 +568,7 @@ const handleUploadVideo = async (file: File | null) => {
   } catch (err) {
     console.error(err);
 
-    alert(
+    setErrorMessage(
       err instanceof Error
         ? err.message
         : "不明なエラー"
@@ -892,7 +893,7 @@ const handleAudioEnergy = async () => {
   } catch (err) {
     console.error(err);
 
-    alert(
+    setErrorMessage(
       err instanceof Error
         ? err.message
         : "不明なエラー"
@@ -933,7 +934,7 @@ const enableYoutube =
   } catch (err) {
     console.error(err);
 
-    alert(
+    setErrorMessage(
       err instanceof Error
         ? err.message
         : "動画アップロードに失敗しました"
@@ -977,11 +978,12 @@ const handlePostAssets = async () => {
 
     setPostAssets(data.items ?? []);
     setResultTab("assets");
+    setErrorMessage("");
     setSuccessMessage("投稿タイトル・説明文・ハッシュタグを生成しました");
   } catch (err) {
     console.error(err);
 
-    alert(
+    setErrorMessage(
       err instanceof Error
         ? err.message
         : "投稿素材生成に失敗しました"
@@ -1031,7 +1033,7 @@ const handleScriptGenerate = async () => {
   } catch (err) {
     console.error(err);
 
-    alert(
+    setErrorMessage(
       err instanceof Error
         ? err.message
         : "台本生成に失敗しました"
@@ -1070,8 +1072,8 @@ const downloadThumbnail = async (clipIndex: number) => {
   setSuccessMessage("サムネ画像を保存しました");
 };
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 text-white p-6">
-      <div className="max-w-xl mx-auto mt-10 backdrop-blur-md bg-white/10 p-8 rounded-xl shadow-xl border border-white/20 animate-fadeIn">
+<main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 px-3 py-5 text-white sm:p-6">
+  <div className="mx-auto mt-4 max-w-xl rounded-xl border border-white/20 bg-white/10 p-4 shadow-xl backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8">
        <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
   NEXCUT AI
 </h1>
@@ -1118,6 +1120,9 @@ const downloadThumbnail = async (clipIndex: number) => {
       );
     })}
   </div>
+  <p className="mt-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm leading-6 text-cyan-100">
+  {currentStepGuide[currentStep]}
+</p>
 </div>
  <div className="mt-3 grid grid-cols-2 gap-3">
   <button
@@ -1692,6 +1697,11 @@ const downloadThumbnail = async (clipIndex: number) => {
       {successMessage}
     </div>
   )}
+  {errorMessage && (
+  <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm leading-6 text-red-200">
+    {errorMessage}
+  </div>
+)}
 
 {zipFileName && generatedClipCount > 0 && (
   <div className="mt-6 rounded-xl border border-green-400/20 bg-green-400/10 p-4">
