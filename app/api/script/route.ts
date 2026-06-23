@@ -131,15 +131,22 @@ ${clipText}
         );
       }
 
-      if (res.status === 503) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "AIが混雑しています。少し時間をおいて再度試してください。",
-          },
-          { status: 503 }
-        );
-      }
+if (res.status === 503) {
+  const fallbackScript = {
+    hook: "この場面、見逃せません。",
+    script: "今回の注目ポイントは、このクリップの展開です。",
+    ending: "続きが気になる人は、ぜひチェックしてください。",
+    fullScript:
+      "この場面、見逃せません。\n今回の注目ポイントは、このクリップの展開です。\n続きが気になる人は、ぜひチェックしてください。",
+    length,
+  };
+
+  return NextResponse.json({
+    success: true,
+    fallback: true,
+    script: fallbackScript,
+  });
+}
 
       return NextResponse.json(
         { success: false, error: message || "台本生成に失敗しました" },
