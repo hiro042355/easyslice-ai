@@ -28,20 +28,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const clips = body.clips as ClipItem[];
-    const videoTitle = body.videoTitle as string | undefined;
+ const body = await req.json();
+const clips = body.clips as ClipItem[];
+const videoTitle = body.videoTitle as string | undefined;
 
-    if (!Array.isArray(clips) || clips.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "クリップ候補がありません" },
-        { status: 400 }
-      );
-    }
+if (!Array.isArray(clips) || clips.length === 0) {
+  return NextResponse.json(
+    { success: false, error: "クリップ候補がありません" },
+    { status: 400 }
+  );
+}
 
-    const clipText = clips
-      .slice(0, 5)
-      .map((clip, index) => {
+const safeClips = clips.slice(0, 3);
+
+const clipText = safeClips
+  .map((clip, index) => {
         return [
           `Clip ${index + 1}`,
           `start: ${clip.start}`,

@@ -28,11 +28,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const clips = body.clips as ClipItem[];
-    const videoTitle = body.videoTitle as string | undefined;
-    const summary = body.summary as string | undefined;
-    const length = body.length as "15" | "30" | "60" | "90" | undefined;
+const body = await req.json();
+
+const clips = Array.isArray(body.clips)
+  ? (body.clips as ClipItem[]).slice(0, 3)
+  : [];
+
+const videoTitle = body.videoTitle as string | undefined;
+const summary = body.summary as string | undefined;
+
+const allowedLengths = ["15", "30", "60", "90"] as const;
+const length = allowedLengths.includes(String(body.length) as "15" | "30" | "60" | "90")
+  ? (String(body.length) as "15" | "30" | "60" | "90")
+  : "30";
 
     if (!Array.isArray(clips) || clips.length === 0) {
       return NextResponse.json(

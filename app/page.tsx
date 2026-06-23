@@ -945,6 +945,11 @@ setErrorMessage("");
   }
 };
 const handlePostAssets = async () => {
+  if (loading) return;
+
+setLoading(true);
+setErrorMessage("");
+setSuccessMessage("");
   const validClips = clips.filter(
     (clip) =>
       clip.start.trim() !== "" &&
@@ -994,6 +999,11 @@ const handlePostAssets = async () => {
   }
 };
 const handleScriptGenerate = async () => {
+  if (loading) return;
+
+setLoading(true);
+setErrorMessage("");
+setSuccessMessage("");
   const validClips = clips.filter(
     (clip) =>
       clip.start.trim() !== "" &&
