@@ -1088,7 +1088,7 @@ const downloadThumbnail = async (clipIndex: number) => {
     </p>
   </div>
 
-  <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
     {steps.map((step) => {
       const canGo = canGoStep(step.id);
       const isActive = currentStep === step.id;
