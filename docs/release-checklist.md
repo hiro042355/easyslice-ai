@@ -115,3 +115,13 @@ git status
 - [x] アップロード動画でZIP生成できる
 - [x] Gemini APIが動く
 - [x] エラー表示が崩れていない
+
+## 最新リリース確認
+
+- [x] Story Wizard UIで5STEP操作できる
+- [x] スマホ表示でSTEPと操作ボタンが崩れない
+- [x] 画面内エラー表示が出る
+- [x] Gemini APIキーはサーバー側環境変数で管理している
+- [x] 公開環境では `NEXT_PUBLIC_ENABLE_YOUTUBE=false`
+- [x] YouTube Cookieは本番環境に設定していない
+- [x] 投稿素材生成、AI台本生成、9:16出力、ZIP生成を確認済み
