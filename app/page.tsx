@@ -268,6 +268,7 @@ setSubtitles([]);
 setStart("0");
 setEnd("");
 setProgress(100);
+setErrorMessage("");
         alert("ダウンロード完了");
     } catch (err) {
     console.error(err);
@@ -384,7 +385,7 @@ const ok = window.confirm(
 
     setZipFileName(fileName);
     setGeneratedClipCount(validClips.length);
-
+setErrorMessage("");
     setSuccessMessage(
       `🎉 ${validClips.length}個のクリップ生成完了`
     );
@@ -929,7 +930,7 @@ const enableYoutube =
     setVideoDuration(0);
     setDownloadUrl("");
     setCutVideoUrl("");
-
+setErrorMessage("");
     setSuccessMessage("動画アップロード完了");
   } catch (err) {
     console.error(err);
@@ -1697,9 +1698,21 @@ const downloadThumbnail = async (clipIndex: number) => {
       {successMessage}
     </div>
   )}
-  {errorMessage && (
+ {errorMessage && (
   <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm leading-6 text-red-200">
-    {errorMessage}
+    <div className="flex items-start justify-between gap-3">
+      <p className="whitespace-pre-wrap">
+        {errorMessage}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => setErrorMessage("")}
+        className="shrink-0 rounded-lg border border-red-300/20 px-2 py-1 text-xs font-semibold text-red-100 hover:bg-red-400/10"
+      >
+        閉じる
+      </button>
+    </div>
   </div>
 )}
 
