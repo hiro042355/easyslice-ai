@@ -1566,7 +1566,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 )}
 {currentStep === 2 && (
   <div id="step-analyze">
-    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
     <button
       type="button"
       onClick={addClip}
