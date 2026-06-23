@@ -71,6 +71,17 @@ const clipText = safeClips
 - thumbnailLayoutは文字配置や見せ方を具体的に書く
 - thumbnailMoodはサムネ全体の印象を短く書く
 
+制限:
+- 出力は短くする
+- description は80文字以内
+- hashtags は最大5個
+- thumbnailText は12文字以内
+- thumbnailSubText は16文字以内
+- thumbnailLayout は40文字以内
+- thumbnailMood は40文字以内
+- 余計な説明文は出さない
+- JSON以外は返さない
+
 返却形式:
 {
   "items": [

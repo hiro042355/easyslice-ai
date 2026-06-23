@@ -140,6 +140,20 @@ const setEndFromCurrent = () => {
 };
 
   const [loading, setLoading] = useState(false);
+  const [aiCooldownUntil, setAiCooldownUntil] = useState<number>(0);
+  const [now, setNow] = useState(Date.now());
+const isAiCoolingDown = now < aiCooldownUntil;
+const aiCooldownSeconds = Math.max(
+  0,
+  Math.ceil((aiCooldownUntil - now) / 1000)
+);
+useEffect(() => {
+  const timer = setInterval(() => {
+    setNow(Date.now());
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, []);
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState("");
   const [cutVideoUrl, setCutVideoUrl] = useState("");
@@ -945,11 +959,8 @@ setErrorMessage("");
   }
 };
 const handlePostAssets = async () => {
-  if (loading) return;
+  if (loading || isAiCoolingDown) return;
 
-setLoading(true);
-setErrorMessage("");
-setSuccessMessage("");
   const validClips = clips.filter(
     (clip) =>
       clip.start.trim() !== "" &&
@@ -957,13 +968,15 @@ setSuccessMessage("");
   );
 
   if (validClips.length === 0) {
-    alert("先にクリップ候補を作成してください");
+    setErrorMessage("先にクリップ候補を作成してください");
     return;
   }
 
+  setLoading(true);
+  setErrorMessage("");
+  setSuccessMessage("");
+
   try {
-    setLoading(true);
-    setSuccessMessage("");
 
     const res = await fetch("/api/post-assets", {
       method: "POST",
@@ -982,10 +995,11 @@ setSuccessMessage("");
       throw new Error(data.error || "投稿素材生成に失敗しました");
     }
 
-    setPostAssets(data.items ?? []);
-    setResultTab("assets");
-    setErrorMessage("");
-    setSuccessMessage("投稿タイトル・説明文・ハッシュタグを生成しました");
+setPostAssets(data.items ?? []);
+setResultTab("assets");
+setErrorMessage("");
+setSuccessMessage("投稿タイトル・説明文・ハッシュタグを生成しました");
+setAiCooldownUntil(Date.now() + 10000);
   } catch (err) {
     console.error(err);
 
@@ -999,11 +1013,8 @@ setSuccessMessage("");
   }
 };
 const handleScriptGenerate = async () => {
-  if (loading) return;
+  if (loading || isAiCoolingDown) return;
 
-setLoading(true);
-setErrorMessage("");
-setSuccessMessage("");
   const validClips = clips.filter(
     (clip) =>
       clip.start.trim() !== "" &&
@@ -1011,14 +1022,15 @@ setSuccessMessage("");
   );
 
   if (validClips.length === 0) {
-    alert("先にクリップ候補を作成してください");
+    setErrorMessage("先にクリップ候補を作成してください");
     return;
   }
 
-  try {
-    setLoading(true);
-    setSuccessMessage("");
+  setLoading(true);
+  setErrorMessage("");
+  setSuccessMessage("");
 
+  try {
     const res = await fetch("/api/script", {
       method: "POST",
       headers: {
@@ -1041,6 +1053,7 @@ setSuccessMessage("");
     setScriptResult(data.script);
     setResultTab("script");
     setSuccessMessage(`${scriptLength}秒台本を生成しました`);
+    setAiCooldownUntil(Date.now() + 10000);
   } catch (err) {
     console.error(err);
 
@@ -1827,14 +1840,16 @@ const downloadThumbnail = async (clipIndex: number) => {
   <button
   type="button"
   onClick={handlePostAssets}
-  disabled={loading || clips.length === 0}
+  disabled={loading || isAiCoolingDown || clips.length === 0}
   className={
     loading || clips.length === 0
       ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
       : "w-full rounded-xl bg-fuchsia-600 px-4 py-2 transition hover:bg-fuchsia-500"
   }
 >
-  投稿素材生成
+  {isAiCoolingDown
+  ? `待機中 ${aiCooldownSeconds}秒`
+  : "投稿素材生成"}
 </button>
 <p className="mt-3 text-xs leading-5 text-gray-400">
   投稿素材は負荷を抑えるため、入力済みClipの上位3件まで生成します。
@@ -1857,14 +1872,16 @@ const downloadThumbnail = async (clipIndex: number) => {
   <button
     type="button"
     onClick={handleScriptGenerate}
-    disabled={loading || clips.length === 0}
+    disabled={loading || isAiCoolingDown || clips.length === 0}
     className={
       loading || clips.length === 0
         ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
         : "w-full rounded-xl bg-amber-600 px-4 py-2 transition hover:bg-amber-500"
     }
   >
-    AI台本生成
+    {isAiCoolingDown
+  ? `待機中 ${aiCooldownSeconds}秒`
+  : "AI台本生成"}
   </button>
 </div>
 </div>
