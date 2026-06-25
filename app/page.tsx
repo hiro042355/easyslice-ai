@@ -1132,6 +1132,36 @@ const copyText = async (text: string) => {
   await navigator.clipboard.writeText(text);
   setSuccessMessage("コピーしました");
 };
+const toSrtTime = (seconds: number) => {
+  const safeSeconds = Math.max(0, seconds);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const secs = Math.floor(safeSeconds % 60);
+  const millis = Math.floor((safeSeconds % 1) * 1000);
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0"
+  )}:${String(secs).padStart(2, "0")},${String(millis).padStart(3, "0")}`;
+};
+
+const transcriptToSrt = (text: string) => {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines
+    .map((line, index) => {
+      const start = index * 2;
+      const end = start + 2;
+
+      return `${index + 1}
+${toSrtTime(start)} --> ${toSrtTime(end)}
+${line}`;
+    })
+    .join("\n\n");
+};
 const downloadThumbnail = async (clipIndex: number) => {
   const element = document.getElementById(`thumbnail-preview-${clipIndex}`);
 
