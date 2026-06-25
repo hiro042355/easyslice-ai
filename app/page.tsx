@@ -28,6 +28,7 @@ const [generatedClipCount, setGeneratedClipCount] = useState(0);
   const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [summary, setSummary] = useState("");
+  const [transcriptText, setTranscriptText] = useState("");
 const [fullText, setFullText] = useState("");
 const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([]);
   const [start, setStart] = useState("0");
@@ -1214,6 +1215,12 @@ const downloadThumbnail = async (clipIndex: number) => {
   >
     使い方を見る
   </a>
+  <a
+  href="/guide#video"
+  className="inline-block text-sm font-semibold text-pink-300 hover:text-pink-200"
+>
+  3分で使い方を見る
+</a>
 </div>
 <p className="text-zinc-400 text-sm mt-2">
   Smart Video Clipping Platform
@@ -1887,6 +1894,15 @@ const downloadThumbnail = async (clipIndex: number) => {
   ? `待機中 ${aiCooldownSeconds}秒`
   : "AI台本生成"}
   </button>
+    <button
+  type="button"
+  onClick={() => {
+    setSuccessMessage("自動字幕機能は準備中です");
+  }}
+  className="mt-3 w-full rounded-xl bg-sky-600 px-4 py-2 transition hover:bg-sky-500"
+>
+  自動字幕生成
+</button>
 </div>
 </div>
 
@@ -1926,6 +1942,34 @@ const downloadThumbnail = async (clipIndex: number) => {
           </span>
         )}
       </button>
+    
+{transcriptText && (
+  <div className="mt-6 rounded-xl border border-sky-500/20 bg-zinc-900/70 p-4">
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-semibold text-sky-300">
+          自動字幕
+        </h2>
+
+        <p className="mt-1 text-xs text-gray-400">
+          文字起こし結果・字幕テキスト
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => copyText(transcriptText)}
+        className="rounded-lg bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-500"
+      >
+        コピー
+      </button>
+    </div>
+
+    <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
+      {transcriptText}
+    </p>
+  </div>
+)}
     </div>
   </div>
 )}
@@ -2090,7 +2134,7 @@ const downloadThumbnail = async (clipIndex: number) => {
                 onClick={() => downloadThumbnail(item.clipIndex)}
                 className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
               >
-                PNG保存
+                サムネ画像を保存
               </button>
             </div>
           </div>
