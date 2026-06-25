@@ -1079,10 +1079,29 @@ const handleTranscriptGenerate = async () => {
   setErrorMessage("");
   setSuccessMessage("");
 
+  const validClips = clips.filter(
+  (clip) =>
+    clip.start.trim() !== "" &&
+    clip.end.trim() !== ""
+);
+
+if (validClips.length === 0) {
+  setErrorMessage("先にクリップ候補を作成してください");
+  return;
+}
   try {
-    const res = await fetch("/api/transcript", {
-      method: "POST",
-    });
+const targetClip = validClips[0];
+
+const res = await fetch("/api/transcript", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    start: targetClip.start,
+    end: targetClip.end,
+  }),
+});
 
     const data = await res.json();
 

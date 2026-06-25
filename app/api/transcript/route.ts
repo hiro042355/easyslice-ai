@@ -10,8 +10,12 @@ const execFileAsync = promisify(execFile);
 
 
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const body = await req.json().catch(() => ({}));
+    const start = Number(body.start ?? 0);
+    const end = Number(body.end ?? 0);
+    const duration = Math.max(1, end - start);
    const videoPath = path.join(os.tmpdir(), "downloaded.mp4");
     const audioPath = path.join(os.tmpdir(), "transcript-audio.wav");
 
@@ -25,17 +29,21 @@ export async function POST() {
       );
     }
 
-    await execFileAsync("ffmpeg", [
-      "-y",
-      "-i",
-      videoPath,
-      "-vn",
-      "-ac",
-      "1",
-      "-ar",
-      "16000",
-      audioPath,
-    ]);
+  await execFileAsync("ffmpeg", [
+  "-y",
+  "-ss",
+  String(start),
+  "-t",
+  String(duration),
+  "-i",
+  videoPath,
+  "-vn",
+  "-ac",
+  "1",
+  "-ar",
+  "16000",
+  audioPath,
+]);
 
 const audioBuffer = fs.readFileSync(audioPath);
 const audioBase64 = audioBuffer.toString("base64");
