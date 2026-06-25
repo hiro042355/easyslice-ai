@@ -28,7 +28,6 @@ const [generatedClipCount, setGeneratedClipCount] = useState(0);
   const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [summary, setSummary] = useState("");
-  const [transcriptText, setTranscriptText] = useState("");
 const [fullText, setFullText] = useState("");
 const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([]);
   const [start, setStart] = useState("0");
@@ -44,6 +43,7 @@ const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([])
 ]);
 const [successMessage, setSuccessMessage] = useState("");
 const [errorMessage, setErrorMessage] = useState("");
+const [transcriptText, setTranscriptText] = useState("");
 const addClip = () => {
   setClips([
     ...clips,
@@ -1071,6 +1071,39 @@ setAiCooldownUntil(Date.now() + 10000);
     setLoading(false);
   }
 };
+const handleTranscriptGenerate = async () => {
+  setSuccessMessage("自動字幕ボタンが押されました");
+
+  if (loading) return;
+  setLoading(true);
+  setErrorMessage("");
+  setSuccessMessage("");
+
+  try {
+    const res = await fetch("/api/transcript", {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "自動字幕生成に失敗しました");
+    }
+
+    setTranscriptText(data.transcript ?? "");
+    setSuccessMessage("自動字幕を生成しました");
+  } catch (err) {
+    console.error(err);
+
+    setErrorMessage(
+      err instanceof Error
+        ? err.message
+        : "自動字幕生成に失敗しました"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 const copyText = async (text: string) => {
   if (!text.trim()) {
     alert("コピーする内容がありません");
@@ -1880,29 +1913,55 @@ const downloadThumbnail = async (clipIndex: number) => {
     <option value="90">90秒台本</option>
   </select>
 
-  <button
-    type="button"
-    onClick={handleScriptGenerate}
-    disabled={loading || isAiCoolingDown || clips.length === 0}
-    className={
-      loading || clips.length === 0
-        ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
-        : "w-full rounded-xl bg-amber-600 px-4 py-2 transition hover:bg-amber-500"
-    }
-  >
-    {isAiCoolingDown
-  ? `待機中 ${aiCooldownSeconds}秒`
-  : "AI台本生成"}
-  </button>
-    <button
+<button
   type="button"
-  onClick={() => {
-    setSuccessMessage("自動字幕機能は準備中です");
-  }}
-  className="mt-3 w-full rounded-xl bg-sky-600 px-4 py-2 transition hover:bg-sky-500"
+  onClick={handleScriptGenerate}
+  disabled={loading || isAiCoolingDown || clips.length === 0}
+  className={
+    loading || clips.length === 0
+      ? "w-full rounded-xl bg-gray-600 px-4 py-2 cursor-not-allowed"
+      : "w-full rounded-xl bg-amber-600 px-4 py-2 transition hover:bg-amber-500"
+  }
+>
+  {isAiCoolingDown
+    ? `待機中 ${aiCooldownSeconds}秒`
+    : "AI台本生成"}
+</button>
+
+<button
+  type="button"
+  onClick={handleTranscriptGenerate}
+  className="mt-4 w-full rounded-xl bg-sky-600 px-4 py-2 transition hover:bg-sky-500"
 >
   自動字幕生成
 </button>
+{transcriptText && (
+  <div className="mt-4 rounded-xl border border-sky-500/20 bg-zinc-900/70 p-4">
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-semibold text-sky-300">
+          自動字幕
+        </h2>
+
+        <p className="mt-1 text-xs text-gray-400">
+          文字起こし結果・字幕テキスト
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => copyText(transcriptText)}
+        className="rounded-lg bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-500"
+      >
+        コピー
+      </button>
+    </div>
+
+    <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
+      {transcriptText}
+    </p>
+  </div>
+)}
 </div>
 </div>
 
@@ -2191,13 +2250,15 @@ const downloadThumbnail = async (clipIndex: number) => {
           </div>
         </div>
       )}
-    </div>
+</div>
   ))}
 </div>
   </div>
 )}
-  </div>
+
+</div>
 )}
+
 {summary && (
   <div className="mt-4 p-4 rounded-xl bg-zinc-800">
     <p className="font-bold mb-2">AI要約</p>
