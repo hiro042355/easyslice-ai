@@ -19,7 +19,19 @@ export default function GuidePage() {
           NEXCUT AIは、動画からショート動画向けの切り抜き候補を作成し、
           複数のMP4クリップをZIPでまとめてダウンロードできるツールです。
         </p>
+<section id="video" className="mb-10 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-5">
+  <h2 className="mb-3 text-2xl font-bold text-cyan-300">
+    3分で使い方を見る
+  </h2>
 
+  <p className="mb-4 text-gray-300">
+    動画アップロードから、AI解析、Clip確認、投稿素材生成、動画書き出しまでの流れを短い動画で確認できます。
+  </p>
+
+  <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-white/20 bg-black/40 text-center text-sm text-gray-400">
+    使い方動画をここに追加予定
+  </div>
+</section>
         <section className="mb-10">
           <h2 className="mb-4 text-2xl font-bold text-white">
             基本の使い方

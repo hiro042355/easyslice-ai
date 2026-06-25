@@ -1050,10 +1050,14 @@ const handleScriptGenerate = async () => {
       throw new Error(data.error || "台本生成に失敗しました");
     }
 
-    setScriptResult(data.script);
-    setResultTab("script");
-    setSuccessMessage(`${scriptLength}秒台本を生成しました`);
-    setAiCooldownUntil(Date.now() + 10000);
+ setScriptResult(data.script);
+setResultTab("script");
+setSuccessMessage(
+  data.fallback
+    ? "AIが混雑していたため、簡易台本を生成しました"
+    : `${scriptLength}秒台本を生成しました`
+);
+setAiCooldownUntil(Date.now() + 10000);
   } catch (err) {
     console.error(err);
 
