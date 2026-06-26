@@ -44,6 +44,7 @@ const [subtitles, setSubtitles] = useState<{second: number; text: string}[]>([])
 const [successMessage, setSuccessMessage] = useState("");
 const [errorMessage, setErrorMessage] = useState("");
 const [transcriptText, setTranscriptText] = useState("");
+const [burnedVideoUrl, setBurnedVideoUrl] = useState("");
 const addClip = () => {
   setClips([
     ...clips,
@@ -1984,6 +1985,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 >
   自動字幕生成
 </button>
+
 {transcriptText && (
   <div className="mt-4 rounded-xl border border-sky-500/20 bg-zinc-900/70 p-4">
     <div className="mb-3 flex items-center justify-between gap-3">
@@ -2004,11 +2006,93 @@ const downloadThumbnail = async (clipIndex: number) => {
       >
         コピー
       </button>
+      <button
+  type="button"
+  onClick={() => copyText(transcriptToSrt(transcriptText))}
+  className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+>
+  SRTコピー
+</button>
+<button
+  type="button"
+ onClick={async () => {
+
+  try {
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("字幕付き動画を作成中です...");
+
+    const res = await fetch("/api/burn-subtitle", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+body: JSON.stringify({
+  transcript: transcriptText,
+  start: validClips[0]?.start ?? "0",
+  end: validClips[0]?.end ?? "30",
+}),
+    });
+
+    const data = await res.json();
+
+    console.log("burn-subtitle response", data);
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "字幕付き動画の作成に失敗しました");
+    }
+
+    if (data.url) {
+      setBurnedVideoUrl(data.url);
+    }
+
+    setSuccessMessage(data.message || "字幕付き動画を作成しました");
+  } catch (err) {
+    console.error(err);
+
+    setErrorMessage(
+      err instanceof Error
+        ? err.message
+        : "字幕付き動画の作成に失敗しました"
+    );
+  } finally {
+    setLoading(false);
+  }
+}}
+  className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+>
+  字幕付き動画を作る
+</button>
     </div>
 
     <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
       {transcriptText}
     </p>
+  </div>
+)}
+{burnedVideoUrl && (
+  <div className="mt-6 rounded-xl border border-emerald-500/20 bg-zinc-900/70 p-4">
+    <h2 className="text-lg font-semibold text-emerald-300">
+      字幕付き動画
+    </h2>
+
+    <p className="mt-1 text-xs text-gray-400">
+      字幕を焼き込んだ動画です
+    </p>
+
+    <video
+      src={burnedVideoUrl}
+      controls
+      className="mt-4 w-full rounded-lg border border-white/10"
+    />
+
+    <a
+      href={burnedVideoUrl}
+      download="nexcut-subtitled.mp4"
+      className="mt-4 block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-500"
+    >
+      字幕付き動画を保存
+    </a>
   </div>
 )}
 </div>
@@ -2050,34 +2134,6 @@ const downloadThumbnail = async (clipIndex: number) => {
           </span>
         )}
       </button>
-    
-{transcriptText && (
-  <div className="mt-6 rounded-xl border border-sky-500/20 bg-zinc-900/70 p-4">
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div>
-        <h2 className="text-lg font-semibold text-sky-300">
-          自動字幕
-        </h2>
-
-        <p className="mt-1 text-xs text-gray-400">
-          文字起こし結果・字幕テキスト
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => copyText(transcriptText)}
-        className="rounded-lg bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-500"
-      >
-        コピー
-      </button>
-    </div>
-
-    <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
-      {transcriptText}
-    </p>
-  </div>
-)}
     </div>
   </div>
 )}

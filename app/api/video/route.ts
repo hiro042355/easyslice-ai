@@ -6,7 +6,13 @@ import os from "os";
 
 export async function GET(req: Request) {
   try {
-    const filePath = path.join(os.tmpdir(), "downloaded.mp4");
+    const { searchParams } = new URL(req.url);
+const type = searchParams.get("type");
+
+const fileName =
+  type === "burned" ? "burned-subtitle.mp4" : "downloaded.mp4";
+
+const filePath = path.join(os.tmpdir(), fileName);
     const fileStat = await stat(filePath);
     const fileSize = fileStat.size;
 
