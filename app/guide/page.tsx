@@ -21,16 +21,25 @@ export default function GuidePage() {
         </p>
 <section id="video" className="mb-10 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-5">
   <h2 className="mb-3 text-2xl font-bold text-cyan-300">
-    3分で使い方を見る
+    2分で使い方を見る
   </h2>
+<div className="mt-6 overflow-hidden rounded-xl border border-cyan-500/20 bg-zinc-950">
+  <div className="aspect-video w-full bg-black">
+   <iframe
+  src="https://www.youtube.com/embed/DaxWpqigjrs"
+  title="2分でわかる NEXCUT AI"
+  className="h-full w-full"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+/>
+  </div>
+</div>
 
   <p className="mb-4 text-gray-300">
     動画アップロードから、AI解析、Clip確認、投稿素材生成、動画書き出しまでの流れを短い動画で確認できます。
   </p>
 
-  <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-white/20 bg-black/40 text-center text-sm text-gray-400">
-    使い方動画をここに追加予定
-  </div>
+
 </section>
         <section className="mb-10">
           <h2 className="mb-4 text-2xl font-bold text-white">
@@ -90,7 +99,30 @@ export default function GuidePage() {
   <h2 className="mb-4 text-2xl font-bold text-white">
     AI台本生成
   </h2>
+<section className="mb-10">
+  <h2 className="mb-4 text-2xl font-bold text-white">
+    サムネ画像の使い方
+  </h2>
 
+  <p className="mb-4 text-gray-300">
+    投稿素材生成で作られたサムネ案は、画像として保存できます。
+    保存した画像は、YouTube Shorts、TikTok、Instagram Reelsなどの投稿準備に使えます。
+  </p>
+
+  <div className="rounded-xl border border-white/10 bg-zinc-900 p-4 text-sm text-gray-300">
+    <p className="font-semibold text-cyan-300">
+      使い方
+    </p>
+
+    <ol className="mt-3 list-decimal space-y-2 pl-5">
+      <li>投稿素材生成を押します</li>
+      <li>サムネ案が表示されたら「サムネ画像を保存」を押します</li>
+      <li>保存された画像を確認します</li>
+      <li>必要に応じてCanvaなどで文字や画像を調整します</li>
+      <li>完成した画像を投稿時のサムネイルとして使います</li>
+    </ol>
+  </div>
+</section>
   <p className="mb-4 text-gray-300">
     Clip候補をもとに、ショート動画向けのナレーション台本を生成できます。
     15秒、30秒、60秒、90秒の長さを選べます。
@@ -143,6 +175,26 @@ export default function GuidePage() {
             無料枠には上限があります。上限に達した場合は、時間をおいて再度試してください。
           </p>
         </section>
+        <section className="mb-10 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-5">
+  <h2 className="mb-4 text-2xl font-bold text-fuchsia-300">
+    フィードバック・不具合報告
+  </h2>
+
+  <p className="mb-4 text-gray-300">
+    使い方で分かりにくいところ、不具合、追加してほしい機能があればお知らせください。
+    今後の改善に反映します。
+  </p>
+
+  <div className="rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm text-gray-300">
+    <p className="font-semibold text-white">
+      連絡先
+    </p>
+
+    <p className="mt-2 text-gray-400">
+      準備中です。正式な問い合わせ先を追加予定です。
+    </p>
+  </div>
+</section>
       </div>
     </main>
   );
