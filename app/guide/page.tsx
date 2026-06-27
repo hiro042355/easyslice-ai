@@ -185,15 +185,22 @@ export default function GuidePage() {
     今後の改善に反映します。
   </p>
 
-  <div className="rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm text-gray-300">
-    <p className="font-semibold text-white">
-      連絡先
-    </p>
+<div className="mt-6 rounded-xl bg-black/40 p-4">
+  <p className="font-semibold text-white">
+    連絡先
+  </p>
 
-    <p className="mt-2 text-gray-400">
-      準備中です。正式な問い合わせ先を追加予定です。
-    </p>
-  </div>
+  <p className="mt-2 text-sm leading-6 text-gray-300">
+    不具合報告、改善要望、使い方の質問はこちらからお送りください。
+  </p>
+
+  <a
+    href="mailto:nexcut.ai@gmail.com"
+    className="mt-4 inline-block rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
+  >
+    メールで問い合わせる
+  </a>
+</div>
 </section>
       </div>
     </main>

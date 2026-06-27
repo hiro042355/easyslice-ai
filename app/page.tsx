@@ -1302,7 +1302,7 @@ const downloadThumbnail = async (clipIndex: number) => {
   href="/guide#video"
   className="inline-block text-sm font-semibold text-pink-300 hover:text-pink-200"
 >
-  3分で使い方を見る
+  2分で使い方を見る
 </a>
 </div>
 <p className="text-zinc-400 text-sm mt-2">
@@ -1999,20 +1999,23 @@ const downloadThumbnail = async (clipIndex: number) => {
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => copyText(transcriptText)}
-        className="rounded-lg bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-500"
-      >
-        コピー
-      </button>
-      <button
-  type="button"
-  onClick={() => copyText(transcriptToSrt(transcriptText))}
-  className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
->
-  SRTコピー
-</button>
+     <div className="flex flex-wrap gap-2">
+  <button
+    type="button"
+    onClick={() => copyText(transcriptText)}
+    className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-500"
+  >
+    コピー
+  </button>
+
+  <button
+    type="button"
+    onClick={() => copyText(transcriptToSrt(transcriptText))}
+    className="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-500"
+  >
+    SRTコピー
+  </button>
+</div>
 <button
   type="button"
  onClick={async () => {
@@ -2065,9 +2068,9 @@ body: JSON.stringify({
 </button>
     </div>
 
-    <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
-      {transcriptText}
-    </p>
+   <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
+  {transcriptText}
+</p>
   </div>
 )}
 {burnedVideoUrl && (
