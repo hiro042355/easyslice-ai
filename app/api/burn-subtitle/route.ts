@@ -24,8 +24,8 @@ const transcriptToSrt = (text: string) => {
 
   return lines
     .map((line, index) => {
-      const start = index * 2;
-      const end = start + 2;
+      const start = Math.max(0, index * 2 - 0.3);
+const end = start + 2;
 
       return [
         String(index + 1),
@@ -35,11 +35,40 @@ const transcriptToSrt = (text: string) => {
     })
     .join("\n\n");
 };
+const transcriptToDualSrt = (mainText: string, subText: string) => {
+  const mainLines = mainText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
+  const subLines = subText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const maxLength = Math.max(mainLines.length, subLines.length);
+
+  return Array.from({ length: maxLength })
+    .map((_, index) => {
+      const start = Math.max(0, index * 2 - 0.3);
+      const end = start + 2;
+      const mainLine = mainLines[index] ?? "";
+      const subLine = subLines[index] ?? "";
+
+      return [
+        String(index + 1),
+        `${toSrtTime(start)} --> ${toSrtTime(end)}`,
+        [mainLine, subLine].filter(Boolean).join("\n"),
+      ].join("\n");
+    })
+    .join("\n\n");
+};
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const transcript = String(body.transcript ?? "");
+    const subTranscript = String(body.subTranscript ?? "");
+const subtitleMode = String(body.subtitleMode ?? "single");
     const start = Math.max(0, Number(body.start ?? 0));
 const end = Math.max(start + 1, Number(body.end ?? start + 30));
 const duration = end - start;
@@ -62,7 +91,11 @@ const duration = end - start;
       );
     }
 
-const srtText = transcriptToSrt(transcript);
+const srtText =
+  subtitleMode === "dual" && subTranscript.trim()
+    ? transcriptToDualSrt(transcript, subTranscript)
+    : transcriptToSrt(transcript);
+
 fs.writeFileSync(srtPath, srtText, "utf8");
 
 const escapedSrtPath = srtPath
@@ -84,7 +117,7 @@ await execFileAsync("ffmpeg", [
   "-preset",
   "veryfast",
   "-crf",
-  "20",
+"18",
   "-c:a",
   "aac",
   "-b:a",

@@ -73,7 +73,7 @@ export default function LandingPage() {
               {[
                 ["まさかの展開", "字幕AIハイライト", "score 8"],
                 ["一番熱い瞬間", "音声ハイライト", "score 7"],
-                ["結論の入り口", "字幕要約", "score 6"],
+                ["結論の入り口", "字幕を要約する", "score 6"],
               ].map(([title, type, score], index) => (
                 <div
                   key={title}

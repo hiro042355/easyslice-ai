@@ -2022,6 +2022,7 @@ const downloadThumbnail = async (clipIndex: number) => {
     ? `待機中 ${aiCooldownSeconds}秒`
     : "AI台本生成"}
 </button>
+</div>
 
 <button
   type="button"
@@ -2113,7 +2114,7 @@ body: JSON.stringify({
 </button>
     </div>
 
-   <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
+<p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
   {transcriptText}
 </p>
 <div className="mt-4 rounded-xl border border-emerald-500/20 bg-zinc-950/70 p-4">
@@ -2180,11 +2181,95 @@ body: JSON.stringify({
       >
         コピー
       </button>
+      <button
+  type="button"
+  onClick={async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const validClips = clips.filter(
+      (clip) => clip.start.trim() !== "" && clip.end.trim() !== ""
+    );
+
+    const firstClip = validClips[0];
+
+    const res = await fetch("/api/burn-subtitle", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        transcript: translatedText,
+        start: firstClip?.start ?? 0,
+        end: firstClip?.end ?? 30,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      setErrorMessage(data.error || "翻訳字幕付き動画の作成に失敗しました");
+      return;
+    }
+
+    if (data.url) {
+      setBurnedVideoUrl(data.url);
+    }
+
+    setSuccessMessage(data.message || "翻訳字幕付き動画を作成しました");
+  }}
+  className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-500"
+>
+  翻訳字幕付き動画を作る
+</button>
+<button
+  type="button"
+  onClick={async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const validClips = clips.filter(
+      (clip) => clip.start.trim() !== "" && clip.end.trim() !== ""
+    );
+
+    const firstClip = validClips[0];
+
+    const res = await fetch("/api/burn-subtitle", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        transcript: translatedText,
+        subTranscript: transcriptText,
+        subtitleMode: "dual",
+        start: firstClip?.start ?? 0,
+        end: firstClip?.end ?? 30,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      setErrorMessage(data.error || "二段字幕付き動画の作成に失敗しました");
+      return;
+    }
+
+    if (data.url) {
+      setBurnedVideoUrl(data.url);
+    }
+
+    setSuccessMessage(data.message || "二段字幕付き動画を作成しました");
+  }}
+  className="mt-2 rounded-lg bg-teal-600 px-3 py-1 text-xs font-semibold text-white hover:bg-teal-500"
+>
+  二段字幕付き動画を作る
+</button>
     </div>
 
-    <p className="whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
-      {translatedText}
-    </p>
+    <p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
+  {translatedText}
+</p>
   </div>
 )}
   </div>
@@ -2216,7 +2301,6 @@ body: JSON.stringify({
     </a>
   </div>
 )}
-</div>
 </div>
 
 {(postAssets.length > 0 || scriptResult) && (
