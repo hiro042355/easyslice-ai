@@ -78,6 +78,46 @@ export default function GuidePage() {
           <h2 className="mb-4 text-2xl font-bold text-white">
             字幕AIハイライト
           </h2>
+          <section className="mt-8 rounded-xl border border-emerald-500/20 bg-zinc-900/70 p-5">
+  <h2 className="text-xl font-bold text-emerald-300">
+    多言語字幕 β
+  </h2>
+
+  <p className="mt-3 text-sm leading-6 text-gray-300">
+    NEXCUT AIでは、海外動画や日本語動画を多言語向けに変換する
+    「多言語字幕」機能を検討しています。
+  </p>
+
+  <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-gray-300">
+    <li>英語から日本語への翻訳字幕</li>
+    <li>日本語から英語への翻訳字幕</li>
+    <li>日本語＋英語の二段字幕</li>
+    <li>ショート動画向けに自然な話し言葉へ変換</li>
+  </ul>
+
+  <p className="mt-4 text-xs leading-5 text-gray-400">
+    動画ファイルをアップロードし、文字起こしした内容をもとに翻訳字幕を生成する形を想定しています。
+  </p>
+  <div className="mt-5 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+  <h3 className="font-semibold text-emerald-300">
+    使い方
+  </h3>
+
+  <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-gray-300">
+    <li>動画をアップロードします</li>
+    <li>STEP3で短めのClipを作成します</li>
+    <li>STEP4で「自動字幕生成」を押します</li>
+    <li>字幕が表示されたら、翻訳方向を選びます</li>
+    <li>「字幕を翻訳する」を押します</li>
+    <li>必要に応じて「翻訳字幕付き動画を作る」を押します</li>
+  </ol>
+
+  <p className="mt-4 text-xs leading-5 text-gray-400">
+    日本語動画を英語字幕にしたい場合は「日本語 → 英語」、
+    英語動画を日本語字幕にしたい場合は「英語 → 日本語」を選んでください。
+  </p>
+</div>
+</section>
 
           <p className="text-gray-300">
             字幕の内容をもとに、AIが切り抜き候補を作成します。
