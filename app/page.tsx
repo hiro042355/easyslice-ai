@@ -47,6 +47,7 @@ const [transcriptText, setTranscriptText] = useState("");
 const [translatedText, setTranslatedText] = useState("");
 const [translationDirection, setTranslationDirection] =
   useState<"en-to-ja" | "ja-to-en">("en-to-ja");
+  const [assetMode, setAssetMode] = useState<"post" | "caption" | "translate">("post");
 const [burnedVideoUrl, setBurnedVideoUrl] = useState("");
 const addClip = () => {
   setClips([
@@ -1972,6 +1973,44 @@ const downloadThumbnail = async (clipIndex: number) => {
 )}
 {currentStep === 4 && (
   <div id="step-assets">
+    <div className="mb-4 grid grid-cols-3 gap-2">
+  <button
+    type="button"
+    onClick={() => setAssetMode("post")}
+    className={
+      assetMode === "post"
+        ? "rounded-lg bg-fuchsia-600 px-3 py-2 text-sm font-semibold text-white"
+        : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+    }
+  >
+    投稿素材
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setAssetMode("caption")}
+    className={
+      assetMode === "caption"
+        ? "rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white"
+        : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+    }
+  >
+    字幕
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setAssetMode("translate")}
+    className={
+      assetMode === "translate"
+        ? "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+        : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+    }
+  >
+    翻訳
+  </button>
+</div>
+{assetMode === "post" && (
     <div className="mt-6 rounded-xl border border-fuchsia-500/20 bg-zinc-900/70 p-4">
   <h2 className="mb-4 text-lg font-semibold text-fuchsia-300">
     投稿素材を生成
@@ -2023,14 +2062,18 @@ const downloadThumbnail = async (clipIndex: number) => {
     : "AI台本生成"}
 </button>
 </div>
+</div>
+)}
 
-<button
-  type="button"
-  onClick={handleTranscriptGenerate}
-  className="mt-4 w-full rounded-xl bg-sky-600 px-4 py-2 transition hover:bg-sky-500"
->
-  自動字幕生成
-</button>
+{assetMode === "caption" && (
+  <>
+    <button
+      type="button"
+      onClick={handleTranscriptGenerate}
+      className="mt-4 w-full rounded-xl bg-sky-600 px-4 py-2 transition hover:bg-sky-500"
+    >
+      自動字幕生成
+    </button>
 
 {transcriptText && (
   <div className="mt-4 rounded-xl border border-sky-500/20 bg-zinc-900/70 p-4">
@@ -2078,8 +2121,8 @@ const downloadThumbnail = async (clipIndex: number) => {
       },
 body: JSON.stringify({
   transcript: transcriptText,
-  start: validClips[0]?.start ?? "0",
-  end: validClips[0]?.end ?? "30",
+  start: clips[0]?.start ?? "0",
+  end: clips[0]?.end ?? "30",
 }),
     });
 
@@ -2301,7 +2344,9 @@ body: JSON.stringify({
     </a>
   </div>
 )}
-</div>
+
+  </>
+)}
 
 {(postAssets.length > 0 || scriptResult) && (
   <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
