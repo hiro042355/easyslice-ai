@@ -36,7 +36,7 @@ export default function GuidePage() {
 </div>
 
   <p className="mb-4 text-gray-300">
-    動画アップロードから、AI解析、Clip確認、投稿素材生成、動画書き出しまでの流れを短い動画で確認できます。
+    動画アップロードから、AI解析、Clip確認、投稿素材生成、自動字幕、翻訳字幕、動画書き出しまでの流れを短い動画で確認できます。
   </p>
 
 
