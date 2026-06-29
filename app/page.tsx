@@ -1232,9 +1232,19 @@ const downloadThumbnail = async (clipIndex: number) => {
   return (
 <main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 px-3 py-5 text-white sm:p-6">
   <div className="mx-auto mt-4 max-w-xl rounded-xl border border-white/20 bg-white/10 p-4 shadow-xl backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8">
-       <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-  NEXCUT AI
-</h1>
+<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+    NEXCUT AI
+  </h1>
+
+  <a
+    href="/ai-mv"
+    className="inline-flex w-fit items-center rounded-lg border border-cyan-400/40 px-3 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
+  >
+    AI MV生成 β
+  </a>
+</div>
+
 <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
   <div className="mb-3 flex items-center justify-between">
     <p className="text-sm font-semibold text-cyan-300">
