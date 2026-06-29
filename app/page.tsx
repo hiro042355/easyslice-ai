@@ -2160,71 +2160,116 @@ body: JSON.stringify({
 <p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
   {transcriptText}
 </p>
-<div className="mt-4 rounded-xl border border-emerald-500/20 bg-zinc-950/70 p-4">
-  <p className="text-sm font-semibold text-emerald-300">
-    多言語字幕 β
-  </p>
 
-  <div className="mt-3 grid grid-cols-2 gap-2">
-    <button
-      type="button"
-      onClick={() => setTranslationDirection("en-to-ja")}
-      className={
-        translationDirection === "en-to-ja"
-          ? "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
-          : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
-      }
-    >
-      英語 → 日本語
-    </button>
 
-    <button
-      type="button"
-      onClick={() => setTranslationDirection("ja-to-en")}
-      className={
-        translationDirection === "ja-to-en"
-          ? "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
-          : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
-      }
-    >
-      日本語 → 英語
-    </button>
   </div>
+  
+  
+)}
+{burnedVideoUrl && (
+  <div className="mt-6 rounded-xl border border-emerald-500/20 bg-zinc-900/70 p-4">
+    <h2 className="text-lg font-semibold text-emerald-300">
+      字幕付き動画
+    </h2>
 
-  <button
-    type="button"
-    onClick={handleTranslateSubtitle}
-    disabled={loading}
-    className={
-      loading
-        ? "mt-3 w-full cursor-not-allowed rounded-xl bg-gray-600 px-4 py-2"
-        : "mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold transition hover:bg-emerald-500"
-    }
-  >
-    {loading ? "翻訳中..." : "字幕を翻訳する"}
-  </button>
-</div>
-{translatedText && (
+    <p className="mt-1 text-xs text-gray-400">
+      字幕を焼き込んだ動画です
+    </p>
+
+    <video
+      src={burnedVideoUrl}
+      controls
+      className="mt-4 w-full rounded-lg border border-white/10"
+    />
+
+    <a
+      href={burnedVideoUrl}
+      download="nexcut-subtitled.mp4"
+      className="mt-4 block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-500"
+    >
+      字幕付き動画を保存
+    </a>
+  </div>
+)}
+
+  </>
+)}
+{assetMode === "translate" && (
   <div className="mt-4 rounded-xl border border-emerald-500/20 bg-zinc-900/70 p-4">
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div>
-        <h3 className="text-lg font-semibold text-emerald-300">
-          翻訳字幕
-        </h3>
+    <h2 className="text-lg font-semibold text-emerald-300">
+      翻訳
+    </h2>
 
-        <p className="mt-1 text-xs text-gray-400">
-          ショート動画向けに自然な表現へ整えた翻訳結果
-        </p>
+    <p className="mt-2 text-sm leading-6 text-gray-300">
+      自動字幕を生成したあと、ここで日本語・英語の翻訳字幕を作成できます。
+    </p>
+
+    <div className="mt-4 rounded-xl border border-emerald-500/20 bg-zinc-950/70 p-4">
+      <p className="text-sm font-semibold text-emerald-300">
+        多言語字幕 β
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setTranslationDirection("en-to-ja")}
+          className={
+            translationDirection === "en-to-ja"
+              ? "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+              : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+          }
+        >
+          英語 → 日本語
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTranslationDirection("ja-to-en")}
+          className={
+            translationDirection === "ja-to-en"
+              ? "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+              : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+          }
+        >
+          日本語 → 英語
+        </button>
       </div>
 
       <button
         type="button"
-        onClick={() => copyText(translatedText)}
-        className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+        onClick={handleTranslateSubtitle}
+        disabled={loading}
+        className={
+          loading
+            ? "mt-3 w-full cursor-not-allowed rounded-xl bg-gray-600 px-4 py-2"
+            : "mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold transition hover:bg-emerald-500"
+        }
       >
-        コピー
+        {loading ? "翻訳中..." : "字幕を翻訳する"}
       </button>
-      <button
+    </div>
+
+    {translatedText && (
+      <div className="mt-4 rounded-xl border border-emerald-500/20 bg-zinc-900/70 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-emerald-300">
+              翻訳字幕
+            </h3>
+
+            <p className="mt-1 text-xs text-gray-400">
+              ショート動画向けに自然な表現へ整えた翻訳結果
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => copyText(translatedText)}
+            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+          >
+            コピー
+          </button>
+          <button
   type="button"
   onClick={async () => {
     setErrorMessage("");
@@ -2308,46 +2353,15 @@ body: JSON.stringify({
 >
   二段字幕付き動画を作る
 </button>
-    </div>
+        </div>
 
-    <p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
-  {translatedText}
-</p>
+        <p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
+          {translatedText}
+        </p>
+      </div>
+    )}
   </div>
 )}
-  </div>
-  
-  
-)}
-{burnedVideoUrl && (
-  <div className="mt-6 rounded-xl border border-emerald-500/20 bg-zinc-900/70 p-4">
-    <h2 className="text-lg font-semibold text-emerald-300">
-      字幕付き動画
-    </h2>
-
-    <p className="mt-1 text-xs text-gray-400">
-      字幕を焼き込んだ動画です
-    </p>
-
-    <video
-      src={burnedVideoUrl}
-      controls
-      className="mt-4 w-full rounded-lg border border-white/10"
-    />
-
-    <a
-      href={burnedVideoUrl}
-      download="nexcut-subtitled.mp4"
-      className="mt-4 block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-500"
-    >
-      字幕付き動画を保存
-    </a>
-  </div>
-)}
-
-  </>
-)}
-
 {(postAssets.length > 0 || scriptResult) && (
   <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
     <div className="grid grid-cols-2 gap-2">
