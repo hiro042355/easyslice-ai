@@ -1237,12 +1237,21 @@ const downloadThumbnail = async (clipIndex: number) => {
     NEXCUT AI
   </h1>
 
+<div className="flex flex-wrap gap-2">
+  <a
+    href="/convert"
+    className="inline-flex w-fit items-center rounded-lg border border-emerald-400/40 px-3 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-400/10"
+  >
+    動画MP4変換
+  </a>
+
   <a
     href="/ai-mv"
     className="inline-flex w-fit items-center rounded-lg border border-cyan-400/40 px-3 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
   >
     AI MV生成 β
   </a>
+</div>
 </div>
 
 <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
