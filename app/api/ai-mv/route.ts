@@ -21,6 +21,7 @@ type AiMvResult = {
   mvConcept: string;
   scenes: AiMvScene[];
   jacketDesign: string;
+  jacketPrompt: string;
   thumbnailText: string;
   postTitle: string;
   postDescription: string;
@@ -185,6 +186,9 @@ function buildAiMvPrompt({
 - Markdownやコードブロックは返さない
 - hookはTikTok、YouTube Shorts、Instagram Reelsの冒頭3秒で使える強い一言にする
 - hookは煽りすぎず、ユーザーの出来事や感情に合う自然な言葉にする
+- jacketPromptは英語で書く
+- jacketPromptには文字、ロゴ、既存キャラクター、実在アーティスト名を含めない
+- jacketPromptは画像生成AIが理解しやすいように、被写体、背景、色、光、構図、質感を具体的に書く
 
 入力:
 story: ${story}
@@ -206,8 +210,9 @@ JSON形式:
       "description": "映像内容"
     }
   ],
-  "jacketDesign": "ジャケットデザイン案",
-  "thumbnailText": "サムネ文言",
+"jacketDesign": "ジャケットデザイン案。日本語で説明する",
+"jacketPrompt": "画像生成AIに渡すための英語プロンプト。album cover, cinematic, emotional, no text, no logo を含め、人物、背景、色、光、構図を具体的に書く",
+"thumbnailText": "サムネ文言",
   "postTitle": "SNS投稿タイトル",
   "postDescription": "SNS投稿説明文",
   "hashtags": ["#NEXCUTAI", "#AIMV"]
@@ -231,10 +236,12 @@ return {
               typeof scene.description === "string" ? scene.description : "",
           }))
       : [],
-    jacketDesign:
-      typeof result.jacketDesign === "string" ? result.jacketDesign : "",
-    thumbnailText:
-      typeof result.thumbnailText === "string" ? result.thumbnailText : "",
+jacketDesign:
+  typeof result.jacketDesign === "string" ? result.jacketDesign : "",
+jacketPrompt:
+  typeof result.jacketPrompt === "string" ? result.jacketPrompt : "",
+thumbnailText:
+  typeof result.thumbnailText === "string" ? result.thumbnailText : "",
     postTitle: typeof result.postTitle === "string" ? result.postTitle : "",
     postDescription:
       typeof result.postDescription === "string" ? result.postDescription : "",

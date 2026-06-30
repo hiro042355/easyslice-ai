@@ -13,6 +13,7 @@ type AiMvResult = {
     description: string;
   }[];
   jacketDesign: string;
+  jacketPrompt: string;
   thumbnailText: string;
   postTitle: string;
   postDescription: string;
@@ -258,10 +259,13 @@ if (!res.ok) {
         "MVコンセプト:",
         result.mvConcept,
         "",
-        "ジャケットデザイン案:",
-        result.jacketDesign,
-        "",
-        "サムネ文言:",
+"ジャケットデザイン案:",
+result.jacketDesign,
+"",
+"画像生成用プロンプト:",
+result.jacketPrompt,
+"",
+"サムネ文言:",
         result.thumbnailText,
         "",
         "投稿タイトル:",
@@ -284,13 +288,16 @@ window.setTimeout(() => setAllCopied(false), 1200);
   </button>
 </div>
 
-{result.hook && <ResultBlock title="冒頭3秒フック" content={result.hook} />}
-              <ResultBlock title="歌詞" content={result.lyrics} />
-              <ResultBlock title="MVコンセプト" content={result.mvConcept} />
-              <ResultBlock title="ジャケットデザイン案" content={result.jacketDesign} />
-              <ResultBlock title="サムネ文言" content={result.thumbnailText} />
-              <ResultBlock title="投稿タイトル" content={result.postTitle} />
-              <ResultBlock title="投稿説明文" content={result.postDescription} />
+
+<ResultBlock title="歌詞" content={result.lyrics} />
+<ResultBlock title="MVコンセプト" content={result.mvConcept} />
+<ResultBlock title="ジャケットデザイン案" content={result.jacketDesign} />
+{result.jacketPrompt && (
+  <ResultBlock title="画像生成用プロンプト" content={result.jacketPrompt} />
+)}
+<ResultBlock title="サムネ文言" content={result.thumbnailText} />
+<ResultBlock title="投稿タイトル" content={result.postTitle} />
+<ResultBlock title="投稿説明文" content={result.postDescription} />
 
               <div>
                 <h3 className="mb-3 text-lg font-semibold">シーン構成</h3>
