@@ -108,6 +108,9 @@ if (!res.ok) {
   <p className="mt-2 text-sm text-slate-300">
     日記、思い出、恋愛、夢、失敗談から、曲タイトル・歌詞・MV構成・投稿素材を生成します。
   </p>
+  <div className="mt-4 rounded-md border border-yellow-400/30 bg-yellow-950/30 p-3 text-xs leading-6 text-yellow-100">
+  現在はβ版です。動画・楽曲・画像そのものは生成せず、MV作品案、歌詞、投稿素材、ジャケット用プロンプトを生成します。
+</div>
 {getThemeExamples(theme).map((example) => (
   <button
     key={example.label}
