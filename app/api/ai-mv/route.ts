@@ -14,6 +14,12 @@ type AiMvScene = {
   description: string;
 };
 
+type PlatformPosts = {
+  tiktok: string;
+  shorts: string;
+  reels: string;
+};
+
 type AiMvResult = {
   title: string;
   hook: string;
@@ -25,9 +31,10 @@ type AiMvResult = {
   jacketDesign: string;
   jacketPrompt: string;
   thumbnailText: string;
-  postTitle: string;
-  postDescription: string;
-  hashtags: string[];
+postTitle: string;
+postDescription: string;
+platformPosts: PlatformPosts;
+hashtags: string[];
 };
 
 export async function POST(request: Request) {
@@ -194,6 +201,9 @@ function buildAiMvPrompt({
 - shortMvPlanはSNSショート動画向けに、冒頭3秒の引きを重視する
 - thirtySecondMvPlanは物語の起承転結が伝わるように構成する
 - どちらも実際に映像化しやすい具体的なカット案にする
+- platformPosts.tiktokは短く強い感情フックを重視する
+- platformPosts.shortsは何をAIで作ったのか分かりやすくする
+- platformPosts.reelsは雰囲気と余韻を重視する
 
 入力:
 story: ${story}
@@ -220,9 +230,14 @@ JSON形式:
 "jacketDesign": "ジャケットデザイン案。日本語で説明する",
 "jacketPrompt": "画像生成AIに渡すための英語プロンプト。album cover, cinematic, emotional, no text, no logo を含め、人物、背景、色、光、構図を具体的に書く",
 "thumbnailText": "サムネ文言",
-  "postTitle": "SNS投稿タイトル",
-  "postDescription": "SNS投稿説明文",
-  "hashtags": ["#NEXCUTAI", "#AIMV"]
+"postTitle": "SNS投稿タイトル",
+"postDescription": "SNS投稿説明文",
+"platformPosts": {
+  "tiktok": "TikTok向けの投稿文。短く、感情が一瞬で伝わる文にする",
+  "shorts": "YouTube Shorts向けの投稿文。少し説明的で、企画内容が分かる文にする",
+  "reels": "Instagram Reels向けの投稿文。余韻と雰囲気を重視した文にする"
+},
+"hashtags": ["#NEXCUTAI", "#AIMV"]
 }
 `;
 }
@@ -258,6 +273,20 @@ thumbnailText:
     postTitle: typeof result.postTitle === "string" ? result.postTitle : "",
     postDescription:
       typeof result.postDescription === "string" ? result.postDescription : "",
+      platformPosts: {
+  tiktok:
+    typeof result.platformPosts?.tiktok === "string"
+      ? result.platformPosts.tiktok
+      : "",
+  shorts:
+    typeof result.platformPosts?.shorts === "string"
+      ? result.platformPosts.shorts
+      : "",
+  reels:
+    typeof result.platformPosts?.reels === "string"
+      ? result.platformPosts.reels
+      : "",
+},
     hashtags: Array.isArray(result.hashtags)
       ? result.hashtags.filter((tag) => typeof tag === "string")
       : [],

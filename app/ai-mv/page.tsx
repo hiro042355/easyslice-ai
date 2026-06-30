@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 
+type PlatformPosts = {
+  tiktok: string;
+  shorts: string;
+  reels: string;
+};
+
 type AiMvResult = {
   title: string;
   hook: string;
@@ -17,9 +23,10 @@ type AiMvResult = {
   jacketDesign: string;
   jacketPrompt: string;
   thumbnailText: string;
-  postTitle: string;
-  postDescription: string;
-  hashtags: string[];
+postTitle: string;
+postDescription: string;
+platformPosts: PlatformPosts;
+hashtags: string[];
 };
 
 export default function AiMvPage() {
@@ -279,10 +286,19 @@ result.jacketPrompt,
         "投稿タイトル:",
         result.postTitle,
         "",
-        "投稿説明文:",
-        result.postDescription,
-        "",
-        "ハッシュタグ:",
+"投稿説明文:",
+result.postDescription,
+"",
+"TikTok向け投稿文:",
+result.platformPosts?.tiktok || "",
+"",
+"YouTube Shorts向け投稿文:",
+result.platformPosts?.shorts || "",
+"",
+"Instagram Reels向け投稿文:",
+result.platformPosts?.reels || "",
+"",
+"ハッシュタグ:",
         result.hashtags.join(" "),
       ].join("\n");
 
@@ -312,7 +328,13 @@ window.setTimeout(() => setAllCopied(false), 1200);
 <ResultBlock title="サムネ文言" content={result.thumbnailText} />
 <ResultBlock title="投稿タイトル" content={result.postTitle} />
 <ResultBlock title="投稿説明文" content={result.postDescription} />
-
+{result.platformPosts && (
+  <>
+    <ResultBlock title="TikTok向け投稿文" content={result.platformPosts.tiktok} />
+    <ResultBlock title="YouTube Shorts向け投稿文" content={result.platformPosts.shorts} />
+    <ResultBlock title="Instagram Reels向け投稿文" content={result.platformPosts.reels} />
+  </>
+)}
               <div>
                 <h3 className="mb-3 text-lg font-semibold">シーン構成</h3>
                 <div className="space-y-3">
