@@ -7,6 +7,8 @@ type AiMvResult = {
   hook: string;
   lyrics: string;
   mvConcept: string;
+  shortMvPlan: string;
+  thirtySecondMvPlan: string;
   scenes: {
     time?: string;
     title: string;
@@ -256,9 +258,15 @@ if (!res.ok) {
   "歌詞:",
         result.lyrics,
         "",
-        "MVコンセプト:",
-        result.mvConcept,
-        "",
+"MVコンセプト:",
+result.mvConcept,
+"",
+"15秒版MV構成:",
+result.shortMvPlan,
+"",
+"30秒版MV構成:",
+result.thirtySecondMvPlan,
+"",
 "ジャケットデザイン案:",
 result.jacketDesign,
 "",
@@ -291,6 +299,12 @@ window.setTimeout(() => setAllCopied(false), 1200);
 
 <ResultBlock title="歌詞" content={result.lyrics} />
 <ResultBlock title="MVコンセプト" content={result.mvConcept} />
+{result.shortMvPlan && (
+  <ResultBlock title="15秒版MV構成" content={result.shortMvPlan} />
+)}
+{result.thirtySecondMvPlan && (
+  <ResultBlock title="30秒版MV構成" content={result.thirtySecondMvPlan} />
+)}
 <ResultBlock title="ジャケットデザイン案" content={result.jacketDesign} />
 {result.jacketPrompt && (
   <ResultBlock title="画像生成用プロンプト" content={result.jacketPrompt} />

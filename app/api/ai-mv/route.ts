@@ -20,6 +20,8 @@ type AiMvResult = {
   lyrics: string;
   mvConcept: string;
   scenes: AiMvScene[];
+  shortMvPlan: string;
+  thirtySecondMvPlan: string;
   jacketDesign: string;
   jacketPrompt: string;
   thumbnailText: string;
@@ -189,6 +191,9 @@ function buildAiMvPrompt({
 - jacketPromptは英語で書く
 - jacketPromptには文字、ロゴ、既存キャラクター、実在アーティスト名を含めない
 - jacketPromptは画像生成AIが理解しやすいように、被写体、背景、色、光、構図、質感を具体的に書く
+- shortMvPlanはSNSショート動画向けに、冒頭3秒の引きを重視する
+- thirtySecondMvPlanは物語の起承転結が伝わるように構成する
+- どちらも実際に映像化しやすい具体的なカット案にする
 
 入力:
 story: ${story}
@@ -202,8 +207,10 @@ JSON形式:
   "title": "曲タイトル",
   "hook": "ショート動画の冒頭3秒に表示する一言。15〜35文字程度で、思わず続きを見たくなる言葉",
   "lyrics": "歌詞。VerseやChorusを含めて改行つきで書く",
-  "mvConcept": "MV全体のコンセプト",
-  "scenes": [
+"mvConcept": "MV全体のコンセプト",
+"shortMvPlan": "15秒版MV構成。0-3秒、3-8秒、8-12秒、12-15秒のように時間別で、画面に何を映すかを書く",
+"thirtySecondMvPlan": "30秒版MV構成。0-3秒、3-10秒、10-20秒、20-30秒のように時間別で、展開を具体的に書く",
+"scenes": [
     {
       "time": "0:00-0:15",
       "title": "シーン名",
@@ -225,8 +232,14 @@ return {
   title: typeof result.title === "string" ? result.title : "Untitled",
   hook: typeof result.hook === "string" ? result.hook : "",
   lyrics: typeof result.lyrics === "string" ? result.lyrics : "",
-    mvConcept: typeof result.mvConcept === "string" ? result.mvConcept : "",
-    scenes: Array.isArray(result.scenes)
+mvConcept: typeof result.mvConcept === "string" ? result.mvConcept : "",
+shortMvPlan:
+  typeof result.shortMvPlan === "string" ? result.shortMvPlan : "",
+thirtySecondMvPlan:
+  typeof result.thirtySecondMvPlan === "string"
+    ? result.thirtySecondMvPlan
+    : "",
+scenes: Array.isArray(result.scenes)
       ? result.scenes
           .filter((scene) => scene && typeof scene.title === "string")
           .map((scene) => ({
