@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 type AiMvRequest = {
   story?: string;
+  theme?: string;
   genre?: string;
   mood?: string;
   length?: string;
@@ -38,10 +39,11 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as AiMvRequest;
 
-    const story = body.story?.trim();
-    const genre = body.genre?.trim();
-    const mood = body.mood?.trim();
-    const length = body.length?.trim() || "medium";
+const story = body.story?.trim();
+const theme = body.theme?.trim() || "日記";
+const genre = body.genre?.trim();
+const mood = body.mood?.trim();
+const length = body.length?.trim() || "medium";
 
     if (!story || story.length < 10) {
       return NextResponse.json(
@@ -64,12 +66,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const prompt = buildAiMvPrompt({
-      story,
-      genre,
-      mood,
-      length,
-    });
+const prompt = buildAiMvPrompt({
+  story,
+  theme,
+  genre,
+  mood,
+  length,
+});
 
     const res = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
@@ -153,11 +156,13 @@ export async function POST(request: Request) {
 
 function buildAiMvPrompt({
   story,
+  theme,
   genre,
   mood,
   length,
 }: {
   story: string;
+  theme: string;
   genre: string;
   mood: string;
   length: string;
@@ -180,6 +185,7 @@ function buildAiMvPrompt({
 
 入力:
 story: ${story}
+theme: ${theme}
 genre: ${genre}
 mood: ${mood}
 length: ${length}

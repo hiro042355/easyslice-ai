@@ -23,6 +23,7 @@ export default function AiMvPage() {
   const [genre, setGenre] = useState("J-POP");
   const [mood, setMood] = useState("切ないけど前向き");
   const [length, setLength] = useState("medium");
+  const [theme, setTheme] = useState("日記");
   const [result, setResult] = useState<AiMvResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -46,12 +47,13 @@ export default function AiMvPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          story,
-          genre,
-          mood,
-          length,
-        }),
+body: JSON.stringify({
+  story,
+  theme,
+  genre,
+  mood,
+  length,
+}),
       });
 
       if (!res.ok) {
@@ -89,20 +91,7 @@ export default function AiMvPage() {
   <p className="mt-2 text-sm text-slate-300">
     日記、思い出、恋愛、夢、失敗談から、曲タイトル・歌詞・MV構成・投稿素材を生成します。
   </p>
- {[
-  {
-    label: "仕事帰り",
-    text: "今日、会社で怒られた。帰り道で雨が降っていた。でも家に帰ったら家族が笑って迎えてくれた。",
-  },
-  {
-    label: "恋の記憶",
-    text: "昔好きだった人のことを、ふと駅のホームで思い出した。もう戻れないけど、少しだけ優しい気持ちになった。",
-  },
-  {
-    label: "夢を追う",
-    text: "夢を追って上京したけど、うまくいかない日が続いている。それでもまだ諦めたくない。",
-  },
-].map((example) => (
+{getThemeExamples(theme).map((example) => (
   <button
     key={example.label}
     type="button"
@@ -124,7 +113,25 @@ export default function AiMvPage() {
                 placeholder="例: 今日、会社で怒られた。帰り道で雨が降っていた。でも家に帰ったら家族が笑って迎えてくれた。"
               />
             </label>
-
+<div>
+  <span className="mb-2 block text-sm font-medium text-slate-200">テーマ</span>
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    {["日記", "失恋", "恋愛", "仕事", "夢", "家族", "友情", "再出発"].map((item) => (
+      <button
+        key={item}
+        type="button"
+        onClick={() => setTheme(item)}
+        className={`rounded-md border px-3 py-2 text-sm ${
+          theme === item
+            ? "border-cyan-400 bg-cyan-400/15 text-cyan-100"
+            : "border-white/10 bg-slate-900 text-slate-300"
+        }`}
+      >
+        {item}
+      </button>
+    ))}
+  </div>
+</div>
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-200">ジャンル</span>
               <select
@@ -340,4 +347,122 @@ function ResultBlock({ title, content }: { title: string; content: string }) {
       </div>
     </div>
   );
+}
+function getThemeExamples(theme: string) {
+  const examples: Record<string, { label: string; text: string }[]> = {
+    日記: [
+      {
+        label: "仕事帰り",
+        text: "今日、会社で怒られた。帰り道で雨が降っていた。でも家に帰ったら家族が笑って迎えてくれた。",
+      },
+      {
+        label: "何気ない一日",
+        text: "特別なことはなかったけど、帰り道の空がきれいだった。少しだけ明日も頑張れそうな気がした。",
+      },
+      {
+        label: "小さな幸せ",
+        text: "コンビニで好きなお菓子を見つけた。たったそれだけなのに、今日は少し救われた気がした。",
+      },
+    ],
+    失恋: [
+      {
+        label: "駅の記憶",
+        text: "昔好きだった人のことを、ふと駅のホームで思い出した。もう戻れないけど、少しだけ優しい気持ちになった。",
+      },
+      {
+        label: "最後のLINE",
+        text: "最後に送ったLINEを何度も見返している。返事はもう来ないと分かっているのに、まだ消せない。",
+      },
+      {
+        label: "忘れたい夜",
+        text: "忘れたいのに、夜になると思い出してしまう。好きだった時間まで嘘にしたくなくて苦しい。",
+      },
+    ],
+    恋愛: [
+      {
+        label: "片想い",
+        text: "好きな人と少し話せただけで、一日中その言葉を思い出していた。まだ何も始まっていないのに嬉しかった。",
+      },
+      {
+        label: "初デート",
+        text: "初めて二人で歩いた帰り道、何を話したかは覚えていない。でも隣にいたことだけはずっと覚えている。",
+      },
+      {
+        label: "会いたい",
+        text: "忙しいふりをしているけど、本当はただ会いたい。通知が鳴るたびに少し期待してしまう。",
+      },
+    ],
+    仕事: [
+      {
+        label: "悔しい日",
+        text: "今日、仕事で失敗してしまった。悔しくて帰り道ずっと黙っていたけど、まだ終わりにしたくない。",
+      },
+      {
+        label: "残業帰り",
+        text: "終電近くの電車に乗って、窓に映る自分を見ていた。疲れているけど、ここで負けたくないと思った。",
+      },
+      {
+        label: "認められたい",
+        text: "頑張っているつもりなのに、なかなか認められない。それでもいつか結果で返したいと思っている。",
+      },
+    ],
+    夢: [
+      {
+        label: "上京",
+        text: "夢を追って上京したけど、うまくいかない日が続いている。それでもまだ諦めたくない。",
+      },
+      {
+        label: "まだ途中",
+        text: "周りはどんどん前に進んでいる気がする。自分だけ遅れているようで怖いけど、まだ途中だと思いたい。",
+      },
+      {
+        label: "小さな一歩",
+        text: "今日も少しだけ前に進めた。誰にも気づかれない一歩だけど、自分には大事な一歩だった。",
+      },
+    ],
+    家族: [
+      {
+        label: "ただいま",
+        text: "疲れて帰ったら、家族がいつも通り迎えてくれた。その普通の声に、今日一日が少しだけほどけた。",
+      },
+      {
+        label: "ありがとう",
+        text: "照れくさくて言えないけど、本当はずっと感謝している。いつかちゃんと言葉にしたい。",
+      },
+      {
+        label: "思い出",
+        text: "昔の写真を見つけた。何でもない日の笑顔が、今になって宝物みたいに見えた。",
+      },
+    ],
+    友情: [
+      {
+        label: "久しぶり",
+        text: "久しぶりに友達と話した。くだらない話ばかりだったけど、あの時間に救われた気がした。",
+      },
+      {
+        label: "味方",
+        text: "何も言わずに隣にいてくれる友達がいる。それだけで、もう少し頑張れると思えた。",
+      },
+      {
+        label: "昔の約束",
+        text: "昔、一緒に夢を語った友達を思い出した。今は別々の道だけど、あの約束はまだ胸にある。",
+      },
+    ],
+    再出発: [
+      {
+        label: "やり直し",
+        text: "一度失敗したけど、もう一度やってみようと思った。怖さはあるけど、今度は自分を信じたい。",
+      },
+      {
+        label: "朝が来た",
+        text: "長い夜が終わって、少しだけ朝の光が見えた。まだ完全じゃないけど、前を向けそうな気がした。",
+      },
+      {
+        label: "ここから",
+        text: "過去を消すことはできない。でも、その続きをどう書くかは自分で決められると思った。",
+      },
+    ],
+  };
+
+  return examples[theme] ?? examples.日記;
 }
