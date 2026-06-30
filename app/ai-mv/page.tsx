@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type AiMvResult = {
   title: string;
+  hook: string;
   lyrics: string;
   mvConcept: string;
   scenes: {
@@ -56,15 +57,21 @@ body: JSON.stringify({
 }),
       });
 
-      if (!res.ok) {
-        throw new Error("生成に失敗しました。");
-      }
+if (!res.ok) {
+  const data = await res.json().catch(() => null);
+  throw new Error(data?.error || "生成に失敗しました。");
+}
 
       const data = await res.json();
       setResult(data);
-    } catch {
-      setError("作品案の生成に失敗しました。少し時間をおいて再度お試しください。");
-    } finally {
+} catch (err) {
+  const message =
+    err instanceof Error
+      ? err.message
+      : "作品案の生成に失敗しました。少し時間をおいて再度お試しください。";
+
+  setError(message);
+} finally {
       setLoading(false);
     }
   }
@@ -229,14 +236,23 @@ body: JSON.stringify({
     <p className="text-sm text-cyan-200">曲タイトル</p>
     <h2 className="mt-1 text-3xl font-bold">{result.title}</h2>
   </div>
+  {result.hook && (
+  <div className="mt-4 rounded-md border border-cyan-400/30 bg-cyan-400/10 p-4">
+    <p className="text-xs font-semibold text-cyan-200">冒頭3秒フック</p>
+    <p className="mt-2 text-lg font-bold text-white">{result.hook}</p>
+  </div>
+)}
 
   <button
     type="button"
     onClick={async () => {
-      const text = [
-        `曲タイトル: ${result.title}`,
-        "",
-        "歌詞:",
+    const text = [
+  `曲タイトル: ${result.title}`,
+  "",
+  "冒頭3秒フック:",
+  result.hook,
+  "",
+  "歌詞:",
         result.lyrics,
         "",
         "MVコンセプト:",
@@ -268,6 +284,7 @@ window.setTimeout(() => setAllCopied(false), 1200);
   </button>
 </div>
 
+{result.hook && <ResultBlock title="冒頭3秒フック" content={result.hook} />}
               <ResultBlock title="歌詞" content={result.lyrics} />
               <ResultBlock title="MVコンセプト" content={result.mvConcept} />
               <ResultBlock title="ジャケットデザイン案" content={result.jacketDesign} />

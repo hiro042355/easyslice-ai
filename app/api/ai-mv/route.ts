@@ -16,6 +16,7 @@ type AiMvScene = {
 
 type AiMvResult = {
   title: string;
+  hook: string;
   lyrics: string;
   mvConcept: string;
   scenes: AiMvScene[];
@@ -182,6 +183,8 @@ function buildAiMvPrompt({
 - SNSに投稿しやすい言葉にする
 - 必ずJSONだけを返す
 - Markdownやコードブロックは返さない
+- hookはTikTok、YouTube Shorts、Instagram Reelsの冒頭3秒で使える強い一言にする
+- hookは煽りすぎず、ユーザーの出来事や感情に合う自然な言葉にする
 
 入力:
 story: ${story}
@@ -193,6 +196,7 @@ length: ${length}
 JSON形式:
 {
   "title": "曲タイトル",
+  "hook": "ショート動画の冒頭3秒に表示する一言。15〜35文字程度で、思わず続きを見たくなる言葉",
   "lyrics": "歌詞。VerseやChorusを含めて改行つきで書く",
   "mvConcept": "MV全体のコンセプト",
   "scenes": [
@@ -212,9 +216,10 @@ JSON形式:
 }
 
 function validateAiMvResult(result: Partial<AiMvResult>): AiMvResult {
-  return {
-    title: typeof result.title === "string" ? result.title : "Untitled",
-    lyrics: typeof result.lyrics === "string" ? result.lyrics : "",
+return {
+  title: typeof result.title === "string" ? result.title : "Untitled",
+  hook: typeof result.hook === "string" ? result.hook : "",
+  lyrics: typeof result.lyrics === "string" ? result.lyrics : "",
     mvConcept: typeof result.mvConcept === "string" ? result.mvConcept : "",
     scenes: Array.isArray(result.scenes)
       ? result.scenes
