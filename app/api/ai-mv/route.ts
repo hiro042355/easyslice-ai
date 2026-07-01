@@ -39,6 +39,7 @@ type AiMvResult = {
   title: string;
   hook: string;
   lyrics: string;
+  musicPrompt: string;
   mvConcept: string;
   visualHook: string;
   scenes: AiMvScene[];
@@ -241,6 +242,10 @@ function buildAiMvPrompt({
 - SNSでバズりやすい作品にする場合は、冒頭3秒フック、サムネ文言、映像フックを強める
 - 映像表現をもっと派手で印象的にする場合は、色、光、カメラワーク、象徴的なカットを強める
 - 歌詞と構成を短く鋭くする場合は、歌詞を短めにし、印象的な言葉を増やす
+- musicPromptは英語で書く
+- musicPromptには実在アーティスト名、既存曲名、著作権のある作品名を含めない
+- musicPromptは音楽生成AIに渡しやすいように、ジャンル、雰囲気、テンポ、歌声、楽器、構成、感情の方向性を具体的に書く
+- musicPromptはユーザーのgenre、mood、revisionModeを反映する
 
 入力:
 story: ${story}
@@ -255,6 +260,7 @@ JSON形式:
   "title": "曲タイトル",
   "hook": "ショート動画の冒頭3秒に表示する一言。15〜35文字程度で、思わず続きを見たくなる言葉",
   "lyrics": "歌詞。VerseやChorusを含めて改行つきで書く",
+"musicPrompt": "音楽生成AIに渡すための英語プロンプト。genre, mood, tempo, vocal style, instruments, arrangement, emotional direction を具体的に書く",
 "mvConcept": "MV全体のコンセプト",
 "visualHook": "冒頭で視聴者の目を止める映像アイデア。1カットで強く伝わる、意外性や象徴性のある映像にする",
 "shortMvPlan": "15秒版MV構成。0-3秒、3-8秒、8-12秒、12-15秒のように時間別で、画面に何を映すかを書く",
@@ -300,6 +306,8 @@ return {
   title: typeof result.title === "string" ? result.title : "Untitled",
   hook: typeof result.hook === "string" ? result.hook : "",
   lyrics: typeof result.lyrics === "string" ? result.lyrics : "",
+  musicPrompt:
+  typeof result.musicPrompt === "string" ? result.musicPrompt : "",
 mvConcept: typeof result.mvConcept === "string" ? result.mvConcept : "",
 visualHook:
   typeof result.visualHook === "string" ? result.visualHook : "",
