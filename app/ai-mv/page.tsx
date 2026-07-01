@@ -13,6 +13,7 @@ type AiMvResult = {
   hook: string;
   lyrics: string;
   mvConcept: string;
+  visualHook: string;
   shortMvPlan: string;
   thirtySecondMvPlan: string;
   scenes: {
@@ -20,6 +21,7 @@ type AiMvResult = {
     title: string;
     description: string;
   }[];
+  lyricVisualMatches: LyricVisualMatch[];
   jacketDesign: string;
   jacketPrompt: string;
   thumbnailText: string;
@@ -27,6 +29,12 @@ postTitle: string;
 postDescription: string;
 platformPosts: PlatformPosts;
 hashtags: string[];
+};
+
+type LyricVisualMatch = {
+  lyric: string;
+  visual: string;
+  intent: string;
 };
 
 export default function AiMvPage() {
@@ -271,6 +279,16 @@ if (!res.ok) {
 "MVコンセプト:",
 result.mvConcept,
 "",
+"映像フック:",
+result.visualHook,
+"",
+"歌詞と映像の対応表:",
+...(result.lyricVisualMatches || []).flatMap((item, index) => [
+  `${index + 1}. 歌詞: ${item.lyric}`,
+  `映像: ${item.visual}`,
+  `意図: ${item.intent}`,
+  "",
+]),
 "15秒版MV構成:",
 result.shortMvPlan,
 "",
@@ -318,11 +336,37 @@ window.setTimeout(() => setAllCopied(false), 1200);
 
 <ResultBlock title="歌詞" content={result.lyrics} />
 <ResultBlock title="MVコンセプト" content={result.mvConcept} />
+{result.visualHook && (
+  <ResultBlock title="映像フック" content={result.visualHook} />
+)}
 {result.shortMvPlan && (
   <ResultBlock title="15秒版MV構成" content={result.shortMvPlan} />
 )}
 {result.thirtySecondMvPlan && (
   <ResultBlock title="30秒版MV構成" content={result.thirtySecondMvPlan} />
+)}
+{result.lyricVisualMatches?.length > 0 && (
+  <div>
+    <h3 className="mb-3 text-lg font-semibold">歌詞と映像の対応表</h3>
+
+    <div className="space-y-3">
+      {result.lyricVisualMatches.map((item, index) => (
+        <div
+          key={`${item.lyric}-${index}`}
+          className="rounded-md border border-white/10 bg-slate-900 p-4"
+        >
+          <p className="text-xs font-semibold text-cyan-200">歌詞</p>
+          <p className="mt-1 text-sm text-slate-100">{item.lyric}</p>
+
+          <p className="mt-3 text-xs font-semibold text-cyan-200">映像</p>
+          <p className="mt-1 text-sm text-slate-300">{item.visual}</p>
+
+          <p className="mt-3 text-xs font-semibold text-cyan-200">意図</p>
+          <p className="mt-1 text-sm text-slate-300">{item.intent}</p>
+        </div>
+      ))}
+    </div>
+  </div>
 )}
 <ResultBlock title="ジャケットデザイン案" content={result.jacketDesign} />
 {result.jacketPrompt && (

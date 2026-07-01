@@ -14,6 +14,12 @@ type AiMvScene = {
   description: string;
 };
 
+type LyricVisualMatch = {
+  lyric: string;
+  visual: string;
+  intent: string;
+};
+
 type PlatformPosts = {
   tiktok: string;
   shorts: string;
@@ -25,7 +31,9 @@ type AiMvResult = {
   hook: string;
   lyrics: string;
   mvConcept: string;
+  visualHook: string;
   scenes: AiMvScene[];
+  lyricVisualMatches: LyricVisualMatch[];
   shortMvPlan: string;
   thirtySecondMvPlan: string;
   jacketDesign: string;
@@ -204,6 +212,10 @@ function buildAiMvPrompt({
 - platformPosts.tiktokは短く強い感情フックを重視する
 - platformPosts.shortsは何をAIで作ったのか分かりやすくする
 - platformPosts.reelsは雰囲気と余韻を重視する
+- visualHookはSNSでスクロールを止めるための強い映像アイデアにする
+- visualHookは歌詞の感情と矛盾しないようにする
+- lyricVisualMatchesは歌詞の重要な言葉と映像カットを対応させる
+- lyricVisualMatchesのintentでは、なぜその映像が歌詞に合うのかを説明する
 
 入力:
 story: ${story}
@@ -218,6 +230,7 @@ JSON形式:
   "hook": "ショート動画の冒頭3秒に表示する一言。15〜35文字程度で、思わず続きを見たくなる言葉",
   "lyrics": "歌詞。VerseやChorusを含めて改行つきで書く",
 "mvConcept": "MV全体のコンセプト",
+"visualHook": "冒頭で視聴者の目を止める映像アイデア。1カットで強く伝わる、意外性や象徴性のある映像にする",
 "shortMvPlan": "15秒版MV構成。0-3秒、3-8秒、8-12秒、12-15秒のように時間別で、画面に何を映すかを書く",
 "thirtySecondMvPlan": "30秒版MV構成。0-3秒、3-10秒、10-20秒、20-30秒のように時間別で、展開を具体的に書く",
 "scenes": [
@@ -227,6 +240,13 @@ JSON形式:
       "description": "映像内容"
     }
   ],
+  "lyricVisualMatches": [
+  {
+    "lyric": "歌詞の重要な一節",
+    "visual": "その歌詞に対応する映像カット",
+    "intent": "その映像で伝えたい感情や意味"
+  }
+],
 "jacketDesign": "ジャケットデザイン案。日本語で説明する",
 "jacketPrompt": "画像生成AIに渡すための英語プロンプト。album cover, cinematic, emotional, no text, no logo を含め、人物、背景、色、光、構図を具体的に書く",
 "thumbnailText": "サムネ文言",
@@ -248,6 +268,8 @@ return {
   hook: typeof result.hook === "string" ? result.hook : "",
   lyrics: typeof result.lyrics === "string" ? result.lyrics : "",
 mvConcept: typeof result.mvConcept === "string" ? result.mvConcept : "",
+visualHook:
+  typeof result.visualHook === "string" ? result.visualHook : "",
 shortMvPlan:
   typeof result.shortMvPlan === "string" ? result.shortMvPlan : "",
 thirtySecondMvPlan:
@@ -255,15 +277,24 @@ thirtySecondMvPlan:
     ? result.thirtySecondMvPlan
     : "",
 scenes: Array.isArray(result.scenes)
-      ? result.scenes
-          .filter((scene) => scene && typeof scene.title === "string")
-          .map((scene) => ({
-            time: typeof scene.time === "string" ? scene.time : undefined,
-            title: scene.title,
-            description:
-              typeof scene.description === "string" ? scene.description : "",
-          }))
-      : [],
+  ? result.scenes
+      .filter((scene) => scene && typeof scene.title === "string")
+      .map((scene) => ({
+        time: typeof scene.time === "string" ? scene.time : undefined,
+        title: scene.title,
+        description:
+          typeof scene.description === "string" ? scene.description : "",
+      }))
+  : [],
+lyricVisualMatches: Array.isArray(result.lyricVisualMatches)
+  ? result.lyricVisualMatches
+      .filter((item) => item && typeof item.lyric === "string")
+      .map((item) => ({
+        lyric: item.lyric,
+        visual: typeof item.visual === "string" ? item.visual : "",
+        intent: typeof item.intent === "string" ? item.intent : "",
+      }))
+  : [],
 jacketDesign:
   typeof result.jacketDesign === "string" ? result.jacketDesign : "",
 jacketPrompt:
