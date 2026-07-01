@@ -215,6 +215,21 @@ const handleDownloadCover = () => {
     </div>
   ))}
 </div>
+<div className="mt-4 rounded-md border border-cyan-400/20 bg-cyan-400/10 p-4">
+  <p className="text-sm font-semibold text-cyan-100">
+    AI MV生成 β への感想を募集中です
+  </p>
+  <p className="mt-1 text-xs leading-5 text-slate-300">
+    使ってみた感想、欲しい機能、生成結果の違和感などを送ってください。
+  </p>
+
+  <a
+    href="mailto:nexcut.ai@gmail.com?subject=NEXCUT AI MV生成β フィードバック"
+    className="mt-3 inline-flex rounded-md border border-cyan-400/40 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
+  >
+    感想を送る
+  </a>
+</div>
   <p className="mt-2 text-sm text-slate-300">
     日記、思い出、恋愛、夢、失敗談から、曲タイトル・歌詞・MV構成・投稿素材を生成します。
   </p>
