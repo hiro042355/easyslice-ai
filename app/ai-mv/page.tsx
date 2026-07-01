@@ -197,6 +197,24 @@ const handleDownloadCover = () => {
   </div>
 
   <h1 className="text-2xl font-bold">あなたの出来事を作品にする</h1>
+  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+  {[
+    ["1", "出来事を書く", "日記、恋愛、仕事、夢などを自由に入力"],
+    ["2", "作品案を生成", "歌詞、MV構成、ジャケット案をAIが作成"],
+    ["3", "外部ツールへ", "歌詞や音楽プロンプトをコピーして活用"],
+  ].map(([step, title, text]) => (
+    <div
+      key={step}
+      className="rounded-md border border-white/10 bg-slate-900 p-3"
+    >
+      <div className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-cyan-400/40 text-xs font-bold text-cyan-200">
+        {step}
+      </div>
+      <p className="text-sm font-semibold text-white">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-400">{text}</p>
+    </div>
+  ))}
+</div>
   <p className="mt-2 text-sm text-slate-300">
     日記、思い出、恋愛、夢、失敗談から、曲タイトル・歌詞・MV構成・投稿素材を生成します。
   </p>
