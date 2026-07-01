@@ -6,6 +6,7 @@ type AiMvRequest = {
   genre?: string;
   mood?: string;
   length?: string;
+  revisionMode?: string;
 };
 
 type AiMvScene = {
@@ -72,6 +73,7 @@ const theme = body.theme?.trim() || "日記";
 const genre = body.genre?.trim();
 const mood = body.mood?.trim();
 const length = body.length?.trim() || "medium";
+const revisionMode = body.revisionMode?.trim() || "";
 
     if (!story || story.length < 10) {
       return NextResponse.json(
@@ -100,6 +102,7 @@ const prompt = buildAiMvPrompt({
   genre,
   mood,
   length,
+  revisionMode,
 });
 
     const res = await fetch(
@@ -188,12 +191,14 @@ function buildAiMvPrompt({
   genre,
   mood,
   length,
+  revisionMode,
 }: {
   story: string;
   theme: string;
-  genre: string;
-  mood: string;
+  genre?: string;
+  mood?: string;
   length: string;
+  revisionMode: string;
 }) {
   return `
 あなたはNEXCUT AIのAI MVプランナーです。
@@ -231,6 +236,11 @@ function buildAiMvPrompt({
 - snsHookはSNSで続きを見たくなる度合い
 - originalityは作品としての独自性
 - improvementは改善点を1文で具体的に書く
+- revisionModeが標準以外の場合、その改善方向を最優先で反映する
+- もっと泣ける作品にする場合は、感情の余韻、喪失感、救いを強める
+- SNSでバズりやすい作品にする場合は、冒頭3秒フック、サムネ文言、映像フックを強める
+- 映像表現をもっと派手で印象的にする場合は、色、光、カメラワーク、象徴的なカットを強める
+- 歌詞と構成を短く鋭くする場合は、歌詞を短めにし、印象的な言葉を増やす
 
 入力:
 story: ${story}
@@ -238,6 +248,7 @@ theme: ${theme}
 genre: ${genre}
 mood: ${mood}
 length: ${length}
+revisionMode: ${revisionMode || "標準"}
 
 JSON形式:
 {

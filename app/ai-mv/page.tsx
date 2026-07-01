@@ -50,6 +50,7 @@ export default function AiMvPage() {
   const [story, setStory] = useState("");
   const [genre, setGenre] = useState("J-POP");
   const [mood, setMood] = useState("切ないけど前向き");
+  const [revisionMode, setRevisionMode] = useState("");
   const [length, setLength] = useState("medium");
   const [theme, setTheme] = useState("日記");
   const [result, setResult] = useState<AiMvResult | null>(null);
@@ -81,6 +82,7 @@ body: JSON.stringify({
   genre,
   mood,
   length,
+  revisionMode,
 }),
       });
 
@@ -202,7 +204,34 @@ if (!res.ok) {
                 <option>力強い</option>
               </select>
             </label>
+<div>
+  <span className="mb-2 block text-sm font-medium text-slate-200">
+    改善方向
+  </span>
 
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+    {[
+      { label: "標準", value: "" },
+      { label: "もっと泣ける", value: "もっと泣ける作品にする" },
+      { label: "もっとバズる", value: "SNSでバズりやすい作品にする" },
+      { label: "映像を派手に", value: "映像表現をもっと派手で印象的にする" },
+      { label: "短く鋭く", value: "歌詞と構成を短く鋭くする" },
+    ].map((item) => (
+      <button
+        key={item.label}
+        type="button"
+        onClick={() => setRevisionMode(item.value)}
+        className={`rounded-md border px-3 py-2 text-sm ${
+          revisionMode === item.value
+            ? "border-cyan-400 bg-cyan-400/15 text-cyan-100"
+            : "border-white/10 bg-slate-900 text-slate-300"
+        }`}
+      >
+        {item.label}
+      </button>
+    ))}
+  </div>
+</div>
             <div>
               <span className="mb-2 block text-sm font-medium text-slate-200">長さ</span>
               <div className="grid grid-cols-3 gap-2">
