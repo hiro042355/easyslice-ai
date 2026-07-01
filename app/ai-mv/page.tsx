@@ -66,6 +66,9 @@ export default function AiMvPage() {
   const [history, setHistory] = useState<AiMvHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+const [coverLoading, setCoverLoading] = useState(false);
+const [coverError, setCoverError] = useState("");
   const [hashtagsCopied, setHashtagsCopied] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
 
@@ -126,6 +129,43 @@ setHistory((prev) => [
       setLoading(false);
     }
   }
+
+const handleGenerateCover = async () => {
+  if (!result?.jacketPrompt) {
+    setCoverError("画像生成用プロンプトがありません");
+    return;
+  }
+
+  setCoverLoading(true);
+  setCoverError("");
+
+  try {
+    const res = await fetch("/api/ai-mv/cover", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: result.jacketPrompt,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "ジャケット画像生成に失敗しました");
+    }
+
+    setCoverImageUrl(data.imageUrl);
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "ジャケット画像生成に失敗しました";
+
+    setCoverError(message);
+  } finally {
+    setCoverLoading(false);
+  }
+};
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -506,6 +546,40 @@ window.setTimeout(() => setAllCopied(false), 1200);
   </div>
 )}
 <ResultBlock title="ジャケットデザイン案" content={result.jacketDesign} />
+{result.jacketPrompt && (
+  <div className="rounded-md border border-white/10 bg-slate-900 p-4">
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h3 className="text-lg font-semibold">ジャケット画像</h3>
+
+      <button
+        type="button"
+        onClick={handleGenerateCover}
+        disabled={coverLoading}
+        className="rounded-md border border-cyan-400/40 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {coverLoading ? "生成中..." : "画像生成"}
+      </button>
+    </div>
+
+    {coverError && (
+      <div className="mb-3 rounded-md border border-red-400/30 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+        {coverError}
+      </div>
+    )}
+
+    {coverImageUrl ? (
+      <img
+        src={coverImageUrl}
+        alt="AI生成ジャケット"
+        className="aspect-square w-full max-w-sm rounded-md border border-white/10 object-cover"
+      />
+    ) : (
+      <p className="text-sm text-slate-400">
+        画像生成ボタンを押すと、ジャケット案から画像を作成します。
+      </p>
+    )}
+  </div>
+)}
 {result.jacketPrompt && (
   <ResultBlock title="画像生成用プロンプト" content={result.jacketPrompt} />
 )}
