@@ -549,16 +549,42 @@ window.setTimeout(() => setAllCopied(false), 1200);
     <div className="mb-3 flex items-center justify-between gap-3">
       <h3 className="text-lg font-semibold">音楽生成用プロンプト</h3>
 
-      <button
-        type="button"
-        onClick={async () => {
-          await navigator.clipboard.writeText(result.musicPrompt);
-        }}
-        className="rounded-md border border-cyan-400/40 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
-      >
-        音楽プロンプトをコピー
-      </button>
-    </div>
+<button
+  type="button"
+  onClick={async () => {
+    await navigator.clipboard.writeText(result.musicPrompt);
+  }}
+  className="rounded-md border border-cyan-400/40 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
+>
+  音楽プロンプトをコピー
+</button>
+
+<button
+  type="button"
+  onClick={async () => {
+    const packageText = [
+      `Title: ${result.title}`,
+      "",
+      "Music Prompt:",
+      result.musicPrompt,
+      "",
+      "Lyrics:",
+      result.lyrics,
+      "",
+      "Genre:",
+      genre,
+      "",
+      "Mood:",
+      mood,
+    ].join("\n");
+
+    await navigator.clipboard.writeText(packageText);
+  }}
+  className="rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-cyan-400/50 hover:text-cyan-200"
+>
+  外部ツール用にコピー
+</button>
+</div>
 
     <div className="whitespace-pre-wrap rounded-md border border-white/10 bg-slate-900 p-4 text-sm leading-7 text-slate-200">
       {result.musicPrompt}
