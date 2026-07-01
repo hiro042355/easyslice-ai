@@ -40,6 +40,15 @@ hashtags: string[];
 score: AiMvScore;
 };
 
+type AiMvHistoryItem = {
+  id: number;
+  revisionMode: string;
+  title: string;
+  hook: string;
+  score?: AiMvScore;
+  result: AiMvResult;
+};
+
 type LyricVisualMatch = {
   lyric: string;
   visual: string;
@@ -54,6 +63,7 @@ export default function AiMvPage() {
   const [length, setLength] = useState("medium");
   const [theme, setTheme] = useState("日記");
   const [result, setResult] = useState<AiMvResult | null>(null);
+  const [history, setHistory] = useState<AiMvHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hashtagsCopied, setHashtagsCopied] = useState(false);
@@ -91,8 +101,20 @@ if (!res.ok) {
   throw new Error(data?.error || "生成に失敗しました。");
 }
 
-      const data = await res.json();
-      setResult(data);
+const data = await res.json();
+setResult(data);
+
+setHistory((prev) => [
+  {
+    id: Date.now(),
+    revisionMode: revisionMode || "標準",
+    title: data.title,
+    hook: data.hook,
+    score: data.score,
+    result: data,
+  },
+  ...prev,
+].slice(0, 5));
 } catch (err) {
   const message =
     err instanceof Error
@@ -291,10 +313,46 @@ if (!res.ok) {
 ) : (
             <div className="space-y-6">
              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-  <div>
-    <p className="text-sm text-cyan-200">曲タイトル</p>
-    <h2 className="mt-1 text-3xl font-bold">{result.title}</h2>
+{history.length > 0 && (
+  <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold text-white">生成履歴</h2>
+      <span className="text-xs text-slate-400">最大5件</span>
+    </div>
+
+    <div className="grid gap-3 sm:grid-cols-2">
+      {history.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => setResult(item.result)}
+          className="rounded-md border border-white/10 bg-slate-900 p-4 text-left transition hover:border-cyan-400/50"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="rounded-full border border-cyan-400/30 px-2 py-1 text-xs text-cyan-200">
+              {item.revisionMode}
+            </span>
+            {item.score && (
+              <span className="text-xs text-slate-400">
+                感情 {item.score.emotion}
+              </span>
+            )}
+          </div>
+
+          <p className="mt-3 font-semibold text-white">{item.title}</p>
+          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+            {item.hook}
+          </p>
+        </button>
+      ))}
+    </div>
   </div>
+)}
+
+<div>
+  <p className="text-sm text-cyan-200">曲タイトル</p>
+  <h2 className="mt-1 text-3xl font-bold">{result.title}</h2>
+</div>
   {result.score && (
   <div className="mt-5 rounded-md border border-white/10 bg-slate-900 p-4">
     <h3 className="text-sm font-semibold text-cyan-200">AI評価スコア</h3>
