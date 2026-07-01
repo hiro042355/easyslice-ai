@@ -2699,31 +2699,30 @@ body: JSON.stringify({
 )}
   
 {loading && (
-  <div className="mt-6">
+  <div className="mt-6 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+    <p className="font-semibold text-cyan-300">
+      処理中です
+    </p>
 
-    <div className="flex justify-between text-sm text-cyan-300 mb-2">
-      <span>Analyzing Video...</span>
-      <span>{progress}%</span>
+    <p className="mt-2 text-sm leading-6 text-gray-300">
+      動画の長さやAIの混雑状況により、30秒〜数分かかることがあります。この画面を閉じずにお待ちください。
+    </p>
+
+    <div className="mt-4">
+      <div className="mb-2 flex justify-between text-sm text-cyan-300">
+        <span>Processing...</span>
+        <span>{progress}%</span>
+      </div>
+
+      <div className="h-4 w-full overflow-hidden rounded-full border border-cyan-500/20 bg-zinc-800">
+        <div
+          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
+          style={{
+            width: `${progress}%`,
+          }}
+        />
+      </div>
     </div>
-
-    <div className="w-full h-4 bg-zinc-800 rounded-full overflow-hidden border border-cyan-500/20">
-
-      <div
-        className="
-          h-full
-          bg-gradient-to-r
-          from-cyan-500
-          to-blue-500
-          transition-all
-          duration-500
-        "
-        style={{
-          width: `${progress}%`,
-        }}
-      />
-
-    </div>
-
   </div>
 )}
 
