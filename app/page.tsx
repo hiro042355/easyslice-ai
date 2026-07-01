@@ -1236,6 +1236,9 @@ const downloadThumbnail = async (clipIndex: number) => {
   <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
     NEXCUT AI
   </h1>
+  <p className="mb-6 text-sm leading-6 text-gray-300">
+  まずはStory Wizardから始めてください。動画をアップロードすると、切り抜き候補、投稿素材、自動字幕、翻訳字幕、書き出しまで順番に進められます。
+</p>
 
 <div className="flex flex-wrap gap-2">
   <a
@@ -1450,6 +1453,9 @@ const downloadThumbnail = async (clipIndex: number) => {
     <p className="mt-2 text-sm text-gray-400">
       MP4などの動画ファイルをアップロードできます
     </p>
+    <p className="mt-2 text-xs leading-5 text-gray-400">
+  まずは30秒〜3分程度の短い動画で試すのがおすすめです。長い動画や大きいファイルは、アップロードやAI処理に時間がかかる場合があります。
+</p>
 
     <p className="mt-3 text-sm font-semibold text-cyan-300">
       {video ? video.name : "未選択"}
@@ -1513,6 +1519,9 @@ const downloadThumbnail = async (clipIndex: number) => {
 </div>
 <p className="mt-3 text-xs text-gray-400">
   字幕がある動画は「AIが内容から候補生成」、字幕がない動画や音楽は「音声ハイライト生成」を使ってください。
+</p>
+<p className="mt-2 text-xs leading-5 text-gray-500">
+  ご自身が利用権限を持つ動画、または利用許可のある素材をアップロードしてください。
 </p>
   </div>
 )}
@@ -1919,6 +1928,19 @@ const downloadThumbnail = async (clipIndex: number) => {
         ZIP
       </span>
     </div>
+
+    <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+      <p className="text-sm font-semibold text-green-300">
+        次にやること
+      </p>
+
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+        <li>1. ZIPを保存する</li>
+        <li>2. ZIPを展開してMP4を確認する</li>
+        <li>3. 投稿素材タブでタイトル・説明文・ハッシュタグをコピーする</li>
+        <li>4. 必要なら字幕・翻訳字幕付き動画も作成する</li>
+      </ul>
+    </div>
   </div>
 )}
   </div>
@@ -2235,6 +2257,18 @@ body: JSON.stringify({
     >
       字幕付き動画を保存
     </a>
+    <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+  <p className="text-sm font-semibold text-emerald-300">
+    次にやること
+  </p>
+
+  <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+    <li>1. 字幕付き動画を保存する</li>
+    <li>2. 翻訳タブで翻訳字幕や二段字幕を確認する</li>
+    <li>3. 投稿素材タブでタイトル・説明文・ハッシュタグをコピーする</li>
+    <li>4. スマホで再生して字幕の見え方を確認する</li>
+  </ul>
+</div>
   </div>
 )}
 
@@ -2751,6 +2785,18 @@ body: JSON.stringify({
         <p className="text-sm font-semibold text-cyan-300">
           MP4
         </p>
+        <div className="mt-4 rounded-xl border border-white/10 bg-zinc-900/70 p-4">
+  <p className="text-sm font-semibold text-cyan-300">
+    次にやること
+  </p>
+
+  <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+    <li>1. MP4を保存する</li>
+    <li>2. 投稿素材タブでタイトル・説明文・ハッシュタグをコピーする</li>
+    <li>3. 必要ならサムネ画像を保存する</li>
+    <li>4. TikTok / YouTube Shortsなどへ投稿する</li>
+  </ul>
+</div>
       </div>
     </div>
 
