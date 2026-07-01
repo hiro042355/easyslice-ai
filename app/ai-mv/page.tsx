@@ -8,6 +8,14 @@ type PlatformPosts = {
   reels: string;
 };
 
+type AiMvScore = {
+  emotion: number;
+  visualMatch: number;
+  snsHook: number;
+  originality: number;
+  improvement: string;
+};
+
 type AiMvResult = {
   title: string;
   hook: string;
@@ -29,6 +37,7 @@ postTitle: string;
 postDescription: string;
 platformPosts: PlatformPosts;
 hashtags: string[];
+score: AiMvScore;
 };
 
 type LyricVisualMatch = {
@@ -257,6 +266,40 @@ if (!res.ok) {
     <p className="text-sm text-cyan-200">曲タイトル</p>
     <h2 className="mt-1 text-3xl font-bold">{result.title}</h2>
   </div>
+  {result.score && (
+  <div className="mt-5 rounded-md border border-white/10 bg-slate-900 p-4">
+    <h3 className="text-sm font-semibold text-cyan-200">AI評価スコア</h3>
+
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {[
+        ["感情", result.score.emotion],
+        ["歌詞と映像", result.score.visualMatch],
+        ["SNSフック", result.score.snsHook],
+        ["独自性", result.score.originality],
+      ].map(([label, value]) => (
+        <div key={label} className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-xs text-slate-400">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-white">{value}</p>
+          <div className="mt-2 h-1.5 rounded-full bg-white/10">
+            <div
+              className="h-1.5 rounded-full bg-cyan-400"
+              style={{ width: `${Number(value)}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {result.score.improvement && (
+      <div className="mt-4 rounded-md border border-cyan-400/20 bg-cyan-400/10 p-3">
+        <p className="text-xs font-semibold text-cyan-200">改善ポイント</p>
+        <p className="mt-2 text-sm leading-6 text-slate-100">
+          {result.score.improvement}
+        </p>
+      </div>
+    )}
+  </div>
+)}
   {result.hook && (
   <div className="mt-4 rounded-md border border-cyan-400/30 bg-cyan-400/10 p-4">
     <p className="text-xs font-semibold text-cyan-200">冒頭3秒フック</p>
@@ -270,6 +313,13 @@ if (!res.ok) {
     const text = [
   `曲タイトル: ${result.title}`,
   "",
+  "AI評価スコア:",
+`感情: ${result.score?.emotion ?? 0}`,
+`歌詞と映像: ${result.score?.visualMatch ?? 0}`,
+`SNSフック: ${result.score?.snsHook ?? 0}`,
+`独自性: ${result.score?.originality ?? 0}`,
+`改善ポイント: ${result.score?.improvement ?? ""}`,
+"",
   "冒頭3秒フック:",
   result.hook,
   "",

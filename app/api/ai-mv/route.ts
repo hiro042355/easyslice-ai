@@ -26,6 +26,14 @@ type PlatformPosts = {
   reels: string;
 };
 
+type AiMvScore = {
+  emotion: number;
+  visualMatch: number;
+  snsHook: number;
+  originality: number;
+  improvement: string;
+};
+
 type AiMvResult = {
   title: string;
   hook: string;
@@ -43,6 +51,7 @@ postTitle: string;
 postDescription: string;
 platformPosts: PlatformPosts;
 hashtags: string[];
+score: AiMvScore;
 };
 
 export async function POST(request: Request) {
@@ -216,6 +225,12 @@ function buildAiMvPrompt({
 - visualHookは歌詞の感情と矛盾しないようにする
 - lyricVisualMatchesは歌詞の重要な言葉と映像カットを対応させる
 - lyricVisualMatchesのintentでは、なぜその映像が歌詞に合うのかを説明する
+- scoreの各数値は0〜100で評価する
+- emotionは歌詞や物語の感情が伝わる強さ
+- visualMatchは歌詞と映像案が合っている度合い
+- snsHookはSNSで続きを見たくなる度合い
+- originalityは作品としての独自性
+- improvementは改善点を1文で具体的に書く
 
 入力:
 story: ${story}
@@ -258,6 +273,13 @@ JSON形式:
   "reels": "Instagram Reels向けの投稿文。余韻と雰囲気を重視した文にする"
 },
 "hashtags": ["#NEXCUTAI", "#AIMV"]
+"score": {
+  "emotion": 85,
+  "visualMatch": 80,
+  "snsHook": 75,
+  "originality": 78,
+  "improvement": "もっと印象に残る象徴的な映像を冒頭に置くと、SNSで止まりやすくなります"
+}
 }
 `;
 }
@@ -321,5 +343,23 @@ thumbnailText:
     hashtags: Array.isArray(result.hashtags)
       ? result.hashtags.filter((tag) => typeof tag === "string")
       : [],
+      score: {
+  emotion:
+    typeof result.score?.emotion === "number" ? result.score.emotion : 0,
+  visualMatch:
+    typeof result.score?.visualMatch === "number"
+      ? result.score.visualMatch
+      : 0,
+  snsHook:
+    typeof result.score?.snsHook === "number" ? result.score.snsHook : 0,
+  originality:
+    typeof result.score?.originality === "number"
+      ? result.score.originality
+      : 0,
+  improvement:
+    typeof result.score?.improvement === "string"
+      ? result.score.improvement
+      : "",
+},
   };
 }
