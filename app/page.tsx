@@ -48,6 +48,14 @@ const [translatedText, setTranslatedText] = useState("");
 const [translationDirection, setTranslationDirection] =
   useState<"en-to-ja" | "ja-to-en">("en-to-ja");
   const [assetMode, setAssetMode] = useState<"post" | "caption" | "translate">("post");
+const [creatorMode, setCreatorMode] = useState<"quick" | "wizard">("wizard");
+const [quickOutputs, setQuickOutputs] = useState({
+  post: true,
+  caption: false,
+  translate: false,
+  subtitleVideo: false,
+  zip: false,
+});
 const [burnedVideoUrl, setBurnedVideoUrl] = useState("");
 const addClip = () => {
   setClips([
@@ -114,6 +122,35 @@ const scrollToStep = (stepId: 1 | 2 | 3 | 4 | 5) => {
       block: "start",
     });
   }
+};
+
+const handleQuickGenerateStart = () => {
+  if (!video && !videoSrc) {
+    setCurrentStep(1);
+    setSuccessMessage("まず動画をアップロードしてください。Quick Generateは既存のStory Wizardへ案内します。");
+    setTimeout(() => scrollToStep(1), 0);
+    return;
+  }
+
+  if (quickOutputs.zip) {
+    setCurrentStep(5);
+    setSuccessMessage("Export STEPへ移動しました。ZIP一括生成は既存のExport機能から実行できます。");
+    setTimeout(() => scrollToStep(5), 0);
+    return;
+  }
+
+  setCurrentStep(4);
+
+  if (quickOutputs.caption || quickOutputs.subtitleVideo) {
+    setAssetMode("caption");
+  } else if (quickOutputs.translate) {
+    setAssetMode("translate");
+  } else {
+    setAssetMode("post");
+  }
+
+  setSuccessMessage("Quick Generateの内容に合わせてSTEP4へ移動しました。既存のボタンから生成してください。");
+  setTimeout(() => scrollToStep(4), 0);
 };
 const [outputFormat, setOutputFormat] = useState<"original" | "shorts">("original");
 const [thumbnailTemplate, setThumbnailTemplate] = useState<"impact" | "clean" | "news">("impact");
@@ -1255,6 +1292,93 @@ const downloadThumbnail = async (clipIndex: number) => {
     AI MV生成 β
   </a>
 </div>
+</div>
+
+<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+  <div className="mb-3 flex items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-semibold text-cyan-300">
+        Creator Mode
+      </p>
+      <p className="mt-1 text-xs leading-5 text-gray-400">
+        最短で始めるQuick Generateと、細かく進めるStory Wizardを選べます。
+      </p>
+    </div>
+  </div>
+
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={() => setCreatorMode("quick")}
+      className={
+        creatorMode === "quick"
+          ? "rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white"
+          : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      Quick Generate
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setCreatorMode("wizard")}
+      className={
+        creatorMode === "wizard"
+          ? "rounded-lg bg-fuchsia-600 px-3 py-2 text-sm font-semibold text-white"
+          : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+      }
+    >
+      Story Wizard
+    </button>
+  </div>
+
+  {creatorMode === "quick" && (
+    <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+      <p className="text-sm font-semibold text-cyan-200">
+        作りたいものを選ぶ
+      </p>
+      <p className="mt-1 text-xs leading-5 text-gray-400">
+        Quick Generate MVPは入口だけです。選んだ内容に合わせて既存のStory Wizardへ移動します。
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        {[
+          ["post", "投稿素材"],
+          ["caption", "自動字幕"],
+          ["translate", "翻訳字幕"],
+          ["subtitleVideo", "字幕付き動画"],
+          ["zip", "ZIP一括"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() =>
+              setQuickOutputs((prev) => ({
+                ...prev,
+                [key]: !prev[key as keyof typeof prev],
+              }))
+            }
+            className={
+              quickOutputs[key as keyof typeof quickOutputs]
+                ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-2 font-semibold text-cyan-100"
+                : "rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 font-semibold text-gray-400 hover:bg-zinc-800"
+            }
+          >
+            {quickOutputs[key as keyof typeof quickOutputs] ? "✓ " : "○ "}
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleQuickGenerateStart}
+        className="mt-4 w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500"
+      >
+        この内容で始める
+      </button>
+    </div>
+  )}
 </div>
 
 <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
