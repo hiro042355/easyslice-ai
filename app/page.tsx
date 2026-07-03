@@ -1267,56 +1267,76 @@ const downloadThumbnail = async (clipIndex: number) => {
   setSuccessMessage("サムネ画像を保存しました");
 };
   return (
-<main className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-blue-900 px-3 py-5 text-white sm:p-6">
-  <div className="mx-auto mt-4 max-w-xl rounded-xl border border-white/20 bg-white/10 p-4 shadow-xl backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8">
-<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+<main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.24),transparent_32%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.2),transparent_34%),linear-gradient(135deg,#020617,#09090b_48%,#172554)] px-3 py-5 text-white sm:p-6">
+  <div className="mx-auto mt-4 max-w-xl rounded-xl border border-cyan-400/20 bg-zinc-950/75 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8">
+<div className="mb-6 rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-zinc-950/80 to-fuchsia-500/10 p-5 shadow-xl shadow-cyan-500/10">
+  <p className="mb-3 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+    Creator Workflow Beta
+  </p>
+
+  <h1 className="text-4xl font-black leading-tight bg-gradient-to-r from-cyan-200 via-white to-fuchsia-200 bg-clip-text text-transparent">
     NEXCUT AI
   </h1>
-  <p className="mb-6 text-sm leading-6 text-gray-300">
-  まずはStory Wizardから始めてください。動画をアップロードすると、切り抜き候補、投稿素材、自動字幕、翻訳字幕、書き出しまで順番に進められます。
-</p>
 
-<div className="flex flex-wrap gap-2">
-  <a
-    href="/convert"
-    className="inline-flex w-fit items-center rounded-lg border border-emerald-400/40 px-3 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-400/10"
-  >
-    動画MP4変換
-  </a>
+  <p className="mt-3 text-2xl font-bold leading-tight text-white">
+    ショート動画制作を、もっとシンプルに。
+  </p>
 
-  <a
-    href="/ai-mv"
-    className="inline-flex w-fit items-center rounded-lg border border-cyan-400/40 px-3 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
-  >
-    AI MV生成 β
-  </a>
+  <p className="mt-3 text-sm leading-6 text-gray-300">
+    動画アップロードからClip確認、投稿素材、自動字幕、翻訳、書き出しまでをひとつの流れで進められます。
+  </p>
+
+  <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-cyan-100">
+    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">Create</span>
+    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">Generate</span>
+    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">Preview</span>
+    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">Export</span>
+  </div>
+
+  <div className="mt-5 rounded-xl border border-white/10 bg-black/30 p-3">
+    <p className="text-xs font-semibold text-gray-400">Tools</p>
+    <div className="mt-2 flex flex-wrap gap-2">
+      <a
+        href="/convert"
+        className="inline-flex w-fit items-center rounded-lg border border-emerald-400/40 px-3 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-400/10"
+      >
+        MP4 Convert
+      </a>
+
+      <a
+        href="/ai-mv"
+        className="inline-flex w-fit items-center rounded-lg border border-fuchsia-400/40 px-3 py-2 text-sm font-semibold text-fuchsia-200 transition hover:bg-fuchsia-400/10"
+      >
+        AI MV β
+      </a>
+    </div>
+  </div>
 </div>
-</div>
 
-<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+<div className="mt-4 rounded-2xl border border-cyan-400/20 bg-zinc-950/80 p-4 shadow-lg shadow-cyan-500/5">
   <div className="mb-3 flex items-center justify-between gap-3">
     <div>
       <p className="text-sm font-semibold text-cyan-300">
         Creator Mode
       </p>
       <p className="mt-1 text-xs leading-5 text-gray-400">
-        最短で始めるQuick Generateと、細かく進めるStory Wizardを選べます。
+        目的に合わせて、最短生成か細かい編集を選べます。
       </p>
     </div>
   </div>
 
-  <div className="grid grid-cols-2 gap-2">
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
     <button
       type="button"
       onClick={() => setCreatorMode("quick")}
       className={
         creatorMode === "quick"
-          ? "rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white"
-          : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+          ? "rounded-xl border border-cyan-300/70 bg-cyan-500/20 px-4 py-4 text-left text-sm font-semibold text-white shadow-lg shadow-cyan-500/20"
+          : "rounded-xl border border-cyan-400/20 bg-zinc-900 px-4 py-4 text-left text-sm font-semibold text-gray-300 transition hover:border-cyan-300/50 hover:bg-cyan-500/10"
       }
     >
-      Quick Generate
+      <span className="block text-base">Quick Generate</span>
+      <span className="mt-1 block text-xs font-medium text-cyan-100/80">最短で成果物を作る</span>
     </button>
 
     <button
@@ -1324,11 +1344,12 @@ const downloadThumbnail = async (clipIndex: number) => {
       onClick={() => setCreatorMode("wizard")}
       className={
         creatorMode === "wizard"
-          ? "rounded-lg bg-fuchsia-600 px-3 py-2 text-sm font-semibold text-white"
-          : "rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-zinc-700"
+          ? "rounded-xl border border-fuchsia-300/60 bg-fuchsia-500/15 px-4 py-4 text-left text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/10"
+          : "rounded-xl border border-white/10 bg-zinc-900 px-4 py-4 text-left text-sm font-semibold text-gray-300 transition hover:border-fuchsia-300/40 hover:bg-fuchsia-500/10"
       }
     >
-      Story Wizard
+      <span className="block text-base">Story Wizard</span>
+      <span className="mt-1 block text-xs font-medium text-gray-400">細かく調整したい人向け</span>
     </button>
   </div>
 
@@ -2003,14 +2024,23 @@ const downloadThumbnail = async (clipIndex: number) => {
 
 
     {loading && (
-    <div className="mt-4 animate-pulse text-cyan-300 font-semibold">
-      ZIP生成中... クリップ数が多い場合は少し時間がかかります
+    <div className="mt-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm leading-6 text-cyan-100 shadow-lg shadow-cyan-500/10">
+      <p className="font-semibold text-cyan-200">AIが書き出しを準備しています...</p>
+      <p className="mt-1 text-xs text-gray-300">クリップ数が多い場合は少し時間がかかります。このままお待ちください。</p>
     </div>
   )}
 
   {successMessage && (
-    <div className="mt-4 text-green-400 font-semibold">
-      {successMessage}
+    <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm leading-6 text-emerald-100 shadow-lg shadow-emerald-500/10">
+      <p className="font-semibold text-emerald-300">
+        生成が完了しました
+      </p>
+      <p className="mt-1 whitespace-pre-wrap text-gray-200">
+        {successMessage}
+      </p>
+      <p className="mt-2 text-xs text-gray-400">
+        Preview Studioで結果を確認できます。
+      </p>
     </div>
   )}
  {errorMessage && (
@@ -2899,24 +2929,26 @@ body: JSON.stringify({
 )}
   
 {loading && (
-  <div className="mt-6 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-    <p className="font-semibold text-cyan-300">
-      処理中です
+  <div className="mt-6 rounded-xl border border-cyan-400/30 bg-zinc-950/80 p-4 shadow-xl shadow-cyan-500/10">
+    <p className="font-semibold text-cyan-200">
+      AIが制作フローを進めています...
     </p>
 
-    <p className="mt-2 text-sm leading-6 text-gray-300">
-      動画の長さやAIの混雑状況により、30秒〜数分かかることがあります。この画面を閉じずにお待ちください。
-    </p>
+    <div className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+      <p>AIが動画を解析しています...</p>
+      <p>字幕や投稿素材を準備しています...</p>
+      <p>もう少しでPreview Studioに表示されます...</p>
+    </div>
 
     <div className="mt-4">
       <div className="mb-2 flex justify-between text-sm text-cyan-300">
-        <span>Processing...</span>
+        <span>Processing Flow</span>
         <span>{progress}%</span>
       </div>
 
       <div className="h-4 w-full overflow-hidden rounded-full border border-cyan-500/20 bg-zinc-800">
         <div
-          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
+          className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 transition-all duration-500"
           style={{
             width: `${progress}%`,
           }}
