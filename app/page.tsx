@@ -1338,7 +1338,7 @@ const downloadThumbnail = async (clipIndex: number) => {
         作りたいものを選ぶ
       </p>
       <p className="mt-1 text-xs leading-5 text-gray-400">
-        Quick Generate MVPは入口だけです。選んだ内容に合わせて既存のStory Wizardへ移動します。
+        作りたいものを選ぶと、必要なSTEPへ案内します。生成内容はあとからPreview Studioで確認・保存できます。
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
