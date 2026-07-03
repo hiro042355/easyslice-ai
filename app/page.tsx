@@ -1268,9 +1268,11 @@ const downloadThumbnail = async (clipIndex: number) => {
 };
   return (
 <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.24),transparent_32%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.2),transparent_34%),linear-gradient(135deg,#020617,#09090b_48%,#172554)] px-3 py-5 text-white sm:p-6">
-  <div className="mx-auto mt-4 max-w-xl rounded-xl border border-cyan-400/20 bg-zinc-950/75 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8 lg:max-w-6xl">
-<div className="mb-4 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:items-stretch">
-<div className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-zinc-950/80 to-fuchsia-500/10 p-5 shadow-xl shadow-cyan-500/10 lg:flex lg:min-h-[360px] lg:flex-col lg:justify-between">
+  <div className="mx-auto mt-4 max-w-xl rounded-xl border border-cyan-400/20 bg-zinc-950/75 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8 lg:max-w-7xl">
+<div className="grid gap-6 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-start">
+<aside className="space-y-4 lg:sticky lg:top-6">
+<div className="grid gap-4">
+<div className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-zinc-950/80 to-fuchsia-500/10 p-5 shadow-xl shadow-cyan-500/10 lg:flex lg:flex-col">
   <p className="mb-3 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
     Creator Workflow Beta
   </p>
@@ -1314,7 +1316,7 @@ const downloadThumbnail = async (clipIndex: number) => {
   </div>
 </div>
 
-<div className="rounded-2xl border border-cyan-400/20 bg-zinc-950/80 p-4 shadow-lg shadow-cyan-500/5 lg:min-h-[360px]">
+<div className="rounded-2xl border border-cyan-400/20 bg-zinc-950/80 p-4 shadow-lg shadow-cyan-500/5">
   <div className="mb-3 flex items-center justify-between gap-3">
     <div>
       <p className="text-sm font-semibold text-cyan-300">
@@ -1415,7 +1417,7 @@ const downloadThumbnail = async (clipIndex: number) => {
     </p>
   </div>
 
-  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-1">
     {steps.map((step) => {
       const canGo = canGoStep(step.id);
       const isActive = currentStep === step.id;
@@ -1523,6 +1525,8 @@ const downloadThumbnail = async (clipIndex: number) => {
 <p className="text-zinc-400 text-sm mt-2">
   Smart Video Clipping Platform
 </p>
+</aside>
+<section className="min-w-0 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 lg:p-6">
 {currentStep === 1 && (
   <div id="step-upload">
 {enableYoutube && (
@@ -3041,6 +3045,8 @@ body: JSON.stringify({
   </div>
 )}
 
+</section>
+</div>
             </div>
     </main>
   )
