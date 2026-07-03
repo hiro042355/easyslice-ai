@@ -1600,103 +1600,95 @@ const downloadThumbnail = async (clipIndex: number) => {
     <p className="mt-2 text-sm text-gray-400">
       MP4などの動画ファイルをアップロードできます
     </p>
-    <p className="mt-2 text-xs leading-5 text-gray-400">
-  まずは30秒〜3分程度の短い動画で試すのがおすすめです。長い動画や大きいファイルは、アップロードやAI処理に時間がかかる場合があります。
-</p>
 
     <p className="mt-3 text-sm font-semibold text-cyan-300">
-      {video ? video.name : "未選択"}
+      {video ? video.name : "動画未選択"}
     </p>
   </div>
 </label>
-<div className="mt-4">
-  <h2 className="mb-3 text-lg font-semibold text-cyan-300">
-  字幕ファイル
-</h2>
+<details className="mt-4 rounded-xl border border-purple-500/20 bg-zinc-950/50 p-4">
+  <summary className="cursor-pointer text-sm font-semibold text-purple-300">
+    字幕ファイル（任意）
+  </summary>
 
-<label className="block cursor-pointer rounded-xl border-2 border-dashed border-purple-500/40 bg-zinc-900/60 p-5 transition hover:border-purple-400 hover:bg-purple-500/10">
-  <input
-    type="file"
-    accept=".txt,.srt,.vtt"
-    onChange={(e) => handleSubtitleFileUpload(e.target.files?.[0] || null)}
-    className="hidden"
-  />
+  <p className="mt-2 text-xs leading-5 text-gray-400">
+    字幕がある場合だけ追加できます。字幕がない動画は次のSTEPで音声解析できます。
+  </p>
 
-  <div className="text-center">
-    <p className="text-base font-semibold text-white">
-      ここをクリックして字幕ファイルを選択
-    </p>
+  <label className="mt-3 block cursor-pointer rounded-xl border border-dashed border-purple-500/40 bg-zinc-900/60 p-4 transition hover:border-purple-400 hover:bg-purple-500/10">
+    <input
+      type="file"
+      accept=".txt,.srt,.vtt"
+      onChange={(e) => handleSubtitleFileUpload(e.target.files?.[0] || null)}
+      className="hidden"
+    />
 
-    <p className="mt-2 text-sm text-gray-400">
-      .txt / .srt / .vtt に対応しています
-    </p>
+    <div className="text-center">
+      <p className="text-sm font-semibold text-white">
+        字幕ファイルを選択
+      </p>
 
-    <p className="mt-3 text-sm font-semibold text-purple-300">
-      {subtitles.length > 0
-        ? `${subtitles.length}行の字幕を読み込み済み`
-        : "未選択"}
-    </p>
+      <p className="mt-2 text-xs text-gray-400">
+        .txt / .srt / .vtt に対応しています
+      </p>
+
+      <p className="mt-3 text-sm font-semibold text-purple-300">
+        {subtitles.length > 0
+          ? `${subtitles.length}行の字幕を読み込み済み`
+          : "未選択"}
+      </p>
+    </div>
+  </label>
+</details>
+{(hasPreviewVideo || hasSubtitles) && (
+  <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/60 p-3 text-xs text-gray-300">
+    {hasPreviewVideo && (
+      <span className="mr-3 font-semibold text-green-300">
+        動画: アップロード済み / {Math.floor(videoDuration || 0)}秒
+      </span>
+    )}
+
+    {hasSubtitles && (
+      <span className="font-semibold text-purple-300">
+        字幕: {subtitles.length}行 読み込み済み
+      </span>
+    )}
   </div>
-</label>
-</div>
-<div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-  <div className="rounded-xl border border-white/10 bg-zinc-900/70 p-4">
-    <p className="text-sm text-gray-400">
-      動画
-    </p>
-
-    <p className={hasPreviewVideo ? "mt-1 font-semibold text-green-300" : "mt-1 font-semibold text-gray-500"}>
-      {hasPreviewVideo
-        ? `アップロード済み / ${Math.floor(videoDuration || 0)}秒`
-        : "未アップロード"}
-    </p>
-  </div>
-
-  <div className="rounded-xl border border-white/10 bg-zinc-900/70 p-4">
-    <p className="text-sm text-gray-400">
-      字幕
-    </p>
-
-    <p className={hasSubtitles ? "mt-1 font-semibold text-green-300" : "mt-1 font-semibold text-gray-500"}>
-      {hasSubtitles
-        ? `${subtitles.length}行 読み込み済み`
-        : "未読み込み"}
-    </p>
-  </div>
-</div>
-<p className="mt-3 text-xs text-gray-400">
-  字幕がある動画は「AIが内容から候補生成」、字幕がない動画や音楽は「音声ハイライト生成」を使ってください。
-</p>
-<p className="mt-2 text-xs leading-5 text-gray-500">
+)}
+<p className="mt-3 text-xs leading-5 text-gray-500">
   ご自身が利用権限を持つ動画、または利用許可のある素材をアップロードしてください。
 </p>
   </div>
 )}
         {/* 切り抜き範囲 */}
-<div className="mb-6">
-  <label className="block text-sm font-semibold mb-2 text-gray-300">
-    切り抜き範囲
-  </label>
+{hasPreviewVideo && (
+  <details className="mb-6 rounded-xl border border-white/10 bg-zinc-950/50 p-4">
+    <summary className="cursor-pointer text-sm font-semibold text-gray-300">
+      詳細設定: 切り抜き範囲を手動で調整する
+    </summary>
 
-  <p className="mb-2 text-cyan-300 font-semibold">
-    開始: {start}秒 / 終了: {end}秒
-  </p>
+    <div className="mt-4">
+      <p className="mb-2 text-cyan-300 font-semibold">
+        開始: {start}秒 / 終了: {end}秒
+      </p>
 
-  <Slider
-    range
-    min={0}
-    max={videoDuration}
-    value={[
-      Number(start),
-      Number(end),
-    ]}
-    onChange={(value) => {
-      const values = value as number[];
-      setStart(String(values[0]));
-      setEnd(String(values[1]));
-    }}
-  />
-</div>
+      <Slider
+        range
+        min={0}
+        max={videoDuration}
+        value={[
+          Number(start),
+          Number(end),
+        ]}
+        onChange={(value) => {
+          const values = value as number[];
+          setStart(String(values[0]));
+          setEnd(String(values[1]));
+        }}
+      />
+    </div>
+  </details>
+)}
 
 {currentStep === 3 && (
   <div
