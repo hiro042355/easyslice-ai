@@ -2566,6 +2566,17 @@ body: JSON.stringify({
     )}
   </div>
 )}
+{(postAssets.length > 0 || scriptResult || transcriptText || translatedText || burnedVideoUrl) && (
+  <div className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-950/70 p-4">
+    <p className="text-sm font-semibold text-cyan-300">
+      Preview Studio
+    </p>
+
+    <p className="mt-2 text-sm leading-6 text-gray-300">
+      生成した投稿素材、字幕、翻訳、動画を確認し、コピー・保存できます。
+    </p>
+  </div>
+)}
 {(postAssets.length > 0 || scriptResult) && (
   <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
     <div className="grid grid-cols-2 gap-2">
