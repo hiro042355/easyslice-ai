@@ -2575,6 +2575,37 @@ body: JSON.stringify({
     <p className="mt-2 text-sm leading-6 text-gray-300">
       生成した投稿素材、字幕、翻訳、動画を確認し、コピー・保存できます。
     </p>
+
+    <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+      {[
+        ["投稿素材", postAssets.length > 0 || Boolean(scriptResult)],
+        ["自動字幕", transcriptText.trim() !== ""],
+        ["翻訳字幕", translatedText.trim() !== ""],
+        ["字幕付き動画", Boolean(burnedVideoUrl)],
+        ["ZIP", Boolean(zipFileName)],
+      ].map(([label, done]) => (
+        <div
+          key={String(label)}
+          className={
+            done
+              ? "rounded-lg border border-green-400/30 bg-green-400/10 px-3 py-2 text-green-300"
+              : "rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-gray-500"
+          }
+        >
+          {done ? "✓ " : "○ "}
+          {label}
+        </div>
+      ))}
+    </div>
+    <div className="mt-4 rounded-lg border border-white/10 bg-zinc-900 p-3">
+  <p className="text-xs font-semibold text-cyan-300">
+    次におすすめ
+  </p>
+
+  <p className="mt-1 text-sm leading-6 text-gray-300">
+    まだ未生成の項目があれば、STEP4の各タブで生成できます。完成したらSTEP5で保存・書き出しを確認してください。
+  </p>
+</div>
   </div>
 )}
 {(postAssets.length > 0 || scriptResult) && (
