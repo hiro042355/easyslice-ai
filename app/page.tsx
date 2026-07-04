@@ -2377,9 +2377,90 @@ body: JSON.stringify({
 </button>
     </div>
 
-<p className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-800 p-4 text-sm leading-7 text-gray-200">
-  {transcriptText}
-</p>
+<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+  <style>{`
+    .subtitle-style-preview .style-panel { display: none; }
+    .subtitle-style-preview:has(#subtitle-style-classic:checked) .style-classic { display: block; }
+    .subtitle-style-preview:has(#subtitle-style-creator:checked) .style-creator { display: block; }
+    .subtitle-style-preview:has(#subtitle-style-global:checked) .style-global { display: block; }
+    .subtitle-style-preview:has(#subtitle-style-bold:checked) .style-bold { display: block; }
+    .subtitle-style-preview:has(#subtitle-style-minimal:checked) .style-minimal { display: block; }
+  `}</style>
+
+  <div className="subtitle-style-preview">
+    <div className="mb-3 flex flex-wrap gap-2">
+      {[
+        ["classic", "Classic"],
+        ["creator", "Creator"],
+        ["global", "Global"],
+        ["bold", "Bold"],
+        ["minimal", "Minimal"],
+      ].map(([value, label]) => (
+        <label
+          key={value}
+          htmlFor={`subtitle-style-${value}`}
+          className="cursor-pointer rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-gray-300 hover:bg-zinc-800"
+        >
+          <input
+            id={`subtitle-style-${value}`}
+            type="radio"
+            name="subtitle-style"
+            defaultChecked={value === "classic"}
+            className="mr-2 accent-cyan-400"
+          />
+          {label}
+        </label>
+      ))}
+    </div>
+
+    <div className="max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-black p-4">
+      <div className="style-panel style-classic space-y-3 text-center">
+        <p className="whitespace-pre-wrap text-2xl font-black leading-9 text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">
+          {transcriptText}
+        </p>
+        {translatedText && (
+          <p className="whitespace-pre-wrap text-lg font-bold leading-7 text-cyan-100 drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">
+            {translatedText}
+          </p>
+        )}
+      </div>
+
+      <div className="style-panel style-creator space-y-2 text-center">
+        <p className="whitespace-pre-wrap text-3xl font-black leading-10 text-white drop-shadow-[0_3px_4px_rgba(0,0,0,0.95)]">
+          {transcriptText}
+        </p>
+        {translatedText && (
+          <p className="whitespace-pre-wrap text-sm font-bold leading-6 text-cyan-200">
+            {translatedText}
+          </p>
+        )}
+      </div>
+
+      <div className="style-panel style-global space-y-2 text-center">
+        {translatedText && (
+          <p className="whitespace-pre-wrap text-3xl font-black leading-10 text-white drop-shadow-[0_3px_4px_rgba(0,0,0,0.95)]">
+            {translatedText}
+          </p>
+        )}
+        <p className="whitespace-pre-wrap text-sm font-bold leading-6 text-cyan-200">
+          {transcriptText}
+        </p>
+      </div>
+
+      <div className="style-panel style-bold text-center">
+        <p className="whitespace-pre-wrap text-3xl font-black leading-10 text-white [-webkit-text-stroke:1px_black] drop-shadow-[0_3px_4px_rgba(0,0,0,1)]">
+          {transcriptText}
+        </p>
+      </div>
+
+      <div className="style-panel style-minimal text-center">
+        <p className="whitespace-pre-wrap text-lg font-semibold leading-8 text-white">
+          {transcriptText}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
 
 
   </div>
