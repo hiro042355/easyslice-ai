@@ -41,9 +41,20 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <p className="mt-5 max-w-2xl text-xs leading-6 text-zinc-500">
-              現在は公開テスト版です。皆さまからのフィードバックをもとに改善を続けています。
-            </p>
+            <div className="mt-5 max-w-2xl rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs leading-6 text-zinc-500">
+              <p>
+                現在は公開テスト版です。ご意見・不具合をお待ちしています。
+              </p>
+              <p className="mt-2">
+                困ったこと、分かりにくかったこと、良かったこと、改善してほしいことを送ってください。
+              </p>
+              <a
+                href="mailto:nexcut.ai@gmail.com"
+                className="mt-3 inline-block font-semibold text-cyan-300 transition hover:text-cyan-200"
+              >
+                フィードバックを送る
+              </a>
+            </div>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-zinc-400">
               <span>動画アップロード対応</span>

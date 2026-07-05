@@ -81,11 +81,16 @@ export default function AuthPage() {
                 </a>
               </div>
 
-              <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-gray-400">
-                初めての方も、すでに利用中の方もそのまま続けられます。
-                <br />
-                ※ 現在はOpen Betaのため、認証を簡略化しています。
-              </p>
+              <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-gray-400">
+                <p>
+                  初めての方も、すでに利用中の方もそのまま続けられます。
+                  <br />
+                  ※ 現在はOpen Betaのため、認証を簡略化しています。
+                </p>
+                <p className="mt-3 text-gray-500">
+                  困ったこと、分かりにくかったこと、良かったこと、改善してほしいことを送ってください。
+                </p>
+              </div>
 
               <div className="mt-8 flex items-center justify-between gap-3 text-xs text-gray-500">
                 <a href="mailto:nexcut.ai@gmail.com" className="transition hover:text-cyan-300">
