@@ -18,29 +18,16 @@ export default function LandingPage() {
 
            <div className="mt-8 flex flex-wrap gap-3">
   <a
-    href="/"
+    href="/auth"
     className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
   >
-    無料で試す
+    無料で始める
   </a>
-<a
-  href="/guide#video"
-  className="inline-flex items-center justify-center rounded-lg border border-cyan-400/30 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
->
-  2分で使い方を見る
-</a>
   <a
-    href="/guide"
-    className="rounded-lg border border-cyan-400/40 px-5 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+    href="/guide#video"
+    className="inline-flex items-center justify-center rounded-lg border border-cyan-400/30 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
   >
-    使い方を見る
-  </a>
-
-  <a
-    href="#features"
-    className="rounded-lg border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-  >
-    機能を見る
+    2分デモを見る
   </a>
 </div>
 
@@ -173,17 +160,17 @@ export default function LandingPage() {
 
    <div className="mt-6 flex flex-wrap gap-3">
   <a
-    href="/"
+    href="/auth"
     className="inline-block rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-400"
   >
-    NEXCUT AIを開く
+    無料で始める
   </a>
 
   <a
     href="/guide"
     className="inline-block rounded-lg border border-cyan-400/40 px-5 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
   >
-    使い方を見る
+    詳しい使い方
   </a>
 </div>
         </div>
