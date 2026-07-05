@@ -1269,9 +1269,9 @@ const downloadThumbnail = async (clipIndex: number) => {
   return (
 <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.24),transparent_32%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.2),transparent_34%),linear-gradient(135deg,#020617,#09090b_48%,#172554)] px-3 py-5 text-white sm:p-6">
   <div className="mx-auto mt-4 max-w-xl rounded-xl border border-cyan-400/20 bg-zinc-950/75 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8 lg:max-w-7xl">
-<div className="grid gap-6 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-start">
-<aside className="space-y-4 lg:sticky lg:top-6">
-<div className="grid gap-4">
+<div className="grid gap-6">
+<aside className="space-y-4">
+<div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
 <div className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-zinc-950/80 to-fuchsia-500/10 p-5 shadow-xl shadow-cyan-500/10 lg:flex lg:flex-col">
   <p className="mb-3 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
     Creator Workflow Beta
@@ -1286,7 +1286,7 @@ const downloadThumbnail = async (clipIndex: number) => {
   </p>
 
   <p className="mt-3 text-sm leading-6 text-gray-300">
-    動画アップロードからClip確認、投稿素材、自動字幕、翻訳、書き出しまでをひとつの流れで進められます。
+    動画アップロードから投稿準備、字幕、書き出しまでをひとつに。
   </p>
 
   <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-cyan-100">
@@ -1482,47 +1482,6 @@ const downloadThumbnail = async (clipIndex: number) => {
   <p className="mt-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm leading-6 text-cyan-100">
     {currentStepGuide[currentStep]}
   </p>
-
-  <div className="mt-3 grid grid-cols-2 gap-3">
-    <button
-      type="button"
-      onClick={() =>
-        setCurrentStep((prev) =>
-          prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3 | 4 | 5)
-        )
-      }
-      disabled={currentStep === 1}
-      className={
-        currentStep === 1
-          ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
-          : "rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600"
-      }
-    >
-      戻る
-    </button>
-
-    <button
-      type="button"
-      onClick={() => {
-        const nextStep = Math.min(5, currentStep + 1) as 1 | 2 | 3 | 4 | 5;
-
-        if (!canGoStep(nextStep)) {
-          alert("このステップに進むには、先に必要な操作を完了してください");
-          return;
-        }
-
-        setCurrentStep(nextStep);
-      }}
-      disabled={currentStep === 5}
-      className={
-        currentStep === 5
-          ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
-          : "rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
-      }
-    >
-      次へ
-    </button>
-  </div>
 </div>
 {currentStep === 1 && (
   <div id="step-upload">
@@ -2672,6 +2631,46 @@ body: JSON.stringify({
     )}
   </div>
 )}
+<div className="mt-6 grid grid-cols-2 gap-3">
+  <button
+    type="button"
+    onClick={() =>
+      setCurrentStep((prev) =>
+        prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3 | 4 | 5)
+      )
+    }
+    disabled={Number(currentStep) === 1}
+    className={
+      Number(currentStep) === 1
+        ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
+        : "rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600"
+    }
+  >
+    戻る
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      const nextStep = Math.min(5, currentStep + 1) as 1 | 2 | 3 | 4 | 5;
+
+      if (!canGoStep(nextStep)) {
+        alert("このステップに進むには、先に必要な操作を完了してください");
+        return;
+      }
+
+      setCurrentStep(nextStep);
+    }}
+    disabled={Number(currentStep) === 5}
+    className={
+      Number(currentStep) === 5
+        ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
+        : "rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+    }
+  >
+    次へ
+  </button>
+</div>
 {(postAssets.length > 0 || scriptResult || transcriptText || translatedText || burnedVideoUrl) && (
   <div className="mt-6 rounded-xl border border-cyan-500/20 bg-zinc-950/70 p-4">
     <p className="text-sm font-semibold text-cyan-300">
