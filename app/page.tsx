@@ -1406,101 +1406,6 @@ const downloadThumbnail = async (clipIndex: number) => {
 </div>
 </div>
 
-<div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
-  <div className="mb-3 flex items-center justify-between">
-    <p className="text-sm font-semibold text-cyan-300">
-      Story Wizard
-    </p>
-
-    <p className="text-xs text-gray-400">
-      STEP {currentStep} / 5
-    </p>
-  </div>
-
-  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-1">
-    {steps.map((step) => {
-      const canGo = canGoStep(step.id);
-      const isActive = currentStep === step.id;
-
-      return (
-        <button
-          key={step.id}
-          type="button"
-          disabled={!canGo}
-          onClick={() => {
-  setCurrentStep(step.id);
-  scrollToStep(step.id);
-}}
-          className={
-            isActive
-              ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-3 text-left text-sm font-semibold text-cyan-200"
-              : canGo
-                ? "rounded-lg border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm font-semibold text-gray-300 hover:bg-zinc-800"
-                : "cursor-not-allowed rounded-lg border border-white/5 bg-zinc-900/50 px-3 py-3 text-left text-sm font-semibold text-gray-600"
-          }
-        >
-          <span className="block text-xs opacity-70">
-            0{step.id}
-          </span>
-          <span>
-            {step.label}
-          </span>
-        </button>
-      );
-    })}
-  </div>
-  <p className="mt-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm leading-6 text-cyan-100">
-  {currentStepGuide[currentStep]}
-</p>
-</div>
- <div className="mt-3 grid grid-cols-2 gap-3">
-  <button
-    type="button"
-    onClick={() =>
-      setCurrentStep((prev) =>
-        prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3 | 4 | 5)
-      )
-    }
-    disabled={currentStep === 1}
-    className={
-      currentStep === 1
-        ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
-        : "rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600"
-    }
-  >
-    戻る
-  </button>
-
-  <button
-    type="button"
-    onClick={() => {
-      const nextStep = Math.min(5, currentStep + 1) as 1 | 2 | 3 | 4 | 5;
-
-      if (!canGoStep(nextStep)) {
-        alert("このステップに進むには、先に必要な操作を完了してください");
-        return;
-      }
-
-      setCurrentStep(nextStep);
-    }}
-    disabled={currentStep === 5}
-    className={
-      currentStep === 5
-        ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
-        : "rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
-    }
-  >
-    次へ
-  </button>
-</div>
-<div className="mt-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-3">
-  <p className="text-xs font-semibold text-cyan-300">
-    STEP {currentStep}
-  </p>
-  <p className="mt-1 text-sm leading-6 text-gray-300">
-    {currentStepGuide[currentStep]}
-  </p>
-</div>
 <div className="mb-6 flex flex-wrap gap-4">
   <a
     href="/landing"
@@ -1527,6 +1432,98 @@ const downloadThumbnail = async (clipIndex: number) => {
 </p>
 </aside>
 <section className="min-w-0 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 lg:p-6">
+<div className="mb-5 rounded-xl border border-white/10 bg-zinc-950/80 p-4">
+  <div className="mb-3 flex items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-semibold text-cyan-300">
+        Story Wizard
+      </p>
+      <p className="mt-1 text-xs text-gray-400">
+        STEP {currentStep} / 5
+      </p>
+    </div>
+  </div>
+
+  <div className="overflow-x-auto pb-1">
+    <div className="grid min-w-[640px] grid-cols-5 gap-2 lg:min-w-0">
+      {steps.map((step) => {
+        const canGo = canGoStep(step.id);
+        const isActive = currentStep === step.id;
+
+        return (
+          <button
+            key={step.id}
+            type="button"
+            disabled={!canGo}
+            onClick={() => {
+              setCurrentStep(step.id);
+              scrollToStep(step.id);
+            }}
+            className={
+              isActive
+                ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-3 text-left text-sm font-semibold text-cyan-100 shadow-lg shadow-cyan-500/10"
+                : canGo
+                  ? "rounded-lg border border-white/10 bg-zinc-900 px-3 py-3 text-left text-sm font-semibold text-gray-300 hover:bg-zinc-800"
+                  : "cursor-not-allowed rounded-lg border border-white/5 bg-zinc-900/50 px-3 py-3 text-left text-sm font-semibold text-gray-600"
+            }
+          >
+            <span className="block text-xs opacity-70">
+              0{step.id}
+            </span>
+            <span>
+              {step.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  </div>
+
+  <p className="mt-4 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm leading-6 text-cyan-100">
+    {currentStepGuide[currentStep]}
+  </p>
+
+  <div className="mt-3 grid grid-cols-2 gap-3">
+    <button
+      type="button"
+      onClick={() =>
+        setCurrentStep((prev) =>
+          prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3 | 4 | 5)
+        )
+      }
+      disabled={currentStep === 1}
+      className={
+        currentStep === 1
+          ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
+          : "rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600"
+      }
+    >
+      戻る
+    </button>
+
+    <button
+      type="button"
+      onClick={() => {
+        const nextStep = Math.min(5, currentStep + 1) as 1 | 2 | 3 | 4 | 5;
+
+        if (!canGoStep(nextStep)) {
+          alert("このステップに進むには、先に必要な操作を完了してください");
+          return;
+        }
+
+        setCurrentStep(nextStep);
+      }}
+      disabled={currentStep === 5}
+      className={
+        currentStep === 5
+          ? "rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-600 cursor-not-allowed"
+          : "rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+      }
+    >
+      次へ
+    </button>
+  </div>
+</div>
 {currentStep === 1 && (
   <div id="step-upload">
 {enableYoutube && (
