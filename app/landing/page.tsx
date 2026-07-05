@@ -7,9 +7,15 @@ export default function LandingPage() {
 
         <div className="relative mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-16 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
-            <p className="mb-4 text-sm font-semibold text-cyan-300">
-              NEXCUT AI
-            </p>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <p className="text-sm font-semibold text-cyan-300">
+                NEXCUT AI
+              </p>
+
+              <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+                Open Beta 0.1.0
+              </span>
+            </div>
 
             <h1 className="mt-6 max-w-4xl text-4xl font-black leading-tight text-white sm:text-6xl">
               動画を入れるだけで、ショート動画の投稿準備までAIがサポート
@@ -34,6 +40,10 @@ export default function LandingPage() {
                 2分デモを見る
               </a>
             </div>
+
+            <p className="mt-5 max-w-2xl text-xs leading-6 text-zinc-500">
+              現在は公開テスト版です。皆さまからのフィードバックをもとに改善を続けています。
+            </p>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-zinc-400">
               <span>動画アップロード対応</span>

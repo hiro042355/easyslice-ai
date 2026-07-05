@@ -1,4 +1,4 @@
-﻿export default function AuthPage() {
+export default function AuthPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.16),transparent_32%),radial-gradient(circle_at_80%_30%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(135deg,#050505_0%,#111827_48%,#06111f_100%)]" />
@@ -9,7 +9,7 @@
           <div className="flex min-h-[360px] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl sm:p-10 lg:min-h-[640px]">
             <div>
               <div className="mb-10 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
-                Public Beta
+                Open Beta 0.1.0
               </div>
 
               <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -83,14 +83,16 @@
 
               <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-gray-400">
                 初めての方も、すでに利用中の方もそのまま続けられます。
+                <br />
+                ※ 現在はOpen Betaのため、認証を簡略化しています。
               </p>
 
               <div className="mt-8 flex items-center justify-between gap-3 text-xs text-gray-500">
                 <a href="mailto:nexcut.ai@gmail.com" className="transition hover:text-cyan-300">
-                  ヘルプ
+                  フィードバックを送る
                 </a>
 
-                <p>Public Beta / Build 0.x</p>
+                <p>Open Beta 0.1.0 / Build 0.x</p>
               </div>
             </div>
           </div>
