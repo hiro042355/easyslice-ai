@@ -3,18 +3,21 @@
     title: "Short Video",
     description: "長尺動画から\nショート動画を作成します。",
     button: "制作を始める",
+    href: "/",
     primary: true,
   },
   {
     title: "AI Music Video β",
     description: "AIでMV作品の企画・構成を作成します。",
     button: "試してみる",
+    href: "/ai-mv",
     primary: false,
   },
   {
     title: "Video Convert",
     description: "動画をMP4へ変換します。",
     button: "開く",
+    href: "/convert",
     primary: false,
   },
 ];
@@ -57,12 +60,12 @@ export default function WorkspaceHomePage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                className="w-full rounded-xl bg-cyan-300 px-5 py-3 text-sm font-black text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-black sm:w-auto sm:self-start sm:px-8"
+              <a
+                href={workspaceOptions[0].href}
+                className="w-full rounded-xl bg-cyan-300 px-5 py-3 text-center text-sm font-black text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-black sm:w-auto sm:self-start sm:px-8"
               >
                 {workspaceOptions[0].button}
-              </button>
+              </a>
             </div>
           </article>
 
@@ -83,12 +86,12 @@ export default function WorkspaceHomePage() {
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    className="w-full rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-sm font-bold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-black"
+                  <a
+                    href={option.href}
+                    className="w-full rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-center text-sm font-bold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-black"
                   >
                     {option.button}
-                  </button>
+                  </a>
                 </div>
               </article>
             ))}
