@@ -5,6 +5,8 @@ import { toPng } from "html-to-image";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import SubtitleEditor from "../components/SubtitleEditor";
+import CreatorStylePanel from "../components/CreatorStylePanel";
+import { getCreatorStyleConfig } from "../lib/creatorStyleConfig";
 
 
 export default function Home() {
@@ -50,6 +52,10 @@ const [translationDirection, setTranslationDirection] =
   useState<"en-to-ja" | "ja-to-en">("en-to-ja");
   const [assetMode, setAssetMode] = useState<"post" | "caption" | "translate">("post");
 const [creatorMode, setCreatorMode] = useState<"quick" | "wizard">("wizard");
+const [creatorStyle, setCreatorStyle] = useState<"standard" | "creator">("standard");
+const [animationIntensity, setAnimationIntensity] = useState(3);
+const [lastExportCreatorStyleConfig, setLastExportCreatorStyleConfig] = useState("");
+const creatorStyleConfig = getCreatorStyleConfig(creatorStyle, animationIntensity);
 const [quickOutputs, setQuickOutputs] = useState({
   post: true,
   caption: false,
@@ -233,6 +239,9 @@ if (video) {
 
 formData.append("start", start);
 formData.append("end", end);
+formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));
+console.log("CreatorStyleConfig -> /api/cut", creatorStyleConfig);
+setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
     const res = await fetch("/api/cut", {
   method: "POST",
   body: formData,
@@ -407,6 +416,8 @@ const ok = window.confirm(
   try {
     setLoading(true);
     setSuccessMessage("");
+    console.log("CreatorStyleConfig -> /api/multi-cut", creatorStyleConfig);
+    setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
 
     const res = await fetch("/api/multi-cut", {
       method: "POST",
@@ -416,6 +427,7 @@ const ok = window.confirm(
       body: JSON.stringify({
   clips: validClips,
   outputFormat,
+  creatorStyleConfig,
 }),
     });
 
@@ -2117,6 +2129,13 @@ const downloadThumbnail = async (clipIndex: number) => {
     ))}
   </div>
 </div>
+    <CreatorStylePanel
+      creatorStyle={creatorStyle}
+      animationIntensity={animationIntensity}
+      creatorStyleConfig={creatorStyleConfig}
+      onCreatorStyleChange={setCreatorStyle}
+      onAnimationIntensityChange={setAnimationIntensity}
+    />
     <div className="mb-4 grid grid-cols-3 gap-2">
   <button
     type="button"
@@ -2258,6 +2277,9 @@ const downloadThumbnail = async (clipIndex: number) => {
     setErrorMessage("");
     setSuccessMessage("字幕付き動画を作成中です...");
 
+    console.log("CreatorStyleConfig -> /api/burn-subtitle", creatorStyleConfig);
+    setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
+
     const res = await fetch("/api/burn-subtitle", {
       method: "POST",
       headers: {
@@ -2267,6 +2289,7 @@ body: JSON.stringify({
   transcript: transcriptText,
   start: clips[0]?.start ?? "0",
   end: clips[0]?.end ?? "30",
+  creatorStyleConfig,
 }),
     });
 
@@ -2518,6 +2541,9 @@ body: JSON.stringify({
 
     const firstClip = validClips[0];
 
+    console.log("CreatorStyleConfig -> /api/burn-subtitle", creatorStyleConfig);
+    setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
+
     const res = await fetch("/api/burn-subtitle", {
       method: "POST",
       headers: {
@@ -2527,6 +2553,7 @@ body: JSON.stringify({
         transcript: translatedText,
         start: firstClip?.start ?? 0,
         end: firstClip?.end ?? 30,
+        creatorStyleConfig,
       }),
     });
 
@@ -2559,6 +2586,9 @@ body: JSON.stringify({
 
     const firstClip = validClips[0];
 
+    console.log("CreatorStyleConfig -> /api/burn-subtitle", creatorStyleConfig);
+    setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
+
     const res = await fetch("/api/burn-subtitle", {
       method: "POST",
       headers: {
@@ -2570,6 +2600,7 @@ body: JSON.stringify({
         subtitleMode: "dual",
         start: firstClip?.start ?? 0,
         end: firstClip?.end ?? 30,
+        creatorStyleConfig,
       }),
     });
 
@@ -2679,6 +2710,17 @@ body: JSON.stringify({
     まだ未生成の項目があれば、STEP4の各タブで生成できます。完成したらSTEP5で保存・書き出しを確認してください。
   </p>
 </div>
+
+{lastExportCreatorStyleConfig && (
+  <details className="mt-4 rounded-lg border border-cyan-400/20 bg-zinc-900 p-3 text-xs text-gray-300">
+    <summary className="cursor-pointer font-semibold text-cyan-300">
+      Export Debug / CreatorStyleConfig
+    </summary>
+    <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-zinc-950 p-3 text-[11px] leading-5 text-gray-300">
+      {lastExportCreatorStyleConfig}
+    </pre>
+  </details>
+)}
   </div>
 )}
 {transcriptText.trim() !== "" && (
