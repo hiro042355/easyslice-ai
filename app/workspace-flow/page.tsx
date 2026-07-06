@@ -111,6 +111,7 @@ export default function WorkspaceFlowPage() {
   const hasVideo = Boolean(video || videoSrc);
   const hasSubtitles = subtitles.length > 0;
   const hasClips = clips.length > 0;
+  const subtitleText = subtitles.map((subtitle) => subtitle.text).join("\n");
 
   const resetUploadResult = () => {
     setUploadMessage("");
@@ -792,6 +793,102 @@ export default function WorkspaceFlowPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              ) : activeStep.id === 4 ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+                      Assets Review
+                    </p>
+                    <h3 className="mt-2 text-lg font-bold text-white">
+                      投稿前の素材を確認
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      現在のCreator Flowで生成済みの素材だけを表示します。未生成の項目は次の移行フェーズで接続します。
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <section className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-base font-bold text-white">
+                          字幕テキスト
+                        </h3>
+                        <span className={hasSubtitles ? "rounded-full border border-green-300/25 bg-green-300/10 px-2 py-1 text-xs font-bold text-green-200" : "rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-bold text-gray-500"}>
+                          {hasSubtitles ? `${subtitles.length}行` : "未生成"}
+                        </span>
+                      </div>
+
+                      {hasSubtitles ? (
+                        <div className="mt-4 max-h-56 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-zinc-950/80 p-3 text-sm leading-6 text-gray-200">
+                          {subtitleText}
+                        </div>
+                      ) : (
+                        <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm text-gray-500">
+                          字幕はまだ生成または読み込みされていません。
+                        </p>
+                      )}
+                    </section>
+
+                    <section className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-base font-bold text-white">
+                          翻訳字幕
+                        </h3>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-bold text-gray-500">
+                          未生成
+                        </span>
+                      </div>
+
+                      <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm text-gray-500">
+                        翻訳字幕はまだCreator Flowへ移植していません。
+                      </p>
+                    </section>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-white">
+                          投稿タイトル
+                        </h3>
+                        <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-xs font-bold text-gray-500">
+                          未生成
+                        </span>
+                      </div>
+                      <p className="mt-4 text-sm leading-6 text-gray-500">
+                        タイトル生成はまだ接続していません。
+                      </p>
+                    </section>
+
+                    <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-white">
+                          説明文
+                        </h3>
+                        <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-xs font-bold text-gray-500">
+                          未生成
+                        </span>
+                      </div>
+                      <p className="mt-4 text-sm leading-6 text-gray-500">
+                        説明文生成はまだ接続していません。
+                      </p>
+                    </section>
+
+                    <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-white">
+                          ハッシュタグ
+                        </h3>
+                        <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-xs font-bold text-gray-500">
+                          未生成
+                        </span>
+                      </div>
+                      <p className="mt-4 text-sm leading-6 text-gray-500">
+                        ハッシュタグ生成はまだ接続していません。
+                      </p>
+                    </section>
+                  </div>
                 </div>
               ) : (
                 <>
