@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+import SubtitleEditor from "../components/SubtitleEditor";
 
 
 export default function Home() {
@@ -1269,24 +1270,31 @@ const downloadThumbnail = async (clipIndex: number) => {
   return (
 <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.24),transparent_32%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.2),transparent_34%),linear-gradient(135deg,#020617,#09090b_48%,#172554)] px-3 py-5 text-white sm:p-6">
   <div className="mx-auto mt-4 max-w-xl rounded-xl border border-cyan-400/20 bg-zinc-950/75 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-md animate-fadeIn sm:mt-10 sm:p-8 lg:max-w-7xl">
-<div className="grid gap-6">
-<aside className="space-y-4">
-<div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-<div className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-zinc-950/80 to-fuchsia-500/10 p-5 shadow-xl shadow-cyan-500/10 lg:flex lg:flex-col">
-  <p className="mb-3 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+<div className="grid gap-4 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-start">
+<header className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-zinc-950/80 to-fuchsia-500/10 p-5 shadow-xl shadow-cyan-500/10">
+  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+    <a href="/workspace" className="text-cyan-300 hover:text-cyan-200">
+      ← Workspace Home
+    </a>
+    <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-cyan-200">
+      Open Beta 0.1.0
+    </span>
+  </div>
+
+  <p className="mt-5 inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
     Creator Workflow Beta
   </p>
 
-  <h1 className="text-4xl font-black leading-tight bg-gradient-to-r from-cyan-200 via-white to-fuchsia-200 bg-clip-text text-transparent">
+  <h1 className="mt-5 text-4xl font-black leading-tight bg-gradient-to-r from-cyan-200 via-white to-fuchsia-200 bg-clip-text text-transparent">
     NEXCUT AI
   </h1>
 
-  <p className="mt-3 text-2xl font-bold leading-tight text-white">
+  <p className="mt-4 text-xl font-bold leading-tight text-white">
     ショート動画制作を、もっとシンプルに。
   </p>
 
   <p className="mt-3 text-sm leading-6 text-gray-300">
-    動画アップロードから投稿準備、字幕、書き出しまでをひとつに。
+    動画アップロードからClip確認、投稿素材、字幕、書き出しまでをひとつの流れで進められます。
   </p>
 
   <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-cyan-100">
@@ -1297,142 +1305,99 @@ const downloadThumbnail = async (clipIndex: number) => {
   </div>
 
   <div className="mt-5 rounded-xl border border-white/10 bg-black/30 p-3">
-    <p className="text-xs font-semibold text-gray-400">Tools</p>
-    <div className="mt-2 flex flex-wrap gap-2">
-      <a
-        href="/convert"
-        className="inline-flex w-fit items-center rounded-lg border border-emerald-400/40 px-3 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-400/10"
-      >
+    <p className="mb-2 text-xs font-semibold text-gray-400">Tools</p>
+    <div className="flex flex-wrap gap-2 text-xs font-semibold">
+      <a href="/guide" className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-gray-300 hover:bg-zinc-800">
+        使い方を見る
+      </a>
+      <a href="/guide#video" className="rounded-lg border border-pink-300/20 bg-pink-300/10 px-3 py-2 text-pink-200 hover:bg-pink-300/15">
+        2分デモ
+      </a>
+      <a href="/convert" className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-emerald-200 hover:bg-emerald-300/15">
         MP4 Convert
       </a>
-
-      <a
-        href="/ai-mv"
-        className="inline-flex w-fit items-center rounded-lg border border-fuchsia-400/40 px-3 py-2 text-sm font-semibold text-fuchsia-200 transition hover:bg-fuchsia-400/10"
-      >
+      <a href="/ai-mv" className="rounded-lg border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-fuchsia-200 hover:bg-fuchsia-300/15">
         AI MV β
       </a>
     </div>
   </div>
-</div>
 
-<div className="rounded-2xl border border-cyan-400/20 bg-zinc-950/80 p-4 shadow-lg shadow-cyan-500/5">
-  <div className="mb-3 flex items-center justify-between gap-3">
-    <div>
-      <p className="text-sm font-semibold text-cyan-300">
-        Creator Mode
-      </p>
-      <p className="mt-1 text-xs leading-5 text-gray-400">
-        目的に合わせて、最短生成か細かい編集を選べます。
-      </p>
-    </div>
-  </div>
+  <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-zinc-950/80 p-4 shadow-lg shadow-cyan-500/5">
+    <p className="text-sm font-semibold text-cyan-300">Creator Mode</p>
+    <p className="mt-1 text-xs leading-5 text-gray-400">
+      目的に合わせて、最短生成か細かい編集を選べます。
+    </p>
 
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-    <button
-      type="button"
-      onClick={() => setCreatorMode("quick")}
-      className={
-        creatorMode === "quick"
-          ? "rounded-xl border border-cyan-300/70 bg-cyan-500/20 px-4 py-4 text-left text-sm font-semibold text-white shadow-lg shadow-cyan-500/20"
-          : "rounded-xl border border-cyan-400/20 bg-zinc-900 px-4 py-4 text-left text-sm font-semibold text-gray-300 transition hover:border-cyan-300/50 hover:bg-cyan-500/10"
-      }
-    >
-      <span className="block text-base">Quick Generate</span>
-      <span className="mt-1 block text-xs font-medium text-cyan-100/80">最短で成果物を作る</span>
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setCreatorMode("wizard")}
-      className={
-        creatorMode === "wizard"
-          ? "rounded-xl border border-fuchsia-300/60 bg-fuchsia-500/15 px-4 py-4 text-left text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/10"
-          : "rounded-xl border border-white/10 bg-zinc-900 px-4 py-4 text-left text-sm font-semibold text-gray-300 transition hover:border-fuchsia-300/40 hover:bg-fuchsia-500/10"
-      }
-    >
-      <span className="block text-base">Story Wizard</span>
-      <span className="mt-1 block text-xs font-medium text-gray-400">細かく調整したい人向け</span>
-    </button>
-  </div>
-
-  {creatorMode === "quick" && (
-    <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-      <p className="text-sm font-semibold text-cyan-200">
-        作りたいものを選ぶ
-      </p>
-      <p className="mt-1 text-xs leading-5 text-gray-400">
-        作りたいものを選ぶと、必要なSTEPへ案内します。生成内容はあとからPreview Studioで確認・保存できます。
-      </p>
-
-      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-        {[
-          ["post", "投稿素材"],
-          ["caption", "自動字幕"],
-          ["translate", "翻訳字幕"],
-          ["subtitleVideo", "字幕付き動画"],
-          ["zip", "ZIP一括"],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() =>
-              setQuickOutputs((prev) => ({
-                ...prev,
-                [key]: !prev[key as keyof typeof prev],
-              }))
-            }
-            className={
-              quickOutputs[key as keyof typeof quickOutputs]
-                ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-2 font-semibold text-cyan-100"
-                : "rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 font-semibold text-gray-400 hover:bg-zinc-800"
-            }
-          >
-            {quickOutputs[key as keyof typeof quickOutputs] ? "✓ " : "○ "}
-            {label}
-          </button>
-        ))}
-      </div>
+    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+      <button
+        type="button"
+        onClick={() => setCreatorMode("wizard")}
+        className={
+          creatorMode === "wizard"
+            ? "rounded-lg border border-fuchsia-300/50 bg-fuchsia-500/15 px-3 py-2 text-left font-semibold text-white"
+            : "rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-left font-semibold text-gray-400 hover:bg-zinc-800"
+        }
+      >
+        Story Wizard
+      </button>
 
       <button
         type="button"
-        onClick={handleQuickGenerateStart}
-        className="mt-4 w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500"
+        onClick={() => setCreatorMode("quick")}
+        className={
+          creatorMode === "quick"
+            ? "rounded-lg border border-cyan-300/60 bg-cyan-500/20 px-3 py-2 text-left font-semibold text-white"
+            : "rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-left font-semibold text-gray-400 hover:bg-zinc-800"
+        }
       >
-        この内容で始める
+        Quick Generate
       </button>
     </div>
-  )}
-</div>
-</div>
 
-<div className="mb-6 flex flex-wrap gap-4">
-  <a
-    href="/landing"
-    className="inline-block text-sm font-semibold text-cyan-300 hover:text-cyan-200"
-  >
-    ← 紹介ページへ戻る
-  </a>
+    {creatorMode === "quick" && (
+      <div className="mt-3 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {[
+            ["post", "投稿素材"],
+            ["caption", "自動字幕"],
+            ["translate", "翻訳字幕"],
+            ["subtitleVideo", "字幕付き動画"],
+            ["zip", "ZIP一括"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() =>
+                setQuickOutputs((prev) => ({
+                  ...prev,
+                  [key]: !prev[key as keyof typeof prev],
+                }))
+              }
+              className={
+                quickOutputs[key as keyof typeof quickOutputs]
+                  ? "rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-2 font-semibold text-cyan-100"
+                  : "rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 font-semibold text-gray-400 hover:bg-zinc-800"
+              }
+            >
+              {quickOutputs[key as keyof typeof quickOutputs] ? "✓ " : "○ "}
+              {label}
+            </button>
+          ))}
+        </div>
 
-  <a
-    href="/guide"
-    className="inline-block text-sm font-semibold text-cyan-300 hover:text-cyan-200"
-  >
-    使い方を見る
-  </a>
-  <a
-  href="/guide#video"
-  className="inline-block text-sm font-semibold text-pink-300 hover:text-pink-200"
->
-  2分で使い方を見る
-</a>
-</div>
-<p className="text-zinc-400 text-sm mt-2">
-  Smart Video Clipping Platform
-</p>
-</aside>
-<section className="min-w-0 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 lg:p-6">
-<div className="mb-5 rounded-xl border border-white/10 bg-zinc-950/80 p-4">
+        <button
+          type="button"
+          onClick={handleQuickGenerateStart}
+          className="mt-3 w-full rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-500"
+        >
+          この内容で始める
+        </button>
+      </div>
+    )}
+  </div>
+</header>
+<section aria-label="Workflow Card" className="min-w-0 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 shadow-xl shadow-cyan-500/5 lg:p-6">
+<div className="mb-5 border-b border-white/10 pb-5">
   <div className="mb-3 flex items-center justify-between gap-3">
     <div>
       <p className="text-sm font-semibold text-cyan-300">
@@ -1485,87 +1450,90 @@ const downloadThumbnail = async (clipIndex: number) => {
 </div>
 {currentStep === 1 && (
   <div id="step-upload">
-{enableYoutube && (
-  <>
-    <h2 className="mt-6 mb-3 text-lg font-semibold text-cyan-300">
-      YouTubeから取得
-    </h2>
+    <div className={enableYoutube ? "grid gap-4 lg:grid-cols-2 lg:items-stretch" : "grid gap-4"}>
+      {enableYoutube && (
+        <div className="rounded-xl border border-white/10 bg-zinc-950/60 p-4">
+          <h2 className="mb-3 text-lg font-semibold text-cyan-300">
+            YouTubeから取得
+          </h2>
 
-    {/* YouTube URL */}
-    <div className="mb-4">
-      <label className="block mb-2 font-semibold">YouTube URL</label>
-      <input
-        type="text"
-        value={youtubeUrl}
-        onChange={(e) => setYoutubeUrl(e.target.value)}
-        placeholder="https://www.youtube.com/watch?v=xxxx"
-        className="w-full p-2 rounded bg-white/20 border border-white/30"
-      />
+          <div className="mb-4">
+            <label className="block mb-2 font-semibold">YouTube URL</label>
+            <input
+              type="text"
+              value={youtubeUrl}
+              onChange={(e) => setYoutubeUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=xxxx"
+              className="w-full p-2 rounded bg-white/20 border border-white/30"
+            />
+          </div>
+
+          <p className="mt-2 mb-4 text-xs text-yellow-300">
+            YouTube取得はローカル環境向けの実験機能です。公開版では動画アップロードを推奨します。
+          </p>
+
+          <button
+            type="button"
+            onClick={handleFetchYoutube}
+            disabled={loading}
+            className="w-full py-3 rounded-lg font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 transition-all duration-300 shadow-lg hover:shadow-red-500/40"
+          >
+            YouTubeから動画を取得
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-cyan-500/20 bg-zinc-950/60 p-4">
+        <h2 className="mb-3 text-lg font-semibold text-cyan-300">
+          動画をアップロード
+        </h2>
+
+        <label className="flex min-h-[210px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-cyan-500/40 bg-zinc-900/60 p-5 transition hover:border-cyan-400 hover:bg-cyan-500/10">
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => handleVideoFileUpload(e.target.files?.[0] || null)}
+            className="hidden"
+          />
+
+          <div className="text-center">
+            <p className="text-base font-semibold text-white">
+              ここをクリックして動画を選択
+            </p>
+
+            <p className="mt-2 text-sm text-gray-400">
+              MP4などの動画ファイルをアップロードできます
+            </p>
+
+            <p className="mt-3 text-sm font-semibold text-cyan-300">
+              {video ? video.name : "動画未選択"}
+            </p>
+          </div>
+        </label>
+      </div>
     </div>
 
-    <p className="mt-2 mb-4 text-xs text-yellow-300">
-      YouTube取得はローカル環境向けの実験機能です。公開版では動画アップロードを推奨します。
-    </p>
+    {videoTitle && (
+      <div className="mt-4 overflow-hidden rounded-xl border border-cyan-500/20 bg-zinc-900 shadow-xl shadow-cyan-500/10 hover:shadow-cyan-500/30 transition-all duration-300">
+        {thumbnail && (
+          <img
+            src={thumbnail}
+            alt="thumbnail"
+            className="w-full object-cover"
+          />
+        )}
 
-    <button
-      type="button"
-      onClick={handleFetchYoutube}
-      disabled={loading}
-      className="w-full py-3 mb-4 rounded-lg font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 transition-all duration-300 shadow-lg hover:shadow-red-500/40"
-    >
-      YouTubeから動画を取得
-    </button>
-  </>
-)}
-{videoTitle && (
-  <div className="mb-6 overflow-hidden rounded-xl border border-cyan-500/20 bg-zinc-900 shadow-xl shadow-cyan-500/10 hover:shadow-cyan-500/30 transition-all duration-300">
-    
-    {thumbnail && (
-      <img
-        src={thumbnail}
-        alt="thumbnail"
-        className="w-full object-cover"
-      />
+        <div className="p-4">
+          <h2 className="text-lg font-bold text-white mb-2">
+            {videoTitle}
+          </h2>
+
+          <p className="text-gray-300">
+            ⏱ {videoDuration} 秒
+          </p>
+        </div>
+      </div>
     )}
-
-    <div className="p-4">
-      <h2 className="text-lg font-bold text-white mb-2">
-        {videoTitle}
-      </h2>
-
-      <p className="text-gray-300">
-        ⏱ {videoDuration} 秒
-      </p>
-    </div>
-
-  </div>
-)}
-<h2 className="mb-3 text-lg font-semibold text-cyan-300">
-  動画をアップロード
-</h2>
-
-<label className="block cursor-pointer rounded-xl border-2 border-dashed border-cyan-500/40 bg-zinc-900/60 p-5 transition hover:border-cyan-400 hover:bg-cyan-500/10">
-  <input
-  type="file"
-  accept="video/*"
-  onChange={(e) => handleVideoFileUpload(e.target.files?.[0] || null)}
-  className="hidden"
-/>
-
-  <div className="text-center">
-    <p className="text-base font-semibold text-white">
-      ここをクリックして動画を選択
-    </p>
-
-    <p className="mt-2 text-sm text-gray-400">
-      MP4などの動画ファイルをアップロードできます
-    </p>
-
-    <p className="mt-3 text-sm font-semibold text-cyan-300">
-      {video ? video.name : "動画未選択"}
-    </p>
-  </div>
-</label>
 <details className="mt-4 rounded-xl border border-purple-500/20 bg-zinc-950/50 p-4">
   <summary className="cursor-pointer text-sm font-semibold text-purple-300">
     字幕ファイル（任意）
@@ -2713,6 +2681,18 @@ body: JSON.stringify({
 </div>
   </div>
 )}
+{transcriptText.trim() !== "" && (
+  <SubtitleEditor
+    transcriptText={transcriptText}
+    videoDuration={videoDuration}
+    hasTranslatedText={translatedText.trim() !== ""}
+    onSaveTranscript={setTranscriptText}
+    onSaved={() => setSuccessMessage("字幕を保存しました。Preview Studioに反映されます。")}
+    onRequestTranslationSync={() =>
+      setSuccessMessage("翻訳字幕の更新導線を準備しました。次のMVPで翻訳再生成に接続します。")
+    }
+  />
+)}
 {(postAssets.length > 0 || scriptResult) && (
   <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/70 p-2">
     <div className="grid grid-cols-2 gap-2">
@@ -3128,3 +3108,5 @@ body: JSON.stringify({
     </main>
   )
 }
+
+
