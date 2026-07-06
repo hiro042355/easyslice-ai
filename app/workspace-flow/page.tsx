@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, type DragEvent } from "react";
-import { getCreatorStyleConfig } from "../../lib/creatorStyleConfig";
+import CreatorStylePanel from "../../components/CreatorStylePanel";
+import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
 
 const steps = [
   {
@@ -109,6 +110,8 @@ export default function WorkspaceFlowPage() {
   const [generatedClipCount, setGeneratedClipCount] = useState(0);
   const [burnedVideoUrl, setBurnedVideoUrl] = useState("");
   const [lastExportCreatorStyleConfig, setLastExportCreatorStyleConfig] = useState("");
+  const [creatorStyle, setCreatorStyle] = useState<CreatorStyle>("standard");
+  const [animationIntensity, setAnimationIntensity] = useState(3);
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === currentStep) ?? steps[0],
@@ -122,7 +125,7 @@ export default function WorkspaceFlowPage() {
   const hasSubtitles = subtitles.length > 0;
   const hasClips = clips.length > 0;
   const subtitleText = subtitles.map((subtitle) => subtitle.text).join("\n");
-  const creatorStyleConfig = getCreatorStyleConfig("standard", 3);
+  const creatorStyleConfig = getCreatorStyleConfig(creatorStyle, animationIntensity);
   const primaryClip = clips[0] ?? {
     start: "0",
     end: "30",
@@ -972,6 +975,44 @@ export default function WorkspaceFlowPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              ) : activeStep.id === 3 ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-fuchsia-300/15 bg-fuchsia-300/[0.04] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-300">
+                      Creator Style
+                    </p>
+                    <h3 className="mt-2 text-lg font-bold text-white">
+                      作品の見え方を選ぶ
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      Standardは現在のNEXCUTと同じ安全な出力です。Creatorを選ぶとExportへ演出パラメータを渡します。
+                    </p>
+                  </div>
+
+                  <CreatorStylePanel
+                    creatorStyle={creatorStyle}
+                    animationIntensity={animationIntensity}
+                    creatorStyleConfig={creatorStyleConfig}
+                    onCreatorStyleChange={setCreatorStyle}
+                    onAnimationIntensityChange={setAnimationIntensity}
+                  />
+
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-white">
+                          Exportへ渡す設定
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-gray-500">
+                          STEP5のMP4 / ZIP / 字幕付き動画生成で、このCreatorStyleConfigを送信します。
+                        </p>
+                      </div>
+                      <span className="w-fit rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-bold text-cyan-200">
+                        {creatorStyle === "standard" ? "Standard" : `Creator / ${animationIntensity}`}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               ) : activeStep.id === 4 ? (
                 <div className="space-y-4">
