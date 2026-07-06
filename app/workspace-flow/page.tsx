@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type DragEvent } from "react";
+import { getCreatorStyleConfig } from "../../lib/creatorStyleConfig";
 
 const steps = [
   {
@@ -99,6 +100,15 @@ export default function WorkspaceFlowPage() {
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeMessage, setAnalyzeMessage] = useState("");
   const [analyzeError, setAnalyzeError] = useState("");
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
+  const [exportError, setExportError] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState("");
+  const [zipDownloadUrl, setZipDownloadUrl] = useState("");
+  const [zipFileName, setZipFileName] = useState("");
+  const [generatedClipCount, setGeneratedClipCount] = useState(0);
+  const [burnedVideoUrl, setBurnedVideoUrl] = useState("");
+  const [lastExportCreatorStyleConfig, setLastExportCreatorStyleConfig] = useState("");
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === currentStep) ?? steps[0],
@@ -112,6 +122,14 @@ export default function WorkspaceFlowPage() {
   const hasSubtitles = subtitles.length > 0;
   const hasClips = clips.length > 0;
   const subtitleText = subtitles.map((subtitle) => subtitle.text).join("\n");
+  const creatorStyleConfig = getCreatorStyleConfig("standard", 3);
+  const primaryClip = clips[0] ?? {
+    start: "0",
+    end: "30",
+    reason: "",
+    title: "Default clip",
+    score: 0,
+  };
 
   const resetUploadResult = () => {
     setUploadMessage("");
@@ -219,6 +237,13 @@ export default function WorkspaceFlowPage() {
       setClips([]);
       setAnalyzeMessage("");
       setAnalyzeError("");
+      setDownloadUrl("");
+      setZipDownloadUrl("");
+      setZipFileName("");
+      setGeneratedClipCount(0);
+      setBurnedVideoUrl("");
+      setExportMessage("");
+      setExportError("");
     } catch (err) {
       console.error(err);
       setErrorMessage(err instanceof Error ? err.message : "不明なエラー");
@@ -276,6 +301,13 @@ export default function WorkspaceFlowPage() {
       setClips([]);
       setAnalyzeMessage("");
       setAnalyzeError("");
+      setDownloadUrl("");
+      setZipDownloadUrl("");
+      setZipFileName("");
+      setGeneratedClipCount(0);
+      setBurnedVideoUrl("");
+      setExportMessage("");
+      setExportError("");
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : "";
@@ -426,6 +458,153 @@ export default function WorkspaceFlowPage() {
       setAnalyzeError(err instanceof Error ? err.message : "解析に失敗しました。");
     } finally {
       setAnalyzeLoading(false);
+    }
+  };
+
+  const resetExportResult = () => {
+    setExportMessage("");
+    setExportError("");
+    setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
+  };
+
+  const handleExportMp4 = async () => {
+    if (!hasVideo) {
+      setExportError("先にSTEP1で動画を追加してください。");
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+      resetExportResult();
+
+      const formData = new FormData();
+      if (video) {
+        formData.append("video", video);
+      } else {
+        formData.append("youtube", "true");
+      }
+      formData.append("start", primaryClip.start || "0");
+      formData.append("end", primaryClip.end || "30");
+      formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));
+      console.log("CreatorStyleConfig -> /api/cut", creatorStyleConfig);
+
+      const res = await fetch("/api/cut", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("MP4生成に失敗しました");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setDownloadUrl(url);
+      setExportMessage("MP4を生成しました。");
+    } catch (err) {
+      console.error(err);
+      setExportError(err instanceof Error ? err.message : "MP4生成に失敗しました。");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportZip = async () => {
+    const validClips = clips
+      .filter((clip) => clip.start.trim() !== "" && clip.end.trim() !== "")
+      .map((clip) => ({
+        ...clip,
+        start: String(Math.max(0, Number(clip.start))),
+        end: String(Number(clip.end)),
+      }))
+      .filter((clip) => Number(clip.end) > Number(clip.start));
+
+    if (validClips.length === 0) {
+      setExportError("ZIP生成にはClip候補が必要です。STEP2でAI解析を実行してください。");
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+      resetExportResult();
+      console.log("CreatorStyleConfig -> /api/multi-cut", creatorStyleConfig);
+
+      const res = await fetch("/api/multi-cut", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clips: validClips,
+          outputFormat: "normal",
+          creatorStyleConfig,
+        }),
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "ZIP生成に失敗しました");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const safeTitle =
+        videoTitle.trim() !== ""
+          ? videoTitle.replace(/[\\/:*?"<>|]/g, "_")
+          : "creator-flow";
+      const fileName = `${safeTitle}_clips.zip`;
+
+      setZipDownloadUrl(url);
+      setZipFileName(fileName);
+      setGeneratedClipCount(validClips.length);
+      setExportMessage(`${validClips.length}本のクリップをZIPにまとめました。`);
+    } catch (err) {
+      console.error(err);
+      setExportError(err instanceof Error ? err.message : "ZIP生成に失敗しました。");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleBurnSubtitle = async () => {
+    if (!hasVideo) {
+      setExportError("先にSTEP1で動画を追加してください。");
+      return;
+    }
+
+    if (!subtitleText.trim()) {
+      setExportError("字幕付き動画には字幕テキストが必要です。字幕ファイルを追加してください。");
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+      resetExportResult();
+      console.log("CreatorStyleConfig -> /api/burn-subtitle", creatorStyleConfig);
+
+      const res = await fetch("/api/burn-subtitle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript: subtitleText,
+          start: primaryClip.start || "0",
+          end: primaryClip.end || "30",
+          creatorStyleConfig,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "字幕付き動画の作成に失敗しました");
+      }
+
+      if (data.url) {
+        setBurnedVideoUrl(data.url);
+      }
+      setExportMessage(data.message || "字幕付き動画を作成しました。");
+    } catch (err) {
+      console.error(err);
+      setExportError(err instanceof Error ? err.message : "字幕付き動画の作成に失敗しました。");
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -889,6 +1068,198 @@ export default function WorkspaceFlowPage() {
                       </p>
                     </section>
                   </div>
+                </div>
+              ) : activeStep.id === 5 ? (
+                <div className="space-y-4">
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                    <section className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+                        Preview
+                      </p>
+                      <h3 className="mt-2 text-lg font-bold text-white">
+                        保存前に確認
+                      </h3>
+
+                      {videoSrc ? (
+                        <video
+                          src={videoSrc}
+                          controls
+                          className="mt-4 aspect-video w-full rounded-2xl border border-white/10 bg-black object-contain"
+                        />
+                      ) : (
+                        <div className="mt-4 flex aspect-video w-full items-center justify-center rounded-2xl border border-white/10 bg-black/40">
+                          <p className="text-sm font-semibold text-gray-500">
+                            STEP1で動画を追加するとPreviewできます。
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="mt-4 grid gap-2 text-xs font-semibold sm:grid-cols-3">
+                        <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                          <p className="text-gray-500">動画</p>
+                          <p className={hasVideo ? "mt-1 text-green-300" : "mt-1 text-gray-500"}>
+                            {hasVideo ? "追加済み" : "未追加"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                          <p className="text-gray-500">Clip候補</p>
+                          <p className={hasClips ? "mt-1 text-cyan-300" : "mt-1 text-gray-500"}>
+                            {hasClips ? `${clips.length}件` : "未生成"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                          <p className="text-gray-500">字幕</p>
+                          <p className={hasSubtitles ? "mt-1 text-purple-300" : "mt-1 text-gray-500"}>
+                            {hasSubtitles ? `${subtitles.length}行` : "未追加"}
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+                        Export
+                      </p>
+                      <h3 className="mt-2 text-lg font-bold text-white">
+                        保存形式を選ぶ
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-gray-400">
+                        まずは必要な形式だけ保存します。CreatorStyleConfigはExportへ渡されます。
+                      </p>
+
+                      <div className="mt-5 space-y-3">
+                        <button
+                          type="button"
+                          onClick={handleExportMp4}
+                          disabled={exportLoading || !hasVideo}
+                          className={
+                            exportLoading || !hasVideo
+                              ? "w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-bold text-gray-500"
+                              : "w-full rounded-xl bg-cyan-300 px-4 py-3 text-sm font-black text-zinc-950 transition hover:bg-cyan-200"
+                          }
+                        >
+                          MP4を生成
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleExportZip}
+                          disabled={exportLoading || !hasClips}
+                          className={
+                            exportLoading || !hasClips
+                              ? "w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-bold text-gray-500"
+                              : "w-full rounded-xl border border-green-300/25 bg-green-300/10 px-4 py-3 text-sm font-bold text-green-200 transition hover:bg-green-300/15"
+                          }
+                        >
+                          ZIP一括生成
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleBurnSubtitle}
+                          disabled={exportLoading || !hasVideo || !hasSubtitles}
+                          className={
+                            exportLoading || !hasVideo || !hasSubtitles
+                              ? "w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-sm font-bold text-gray-500"
+                              : "w-full rounded-xl border border-purple-300/25 bg-purple-300/10 px-4 py-3 text-sm font-bold text-purple-200 transition hover:bg-purple-300/15"
+                          }
+                        >
+                          字幕付き動画を生成
+                        </button>
+                      </div>
+                    </section>
+                  </div>
+
+                  {(exportLoading || exportMessage || exportError) && (
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                      {exportLoading && (
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-semibold text-cyan-200">
+                            <span>Export処理中...</span>
+                            <span>Creator Flow</span>
+                          </div>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
+                            <div className="h-full w-2/3 animate-pulse rounded-full bg-cyan-300" />
+                          </div>
+                        </div>
+                      )}
+
+                      {exportMessage && (
+                        <p className="text-sm font-semibold text-green-300">
+                          {exportMessage}
+                        </p>
+                      )}
+
+                      {exportError && (
+                        <p className="whitespace-pre-wrap text-sm font-semibold text-red-300">
+                          {exportError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {(downloadUrl || zipDownloadUrl || burnedVideoUrl) && (
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      {downloadUrl && (
+                        <a
+                          href={downloadUrl}
+                          download="creator-flow-cut.mp4"
+                          className="rounded-2xl border border-cyan-300/25 bg-cyan-300/10 p-4 text-center text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15"
+                        >
+                          MP4を保存
+                        </a>
+                      )}
+
+                      {zipDownloadUrl && (
+                        <a
+                          href={zipDownloadUrl}
+                          download={zipFileName || "creator-flow-clips.zip"}
+                          className="rounded-2xl border border-green-300/25 bg-green-300/10 p-4 text-center text-sm font-bold text-green-100 transition hover:bg-green-300/15"
+                        >
+                          ZIPを保存
+                          {generatedClipCount > 0 && (
+                            <span className="mt-1 block text-xs text-green-200/80">
+                              {generatedClipCount} clips
+                            </span>
+                          )}
+                        </a>
+                      )}
+
+                      {burnedVideoUrl && (
+                        <a
+                          href={burnedVideoUrl}
+                          download="creator-flow-subtitled.mp4"
+                          className="rounded-2xl border border-purple-300/25 bg-purple-300/10 p-4 text-center text-sm font-bold text-purple-100 transition hover:bg-purple-300/15"
+                        >
+                          字幕付き動画を保存
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {burnedVideoUrl && (
+                    <section className="rounded-2xl border border-purple-300/20 bg-purple-300/[0.04] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
+                        Subtitled Preview
+                      </p>
+                      <video
+                        src={burnedVideoUrl}
+                        controls
+                        className="mt-4 aspect-video w-full rounded-2xl border border-white/10 bg-black object-contain"
+                      />
+                    </section>
+                  )}
+
+                  {lastExportCreatorStyleConfig && (
+                    <details className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
+                      <summary className="cursor-pointer text-sm font-bold text-gray-300">
+                        Export Debug / CreatorStyleConfig
+                      </summary>
+                      <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-xl bg-black/50 p-3 text-xs leading-5 text-gray-400">
+                        {lastExportCreatorStyleConfig}
+                      </pre>
+                    </details>
+                  )}
                 </div>
               ) : (
                 <>
