@@ -17,7 +17,7 @@ export default function GuidePage() {
 
         <p className="mb-10 text-gray-300">
           NEXCUT AIは、動画からショート動画向けの切り抜き候補を作成し、
-          複数のMP4クリップをZIPでまとめてダウンロードできるツールです。
+          複数のMP4クリップをZIPでまとめてダウンロードできるツールです。字幕編集やCreator Styleにも対応しています。
         </p>
 <section id="video" className="mb-10 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-5">
   <h2 className="mb-3 text-2xl font-bold text-cyan-300">
@@ -174,7 +174,65 @@ export default function GuidePage() {
     <p className="mt-2">Script: 今回の動画では、心に残る瞬間を短く紹介します...</p>
     <p className="mt-2">Ending: あなたならどうしますか？コメントで教えてください。</p>
   </div>
-</section>
+</section>        <section className="mb-10 rounded-xl border border-sky-500/20 bg-zinc-900/70 p-5">
+          <h2 className="mb-4 text-2xl font-bold text-sky-300">
+            Subtitle Editor
+          </h2>
+
+          <p className="text-sm leading-6 text-gray-300">
+            自動字幕を生成したあと、Preview Studioの近くで字幕を修正できます。
+            AIが作った字幕をそのまま使うだけでなく、投稿前にクリエイター自身が整えられます。
+          </p>
+
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-gray-300">
+            <li>字幕テキストの編集</li>
+            <li>改行の調整</li>
+            <li>開始時間・終了時間の微調整</li>
+            <li>字幕の追加・削除</li>
+            <li>編集内容をPreview Studioへ反映</li>
+          </ul>
+
+          <p className="mt-4 text-xs leading-5 text-gray-400">
+            翻訳字幕がある場合は、字幕編集後に「翻訳字幕も更新」の導線が表示されます。翻訳の再生成接続は今後の改善対象です。
+          </p>
+        </section>
+
+        <section className="mb-10 rounded-xl border border-cyan-500/20 bg-zinc-900/70 p-5">
+          <h2 className="mb-4 text-2xl font-bold text-cyan-300">
+            Creator Style
+          </h2>
+
+          <p className="text-sm leading-6 text-gray-300">
+            Creator Styleは、字幕付き動画を少し目立たせるための演出設定です。
+            Open Beta 0.2.0では、字幕サイズと簡易アニメーションをCreator Styleに応じて反映します。
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+              <h3 className="font-semibold text-white">Standard</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-300">
+                いつものNEXCUT。読みやすく安全。演出を追加せず、現在の出力を維持します。
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+              <h3 className="font-semibold text-white">Creator</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-300">
+                字幕に動きと強調を追加します。作品を少し目立たせたいときに使います。
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-zinc-950/70 p-4">
+            <h3 className="font-semibold text-cyan-300">Animation Intensity</h3>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-gray-300">
+              <li>1: 控えめ</li>
+              <li>3: バランス</li>
+              <li>5: 遊び強め</li>
+            </ul>
+          </div>
+        </section>
+
         <section className="mb-10">
           <h2 className="mb-4 text-2xl font-bold text-white">
             画質について

@@ -1289,7 +1289,7 @@ const downloadThumbnail = async (clipIndex: number) => {
       ← Workspace Home
     </a>
     <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-cyan-200">
-      Open Beta 0.1.0
+      Open Beta 0.2.0
     </span>
   </div>
 

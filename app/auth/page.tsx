@@ -9,7 +9,7 @@ export default function AuthPage() {
           <div className="flex min-h-[360px] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl sm:p-10 lg:min-h-[640px]">
             <div>
               <div className="mb-10 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
-                Open Beta 0.1.0
+                Open Beta 0.2.0
               </div>
 
               <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -97,7 +97,7 @@ export default function AuthPage() {
                   フィードバックを送る
                 </a>
 
-                <p>Open Beta 0.1.0 / Build 0.x</p>
+                <p>Open Beta 0.2.0 / Build 0.x</p>
               </div>
             </div>
           </div>
