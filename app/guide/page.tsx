@@ -204,7 +204,7 @@ export default function GuidePage() {
 
           <p className="text-sm leading-6 text-gray-300">
             Creator Styleは、字幕付き動画を少し目立たせるための演出設定です。
-            Open Beta 0.2.0では、字幕サイズと簡易アニメーションをCreator Styleに応じて反映します。
+            Open Beta v1.0 RCでは、字幕サイズと簡易アニメーションをCreator Styleに応じて反映します。
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">

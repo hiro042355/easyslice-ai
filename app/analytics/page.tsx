@@ -193,7 +193,7 @@ export default function AnalyticsDashboardPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                     Build Version
                   </p>
-                  <p className="mt-2 text-2xl font-black text-white">Open Beta 0.2.0</p>
+                  <p className="mt-2 text-2xl font-black text-white">Open Beta v1.0 RC</p>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
