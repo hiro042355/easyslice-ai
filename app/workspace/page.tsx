@@ -119,6 +119,13 @@ export default function WorkspaceHomePage() {
           >
             Roadmap
           </a>
+
+          <a
+            href="/releases"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Release Notes
+          </a>
         </div>
       </section>
     </main>
