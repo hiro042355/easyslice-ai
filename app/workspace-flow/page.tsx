@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import CreatorStylePanel from "../../components/CreatorStylePanel";
+import { trackEvent } from "../../lib/analytics";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
 
 const steps = [
@@ -118,8 +119,33 @@ export default function WorkspaceFlowPage() {
     [currentStep]
   );
 
+  useEffect(() => {
+    trackEvent("workspace_open", {
+      workspace: "creator_flow",
+      route: "/workspace-flow",
+    });
+  }, []);
+
   const goBack = () => setCurrentStep((step) => Math.max(1, step - 1));
   const goNext = () => setCurrentStep((step) => Math.min(steps.length, step + 1));
+
+  const handleCreatorStyleChange = (style: CreatorStyle) => {
+    setCreatorStyle(style);
+    trackEvent("creator_style_selected", {
+      workspace: "creator_flow",
+      style,
+      intensity: animationIntensity,
+    });
+  };
+
+  const handleAnimationIntensityChange = (intensity: number) => {
+    setAnimationIntensity(intensity);
+    trackEvent("creator_style_selected", {
+      workspace: "creator_flow",
+      style: creatorStyle,
+      intensity,
+    });
+  };
 
   const hasVideo = Boolean(video || videoSrc);
   const hasSubtitles = subtitles.length > 0;
@@ -237,6 +263,12 @@ export default function WorkspaceFlowPage() {
       setThumbnail("");
       setProgress(100);
       setUploadMessage("動画をアップロードしました。");
+      trackEvent("upload_video", {
+        workspace: "creator_flow",
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
       setClips([]);
       setAnalyzeMessage("");
       setAnalyzeError("");
@@ -301,6 +333,11 @@ export default function WorkspaceFlowPage() {
       setCurrentYoutubeUrl(trimmedUrl);
       setProgress(100);
       setUploadMessage("YouTubeから動画を取得しました。");
+      trackEvent("upload_youtube", {
+        workspace: "creator_flow",
+        hasTitle: Boolean(info.title),
+        duration: info.duration || 0,
+      });
       setClips([]);
       setAnalyzeMessage("");
       setAnalyzeError("");
@@ -388,6 +425,11 @@ export default function WorkspaceFlowPage() {
       setAnalyzeMessage("");
       setAnalyzeError("");
       setClips([]);
+      trackEvent("analyze_start", {
+        workspace: "creator_flow",
+        mode: hasSubtitles ? "subtitle" : "audio_energy",
+        hasSubtitles,
+      });
 
       if (hasSubtitles) {
         const res = await fetch("/api/ai-highlight", {
@@ -426,6 +468,11 @@ export default function WorkspaceFlowPage() {
           )
         );
         setAnalyzeMessage(`${sortedClips.length}個のAIハイライト候補を生成しました。`);
+        trackEvent("analyze_complete", {
+          workspace: "creator_flow",
+          mode: "subtitle",
+          clipCount: sortedClips.length,
+        });
         return;
       }
 
@@ -456,6 +503,11 @@ export default function WorkspaceFlowPage() {
         )
       );
       setAnalyzeMessage(`${data.clips?.length ?? 0}件の音声ハイライト候補を生成しました。`);
+      trackEvent("analyze_complete", {
+        workspace: "creator_flow",
+        mode: "audio_energy",
+        clipCount: data.clips?.length ?? 0,
+      });
     } catch (err) {
       console.error(err);
       setAnalyzeError(err instanceof Error ? err.message : "解析に失敗しました。");
@@ -504,6 +556,13 @@ export default function WorkspaceFlowPage() {
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
       setExportMessage("MP4を生成しました。");
+      trackEvent("export_mp4", {
+        workspace: "creator_flow",
+        creatorStyle: creatorStyleConfig.style,
+        intensity: creatorStyleConfig.intensity,
+        clipStart: primaryClip.start,
+        clipEnd: primaryClip.end,
+      });
     } catch (err) {
       console.error(err);
       setExportError(err instanceof Error ? err.message : "MP4生成に失敗しました。");
@@ -559,6 +618,12 @@ export default function WorkspaceFlowPage() {
       setZipFileName(fileName);
       setGeneratedClipCount(validClips.length);
       setExportMessage(`${validClips.length}本のクリップをZIPにまとめました。`);
+      trackEvent("export_zip", {
+        workspace: "creator_flow",
+        creatorStyle: creatorStyleConfig.style,
+        intensity: creatorStyleConfig.intensity,
+        clipCount: validClips.length,
+      });
     } catch (err) {
       console.error(err);
       setExportError(err instanceof Error ? err.message : "ZIP生成に失敗しました。");
@@ -603,6 +668,13 @@ export default function WorkspaceFlowPage() {
         setBurnedVideoUrl(data.url);
       }
       setExportMessage(data.message || "字幕付き動画を作成しました。");
+      trackEvent("export_burn_subtitle", {
+        workspace: "creator_flow",
+        creatorStyle: creatorStyleConfig.style,
+        intensity: creatorStyleConfig.intensity,
+        clipStart: primaryClip.start,
+        clipEnd: primaryClip.end,
+      });
     } catch (err) {
       console.error(err);
       setExportError(err instanceof Error ? err.message : "字幕付き動画の作成に失敗しました。");
@@ -994,8 +1066,8 @@ export default function WorkspaceFlowPage() {
                     creatorStyle={creatorStyle}
                     animationIntensity={animationIntensity}
                     creatorStyleConfig={creatorStyleConfig}
-                    onCreatorStyleChange={setCreatorStyle}
-                    onAnimationIntensityChange={setAnimationIntensity}
+                    onCreatorStyleChange={handleCreatorStyleChange}
+                    onAnimationIntensityChange={handleAnimationIntensityChange}
                   />
 
                   <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
