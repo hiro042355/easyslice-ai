@@ -112,6 +112,13 @@ export default function WorkspaceHomePage() {
           >
             Analytics
           </a>
+
+          <a
+            href="/roadmap"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Roadmap
+          </a>
         </div>
       </section>
     </main>
