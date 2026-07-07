@@ -114,6 +114,13 @@ export default function WorkspaceHomePage() {
           </a>
 
           <a
+            href="/creator"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Creator
+          </a>
+
+          <a
             href="/roadmap"
             className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
           >
