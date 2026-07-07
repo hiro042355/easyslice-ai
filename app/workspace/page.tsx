@@ -97,6 +97,22 @@ export default function WorkspaceHomePage() {
             ))}
           </div>
         </div>
+
+        <div className="mt-8 flex items-center justify-center gap-4 text-center">
+          <a
+            href="/feedback"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Feedback
+          </a>
+
+          <a
+            href="/analytics"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Analytics
+          </a>
+        </div>
       </section>
     </main>
   );
