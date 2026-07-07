@@ -126,6 +126,20 @@ export default function WorkspaceHomePage() {
           >
             Release Notes
           </a>
+
+          <a
+            href="/status"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Status
+          </a>
+
+          <a
+            href="/about"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            About
+          </a>
         </div>
       </section>
     </main>
