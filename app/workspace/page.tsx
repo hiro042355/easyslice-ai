@@ -3,7 +3,7 @@
     title: "Short Video",
     description: "長尺動画から\nショート動画を作成します。",
     button: "制作を始める",
-    href: "/",
+    href: "/workspace-flow",
     primary: true,
   },
   {

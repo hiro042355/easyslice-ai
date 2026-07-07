@@ -623,7 +623,7 @@ export default function WorkspaceFlowPage() {
               ← Workspace Home
             </a>
             <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Creator Flow Prototype
+              Short Video Workspace
             </h1>
           </div>
 
