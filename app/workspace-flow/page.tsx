@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
+import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
 import { detectUrlSource, type UrlSource } from "../../lib/urlImport";
 
@@ -92,6 +93,25 @@ const urlSourceLabels: Record<UrlSource, string> = {
   unknown: "Unknown",
 };
 
+const aiHookModes: Array<{
+  value: AiHookConfig["mode"];
+  label: string;
+}> = [
+  { value: "smart", label: "Smart (Recommended)" },
+  { value: "3s", label: "3 sec" },
+  { value: "5s", label: "5 sec" },
+  { value: "7s", label: "7 sec" },
+];
+
+function formatHookTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
+
+  return `${minutes}:${remainingSeconds}`;
+}
+
 export default function WorkspaceFlowPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [universalUrl, setUniversalUrl] = useState("");
@@ -123,6 +143,10 @@ export default function WorkspaceFlowPage() {
   const [lastExportCreatorStyleConfig, setLastExportCreatorStyleConfig] = useState("");
   const [creatorStyle, setCreatorStyle] = useState<CreatorStyle>("standard");
   const [animationIntensity, setAnimationIntensity] = useState(3);
+  const [aiHookConfig, setAiHookConfig] = useState<AiHookConfig>({
+    enabled: false,
+    mode: "smart",
+  });
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === currentStep) ?? steps[0],
@@ -167,6 +191,7 @@ export default function WorkspaceFlowPage() {
   const hasClips = clips.length > 0;
   const subtitleText = subtitles.map((subtitle) => subtitle.text).join("\n");
   const creatorStyleConfig = getCreatorStyleConfig(creatorStyle, animationIntensity);
+  const hookPreview = createHookPreview(aiHookConfig);
   const primaryClip = clips[0] ?? {
     start: "0",
     end: "30",
@@ -1123,6 +1148,102 @@ export default function WorkspaceFlowPage() {
                     onCreatorStyleChange={handleCreatorStyleChange}
                     onAnimationIntensityChange={handleAnimationIntensityChange}
                   />
+
+                  <section className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/[0.05] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-300">
+                          AI Hook
+                        </p>
+                        <h3 className="mt-2 text-lg font-black text-white">
+                          Add a strong opening moment
+                        </h3>
+                        <p className="mt-2 text-xs leading-5 text-gray-400">
+                          Clipの冒頭に入れるHook候補をPreviewします。今回は動画編集処理には接続しません。
+                        </p>
+                      </div>
+
+                      <label className="flex w-fit cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-xs font-bold text-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={aiHookConfig.enabled}
+                          onChange={(event) =>
+                            setAiHookConfig((config) => ({
+                              ...config,
+                              enabled: event.target.checked,
+                            }))
+                          }
+                          className="accent-fuchsia-300"
+                        />
+                        {aiHookConfig.enabled ? "ON" : "OFF"}
+                      </label>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                      {aiHookModes.map((mode) => (
+                        <button
+                          key={mode.value}
+                          type="button"
+                          onClick={() =>
+                            setAiHookConfig((config) => ({
+                              ...config,
+                              enabled: true,
+                              mode: mode.value,
+                            }))
+                          }
+                          className={
+                            aiHookConfig.enabled && aiHookConfig.mode === mode.value
+                              ? "rounded-xl border border-fuchsia-300 bg-fuchsia-300/15 px-3 py-3 text-sm font-bold text-white"
+                              : "rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-sm font-bold text-gray-300 hover:border-fuchsia-300/35 hover:bg-fuchsia-300/10"
+                          }
+                        >
+                          {mode.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {hookPreview && (
+                      <div className="mt-4 rounded-2xl border border-fuchsia-300/25 bg-black/30 p-4">
+                        <div className="grid gap-3 sm:grid-cols-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                              Hook
+                            </p>
+                            <p className="mt-1 text-xl font-black text-white">
+                              {formatHookTime(hookPreview.start)}
+                            </p>
+                            <p className="text-xs font-bold text-gray-500">
+                              to {formatHookTime(hookPreview.end)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                              Duration
+                            </p>
+                            <p className="mt-1 text-xl font-black text-white">
+                              {hookPreview.duration}s
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                              Confidence
+                            </p>
+                            <p className="mt-1 text-xl font-black text-fuchsia-200">
+                              {hookPreview.confidence}%
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                              Source
+                            </p>
+                            <p className="mt-1 text-sm font-black text-white">
+                              AI Highlight
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </section>
 
                   <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
