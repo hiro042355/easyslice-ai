@@ -774,6 +774,16 @@ export default function WorkspaceFlowPage() {
                       className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-cyan-300/60 focus:bg-cyan-300/10"
                     />
 
+                    <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
+                      <p className="font-bold">URL Import Safety Notice</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-yellow-100/85">
+                        <li>現在はURL判定のみです。</li>
+                        <li>YouTube URL取得はβ対応です。</li>
+                        <li>TikTok / Instagram / X は今後対応予定です。</li>
+                        <li>利用権限のある動画のみ使用してください。</li>
+                      </ul>
+                    </div>
+
                     <p className="mt-2 text-xs text-gray-500">
                       判定のみのFoundationです。既存のYouTube取得処理とは分離しています。
                     </p>

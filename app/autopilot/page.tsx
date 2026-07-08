@@ -231,7 +231,7 @@ export default function CreatorAutopilotPage() {
             </Section>
 
             <Section title="Upload Source">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-4">
                 {uploadSources.map((source) => (
                   <label
                     key={source.value}
@@ -260,6 +260,14 @@ export default function CreatorAutopilotPage() {
                   </label>
                 ))}
               </div>
+              {autopilotConfig.uploadSource === "url" && (
+                <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
+                  <p className="font-bold">URL Autopilot is planned.</p>
+                  <p className="mt-1 text-yellow-100/85">
+                    Official API / platform rules must be verified before automatic use.
+                  </p>
+                </div>
+              )}
             </Section>
 
             <Section title="Schedule">
