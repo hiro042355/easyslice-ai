@@ -1,4 +1,8 @@
-import { mockCreatorInsights } from "../../lib/creatorIntelligence";
+import {
+  getPerformanceInsights,
+  mockCreatorInsights,
+  type PerformanceInsight,
+} from "../../lib/creatorIntelligence";
 
 const insightCards = [
   {
@@ -33,6 +37,8 @@ const insightCards = [
   },
 ];
 
+const performanceInsights = getPerformanceInsights(mockCreatorInsights);
+
 function cardClass(accent: string) {
   if (accent === "cyan") {
     return "border-cyan-300/25 bg-cyan-300/[0.07] shadow-cyan-950/25";
@@ -47,6 +53,18 @@ function cardClass(accent: string) {
   }
 
   return "border-white/10 bg-zinc-950/75 shadow-black/25";
+}
+
+function priorityClass(priority: PerformanceInsight["priority"]) {
+  if (priority === "high") {
+    return "border-emerald-300/25 bg-emerald-300/10 text-emerald-200";
+  }
+
+  if (priority === "medium") {
+    return "border-yellow-300/25 bg-yellow-300/10 text-yellow-100";
+  }
+
+  return "border-white/10 bg-white/[0.05] text-gray-300";
 }
 
 export default function CreatorIntelligencePage() {
@@ -110,6 +128,49 @@ export default function CreatorIntelligencePage() {
               >
                 {suggestion}
               </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/[0.05] p-6 shadow-2xl shadow-fuchsia-950/20 backdrop-blur-xl">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-300">
+                AI Insights
+              </p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+                Performance Suggestions
+              </h2>
+            </div>
+            <span className="w-fit rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs font-bold text-gray-300">
+              Rule Based / Mock
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-3">
+            {performanceInsights.map((insight) => (
+              <article
+                key={insight.title}
+                className="rounded-xl border border-white/10 bg-black/25 p-4"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-black text-white">
+                      {insight.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {insight.description}
+                    </p>
+                  </div>
+                  <span
+                    className={`w-fit rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.14em] ${priorityClass(
+                      insight.priority
+                    )}`}
+                  >
+                    {insight.priority}
+                  </span>
+                </div>
+              </article>
             ))}
           </div>
         </section>
