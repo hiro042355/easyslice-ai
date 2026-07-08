@@ -84,6 +84,8 @@ const previewWorkflow = [
   "Creator Style",
   "Assets",
   "Export",
+  "Review",
+  "Confirm",
   "Schedule",
   "Post",
 ];
@@ -186,6 +188,17 @@ export default function CreatorAutopilotPage() {
 
         <div className="grid gap-4 py-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="grid gap-4">
+            <section className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.08] p-5 shadow-2xl shadow-amber-950/20 backdrop-blur-xl">
+              <h2 className="text-lg font-black tracking-tight text-amber-100">
+                Safety Notice
+              </h2>
+              <div className="mt-4 grid gap-3 text-sm font-semibold leading-6 text-amber-50/90">
+                <p>初期段階では自動投稿は行いません。</p>
+                <p>投稿前に必ずクリエイターの確認が必要です。</p>
+                <p>SNS連携はまだ未接続です。</p>
+              </div>
+            </section>
+
             <Section title="Automation">
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-200">
                 <input
@@ -282,6 +295,10 @@ export default function CreatorAutopilotPage() {
             </Section>
 
             <Section title="Platforms">
+              <p className="mb-4 rounded-xl border border-white/10 bg-black/25 p-3 text-xs font-semibold leading-5 text-gray-400">
+                YouTube / TikTok / Instagram posting requires official API
+                verification. 現時点ではUI previewです。
+              </p>
               <div className="grid gap-3 sm:grid-cols-4">
                 {platforms.map((platform) => (
                   <label
@@ -407,7 +424,11 @@ export default function CreatorAutopilotPage() {
 
             <button
               type="button"
-              onClick={() => setSavedMessage("Configuration saved locally for this session.")}
+              onClick={() =>
+                setSavedMessage(
+                  "設定を保存しました。現在はPreviewのみで、自動投稿は行われません。"
+                )
+              }
               className="rounded-2xl bg-cyan-300 px-6 py-4 text-sm font-black text-zinc-950 transition hover:bg-cyan-200"
             >
               Save Configuration
