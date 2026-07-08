@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
+import { detectUrlSource, type UrlSource } from "../../lib/urlImport";
 
 const steps = [
   {
@@ -83,8 +84,17 @@ type ClipCandidate = {
   score: number;
 };
 
+const urlSourceLabels: Record<UrlSource, string> = {
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  instagram: "Instagram",
+  x: "X",
+  unknown: "Unknown",
+};
+
 export default function WorkspaceFlowPage() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [universalUrl, setUniversalUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [video, setVideo] = useState<File | null>(null);
   const [videoSrc, setVideoSrc] = useState("");
@@ -118,6 +128,11 @@ export default function WorkspaceFlowPage() {
     () => steps.find((step) => step.id === currentStep) ?? steps[0],
     [currentStep]
   );
+  const detectedUrlSource = useMemo(
+    () => detectUrlSource(universalUrl),
+    [universalUrl]
+  );
+  const detectedUrlSourceLabel = urlSourceLabels[detectedUrlSource];
 
   useEffect(() => {
     trackEvent("workspace_open", {
@@ -735,6 +750,35 @@ export default function WorkspaceFlowPage() {
 
               {activeStep.id === 1 ? (
                 <div className="space-y-4">
+                  <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.04] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="text-base font-bold text-cyan-200">
+                          Universal URL Import
+                        </h3>
+                        <p className="mt-2 text-xs leading-5 text-gray-400">
+                          YouTube / TikTok / Instagram / X のURL種類だけを判定します。動画取得やSNS接続はまだ行いません。
+                        </p>
+                      </div>
+                      <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-bold text-gray-300">
+                        Detected Source:{" "}
+                        <span className="text-cyan-200">{detectedUrlSourceLabel}</span>
+                      </div>
+                    </div>
+
+                    <input
+                      type="url"
+                      value={universalUrl}
+                      onChange={(event) => setUniversalUrl(event.target.value)}
+                      placeholder="https://youtube.com/... / https://tiktok.com/..."
+                      className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-cyan-300/60 focus:bg-cyan-300/10"
+                    />
+
+                    <p className="mt-2 text-xs text-gray-500">
+                      判定のみのFoundationです。既存のYouTube取得処理とは分離しています。
+                    </p>
+                  </section>
+
                   <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                     <section className="rounded-2xl border border-white/10 bg-black/30 p-4">
                       <div className="flex items-center justify-between gap-3">

@@ -6,7 +6,7 @@ import {
   type PostingPlatform,
 } from "../../lib/postingTimeEngine";
 
-type UploadSource = "local-video" | "youtube" | "folder-watch";
+type UploadSource = "local-video" | "youtube" | "url" | "folder-watch";
 type ScheduleMode = "manual" | "daily" | "weekly" | "custom";
 type PostingTime = "09:00" | "12:00" | "18:00" | "21:00";
 type Platform = "youtube" | "tiktok" | "instagram" | "x";
@@ -40,6 +40,7 @@ const uploadSources: Array<{
 }> = [
   { value: "local-video", label: "Local Video" },
   { value: "youtube", label: "YouTube" },
+  { value: "url", label: "URL" },
   { value: "folder-watch", label: "Folder Watch", disabled: true },
 ];
 
