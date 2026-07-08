@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  getRecommendedPostingTime,
+  type PostingPlatform,
+} from "../../lib/postingTimeEngine";
 
 type UploadSource = "local-video" | "youtube" | "folder-watch";
 type ScheduleMode = "manual" | "daily" | "weekly" | "custom";
@@ -156,6 +160,15 @@ export default function CreatorAutopilotPage() {
   const toggleTask = (task: AiTask) => {
     setConfig("aiTasks", toggleArrayValue(autopilotConfig.aiTasks, task));
   };
+
+  const recommendationPlatform: PostingPlatform =
+    autopilotConfig.platforms.find(
+      (platform): platform is PostingPlatform => platform !== "x"
+    ) ?? "youtube";
+  const postingRecommendation = getRecommendedPostingTime(
+    recommendationPlatform,
+    new Date().getDay()
+  );
 
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
@@ -331,6 +344,34 @@ export default function CreatorAutopilotPage() {
           </div>
 
           <div className="grid gap-4">
+            <Section title="Today's Recommendation">
+              <div className="rounded-2xl border border-cyan-300/25 bg-cyan-300/[0.08] p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">
+                      {postingRecommendation.platform}
+                    </p>
+                    <p className="mt-3 text-4xl font-black text-white">
+                      {postingRecommendation.recommendedTime}
+                    </p>
+                  </div>
+
+                  <div className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-sm font-black text-cyan-100">
+                    Confidence {postingRecommendation.confidence}%
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                    Reason
+                  </p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-gray-200">
+                    {postingRecommendation.reason}
+                  </p>
+                </div>
+              </div>
+            </Section>
+
             <Section title="Creator Style">
               <div className="grid gap-3 sm:grid-cols-2">
                 {(["standard", "creator"] as CreatorStyle[]).map((style) => (
