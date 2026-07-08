@@ -128,6 +128,13 @@ export default function WorkspaceHomePage() {
           </a>
 
           <a
+            href="/pricing"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Pricing
+          </a>
+
+          <a
             href="/roadmap"
             className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
           >
