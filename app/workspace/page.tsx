@@ -121,6 +121,13 @@ export default function WorkspaceHomePage() {
           </a>
 
           <a
+            href="/autopilot"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Autopilot
+          </a>
+
+          <a
             href="/roadmap"
             className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
           >
