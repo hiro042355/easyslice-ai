@@ -25,6 +25,7 @@ type AutopilotConfig = {
   enabled: boolean;
   uploadSource: UploadSource;
   schedule: ScheduleMode;
+  useRecommendedTime: boolean;
   postingTime: PostingTime;
   platforms: Platform[];
   creatorStyle: CreatorStyle;
@@ -98,6 +99,7 @@ const defaultAutopilotConfig: AutopilotConfig = {
   enabled: false,
   uploadSource: "local-video",
   schedule: "manual",
+  useRecommendedTime: false,
   postingTime: "18:00",
   platforms: ["youtube"],
   creatorStyle: "standard",
@@ -169,6 +171,9 @@ export default function CreatorAutopilotPage() {
     recommendationPlatform,
     new Date().getDay()
   );
+  const effectivePostingTime = autopilotConfig.useRecommendedTime
+    ? postingRecommendation.recommendedTime
+    : autopilotConfig.postingTime;
 
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
@@ -289,13 +294,68 @@ export default function CreatorAutopilotPage() {
             </Section>
 
             <Section title="Posting Time">
+              <label
+                className={
+                  autopilotConfig.useRecommendedTime
+                    ? "mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-cyan-300 bg-cyan-300/15 p-4 text-sm font-bold text-white"
+                    : "mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-300 hover:border-cyan-300/40"
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={autopilotConfig.useRecommendedTime}
+                  onChange={(event) =>
+                    setConfig("useRecommendedTime", event.target.checked)
+                  }
+                  className="mt-1 h-4 w-4 accent-cyan-300"
+                />
+                <span>
+                  AIおすすめ時間を使う
+                  <span className="mt-1 block text-xs font-semibold text-gray-500">
+                    選択中のPlatformに合わせて投稿時間を提案します。
+                  </span>
+                </span>
+              </label>
+
+              {autopilotConfig.useRecommendedTime && (
+                <div className="mb-4 rounded-2xl border border-cyan-300/25 bg-cyan-300/[0.08] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">
+                        Recommended
+                      </p>
+                      <p className="mt-2 text-3xl font-black text-white">
+                        {postingRecommendation.recommendedTime}
+                      </p>
+                    </div>
+
+                    <div className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-sm font-black text-cyan-100">
+                      Confidence {postingRecommendation.confidence}%
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+                      Reason
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-gray-200">
+                      {postingRecommendation.reason}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-4">
                 {postingTimes.map((time) => (
                   <button
                     key={time}
                     type="button"
-                    onClick={() => setConfig("postingTime", time)}
+                    onClick={() => {
+                      setConfig("postingTime", time);
+                      setConfig("useRecommendedTime", false);
+                    }}
                     className={
+                      !autopilotConfig.useRecommendedTime &&
                       autopilotConfig.postingTime === time
                         ? "rounded-xl border border-cyan-300 bg-cyan-300/15 p-4 text-sm font-black text-white"
                         : "rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-bold text-gray-300 hover:border-cyan-300/40"
@@ -304,6 +364,13 @@ export default function CreatorAutopilotPage() {
                     {time}
                   </button>
                 ))}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3 text-sm font-semibold text-gray-300">
+                Active posting time:{" "}
+                <span className="font-black text-cyan-200">
+                  {effectivePostingTime}
+                </span>
               </div>
             </Section>
 
@@ -352,12 +419,14 @@ export default function CreatorAutopilotPage() {
                       {postingRecommendation.platform}
                     </p>
                     <p className="mt-3 text-4xl font-black text-white">
-                      {postingRecommendation.recommendedTime}
+                      {effectivePostingTime}
                     </p>
                   </div>
 
                   <div className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-sm font-black text-cyan-100">
-                    Confidence {postingRecommendation.confidence}%
+                    {autopilotConfig.useRecommendedTime
+                      ? `Confidence ${postingRecommendation.confidence}%`
+                      : "Manual Time"}
                   </div>
                 </div>
 
