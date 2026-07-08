@@ -8,6 +8,8 @@ export type AnalyticsEventName =
   | "analyze_start"
   | "analyze_complete"
   | "creator_style_selected"
+  | "ai_hook_enabled"
+  | "ai_hook_export"
   | "subtitle_editor_open"
   | "subtitle_saved"
   | "export_mp4"

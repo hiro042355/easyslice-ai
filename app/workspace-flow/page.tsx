@@ -582,6 +582,11 @@ export default function WorkspaceFlowPage() {
       formData.append("end", primaryClip.end || "30");
       formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));
       console.log("CreatorStyleConfig -> /api/cut", creatorStyleConfig);
+      if (hookPreview) {
+        formData.append("aiHookConfig", JSON.stringify(aiHookConfig));
+        formData.append("hookPreview", JSON.stringify(hookPreview));
+        console.log("AIHookConfig -> /api/cut", aiHookConfig, hookPreview);
+      }
 
       const res = await fetch("/api/cut", {
         method: "POST",
@@ -603,6 +608,15 @@ export default function WorkspaceFlowPage() {
         clipStart: primaryClip.start,
         clipEnd: primaryClip.end,
       });
+      if (hookPreview) {
+        trackEvent("ai_hook_export", {
+          workspace: "creator_flow",
+          mode: aiHookConfig.mode,
+          hookStart: hookPreview.start,
+          hookEnd: hookPreview.end,
+          confidence: hookPreview.confidence,
+        });
+      }
     } catch (err) {
       console.error(err);
       setExportError(err instanceof Error ? err.message : "MP4生成に失敗しました。");
@@ -1168,10 +1182,19 @@ export default function WorkspaceFlowPage() {
                           type="checkbox"
                           checked={aiHookConfig.enabled}
                           onChange={(event) =>
-                            setAiHookConfig((config) => ({
-                              ...config,
-                              enabled: event.target.checked,
-                            }))
+                            {
+                              const enabled = event.target.checked;
+                              setAiHookConfig((config) => ({
+                                ...config,
+                                enabled,
+                              }));
+                              if (enabled) {
+                                trackEvent("ai_hook_enabled", {
+                                  workspace: "creator_flow",
+                                  mode: aiHookConfig.mode,
+                                });
+                              }
+                            }
                           }
                           className="accent-fuchsia-300"
                         />
@@ -1185,11 +1208,19 @@ export default function WorkspaceFlowPage() {
                           key={mode.value}
                           type="button"
                           onClick={() =>
-                            setAiHookConfig((config) => ({
-                              ...config,
-                              enabled: true,
-                              mode: mode.value,
-                            }))
+                            {
+                              if (!aiHookConfig.enabled) {
+                                trackEvent("ai_hook_enabled", {
+                                  workspace: "creator_flow",
+                                  mode: mode.value,
+                                });
+                              }
+                              setAiHookConfig((config) => ({
+                                ...config,
+                                enabled: true,
+                                mode: mode.value,
+                              }));
+                            }
                           }
                           className={
                             aiHookConfig.enabled && aiHookConfig.mode === mode.value
