@@ -142,6 +142,13 @@ export default function WorkspaceHomePage() {
           </a>
 
           <a
+            href="/review"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Review
+          </a>
+
+          <a
             href="/pricing"
             className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
           >
