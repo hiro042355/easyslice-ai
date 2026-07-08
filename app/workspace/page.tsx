@@ -121,6 +121,13 @@ export default function WorkspaceHomePage() {
           </a>
 
           <a
+            href="/intelligence"
+            className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
+          >
+            Intelligence
+          </a>
+
+          <a
             href="/autopilot"
             className="text-xs font-semibold text-gray-600 transition hover:text-cyan-300"
           >
