@@ -1,30 +1,26 @@
-const reviewItems = [
-  {
-    video: "Video 1",
-    title: "How AI saves editing time",
-    description: "A short clip prepared for YouTube Shorts.",
-    hashtags: ["#AI", "#Shorts", "#Creator"],
-    platform: "YouTube",
-    postingTime: "18:00",
-    creatorStyle: "Standard",
-    aiHook: "AI Hook",
-    status: "Ready for Review",
-  },
-  {
-    video: "Video 2",
-    title: "Creator Style test clip",
-    description: "A high-energy cut prepared for TikTok.",
-    hashtags: ["#CreatorStyle", "#Video", "#NEXCUT"],
-    platform: "TikTok",
-    postingTime: "19:00",
-    creatorStyle: "Creator",
-    aiHook: "Off",
-    status: "Ready for Review",
-  },
-];
+import {
+  mockReviewQueueItems,
+  type ReviewPlatform,
+  type ReviewStatus,
+} from "../../lib/reviewQueue";
 
 const actionClass =
   "rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-bold text-gray-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-cyan-100";
+
+const platformLabels: Record<ReviewPlatform, string> = {
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  instagram: "Instagram",
+  x: "X",
+};
+
+const statusLabels: Record<ReviewStatus, string> = {
+  draft: "Draft",
+  "ready-for-review": "Ready for Review",
+  approved: "Approved",
+  rejected: "Rejected",
+  scheduled: "Scheduled",
+};
 
 export default function ReviewQueuePage() {
   return (
@@ -56,9 +52,9 @@ export default function ReviewQueuePage() {
         </header>
 
         <div className="grid gap-4 py-8">
-          {reviewItems.map((item) => (
+          {mockReviewQueueItems.map((item) => (
             <article
-              key={item.video}
+              key={item.id}
               className="rounded-2xl border border-white/10 bg-zinc-950/75 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl"
             >
               <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr_0.8fr] lg:items-stretch">
@@ -67,12 +63,12 @@ export default function ReviewQueuePage() {
                     Video
                   </p>
                   <h2 className="mt-3 text-2xl font-black text-white">
-                    {item.video}
+                    {item.videoTitle}
                   </h2>
                   <div className="mt-5 grid gap-2 text-sm font-semibold text-gray-300">
                     <div className="flex justify-between gap-3">
                       <span className="text-gray-500">Platform</span>
-                      <span>{item.platform}</span>
+                      <span>{platformLabels[item.platform]}</span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className="text-gray-500">Posting Time</span>
@@ -80,11 +76,13 @@ export default function ReviewQueuePage() {
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className="text-gray-500">Creator Style</span>
-                      <span>{item.creatorStyle}</span>
+                      <span>
+                        {item.creatorStyle === "standard" ? "Standard" : "Creator"} / {item.animationIntensity}
+                      </span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span className="text-gray-500">AI Hook</span>
-                      <span>{item.aiHook}</span>
+                      <span>{item.aiHookEnabled ? "On" : "Off"}</span>
                     </div>
                   </div>
                 </div>
@@ -95,12 +93,12 @@ export default function ReviewQueuePage() {
                       Post Assets
                     </p>
                     <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-200">
-                      {item.status}
+                      {statusLabels[item.status]}
                     </span>
                   </div>
 
                   <h3 className="mt-4 text-xl font-black text-white">
-                    {item.title}
+                    {item.videoTitle}
                   </h3>
 
                   <p className="mt-3 text-sm leading-7 text-gray-400">
@@ -124,7 +122,9 @@ export default function ReviewQueuePage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                       Status
                     </p>
-                    <p className="mt-3 text-lg font-black text-white">Ready</p>
+                    <p className="mt-3 text-lg font-black text-white">
+                      {statusLabels[item.status]}
+                    </p>
                     <p className="mt-2 text-xs leading-5 text-gray-500">
                       Creator confirmation is required before publishing.
                     </p>
@@ -132,13 +132,13 @@ export default function ReviewQueuePage() {
 
                   <div className="grid gap-2">
                     <button type="button" className={actionClass}>
-                      Approve
+                      Approve: Preview only
                     </button>
                     <button type="button" className={actionClass}>
-                      Reject
+                      Reject: Preview only
                     </button>
                     <button type="button" className={actionClass}>
-                      Edit
+                      Edit: Coming Soon
                     </button>
                   </div>
                 </div>
