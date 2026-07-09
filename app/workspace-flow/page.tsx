@@ -5,6 +5,7 @@ import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
 import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
+import { addReviewQueueItem, type ReviewQueueItem } from "../../lib/reviewQueue";
 import { detectUrlSource, type UrlSource } from "../../lib/urlImport";
 
 const steps = [
@@ -600,6 +601,26 @@ export default function WorkspaceFlowPage() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+      const exportedAt = new Date().toISOString();
+      const reviewQueueItem: ReviewQueueItem = {
+        id: `review-${Date.now()}`,
+        videoTitle: primaryClip.title || videoTitle || video?.name || "NEXCUT Export",
+        description:
+          primaryClip.reason ||
+          "Exported from Creator Flow and ready for creator review.",
+        hashtags: ["#NEXCUT", "#Shorts", "#Creator"],
+        platform: "youtube",
+        postingTime: "18:00",
+        creatorStyle,
+        animationIntensity,
+        aiHookEnabled: aiHookConfig.enabled,
+        status: "ready-for-review",
+        reviewStatus: "ready-for-review",
+        exportedVideoPath: url,
+        exportedAt,
+        createdAt: exportedAt,
+      };
+      addReviewQueueItem(reviewQueueItem);
       setExportMessage("MP4を生成しました。");
       trackEvent("export_mp4", {
         workspace: "creator_flow",
