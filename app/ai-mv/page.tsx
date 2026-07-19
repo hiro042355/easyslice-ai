@@ -1,6 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import EmotionGraphPreview from "@/components/EmotionGraphPreview";
+import DirectorDecisionPreview from "@/components/DirectorDecisionPreview";
+import { createDirectorDecision } from "@/lib/directorDecisionEngine";
+import {
+  createEmotionGraph,
+  type DirectorPreset,
+} from "@/lib/emotionEngine";
 
 type PlatformPosts = {
   tiktok: string;
@@ -63,6 +70,7 @@ export default function AiMvPage() {
   const [revisionMode, setRevisionMode] = useState("");
   const [length, setLength] = useState("medium");
   const [theme, setTheme] = useState("日記");
+  const [directorPreset, setDirectorPreset] = useState<DirectorPreset>("auto");
   const [result, setResult] = useState<AiMvResult | null>(null);
   const [history, setHistory] = useState<AiMvHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,6 +80,23 @@ const [coverLoading, setCoverLoading] = useState(false);
 const [coverError, setCoverError] = useState("");
   const [hashtagsCopied, setHashtagsCopied] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
+  const emotionGraph = useMemo(
+    () => createEmotionGraph({
+      story,
+      theme,
+      mood,
+      lyrics: result?.lyrics,
+      directorPreset,
+    }),
+    [story, theme, mood, result?.lyrics, directorPreset],
+  );
+  const directorDecision = useMemo(
+    () => createDirectorDecision({
+      emotionGraph,
+      directorPreset,
+    }),
+    [emotionGraph, directorPreset],
+  );
 
   async function handleGenerate() {
     setError("");
@@ -277,6 +302,27 @@ const handleDownloadCover = () => {
     ))}
   </div>
 </div>
+            <div>
+              <span className="mb-2 block text-sm font-medium text-slate-200">Director Preset</span>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(["auto", "epic", "emotional", "cinematic", "fantasy", "dark", "bright", "anime-inspired"] as DirectorPreset[]).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setDirectorPreset(preset)}
+                    className={`rounded-md border px-3 py-2 text-sm capitalize ${
+                      directorPreset === preset
+                        ? "border-cyan-400 bg-cyan-400/15 text-cyan-100"
+                        : "border-white/10 bg-slate-900 text-slate-300"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <EmotionGraphPreview graph={emotionGraph} />
+            <DirectorDecisionPreview decision={directorDecision} />
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-200">ジャンル</span>
               <select
