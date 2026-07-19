@@ -1,0 +1,3 @@
+export const POSTGRESQL_SLICE_A_STORE_DESCRIPTOR=Object.freeze({descriptorVersion:"1.0" as const,id:"postgresql-slice-a-store-adapter-v1" as const,storeVersion:"2.0" as const,atomicGroup:Object.freeze(["final-result","result-reference","outbox"] as const),productionReady:false as const,runtimeComposable:false as const});
+export function getPostgreSQLSliceAStoreDescriptor(id:string){return id===POSTGRESQL_SLICE_A_STORE_DESCRIPTOR.id?Object.freeze({...POSTGRESQL_SLICE_A_STORE_DESCRIPTOR,atomicGroup:Object.freeze([...POSTGRESQL_SLICE_A_STORE_DESCRIPTOR.atomicGroup])}):undefined;}
+export function listPostgreSQLSliceAStoreDescriptors(){return Object.freeze([getPostgreSQLSliceAStoreDescriptor(POSTGRESQL_SLICE_A_STORE_DESCRIPTOR.id)!]);}
