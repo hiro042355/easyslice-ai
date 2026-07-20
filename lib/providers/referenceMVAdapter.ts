@@ -1,8 +1,15 @@
 import type {
-  MVDecisionProjection, MVScene, MVScenePlan, MVScenePlanGateResult,
-  SceneAction, SceneNarrativePurpose, SceneSetting, SceneSubject,
-  TemporalMode, VisualMotif,
+  MVDecisionProjection, MVScenePlan, MVScenePlanGateResult,
 } from "@/lib/mvContracts";
+import type {
+  ReferenceMVRequest,
+  ReferenceMVSceneInstruction,
+} from "@/lib/providerRequests/types";
+export type {
+  ReferenceMVGlobalDirection,
+  ReferenceMVRequest,
+  ReferenceMVSceneInstruction,
+} from "@/lib/providerRequests/types";
 import {
   clamp, cloneAndFreezeRecord, createMappingRecord, deduplicateReasonCodes,
   mapScoreToUnitRange, normalizeProviderError,
@@ -69,49 +76,6 @@ export const REFERENCE_MV_CAPABILITY: MVProviderCapability = Object.freeze({
   maxReferenceImages: 4,
 });
 
-export type ReferenceMVGlobalDirection = {
-  visualMood: MVDecisionProjection["direction"]["visualMood"];
-  color: MVDecisionProjection["direction"]["colorDirection"];
-  lighting: MVDecisionProjection["direction"]["lightingDirection"];
-  cameraEnergy: number;
-  movement: MVDecisionProjection["direction"]["movementStyle"];
-  shotDensity: number;
-  transitionIntensity: number;
-  subjectFocus: MVDecisionProjection["direction"]["subjectFocus"];
-  environment: MVDecisionProjection["direction"]["environmentDirection"];
-};
-export type ReferenceMVSceneInstruction = {
-  sceneId: string;
-  section: MVScene["section"];
-  startSeconds: number;
-  endSeconds: number;
-  narrativePurpose: SceneNarrativePurpose;
-  subject: SceneSubject;
-  setting: SceneSetting;
-  action: SceneAction;
-  emotionalIntent: MVScene["emotionalIntent"];
-  temporalMode: TemporalMode;
-  visualMotif?: VisualMotif;
-  visualIntensity: number;
-  cameraEnergy: number;
-  transitionIntensity: number;
-  isMainPeak: boolean;
-  isAfterglow: boolean;
-  assetIds: string[];
-};
-export type ReferenceMVRequest = {
-  requestSchemaVersion: "1.0";
-  durationSeconds: number;
-  aspectRatio: MVScenePlan["aspectRatio"];
-  resolution: "720p" | "1080p";
-  frameRate: 24 | 30;
-  outputFormat: "mp4";
-  audioAssetId: string;
-  globalDirection: ReferenceMVGlobalDirection;
-  scenes: ReferenceMVSceneInstruction[];
-  peak: { sceneId: string; treatment: MVDecisionProjection["direction"]["mainPeakTreatment"] };
-  afterglow: { sceneId: string; treatment: MVDecisionProjection["direction"]["afterglowTreatment"] };
-};
 export type ReferenceMVResponse = {
   status: "completed" | "partial" | "failed";
   outputAssetIds: string[];

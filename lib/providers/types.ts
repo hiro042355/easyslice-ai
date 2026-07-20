@@ -7,6 +7,8 @@ import type {
   VocalDirection,
 } from "@/lib/directorDecisionEngine";
 import type { DirectorPreset } from "@/lib/emotionEngine";
+import type { MusicLyricsMode } from "@/lib/providerRequests/types";
+export type { MusicLyricsMode } from "@/lib/providerRequests/types";
 import type {
   AssetKind,
   AssetReference,
@@ -227,7 +229,6 @@ export type MusicGenerationConstraints = {
   outputMode?: MusicOutputMode;
 };
 
-export type MusicLyricsMode = "none" | "instrumental" | "use-lyrics";
 export type MusicOutputMode = "mix" | "stems";
 
 export type MVWorkflowAssets = {
