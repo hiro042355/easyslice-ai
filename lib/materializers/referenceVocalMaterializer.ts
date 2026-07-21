@@ -1,0 +1,22 @@
+import type { ResolvedAssetAccess } from "@/lib/assets/types";
+import type {
+  MaterializedProviderRequest,
+  ReferenceVocalRequest,
+} from "@/lib/providerRequests/types";
+import { audit, deepCopy, deepFreeze, findByUsage, isObject, isSafeAssetId, parseIsoEpochMilliseconds, validateCommonInput, validateResolvedAsset } from "./materializerUtils";
+import { REFERENCE_MATERIALIZER_PROVIDER_API_VERSION, REFERENCE_MATERIALIZER_PROVIDER_ID, referenceVocalMaterializationProfile } from "./referenceProfiles";
+import type { ReferenceVocalMaterializedBody, ReferenceVocalSlot, RequestMaterializationInput, RequestMaterializationReasonCode, RequestMaterializationResult, RequestMaterializer } from "./types";
+
+const failure=(reason:RequestMaterializationReasonCode):RequestMaterializationResult<ReferenceVocalMaterializedBody>=>({status:"failed",issues:[{reasonCode:reason,classification:"validation"}],audit:audit("1.0","failed",0,0,0,0,[],[reason])});
+export const referenceVocalMaterializer:RequestMaterializer<ReferenceVocalRequest,ReferenceVocalMaterializedBody,ReferenceVocalSlot>=deepFreeze({
+  materializerId:"reference-vocal-materializer-v1",materializerVersion:"reference-v1",providerId:REFERENCE_MATERIALIZER_PROVIDER_ID,providerApiVersion:REFERENCE_MATERIALIZER_PROVIDER_API_VERSION,operation:"generate-vocal",
+  materialize(raw:RequestMaterializationInput<ReferenceVocalRequest,ReferenceVocalSlot>):RequestMaterializationResult<ReferenceVocalMaterializedBody>{
+    const c=validateCommonInput(raw,"generate-vocal");if(c.issue)return{status:"failed",issues:[c.issue],audit:audit("1.0","failed",0,0,0,0,[],[c.issue.reasonCode])};
+    const input=c.input!,request=input.adapterRequest as ReferenceVocalRequest;if(request.requestSchemaVersion!=="1.0"||typeof request.language!=="string"||typeof request.lyrics!=="string"||typeof request.durationSeconds!=="number"||!Number.isFinite(request.durationSeconds)||request.durationSeconds<=0||(request.outputFormat!=="wav"&&request.outputFormat!=="mp3")||!isObject(request.performance)||!Array.isArray(request.timeline)||(request.referenceVoiceAssetId!==undefined&&!isSafeAssetId(request.referenceVoiceAssetId))||(request.guideMelodyAssetId!==undefined&&!isSafeAssetId(request.guideMelodyAssetId)))return failure("adapter-request-invalid");if(JSON.stringify(input.profile)!==JSON.stringify(referenceVocalMaterializationProfile))return failure("profile-invalid");
+    const refs=[{id:request.referenceVoiceAssetId,slot:"reference-voice" as const,field:"referenceVoice" as const},{id:request.guideMelodyAssetId,slot:"guide-melody" as const,field:"guideMelody" as const}];
+    const values:Partial<Pick<ReferenceVocalMaterializedBody,"referenceVoice"|"guideMelody">>={};let optional=0,materialized=0,omitted=0;const modes:ResolvedAssetAccess["mode"][]=[],expiries:string[]=[],reasons:RequestMaterializationReasonCode[]=[];
+    for(const ref of refs){if(!ref.id)continue;optional++;const mappingIndex=input.profile.mappings.findIndex(m=>m.sourceSlot===ref.slot),mapping=input.profile.mappings[mappingIndex];if(!mapping)return failure("profile-invalid");const usage=Array.isArray(mapping.usage)?mapping.usage[0]:mapping.usage;const asset=findByUsage(c.index!,ref.id,usage);if(!asset){omitted++;reasons.push("optional-asset-omitted");continue;}const checked=validateResolvedAsset(asset,mapping,c.baselineMs!,input.profile.minimumAssetLifetimeSeconds,mappingIndex);if(checked.issue)return{status:"failed",issues:[checked.issue],audit:audit("1.0","failed",0,optional,materialized,omitted,modes,[...reasons,checked.issue.reasonCode])};values[ref.field]=checked.value;materialized++;modes.push(asset.access.mode);if(checked.expiry)expiries.push(checked.expiry);}
+    const {referenceVoiceAssetId:_,guideMelodyAssetId:__,...rest}=deepCopy(request);const body:ReferenceVocalMaterializedBody={...rest,...values};const earliest=expiries.sort((a,b)=>parseIsoEpochMilliseconds(a)!-parseIsoEpochMilliseconds(b)!)[0];const materializedRequest={requestVersion:"1.0",providerId:input.providerId,providerApiVersion:input.providerApiVersion,operation:"generate-vocal",body,assetAccessCount:materialized,...(earliest?{earliestAssetExpiry:earliest}:{}),materialization:{status:"complete",unresolvedAssetCount:0}} as MaterializedProviderRequest<ReferenceVocalMaterializedBody>;
+    return{status:"materialized",request:materializedRequest,audit:audit("1.0","materialized",0,optional,materialized,omitted,modes,reasons)};
+  }
+});
