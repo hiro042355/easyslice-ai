@@ -20,6 +20,20 @@ Dependencies flow from the HTTP Adapter Runtime to the type-only HTTP Adapter an
 
 V1 accepts only the `generation-job` route with the `create` method, structured content, bounded bodies, and the `content-type`, `request-id`, and `correlation-id` inbound header classifications. Invalid input is rejected before capability invocation. Accepted, completed, partial, cancelled, recovery-required, rejected, failed, thrown, and unsupported dependency outcomes are projected into safe deterministic results.
 
+The V1 result mapping is contract-locked as follows:
+
+| Generation Job outcome | HTTP result classification | Status code |
+| --- | --- | ---: |
+| accepted | successful | 202 |
+| completed | successful | 200 |
+| partial | successful | 207 |
+| cancelled | successful | 200 |
+| recovery-required | unavailable | 202 |
+| rejected | rejected | 403 |
+| failed | unavailable | 503 |
+| dependency throw | unavailable | 503 |
+| unsupported dependency result | unavailable | 500 |
+
 ## Security and failure boundary
 
 Raw provider references, storage locators, receipts, credentials, tokens, stack traces, and dependency exception messages are never projected. Retry and reconciliation execution remain outside this runtime.

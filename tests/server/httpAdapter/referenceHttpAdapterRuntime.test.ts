@@ -79,27 +79,44 @@ test("invalid envelopes and duplicate headers are rejected without invocation", 
   assert.equal(calls, 0);
 });
 
-test("all generation job outcomes have deterministic safe projections", async () => {
-  const expected = { accepted: "successful", completed: "successful", partial: "successful", cancelled: "successful", "recovery-required": "unavailable", rejected: "rejected", failed: "unavailable" } as const;
+test("all generation job outcomes have contract-locked deterministic projections", async (t) => {
+  const expected = {
+    accepted: { classification: "successful", statusCode: 202 },
+    completed: { classification: "successful", statusCode: 200 },
+    partial: { classification: "successful", statusCode: 207 },
+    cancelled: { classification: "successful", statusCode: 200 },
+    "recovery-required": { classification: "unavailable", statusCode: 202 },
+    rejected: { classification: "rejected", statusCode: 403 },
+    failed: { classification: "unavailable", statusCode: 503 },
+  } as const;
   for (const [status, projected] of Object.entries(expected)) {
-    const runtime = new ReferenceHttpAdapterRuntime({ generationJobEntry: { execute: async () => result(status as keyof typeof expected) } });
-    const first = await runtime.adapt(envelope());
-    const second = await runtime.adapt(envelope());
-    assert.equal(first.status, projected);
-    assert.deepEqual(first, second);
-    assert.equal(JSON.stringify(first).includes("credential"), false);
-    assert.equal(JSON.stringify(first).includes("storageLocator"), false);
+    await t.test(status, async () => {
+      const runtime = new ReferenceHttpAdapterRuntime({ generationJobEntry: { execute: async () => result(status as keyof typeof expected) } });
+      const first = await runtime.adapt(envelope());
+      const second = await runtime.adapt(envelope());
+      assert.equal(first.status, projected.classification);
+      assert.equal(first.response.statusCode, projected.statusCode);
+      assert.deepEqual(first, second);
+      assert.equal(JSON.stringify(first).includes("credential"), false);
+      assert.equal(JSON.stringify(first).includes("storageLocator"), false);
+    });
   }
 });
 
-test("dependency throws and unsupported results are normalized without leakage", async () => {
+test("dependency throw is contract-locked to unavailable / 503 without leakage", async () => {
   const secret = "secret-provider-reference";
   const throwing = new ReferenceHttpAdapterRuntime({ generationJobEntry: { execute: async () => { throw new Error(secret); } } });
   const failed = await throwing.adapt(envelope());
   assert.equal(failed.status, "unavailable");
+  assert.equal(failed.response.statusCode, 503);
   assert.equal(JSON.stringify(failed).includes(secret), false);
+});
+
+test("unsupported dependency result is contract-locked to unavailable / 500", async () => {
   const unsupported = new ReferenceHttpAdapterRuntime({ generationJobEntry: { execute: async () => null as never } });
-  assert.equal((await unsupported.adapt(envelope())).status, "unavailable");
+  const unsupportedResult = await unsupported.adapt(envelope());
+  assert.equal(unsupportedResult.status, "unavailable");
+  assert.equal(unsupportedResult.response.statusCode, 500);
 });
 
 test("caller mutation cannot change execution snapshots or sibling results", async () => {
