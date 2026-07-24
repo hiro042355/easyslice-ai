@@ -53,6 +53,7 @@ export type PackagingDecision = Readonly<{
   reasonCode: PackagingReasonCode;
   archiveAvailable: boolean;
   archive?: ArchiveProjection;
+  archiveBytes?: Uint8Array;
   outputCount: number;
   retryClassification: RetryClassification;
   audit: PackagingAudit;

@@ -12,7 +12,7 @@ It does not own output generation, workspace creation/lifecycle/cleanup, input m
 
 ## Contract and opacity
 
-The type-only contract exposes opaque output and archive references, output count, safe classifications, safe reason codes, retry advice, and deterministic audit. It never exposes an archive/workspace path, filename or directory list, ZIP implementation, stream, Buffer, filesystem exception, message, or stack.
+The type-only contract exposes opaque output and archive references, a fresh `Uint8Array` archive-byte projection on successful packaging, output count, safe classifications, safe reason codes, retry advice, and deterministic audit. It never exposes an archive/workspace path, filename or directory list, ZIP implementation, stream, Buffer, filesystem exception, message, or stack.
 
 Opaque identities use a restricted alphanumeric, underscore, and hyphen alphabet. Invalid or duplicate output identities are rejected before dependency invocation.
 
@@ -21,6 +21,8 @@ Opaque identities use a restricted alphanumeric, underscore, and hyphen alphabet
 The runtime receives output and archive locators. Filesystem and archive-builder capabilities have reference defaults and remain explicitly replaceable for tests or production composition. Locator results are copied and never projected publicly.
 
 The output locator supplies an internal location and archive-entry name. Entry names must be safe leaf names and unique. The archive locator receives the opaque archive reference and deterministic `${operationIdentity}.zip` name. It owns location mapping, not workspace lifecycle.
+
+The archive builder is the authoritative source of V1 response bytes. The adapter writes one copy to the selected archive location and returns a separate fresh copy in the successful decision. It never rereads the written archive to construct the response projection.
 
 ## Naming and ordering
 
@@ -44,7 +46,7 @@ No retry loop or scheduler is implemented.
 
 ## Immutability, determinism, and security
 
-Decision, archive projection, audit collection, and audit entries are deeply frozen and independently allocated. Mutable locator, filesystem, and builder outputs are copied. There is no child process, FFmpeg, network, provider, HTTP, database, environment read, clock, random value, UUID, directory creation, or cleanup.
+Decision, archive projection, audit collection, and audit entries are deeply frozen and independently allocated. Archive bytes remain an owned typed-array value and never share backing memory with builder or filesystem inputs. Mutable locator, filesystem, and builder outputs are copied. There is no child process, FFmpeg, network, provider, HTTP, database, environment read, clock, random value, UUID, directory creation, or cleanup.
 
 ## Testing and replacement
 

@@ -60,6 +60,8 @@ test("creates one deterministic ZIP containing outputs in request order", async 
     const actual = await new ReferenceZipPackagingAdapter(fixture.dependencies).package(request());
     assert.equal(actual.classification, "packaged");
     assert.equal(actual.archive?.opaqueArchiveReference, "archive-001");
+    assert.ok(actual.archiveBytes instanceof Uint8Array);
+    assert.deepEqual(actual.archiveBytes, new Uint8Array(await readFile(fixture.archiveLocation)));
     assert.equal(actual.outputCount, 2);
     assert.deepEqual(fixture.calls, { output: 2, archive: 1 });
     const archive = new AdmZip(await readFile(fixture.archiveLocation));
@@ -141,6 +143,14 @@ test("normalizes missing, non-regular, locator, build, and write failures", asyn
     }).package(request());
     assert.equal(build.reasonCode, "archive-build-failed");
 
+    const empty = await new ReferenceZipPackagingAdapter({
+      ...fixture.dependencies,
+      archiveBuilder: { build: () => new Uint8Array() },
+    }).package(request());
+    assert.equal(empty.classification, "failed");
+    assert.equal(empty.reasonCode, "archive-build-failed");
+    assert.equal(empty.archiveBytes, undefined);
+
     const write = await new ReferenceZipPackagingAdapter({
       ...fixture.dependencies,
       filesystem: {
@@ -153,7 +163,7 @@ test("normalizes missing, non-regular, locator, build, and write failures", asyn
       },
     }).package(request());
     assert.equal(write.reasonCode, "archive-write-failed");
-    for (const actual of [locator, build, write])
+    for (const actual of [locator, build, empty, write])
       assert.doesNotMatch(JSON.stringify(actual), /raw-(?:locator|builder|write)-secret/);
   } finally {
     await rm(fixture.root, { recursive: true, force: true });
@@ -199,4 +209,47 @@ test("decisions are deeply frozen, isolated, and deterministic", async () => {
   assert.ok(Object.isFrozen(one.audit));
   assert.ok(Object.isFrozen(one.audit.entries));
   assert.ok(one.audit.entries.every(Object.isFrozen));
+  assert.notStrictEqual(one.archiveBytes, two.archiveBytes);
+});
+
+test("returns fresh archive bytes without rereading the written archive", async () => {
+  const fixture = await setup();
+  const builderSource = new Uint8Array([10, 20, 30]);
+  let readCount = 0;
+  let written: Uint8Array | undefined;
+  try {
+    const dependencies: ZipPackagingDependencies = {
+      ...fixture.dependencies,
+      filesystem: {
+        inspect: async (location) => ({
+          exists: location.includes("outputs"),
+          kind: location.includes("outputs") ? "file" : "other",
+        }),
+        read: async () => {
+          readCount += 1;
+          return new Uint8Array([1]);
+        },
+        writeExclusive: async (_location, content) => {
+          written = new Uint8Array(content);
+        },
+      },
+      archiveBuilder: { build: async () => builderSource },
+    };
+    const first = await new ReferenceZipPackagingAdapter(dependencies).package(request());
+    assert.equal(first.classification, "packaged");
+    assert.equal(readCount, request().outputs.length);
+    assert.deepEqual(first.archiveBytes, new Uint8Array([10, 20, 30]));
+    assert.deepEqual(written, new Uint8Array([10, 20, 30]));
+    assert.notStrictEqual(first.archiveBytes, builderSource);
+    assert.notStrictEqual(first.archiveBytes, written);
+
+    builderSource[0] = 99;
+    written![1] = 99;
+    assert.deepEqual(first.archiveBytes, new Uint8Array([10, 20, 30]));
+
+    const second = await new ReferenceZipPackagingAdapter(dependencies).package(request());
+    assert.notStrictEqual(first.archiveBytes, second.archiveBytes);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
 });

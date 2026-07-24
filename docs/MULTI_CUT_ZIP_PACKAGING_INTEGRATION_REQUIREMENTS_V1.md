@@ -42,6 +42,13 @@
 34. Remove ZIP responsibilities from the Route only after composition and HTTP projection are available.
 35. Preserve Auth, Upload, Sensitive, Workspace, Input Materialization, FFmpeg Process, Media, HTTP, Generation Job, Workflow, Provider, Materializer, Output Ingestion, and Pipeline regressions.
 36. Commit contract, runtime, and integration requirements in dependency order.
+37. Successful Packaging decisions must include a fresh `Uint8Array` archive-byte projection.
+38. The byte projection must not share backing memory with archive-builder output.
+39. The byte projection must not share backing memory with filesystem write input.
+40. Packaging must not reread the written archive to create response bytes.
+41. Failed Packaging decisions must not expose archive bytes.
+42. Media Execution Composition must copy Packaging bytes before workspace cleanup.
+43. Route projection must consume Composition-owned bytes rather than an archive location.
 
 ## Responsibilities to remove from the Route
 

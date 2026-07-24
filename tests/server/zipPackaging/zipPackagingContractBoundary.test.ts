@@ -9,7 +9,8 @@ const source = readFileSync(
 
 test("ZIP Packaging contract is type-only and opaque", () => {
   assert.doesNotMatch(source, /^export\s+(?:const|function|class|enum)\b/m);
-  assert.doesNotMatch(source, /\b(?:node:fs|node:path|AdmZip|Buffer|Uint8Array|stream|absolutePath|workspacePath|filenameList|directoryList|exception|stack)\b/i);
+  assert.match(source, /archiveBytes\?: Uint8Array/);
+  assert.doesNotMatch(source, /\b(?:node:fs|node:path|AdmZip|Buffer|stream|absolutePath|workspacePath|filenameList|directoryList|exception|stack)\b/i);
   assert.doesNotMatch(source, /\b(?:react|next\/|child_process|provider|database)\b/i);
   assert.match(source, /export type PackagingCapability/);
   assert.match(source, /export type ArchiveProjection/);

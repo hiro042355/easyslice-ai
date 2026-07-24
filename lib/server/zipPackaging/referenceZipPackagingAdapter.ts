@@ -44,7 +44,8 @@ export type ZipPackagingDependencies = Readonly<{
 const safeReference = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const safeEntryName = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
 const deepFreeze = <T>(value: T): T => {
-  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+  if (value !== null && typeof value === "object" &&
+    !ArrayBuffer.isView(value) && !Object.isFrozen(value)) {
     for (const child of Object.values(value)) deepFreeze(child);
     Object.freeze(value);
   }
@@ -177,6 +178,10 @@ export class ReferenceZipPackagingAdapter {
         ["validation", "output-discovery", "output-validation",
           "collision-validation", "archive-build"]);
     }
+    if (content.byteLength === 0)
+      return this.#decision("failed", "archive-build-failed", false, 0,
+        ["validation", "output-discovery", "output-validation",
+          "collision-validation", "archive-build"]);
     try {
       await this.#filesystem.writeExclusive(archive.location, new Uint8Array(content));
     } catch (error) {
@@ -192,7 +197,8 @@ export class ReferenceZipPackagingAdapter {
     return this.#decision("packaged", "archive-created", true, entries.length,
       ["validation", "output-discovery", "output-validation", "collision-validation",
         "archive-build", "archive-write", "projection"],
-      request.archive.opaqueArchiveReference);
+      request.archive.opaqueArchiveReference,
+      new Uint8Array(content));
   }
 
   #validate(request: PackagingRequest): PackagingReasonCode | undefined {
@@ -224,6 +230,7 @@ export class ReferenceZipPackagingAdapter {
     outputCount: number,
     stages: readonly PackagingAuditEntry["stage"][],
     opaqueArchiveReference?: string,
+    archiveBytes?: Uint8Array,
   ): PackagingDecision {
     return deepFreeze({
       decisionVersion: "1.0",
@@ -232,6 +239,9 @@ export class ReferenceZipPackagingAdapter {
       archiveAvailable,
       ...(archiveAvailable && opaqueArchiveReference
         ? { archive: { referenceVersion: "1.0" as const, opaqueArchiveReference } }
+        : {}),
+      ...(archiveAvailable && archiveBytes
+        ? { archiveBytes: new Uint8Array(archiveBytes) }
         : {}),
       outputCount,
       retryClassification: retryFor(classification),
