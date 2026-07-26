@@ -8,6 +8,9 @@ const source = readFileSync(
 );
 
 test("Reference FFmpeg Process Runtime uses spawn without shell or unrelated infrastructure", () => {
+  assert.match(source, /SpawnCapability/);
+  assert.match(source, /TimerCapability/);
+  assert.doesNotMatch(source, /^type (?:ProcessLike|SpawnCapability|TimerCapability)\b/m);
   assert.match(source, /from "node:child_process"/);
   assert.match(source, /\bspawn\(/);
   assert.match(source, /shell:\s*false/);

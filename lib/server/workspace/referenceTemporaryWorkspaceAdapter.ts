@@ -3,14 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import type {
   WorkspaceCleanupClassification, WorkspacePreparationAuditEntry,
-  WorkspacePreparationDecision, WorkspacePreparationRequest, WorkspaceReasonCode,
+  WorkspaceFilesystem, WorkspacePreparationDecision, WorkspacePreparationRequest, WorkspaceReasonCode,
   WorkspaceState, WorkspaceValidation, WorkspaceValidationIssue,
 } from "./types";
 
-type WorkspaceFilesystem = Readonly<{
-  mkdir(location: string): Promise<void>;
-  rm(location: string): Promise<void>;
-}>;
 const defaultFilesystem: WorkspaceFilesystem = {
   mkdir: async (location) => { await mkdir(location, { recursive: false }); },
   rm: async (location) => { await rm(location, { recursive: true, force: false }); },

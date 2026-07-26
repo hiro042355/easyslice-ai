@@ -1,3 +1,8 @@
+export type WorkspaceFilesystem = Readonly<{
+  mkdir(location: string): Promise<void>;
+  rm(location: string): Promise<void>;
+}>;
+
 export type WorkspaceState =
   | "reserved" | "prepared" | "active" | "cleanup-required" | "cleaned" | "failed";
 export type WorkspaceClassification = "available" | "unavailable" | "rejected" | "not-found";

@@ -1,30 +1,16 @@
 import { spawn } from "node:child_process";
-import type { Readable } from "node:stream";
 import type {
   FFmpegProcessAuditEntry,
   FFmpegProcessClassification,
   FFmpegProcessDecision,
   FFmpegProcessReasonCode,
   FFmpegProcessRequest,
+  ProcessLike,
   RetryClassification,
+  SpawnCapability,
+  TimerCapability,
 } from "./types";
 
-type ProcessLike = Readonly<{
-  stdout: Readable | null;
-  stderr: Readable | null;
-  once(event: "error", listener: (error: Error) => void): ProcessLike;
-  once(event: "close", listener: (code: number | null, signal: NodeJS.Signals | null) => void): ProcessLike;
-  kill(signal?: NodeJS.Signals): boolean;
-}>;
-type SpawnCapability = (
-  executable: string,
-  argumentTokens: readonly string[],
-  options: { shell: false; stdio: ["ignore", "pipe", "pipe"] },
-) => ProcessLike;
-type TimerCapability = Readonly<{
-  schedule(callback: () => void, milliseconds: number): unknown;
-  cancel(handle: unknown): void;
-}>;
 export type FFmpegProcessAdapterDependencies = Readonly<{
   spawnProcess?: SpawnCapability;
   timer?: TimerCapability;

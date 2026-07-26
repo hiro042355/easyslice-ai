@@ -1,3 +1,27 @@
+import type { Readable } from "node:stream";
+
+export type ProcessLike = Readonly<{
+  stdout: Readable | null;
+  stderr: Readable | null;
+  once(event: "error", listener: (error: Error) => void): ProcessLike;
+  once(
+    event: "close",
+    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
+  ): ProcessLike;
+  kill(signal?: NodeJS.Signals): boolean;
+}>;
+
+export type SpawnCapability = (
+  executable: string,
+  argumentTokens: readonly string[],
+  options: { shell: false; stdio: ["ignore", "pipe", "pipe"] },
+) => ProcessLike;
+
+export type TimerCapability = Readonly<{
+  schedule(callback: () => void, milliseconds: number): unknown;
+  cancel(handle: unknown): void;
+}>;
+
 export type FFmpegProcessClassification =
   | "success" | "failed" | "timeout" | "cancelled"
   | "spawn-failure" | "dependency-failure" | "invalid";

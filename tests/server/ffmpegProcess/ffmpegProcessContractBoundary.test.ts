@@ -9,6 +9,9 @@ const source = readFileSync(
 
 test("FFmpeg Process contract is type-only and implementation-neutral", () => {
   assert.doesNotMatch(source, /^export\s+(?:const|function|class|enum)\b/m);
+  assert.match(source, /export type ProcessLike/);
+  assert.match(source, /export type SpawnCapability/);
+  assert.match(source, /export type TimerCapability/);
   assert.doesNotMatch(source, /\b(?:child_process|ChildProcess|PID|stdout: string|stderr: string|commandString|executablePath|filesystemPath|environment|exitSignal|exception|stack)\b/i);
   assert.doesNotMatch(source, /\b(?:react|next\/|workspace\/reference|inputMaterialization\/reference|app\/api)\b/i);
   assert.match(source, /export type FFmpegProcessCapability/);
