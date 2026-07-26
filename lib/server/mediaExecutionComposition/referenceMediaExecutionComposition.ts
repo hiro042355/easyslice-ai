@@ -141,7 +141,8 @@ export class ReferenceMediaExecutionComposition {
     }, "not-required");
 
     const packaged = await dependencies.packaging.package(input.packagingRequest);
-    if (packaged.classification !== "packaged" || !packaged.archive) {
+    if (packaged.classification !== "packaged" || !packaged.archive ||
+      !packaged.archiveBytes || packaged.archiveBytes.byteLength === 0) {
       const primary: PrimaryDecision = {
         classification: packaged.classification === "unavailable" ? "unavailable" : "failed",
         reasonCode: "packaging-failed",
@@ -153,31 +154,20 @@ export class ReferenceMediaExecutionComposition {
       classification: "completed", reasonCode: "execution-completed",
     }, "not-required");
 
-    try {
-      const content = await dependencies.responseRepresentation.readArchive(packaged.archive);
-      const primary: PrimaryDecision = {
-        classification: "completed",
-        reasonCode: "execution-completed",
-        responseArchive: new Uint8Array(content),
-      };
-      this.#audit(audit, "response-representation", primary, "not-required");
-      return primary;
-    } catch {
-      const primary: PrimaryDecision = {
-        classification: "unavailable",
-        reasonCode: "response-representation-failed",
-      };
-      this.#audit(audit, "response-representation", primary, "not-required");
-      return primary;
-    }
+    const primary: PrimaryDecision = {
+      classification: "completed",
+      reasonCode: "execution-completed",
+      responseArchive: new Uint8Array(packaged.archiveBytes),
+    };
+    this.#audit(audit, "response-ownership", primary, "not-required");
+    return primary;
   }
 
   #missingDependency(): boolean {
     return !this.#dependencies.workspace ||
       !this.#dependencies.materialization ||
       !this.#dependencies.ffmpeg ||
-      !this.#dependencies.packaging ||
-      !this.#dependencies.responseRepresentation;
+      !this.#dependencies.packaging;
   }
 
   #nextStage(audit: readonly MediaExecutionCompositionAuditEntry[]): MediaExecutionCompositionStage {
@@ -186,7 +176,7 @@ export class ReferenceMediaExecutionComposition {
     if (!completed.has("input-materialization")) return "input-materialization";
     if (!completed.has("ffmpeg-execution")) return "ffmpeg-execution";
     if (!completed.has("zip-packaging")) return "zip-packaging";
-    return "response-representation";
+    return "response-ownership";
   }
 
   #audit(

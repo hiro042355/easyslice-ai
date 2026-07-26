@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Media Execution Composition connects existing workspace, input materialization, FFmpeg process, ZIP packaging, response representation, and cleanup capabilities. It owns their deterministic order and no infrastructure implementation.
+Media Execution Composition connects existing workspace, input materialization, FFmpeg process, ZIP packaging, response ownership projection, and cleanup capabilities. It owns their deterministic order and no infrastructure implementation.
 
 ## Architecture
 
@@ -22,11 +22,11 @@ The Composition imports only the type contracts of Temporary Workspace, Input Ma
 
 ## Public Contract
 
-`MediaExecutionCompositionInput` carries the already-authorized requests for each capability. `MediaExecutionCompositionDependencies` carries five injected capabilities. `MediaExecutionCompositionDecision` exposes only safe classifications, a response-owned archive when successful, cleanup classification, and ordered audit.
+`MediaExecutionCompositionInput` carries the already-authorized requests for each capability. `MediaExecutionCompositionDependencies` carries four injected capabilities. `MediaExecutionCompositionDecision` exposes only safe classifications, a response-owned archive when successful, cleanup classification, and ordered audit.
 
 ## Response Ownership
 
-ZIP Packaging returns an opaque archive reference. `ResponseRepresentationCapability` resolves that reference within infrastructure and returns bytes. Composition copies those bytes into a new `Uint8Array` before cleanup. No workspace, archive, output, or filesystem path crosses the public decision boundary.
+ZIP Packaging returns both an opaque archive reference and a fresh archive-byte projection on success. Composition copies those bytes into a new `Uint8Array` before cleanup. Response Representation is not a V1 Composition dependency, and no archive reread occurs. No workspace, archive, output, or filesystem path crosses the public decision boundary.
 
 ## Cleanup Sequencing
 
@@ -38,7 +38,7 @@ Cleanup failure never overwrites the primary classification or reason. It change
 
 ## Failure Semantics
 
-Missing dependencies are invalid before execution. Workspace failures stop later capabilities. Materialization, FFmpeg, packaging, and response-representation failures stop subsequent primary stages. Thrown dependency errors become safe `dependency-failure`; raw errors are not retained.
+Missing dependencies are invalid before execution. Workspace failures stop later capabilities. Materialization, FFmpeg, and packaging failures stop subsequent primary stages. A packaged result without non-empty archive bytes is treated as packaging failure. Thrown dependency errors become safe `dependency-failure`; raw errors are not retained.
 
 ## Security Boundary
 

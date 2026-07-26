@@ -13,7 +13,7 @@
 11. Composition must reject a missing Input Materialization capability before execution.
 12. Composition must reject a missing FFmpeg Process capability before execution.
 13. Composition must reject a missing ZIP Packaging capability before execution.
-14. Composition must reject a missing Response Representation capability before execution.
+14. Composition must have exactly four executable dependencies in V1.
 15. Workspace infrastructure remains the only owner of workspace creation.
 16. Workspace infrastructure remains the only owner of recursive workspace deletion.
 17. Input Materialization remains the only owner of filesystem copying.
@@ -21,17 +21,17 @@
 19. FFmpeg Process remains the only owner of process timeout enforcement.
 20. FFmpeg Process remains the only owner of process cancellation handling.
 21. ZIP Packaging remains the only owner of archive construction.
-22. Response Representation infrastructure remains the only owner of archive-reference resolution.
+22. ZIP Packaging remains the source of successful archive bytes.
 23. Composition owns only deterministic capability ordering.
 24. Workspace reservation must precede preparation.
 25. Workspace preparation must precede input materialization.
 26. Input materialization must precede FFmpeg execution.
 27. FFmpeg success must precede ZIP packaging.
-28. ZIP packaging success must precede response representation.
+28. ZIP packaging success must precede response ownership projection.
 29. Response ownership transfer must complete before cleanup.
 30. Response-owned archive V1 must be a `Uint8Array`.
 31. Composition must copy response bytes into a decision-owned representation.
-32. ZIP Packaging must continue to return only an opaque archive reference.
+32. ZIP Packaging success must return an opaque archive reference and fresh archive bytes.
 33. A public decision must not contain a workspace path.
 34. A public decision must not contain an archive path.
 35. A public decision must not contain an output path.
@@ -48,7 +48,7 @@
 46. Cleanup must run after FFmpeg timeout.
 47. Cleanup must run after FFmpeg cancellation.
 48. Cleanup must run after packaging failure.
-49. Cleanup must run after response-representation failure.
+49. Cleanup must run when a packaged result lacks usable archive bytes.
 50. Cleanup must run after an unexpected post-reservation dependency failure.
 51. Cleanup must be attempted once per Composition execution.
 52. Composition must not retry cleanup.

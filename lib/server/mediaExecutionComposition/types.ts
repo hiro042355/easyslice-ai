@@ -8,7 +8,6 @@ import type {
   FFmpegProcessRequest,
 } from "../ffmpegProcess/types";
 import type {
-  ArchiveProjection,
   PackagingCapability,
   PackagingRequest,
 } from "../zipPackaging/types";
@@ -23,7 +22,7 @@ export type MediaExecutionCompositionStage =
   | "input-materialization"
   | "ffmpeg-execution"
   | "zip-packaging"
-  | "response-representation"
+  | "response-ownership"
   | "workspace-cleanup"
   | "final-decision";
 
@@ -42,7 +41,6 @@ export type MediaExecutionCompositionReasonCode =
   | "materialization-failed"
   | "ffmpeg-failed"
   | "packaging-failed"
-  | "response-representation-failed"
   | "dependency-failure";
 
 export type MediaExecutionCleanupClassification =
@@ -53,16 +51,11 @@ export type MediaExecutionCleanupClassification =
 
 export type ResponseOwnedArchive = Uint8Array;
 
-export type ResponseRepresentationCapability = Readonly<{
-  readArchive(archive: ArchiveProjection): ResponseOwnedArchive | Promise<ResponseOwnedArchive>;
-}>;
-
 export type MediaExecutionCompositionDependencies = Readonly<{
   workspace: WorkspaceCapability;
   materialization: InputMaterializationCapability;
   ffmpeg: FFmpegProcessCapability;
   packaging: PackagingCapability;
-  responseRepresentation: ResponseRepresentationCapability;
 }>;
 
 export type MediaExecutionCompositionInput = Readonly<{

@@ -112,13 +112,10 @@ const dependencies = (
       return {
         decisionVersion: "1.0", classification: "packaged", reasonCode: "archive-created",
         archiveAvailable: true, archive: { referenceVersion: "1.0", opaqueArchiveReference: "archive-1" },
+        archiveBytes: new Uint8Array([1, 2, 3]),
         outputCount: 1, retryClassification: "retry-not-required",
         audit: { auditVersion: "1.0", entries: [] },
       };
-    } },
-    responseRepresentation: { readArchive: async () => {
-      calls.push("response");
-      return new Uint8Array([1, 2, 3]);
     } },
     ...overrides,
   };
@@ -131,7 +128,7 @@ test("executes capabilities in deterministic order and owns archive bytes before
   assert.equal(decision.classification, "completed");
   assert.equal(decision.cleanupClassification, "completed");
   assert.deepEqual([...decision.responseArchive!], [1, 2, 3]);
-  assert.deepEqual(deps.calls, ["reserve", "prepare", "materialize", "ffmpeg", "package", "response", "cleanup"]);
+  assert.deepEqual(deps.calls, ["reserve", "prepare", "materialize", "ffmpeg", "package", "cleanup"]);
   assert.deepEqual(decision.audit.entries.map((entry) => entry.sequence), [0, 1, 2, 3, 4, 5, 6]);
   assert.ok(Object.isFrozen(decision));
   assert.ok(Object.isFrozen(decision.audit));
@@ -169,11 +166,6 @@ test("normalizes stage failures and always cleans an acquired workspace", async 
         audit: { auditVersion: "1.0" as const, entries: [] },
       }) } },
       expected: "packaging-failed",
-    },
-    {
-      stage: "response",
-      override: { responseRepresentation: { readArchive: async () => { throw new Error("private"); } } },
-      expected: "response-representation-failed",
     },
   ] as const;
   for (const fixture of cases) {
@@ -239,6 +231,59 @@ test("projects cancellation, validates dependencies, and isolates response copie
   const second = dependencies();
   const secondDecision = await new ReferenceMediaExecutionComposition(second.value).execute(input());
   assert.deepEqual([...secondDecision.responseArchive!], [1, 2, 3]);
+});
+
+test("copies packaging bytes before cleanup and rejects missing bytes as packaging failure", async () => {
+  const source = new Uint8Array([4, 5, 6]);
+  let snapshotAtCleanup: number[] | undefined;
+  const baseline = dependencies();
+  const copied = dependencies({
+    workspace: {
+      ...baseline.value.workspace,
+      cleanup: async () => {
+        source[0] = 99;
+        snapshotAtCleanup = [...source];
+        return {
+          decisionVersion: "1.0", classification: "available", reasonCode: "workspace-cleaned",
+          workspace: { referenceVersion: "1.0", opaqueWorkspaceReference: "workspace-1" },
+          lifecycle: { lifecycleVersion: "1.0", state: "cleaned" },
+          cleanupClassification: "completed", audit: { auditVersion: "1.0", entries: [] },
+        };
+      },
+    },
+    packaging: { package: async () => ({
+      decisionVersion: "1.0",
+      classification: "packaged",
+      reasonCode: "archive-created",
+      archiveAvailable: true,
+      archive: { referenceVersion: "1.0", opaqueArchiveReference: "archive-1" },
+      archiveBytes: source,
+      outputCount: 1,
+      retryClassification: "retry-not-required",
+      audit: { auditVersion: "1.0", entries: [] },
+    }) },
+  });
+  const decision = await new ReferenceMediaExecutionComposition(copied.value).execute(input());
+  assert.deepEqual(snapshotAtCleanup, [99, 5, 6]);
+  assert.deepEqual(decision.responseArchive, new Uint8Array([4, 5, 6]));
+  assert.notStrictEqual(decision.responseArchive, source);
+
+  const missingBytes = dependencies({
+    packaging: { package: async () => ({
+      decisionVersion: "1.0",
+      classification: "packaged",
+      reasonCode: "archive-created",
+      archiveAvailable: true,
+      archive: { referenceVersion: "1.0", opaqueArchiveReference: "archive-1" },
+      outputCount: 1,
+      retryClassification: "retry-not-required",
+      audit: { auditVersion: "1.0", entries: [] },
+    }) },
+  });
+  const failed = await new ReferenceMediaExecutionComposition(missingBytes.value).execute(input());
+  assert.equal(failed.classification, "failed");
+  assert.equal(failed.reasonCode, "packaging-failed");
+  assert.equal(missingBytes.calls.at(-1), "cleanup");
 });
 
 test("stops on missing workspace and safely normalizes cleanup exceptions", async () => {

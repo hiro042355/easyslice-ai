@@ -12,4 +12,5 @@ test("composition runtime owns sequencing without infrastructure implementation"
   assert.doesNotMatch(source, /\b(?:spawn|exec|mkdir|unlink|readFile|writeFile|rm|fetch)\s*\(|\b(?:AdmZip|process\.env)\b/);
   assert.doesNotMatch(source, /\b(?:Date\.now|new Date|Math\.random|randomUUID|setTimeout|setInterval)\b/);
   assert.doesNotMatch(source, /\b(?:workspace path|archive path|raw output path|Buffer|stream)\b/i);
+  assert.doesNotMatch(source, /responseRepresentation|readArchive|response-representation/);
 });

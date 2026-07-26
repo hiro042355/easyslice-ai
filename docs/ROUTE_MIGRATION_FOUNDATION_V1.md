@@ -31,7 +31,7 @@ The deterministic Route lifecycle is Authentication, Request Projection, Composi
 
 The Route knows the Composition only through `MediaExecutionCompositionCapability` and `MediaExecutionCompositionInput`. It does not import Workspace, Input Materialization, FFmpeg Process, ZIP Packaging, or their runtime implementations.
 
-Composition owns response-byte transfer before workspace cleanup. The Route receives only a response-owned representation and never resolves an archive or workspace reference.
+ZIP Packaging returns fresh archive bytes, and Composition takes an independent copy before workspace cleanup. The Route receives only that response-owned representation and never resolves an archive or workspace reference.
 
 ## Failure Projection
 

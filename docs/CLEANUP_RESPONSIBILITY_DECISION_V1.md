@@ -96,7 +96,7 @@ Cleanup is attempted once after an acquired workspace reaches any terminal prima
 2. Materialize input.
 3. Execute FFmpeg.
 4. Package outputs.
-5. Move or copy result into a response-owned representation.
+5. Copy the Packaging success bytes into a Composition-owned representation.
 6. Project the safe primary result.
 7. Release the workspace.
 
@@ -167,7 +167,7 @@ For the same primary outcome and cleanup capability result, classification and a
 
 ## 26. Route Migration Consequences
 
-The Route removes `outputPaths`, per-output `unlink`, cleanup sequencing, and swallowed cleanup errors. Composition ensures input, outputs, intermediates, and archive candidates share one workspace. Before release, archive content must become response-owned: an immutable byte representation, a response-lifetime stream, or a persisted artifact reference. That choice belongs to the next composition design, not ZIP Packaging.
+The Route removes `outputPaths`, per-output `unlink`, cleanup sequencing, and swallowed cleanup errors. Composition ensures input, outputs, intermediates, and archive candidates share one workspace. Before release, ZIP Packaging returns fresh archive bytes and Composition takes a second owned copy. Blob conversion remains a future Route Response Projector responsibility; paths never cross the boundary.
 
 ## 27. Validation Criteria
 

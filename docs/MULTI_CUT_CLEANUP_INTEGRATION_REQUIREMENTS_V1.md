@@ -53,10 +53,10 @@
 49. Cleanup failure must restore the preceding workspace lifecycle state.
 50. Workspace cleanup must not delete a source artifact outside the workspace.
 51. Workspace cleanup must not delete durable imported or exported artifacts.
-52. Move archive data into a response-owned representation before workspace release.
+52. Copy Packaging archive bytes into a Composition-owned `Uint8Array` before workspace release.
 53. ZIP Packaging must not own HTTP response or stream lifetime.
 54. HTTP projection must not expose a workspace-backed reference after release.
-55. Composition must define whether response ownership uses bytes, a stream lifecycle, or persisted reference.
+55. Composition V1 uses owned bytes; streams and persisted references require a later versioned contract.
 56. Crash-orphan cleanup remains outside the request lifecycle.
 57. Do not block Route migration on a future startup Janitor.
 58. A future Janitor requires leases, ownership fencing, bounded discovery, and concurrency policy.

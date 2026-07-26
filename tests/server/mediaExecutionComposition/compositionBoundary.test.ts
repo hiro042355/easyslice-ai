@@ -9,6 +9,11 @@ const source = readFileSync(
 
 test("composition contract references infrastructure contracts only", () => {
   assert.match(source, /import type/);
+  assert.match(source, /workspace: WorkspaceCapability/);
+  assert.match(source, /materialization: InputMaterializationCapability/);
+  assert.match(source, /ffmpeg: FFmpegProcessCapability/);
+  assert.match(source, /packaging: PackagingCapability/);
+  assert.doesNotMatch(source, /ResponseRepresentation|readArchive/);
   assert.doesNotMatch(source, /import\s+(?!type)/);
   assert.doesNotMatch(source, /\b(?:React|Next|Route|HTTP|Provider|fetch|filesystem|child_process)\b/);
   assert.doesNotMatch(source, /\b(?:class|function|new Promise|spawn|mkdir|rm|unlink)\b/);
