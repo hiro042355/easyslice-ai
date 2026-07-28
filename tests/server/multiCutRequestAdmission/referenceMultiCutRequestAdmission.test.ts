@@ -10,7 +10,7 @@ import type {
 } from "../../../lib/server/multiCutRequestAdmission/types";
 
 const createInput = (): MultiCutRequestAdmissionInput => ({
-  admissionInputVersion: "2.0",
+  admissionInputVersion: "3.0",
   replayScope: {
     scopeVersion: "1.0",
     replayNamespace: "multi-cut-request-admission",
@@ -116,7 +116,7 @@ test("projection is deterministic, immutable, and private", async () => {
   const dependency = replayCapability((input) => {
     captures.push(input);
     return {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "new",
       identity: input.identity,
       reservationEvidence,
@@ -152,7 +152,7 @@ test("new preserves authoritative identity and reservation evidence", async () =
   const result = await runReferenceMultiCutRequestAdmission(
     createInput(),
     replayCapability(() => ({
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "new",
       identity: {
         identityVersion: "1.0",
@@ -177,7 +177,7 @@ test("replay preserves authoritative identity and result reference", async () =>
   const result = await runReferenceMultiCutRequestAdmission(
     createInput(),
     replayCapability(() => ({
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "replay",
       identity: {
         identityVersion: "1.0",
@@ -196,6 +196,25 @@ test("replay preserves authoritative identity and result reference", async () =>
   assert.equal("finalResult" in result, false);
 });
 
+test("authoritative failed is passed through without projection", async () => {
+  const result = await runReferenceMultiCutRequestAdmission(
+    createInput(),
+    replayCapability(() => ({
+      resultVersion: "3.0",
+      status: "authoritative-failed",
+    })),
+  );
+
+  assert.deepEqual(result, {
+    resultVersion: "3.0",
+    status: "authoritative-failed",
+  });
+  assert.equal("failure" in result, false);
+  assert.equal("replayIdentity" in result, false);
+  assert.equal("reservationEvidence" in result, false);
+  assert.equal("resultReference" in result, false);
+});
+
 test("replay failures map to admission failures", async () => {
   const cases = [
     ["duplicate-in-flight", "duplicate-in-flight"],
@@ -206,10 +225,10 @@ test("replay failures map to admission failures", async () => {
   for (const [status, failure] of cases) {
     const result = await runReferenceMultiCutRequestAdmission(
       createInput(),
-      replayCapability(() => ({ resultVersion: "2.0", status })),
+      replayCapability(() => ({ resultVersion: "3.0", status })),
     );
     assert.deepEqual(result, {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "failed",
       failure,
     });
@@ -223,7 +242,7 @@ test("dependency exceptions are contained", async () => {
     },
   });
   assert.deepEqual(result, {
-    resultVersion: "2.0",
+    resultVersion: "3.0",
     status: "failed",
     failure: "internal-failure",
   });
@@ -234,7 +253,7 @@ test("invalid input is rejected before replay invocation", async () => {
   const dependency = replayCapability((input) => {
     invocations += 1;
     return {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "new",
       identity: input.identity,
       reservationEvidence,
@@ -247,7 +266,7 @@ test("invalid input is rejected before replay invocation", async () => {
     [{ ...createInput(), idempotencyKey: "" }, "missing-key"],
     [{ ...createInput(), idempotencyKey: " key " }, "invalid-key"],
     [
-      { ...createInput(), admissionInputVersion: "1.0" as "2.0" },
+      { ...createInput(), admissionInputVersion: "2.0" as "3.0" },
       "unsupported-version",
     ],
   ];
@@ -255,7 +274,7 @@ test("invalid input is rejected before replay invocation", async () => {
   for (const [input, failure] of cases) {
     assert.deepEqual(
       await runReferenceMultiCutRequestAdmission(input, dependency),
-      { resultVersion: "2.0", status: "failed", failure },
+      { resultVersion: "3.0", status: "failed", failure },
     );
   }
   assert.equal(invocations, 0);
@@ -281,4 +300,6 @@ test("runtime boundary excludes infrastructure and public projector exports", as
     source,
     /const projectRequestFingerprintIdentity\s*=/,
   );
+  assert.match(source, /switch\s*\(replayResult\.status\)/);
+  assert.match(source, /const unreachable:\s*never\s*=\s*replayResult/);
 });

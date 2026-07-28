@@ -24,7 +24,7 @@ export type {
   MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
-export type MultiCutRequestAdmissionContractVersion = "2.0";
+export type MultiCutRequestAdmissionContractVersion = "3.0";
 
 export type MultiCutCanonicalFingerprintInput = Readonly<{
   fingerprintInputVersion: "1.0";
@@ -41,30 +41,34 @@ export type MultiCutRequestAdmissionInput = Readonly<{
 }>;
 
 export type MultiCutReplayResolutionInput = Readonly<{
-  resolutionInputVersion: "2.0";
+  resolutionInputVersion: "3.0";
   scope: MultiCutReplayProtectedScope;
   identity: MultiCutReplayResolvedIdentity;
 }>;
 
 export type MultiCutReplayResolutionResult =
   | Readonly<{
-    resultVersion: "2.0";
+    resultVersion: "3.0";
     status: "new";
     identity: MultiCutReplayResolvedIdentity;
     reservationEvidence: MultiCutReplayReservationEvidence;
   }>
   | Readonly<{
-    resultVersion: "2.0";
+    resultVersion: "3.0";
     status: "replay";
     identity: MultiCutReplayResolvedIdentity;
     resultReference: MultiCutReplayResultReference;
   }>
   | Readonly<{
-    resultVersion: "2.0";
+    resultVersion: "3.0";
     status:
       | "duplicate-in-flight"
       | "semantic-conflict"
       | "unavailable";
+  }>
+  | Readonly<{
+    resultVersion: "3.0";
+    status: "authoritative-failed";
   }>;
 
 export type MultiCutReplayResolutionCapability = Readonly<{
@@ -75,14 +79,14 @@ export type MultiCutReplayResolutionCapability = Readonly<{
 
 export type MultiCutRequestAdmissionSuccess =
   | Readonly<{
-    resultVersion: "2.0";
+    resultVersion: "3.0";
     status: "new";
     idempotency: WorkflowEntryIdempotencyIdentity;
     replayIdentity: MultiCutReplayResolvedIdentity;
     reservationEvidence: MultiCutReplayReservationEvidence;
   }>
   | Readonly<{
-    resultVersion: "2.0";
+    resultVersion: "3.0";
     status: "replay";
     replayIdentity: MultiCutReplayResolvedIdentity;
     resultReference: MultiCutReplayResultReference;
@@ -99,11 +103,17 @@ export type MultiCutRequestAdmissionFailureClassification =
   | "internal-failure";
 
 export type MultiCutRequestAdmissionFailure = Readonly<{
-  resultVersion: "2.0";
+  resultVersion: "3.0";
   status: "failed";
   failure: MultiCutRequestAdmissionFailureClassification;
 }>;
 
+export type MultiCutRequestAdmissionAuthoritativeFailed = Readonly<{
+  resultVersion: "3.0";
+  status: "authoritative-failed";
+}>;
+
 export type MultiCutRequestAdmissionResult =
   | MultiCutRequestAdmissionSuccess
-  | MultiCutRequestAdmissionFailure;
+  | MultiCutRequestAdmissionFailure
+  | MultiCutRequestAdmissionAuthoritativeFailed;

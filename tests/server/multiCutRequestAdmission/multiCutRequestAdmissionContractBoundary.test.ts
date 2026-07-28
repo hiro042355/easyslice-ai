@@ -72,7 +72,7 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
     replayClassification: "new",
   });
   const input = {
-    admissionInputVersion: "2.0",
+    admissionInputVersion: "3.0",
     replayScope: {
       scopeVersion: "1.0",
       replayNamespace: "multi-cut-request-admission",
@@ -143,7 +143,7 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
   });
   const replay: MultiCutReplayResolutionCapability = {
     resolveReplay: async () => ({
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "new",
       identity: replayIdentity,
       reservationEvidence: {
@@ -170,7 +170,7 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
     }),
   };
   const result: MultiCutRequestAdmissionResult = {
-    resultVersion: "2.0",
+    resultVersion: "3.0",
     status: "new",
     idempotency: existingIdentity,
     replayIdentity,
@@ -200,4 +200,35 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
   assert.equal(input.fingerprintInput.authenticatedRequest.requestIdentity, "request:admission");
   assert.equal(result.idempotency, existingIdentity);
   assert.equal(typeof replay.resolveReplay, "function");
+});
+
+test("authoritative failed remains distinct and carries no success evidence", async () => {
+  const resolutionResult: Awaited<
+    ReturnType<MultiCutReplayResolutionCapability["resolveReplay"]>
+  > = {
+    resultVersion: "3.0",
+    status: "authoritative-failed",
+  };
+  const admissionResult: MultiCutRequestAdmissionResult = {
+    resultVersion: "3.0",
+    status: "authoritative-failed",
+  };
+
+  assert.equal(resolutionResult.status, "authoritative-failed");
+  assert.equal(admissionResult.status, "authoritative-failed");
+  assert.notEqual(resolutionResult.status, "semantic-conflict");
+  assert.notEqual(resolutionResult.status, "unavailable");
+  assert.equal("reservationEvidence" in resolutionResult, false);
+  assert.equal("resultReference" in resolutionResult, false);
+  assert.equal("reservationEvidence" in admissionResult, false);
+  assert.equal("resultReference" in admissionResult, false);
+
+  const source = await readFile(
+    new URL(
+      "../../../lib/server/multiCutRequestAdmission/types.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(source, /status:\s*"authoritative-failed"/);
 });

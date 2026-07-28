@@ -13,7 +13,7 @@ const failure = (
   >["failure"],
 ): MultiCutRequestAdmissionResult =>
   Object.freeze({
-    resultVersion: "2.0",
+    resultVersion: "3.0",
     status: "failed",
     failure: classification,
   });
@@ -74,7 +74,7 @@ export const runReferenceMultiCutRequestAdmission = async (
   input: MultiCutRequestAdmissionInput,
   replay: MultiCutReplayResolutionCapability,
 ): Promise<MultiCutRequestAdmissionResult> => {
-  if (input.admissionInputVersion !== "2.0") {
+  if (input.admissionInputVersion !== "3.0") {
     return failure("unsupported-version");
   }
   if (typeof input.idempotencyKey !== "string" || input.idempotencyKey.length === 0) {
@@ -112,47 +112,50 @@ export const runReferenceMultiCutRequestAdmission = async (
   try {
     const replayResult = await replay.resolveReplay(
       Object.freeze({
-        resolutionInputVersion: "2.0",
+        resolutionInputVersion: "3.0",
         scope: input.replayScope,
         identity: projectedIdentity,
       }),
     );
 
-    if (replayResult.status === "duplicate-in-flight") {
-      return failure("duplicate-in-flight");
+    switch (replayResult.status) {
+      case "duplicate-in-flight":
+        return failure("duplicate-in-flight");
+      case "semantic-conflict":
+        return failure("semantic-conflict");
+      case "unavailable":
+        return failure("dependency-unavailable");
+      case "authoritative-failed":
+        return Object.freeze({
+          resultVersion: "3.0",
+          status: "authoritative-failed",
+        });
+      case "replay":
+        return Object.freeze({
+          resultVersion: "3.0",
+          status: "replay",
+          replayIdentity: replayResult.identity,
+          resultReference: replayResult.resultReference,
+        });
+      case "new":
+        return Object.freeze({
+          resultVersion: "3.0",
+          status: "new",
+          idempotency: Object.freeze({
+            identityVersion: "1.0",
+            keyIdentity: replayResult.identity.keyIdentity,
+            requestFingerprintIdentity:
+              replayResult.identity.requestFingerprintIdentity,
+            replayClassification: "new",
+          }),
+          replayIdentity: replayResult.identity,
+          reservationEvidence: replayResult.reservationEvidence,
+        });
+      default: {
+        const unreachable: never = replayResult;
+        return unreachable;
+      }
     }
-    if (replayResult.status === "semantic-conflict") {
-      return failure("semantic-conflict");
-    }
-    if (replayResult.status === "unavailable") {
-      return failure("dependency-unavailable");
-    }
-
-    if (!("identity" in replayResult)) {
-      return failure("internal-failure");
-    }
-    const replayIdentity = replayResult.identity;
-    if (replayResult.status === "replay") {
-      return Object.freeze({
-        resultVersion: "2.0",
-        status: "replay",
-        replayIdentity,
-        resultReference: replayResult.resultReference,
-      });
-    }
-    return Object.freeze({
-      resultVersion: "2.0",
-      status: "new",
-      idempotency: Object.freeze({
-        identityVersion: "1.0",
-        keyIdentity: replayIdentity.keyIdentity,
-        requestFingerprintIdentity:
-          replayIdentity.requestFingerprintIdentity,
-        replayClassification: "new",
-      }),
-      replayIdentity,
-      reservationEvidence: replayResult.reservationEvidence,
-    });
   } catch {
     return failure("internal-failure");
   }
