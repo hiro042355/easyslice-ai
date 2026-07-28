@@ -10,6 +10,7 @@ import type {
   MultiCutReplayRecordState,
   MultiCutReplayRecoveryCapability,
   MultiCutReplayRecoveryLookupResult,
+  MultiCutReplayReservationMutationReconciliationResult,
   MultiCutReplayRecoveryTakeoverResult,
 } from "../../../lib/server/multiCutReplayLifecycle/types";
 
@@ -49,7 +50,29 @@ const renewedReservationEvidence = Object.freeze({
   },
   lease: {
     leaseVersion: "1.0" as const,
-    leaseIdentity: "lease:2",
+    leaseIdentity: "lease:1",
+  },
+  leaseExpiresAt: "2030-01-01T00:10:00.000Z",
+  reservationAttempt: 1,
+});
+
+const takeoverReservationEvidence = Object.freeze({
+  evidenceVersion: "1.0" as const,
+  reservation: {
+    reservationVersion: "1.0" as const,
+    reservationIdentity: "reservation:takeover",
+  },
+  expectedRevision: {
+    revisionVersion: "1.0" as const,
+    expectedRevision: "revision:2",
+  },
+  fencing: {
+    fencingVersion: "1.0" as const,
+    fencingToken: "fence:2",
+  },
+  lease: {
+    leaseVersion: "1.0" as const,
+    leaseIdentity: "lease:takeover",
   },
   leaseExpiresAt: "2030-01-01T00:10:00.000Z",
   reservationAttempt: 2,
@@ -92,7 +115,7 @@ test("replay lifecycle contract is type-only and boundary-safe", async () => {
 
 test("lifecycle input and result are immutable discriminated unions", async () => {
   const completion: MultiCutReplayLifecycleInput = Object.freeze({
-    inputVersion: "2.0",
+    inputVersion: "3.0",
     transition: "complete",
     replayIdentity,
     reservationEvidence,
@@ -113,7 +136,7 @@ test("lifecycle input and result are immutable discriminated unions", async () =
         throw new Error("unexpected transition");
       }
       return {
-        resultVersion: "2.0",
+        resultVersion: "3.0",
         status: "completed",
         state: "completed",
         replayIdentity: input.replayIdentity,
@@ -130,7 +153,7 @@ test("lifecycle input and result are immutable discriminated unions", async () =
 
 test("renew is processing-only and returns updated immutable evidence", async () => {
   const renew: MultiCutReplayLifecycleInput = Object.freeze({
-    inputVersion: "2.0",
+    inputVersion: "3.0",
     transition: "renew",
     replayIdentity,
     reservationEvidence,
@@ -139,7 +162,7 @@ test("renew is processing-only and returns updated immutable evidence", async ()
     transitionReplay: async (input): Promise<MultiCutReplayLifecycleResult> => {
       assert.equal(input.transition, "renew");
       return {
-        resultVersion: "2.0",
+        resultVersion: "3.0",
         status: "renewed",
         state: "processing",
         replayIdentity: input.replayIdentity,
@@ -153,16 +176,78 @@ test("renew is processing-only and returns updated immutable evidence", async ()
   if (result.status === "renewed") {
     assert.equal(result.state, "processing");
     assert.equal(result.reservationEvidence, renewedReservationEvidence);
+    assert.equal(
+      result.reservationEvidence.reservation.reservationIdentity,
+      reservationEvidence.reservation.reservationIdentity,
+    );
+    assert.equal(
+      result.reservationEvidence.lease.leaseIdentity,
+      reservationEvidence.lease.leaseIdentity,
+    );
+    assert.equal(
+      result.reservationEvidence.fencing.fencingToken,
+      reservationEvidence.fencing.fencingToken,
+    );
+    assert.equal(
+      result.reservationEvidence.reservationAttempt,
+      reservationEvidence.reservationAttempt,
+    );
+    assert.notEqual(
+      result.reservationEvidence.expectedRevision.expectedRevision,
+      reservationEvidence.expectedRevision.expectedRevision,
+    );
+    assert.notEqual(
+      result.reservationEvidence.leaseExpiresAt,
+      reservationEvidence.leaseExpiresAt,
+    );
   }
 
   for (const terminalState of ["completed", "failed", "released"] as const) {
     const rejected: MultiCutReplayLifecycleResult = {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "conflict",
       failure: "terminal-preserved",
     };
     assert.equal(rejected.failure, "terminal-preserved", terminalState);
   }
+});
+
+test("only takeover issues a new fence", () => {
+  const terminalResults: readonly MultiCutReplayLifecycleResult[] = [
+    {
+      resultVersion: "3.0",
+      status: "completed",
+      state: "completed",
+      replayIdentity,
+      resultReference: {
+        referenceVersion: "1.0",
+        resultReferenceIdentity: "result:boundary",
+      },
+      revision: "revision:2",
+    },
+    {
+      resultVersion: "3.0",
+      status: "failed",
+      state: "failed",
+      replayIdentity,
+      revision: "revision:2",
+    },
+    {
+      resultVersion: "3.0",
+      status: "released",
+      state: "released",
+      replayIdentity,
+      revision: "revision:2",
+    },
+  ];
+
+  for (const result of terminalResults) {
+    assert.equal("reservationEvidence" in result, false);
+  }
+  assert.notEqual(
+    takeoverReservationEvidence.fencing.fencingToken,
+    reservationEvidence.fencing.fencingToken,
+  );
 });
 
 test("authoritative states are exhaustive", () => {
@@ -247,20 +332,24 @@ test("recovery lookup is read-only across all authoritative states", async () =>
   let recordIndex = 0;
   const authoritative: MultiCutReplayRecoveryCapability = {
     lookupReplay: async (): Promise<MultiCutReplayRecoveryLookupResult> => ({
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "authoritative",
       record: records[recordIndex++],
     }),
     takeoverReplay: async (): Promise<MultiCutReplayRecoveryTakeoverResult> => ({
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "unavailable",
       failure: "dependency-unavailable",
+    }),
+    reconcileReservationMutation: async () => ({
+      resultVersion: "3.0",
+      status: "unavailable",
     }),
   };
 
   for (const state of ["processing", "completed", "failed", "released"] as const) {
     const result = await authoritative.lookupReplay({
-      inputVersion: "2.0",
+      inputVersion: "3.0",
       replayIdentity,
       reason: "authoritative-lookup",
     });
@@ -275,24 +364,24 @@ test("recovery lookup is read-only across all authoritative states", async () =>
 test("recovery takeover returns new evidence or classified failures", async () => {
   const results: readonly MultiCutReplayRecoveryTakeoverResult[] = [
     {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "taken-over",
       state: "processing",
       replayIdentity,
-      reservationEvidence: renewedReservationEvidence,
+      reservationEvidence: takeoverReservationEvidence,
     },
     {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "conflict",
       failure: "stale-revision",
     },
     {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "conflict",
       failure: "stale-fence",
     },
     {
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "conflict",
       failure: "takeover-conflict",
     },
@@ -300,7 +389,7 @@ test("recovery takeover returns new evidence or classified failures", async () =
   let resultIndex = 0;
   const capability: MultiCutReplayRecoveryCapability = {
     lookupReplay: async () => ({
-      resultVersion: "2.0",
+      resultVersion: "3.0",
       status: "unavailable",
       failure: "dependency-unavailable",
     }),
@@ -308,14 +397,248 @@ test("recovery takeover returns new evidence or classified failures", async () =
       assert.equal(input.reservationEvidence, reservationEvidence);
       return results[resultIndex++];
     },
+    reconcileReservationMutation: async () => ({
+      resultVersion: "3.0",
+      status: "unavailable",
+    }),
   };
 
   for (const expected of results) {
     const result = await capability.takeoverReplay({
-      inputVersion: "2.0",
+      inputVersion: "3.0",
       replayIdentity,
       reservationEvidence,
     });
     assert.deepEqual(result, expected);
   }
+});
+
+test("renew reconciliation is read-only and exhaustively classified", async () => {
+  const results: readonly MultiCutReplayReservationMutationReconciliationResult[] = [
+    {
+      resultVersion: "3.0",
+      status: "confirmed",
+      mutation: "renew",
+      replayIdentity,
+      authoritativeReservationEvidence: renewedReservationEvidence,
+    },
+    {
+      resultVersion: "3.0",
+      status: "not-applied",
+      mutation: "renew",
+      replayIdentity,
+      authoritativeReservationEvidence: reservationEvidence,
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "renew",
+      failure: "reservation-changed",
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "renew",
+      failure: "lease-changed",
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "renew",
+      failure: "fence-changed",
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "renew",
+      failure: "attempt-changed",
+    },
+    {
+      resultVersion: "3.0",
+      status: "terminal",
+      state: "completed",
+      replayIdentity,
+    },
+    {
+      resultVersion: "3.0",
+      status: "terminal",
+      state: "failed",
+      replayIdentity,
+    },
+    {
+      resultVersion: "3.0",
+      status: "terminal",
+      state: "released",
+      replayIdentity,
+    },
+    { resultVersion: "3.0", status: "not-found" },
+    { resultVersion: "3.0", status: "corrupted" },
+    { resultVersion: "3.0", status: "unavailable" },
+    { resultVersion: "3.0", status: "reconciliation-required" },
+  ];
+  let index = 0;
+  const capability: MultiCutReplayRecoveryCapability = {
+    lookupReplay: async () => ({
+      resultVersion: "3.0",
+      status: "unavailable",
+      failure: "dependency-unavailable",
+    }),
+    takeoverReplay: async () => ({
+      resultVersion: "3.0",
+      status: "unavailable",
+      failure: "dependency-unavailable",
+    }),
+    reconcileReservationMutation: async (input) => {
+      assert.equal(input.mutation, "renew");
+      assert.equal(input.previousReservationEvidence, reservationEvidence);
+      return results[index++];
+    },
+  };
+
+  for (const expected of results) {
+    const actual = await capability.reconcileReservationMutation({
+      inputVersion: "3.0",
+      mutation: "renew",
+      replayIdentity,
+      previousReservationEvidence: reservationEvidence,
+    });
+    assert.deepEqual(actual, expected);
+    if (actual.status === "terminal") {
+      assert.equal("authoritativeReservationEvidence" in actual, false);
+    }
+  }
+});
+
+test("takeover reconciliation preserves caller intent without a requested fence", async () => {
+  const results: readonly MultiCutReplayReservationMutationReconciliationResult[] = [
+    {
+      resultVersion: "3.0",
+      status: "confirmed",
+      mutation: "takeover",
+      replayIdentity,
+      authoritativeReservationEvidence: takeoverReservationEvidence,
+    },
+    {
+      resultVersion: "3.0",
+      status: "not-applied",
+      mutation: "takeover",
+      replayIdentity,
+      authoritativeReservationEvidence: reservationEvidence,
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "takeover",
+      failure: "takeover-intent-mismatch",
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "takeover",
+      failure: "reservation-changed",
+    },
+    {
+      resultVersion: "3.0",
+      status: "conflict",
+      mutation: "takeover",
+      failure: "lease-changed",
+    },
+    {
+      resultVersion: "3.0",
+      status: "terminal",
+      state: "completed",
+      replayIdentity,
+    },
+    {
+      resultVersion: "3.0",
+      status: "terminal",
+      state: "failed",
+      replayIdentity,
+    },
+    {
+      resultVersion: "3.0",
+      status: "terminal",
+      state: "released",
+      replayIdentity,
+    },
+    { resultVersion: "3.0", status: "not-found" },
+    { resultVersion: "3.0", status: "corrupted" },
+    { resultVersion: "3.0", status: "unavailable" },
+    { resultVersion: "3.0", status: "reconciliation-required" },
+  ];
+  let index = 0;
+  const capability: MultiCutReplayRecoveryCapability = {
+    lookupReplay: async () => ({
+      resultVersion: "3.0",
+      status: "unavailable",
+      failure: "dependency-unavailable",
+    }),
+    takeoverReplay: async () => ({
+      resultVersion: "3.0",
+      status: "unavailable",
+      failure: "dependency-unavailable",
+    }),
+    reconcileReservationMutation: async (input) => {
+      assert.equal(input.mutation, "takeover");
+      if (input.mutation !== "takeover") {
+        throw new Error("unexpected mutation");
+      }
+      assert.equal(
+        input.requestedNextReservation.reservationIdentity,
+        takeoverReservationEvidence.reservation.reservationIdentity,
+      );
+      assert.equal(
+        input.requestedNextLease.leaseIdentity,
+        takeoverReservationEvidence.lease.leaseIdentity,
+      );
+      assert.equal("fencing" in input, false);
+      assert.equal("leaseExpiresAt" in input, false);
+      return results[index++];
+    },
+  };
+
+  for (const expected of results) {
+    const actual = await capability.reconcileReservationMutation({
+      inputVersion: "3.0",
+      mutation: "takeover",
+      replayIdentity,
+      previousReservationEvidence: reservationEvidence,
+      requestedNextReservation: takeoverReservationEvidence.reservation,
+      requestedNextLease: takeoverReservationEvidence.lease,
+    });
+    assert.deepEqual(actual, expected);
+    if (actual.status === "terminal") {
+      assert.equal("authoritativeReservationEvidence" in actual, false);
+    }
+  }
+});
+
+test("reconciliation result union is exhaustive", () => {
+  const describe = (
+    result: MultiCutReplayReservationMutationReconciliationResult,
+  ): string => {
+    switch (result.status) {
+      case "confirmed":
+      case "not-applied":
+        return result.authoritativeReservationEvidence.evidenceVersion;
+      case "conflict":
+        return result.mutation;
+      case "terminal":
+        return result.state;
+      case "not-found":
+      case "corrupted":
+      case "unavailable":
+      case "reconciliation-required":
+        return result.status;
+      default: {
+        const exhaustive: never = result;
+        return exhaustive;
+      }
+    }
+  };
+
+  assert.equal(
+    describe({ resultVersion: "3.0", status: "reconciliation-required" }),
+    "reconciliation-required",
+  );
 });

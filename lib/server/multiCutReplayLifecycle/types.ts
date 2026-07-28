@@ -1,16 +1,20 @@
 import type {
+  MultiCutReplayLeaseIdentity,
+  MultiCutReplayReservationIdentity,
   MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
   MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
 export type {
+  MultiCutReplayLeaseIdentity,
+  MultiCutReplayReservationIdentity,
   MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
   MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
-export type MultiCutReplayLifecycleContractVersion = "2.0";
+export type MultiCutReplayLifecycleContractVersion = "3.0";
 
 export type MultiCutReplayRecordState =
   | "processing"
@@ -69,6 +73,11 @@ export type MultiCutReplayLifecycleInput =
   >
   | Readonly<
     MultiCutReplayLifecycleTransitionBase & {
+      /**
+       * Renew preserves replay, reservation, lease, fence, and attempt
+       * identities. It advances revision and renews lease expiry. Renew never
+       * issues a fencing token; only recovery takeover may issue a new fence.
+       */
       transition: "renew";
     }
   >;
@@ -130,6 +139,9 @@ export type MultiCutReplayLifecycleCapability = Readonly<{
   /**
    * Transitions an existing processing reservation. A released reservation is
    * re-reserved only through the Resolution capability, never this capability.
+   * Complete, fail, and release issue no new fence and return no reservation
+   * evidence. A terminal record rejects renew as terminal-preserved or
+   * invalid-transition.
    */
   transitionReplay(
     input: MultiCutReplayLifecycleInput,
@@ -234,6 +246,59 @@ export type MultiCutReplayRecoveryTakeoverResult =
     failure: MultiCutReplayRecoveryTakeoverUnavailableClassification;
   }>;
 
+export type MultiCutReplayReservationMutationReconciliationInput =
+  | Readonly<{
+    inputVersion: MultiCutReplayLifecycleContractVersion;
+    mutation: "renew";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    previousReservationEvidence: MultiCutReplayReservationEvidence;
+  }>
+  | Readonly<{
+    inputVersion: MultiCutReplayLifecycleContractVersion;
+    mutation: "takeover";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    previousReservationEvidence: MultiCutReplayReservationEvidence;
+    requestedNextReservation: MultiCutReplayReservationIdentity;
+    requestedNextLease: MultiCutReplayLeaseIdentity;
+  }>;
+
+export type MultiCutReplayReservationMutationConflictClassification =
+  | "reservation-changed"
+  | "lease-changed"
+  | "fence-changed"
+  | "attempt-changed"
+  | "mutation-advanced"
+  | "takeover-intent-mismatch";
+
+export type MultiCutReplayReservationMutationReconciliationResult =
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "confirmed" | "not-applied";
+    mutation: "renew" | "takeover";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    authoritativeReservationEvidence: MultiCutReplayReservationEvidence;
+  }>
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "conflict";
+    mutation: "renew" | "takeover";
+    failure: MultiCutReplayReservationMutationConflictClassification;
+  }>
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "terminal";
+    state: "completed" | "failed" | "released";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+  }>
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status:
+      | "not-found"
+      | "corrupted"
+      | "unavailable"
+      | "reconciliation-required";
+  }>;
+
 export type MultiCutReplayRecoveryCapability = Readonly<{
   lookupReplay(
     input: MultiCutReplayRecoveryLookupInput,
@@ -241,4 +306,11 @@ export type MultiCutReplayRecoveryCapability = Readonly<{
   takeoverReplay(
     input: MultiCutReplayRecoveryTakeoverInput,
   ): Promise<MultiCutReplayRecoveryTakeoverResult>;
+  /**
+   * Read-only commit-unknown observation for renew and takeover. It performs
+   * no mutation and is not a replacement for lookupReplay.
+   */
+  reconcileReservationMutation(
+    input: MultiCutReplayReservationMutationReconciliationInput,
+  ): Promise<MultiCutReplayReservationMutationReconciliationResult>;
 }>;
