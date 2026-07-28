@@ -11,14 +11,20 @@ import type {
   WorkflowEntryIdempotencyIdentity,
 } from "../workflowEntry/types";
 import type {
+  MultiCutReplayProtectedScope,
+  MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
+  MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
 export type {
+  MultiCutReplayProtectedScope,
+  MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
+  MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
-export type MultiCutRequestAdmissionContractVersion = "1.0";
+export type MultiCutRequestAdmissionContractVersion = "2.0";
 
 export type MultiCutCanonicalFingerprintInput = Readonly<{
   fingerprintInputVersion: "1.0";
@@ -29,23 +35,32 @@ export type MultiCutCanonicalFingerprintInput = Readonly<{
 
 export type MultiCutRequestAdmissionInput = Readonly<{
   admissionInputVersion: MultiCutRequestAdmissionContractVersion;
+  replayScope: MultiCutReplayProtectedScope;
   idempotencyKey: WorkflowEntryIdempotencyIdentity["keyIdentity"];
   fingerprintInput: MultiCutCanonicalFingerprintInput;
 }>;
 
 export type MultiCutReplayResolutionInput = Readonly<{
-  resolutionInputVersion: "1.0";
+  resolutionInputVersion: "2.0";
+  scope: MultiCutReplayProtectedScope;
   identity: MultiCutReplayResolvedIdentity;
 }>;
 
 export type MultiCutReplayResolutionResult =
   | Readonly<{
-    resultVersion: "1.0";
-    status: "new" | "replay";
+    resultVersion: "2.0";
+    status: "new";
     identity: MultiCutReplayResolvedIdentity;
+    reservationEvidence: MultiCutReplayReservationEvidence;
   }>
   | Readonly<{
-    resultVersion: "1.0";
+    resultVersion: "2.0";
+    status: "replay";
+    identity: MultiCutReplayResolvedIdentity;
+    resultReference: MultiCutReplayResultReference;
+  }>
+  | Readonly<{
+    resultVersion: "2.0";
     status:
       | "duplicate-in-flight"
       | "semantic-conflict"
@@ -58,14 +73,20 @@ export type MultiCutReplayResolutionCapability = Readonly<{
   ): Promise<MultiCutReplayResolutionResult>;
 }>;
 
-export type MultiCutRequestAdmissionOutcome = "new" | "replay";
-
-export type MultiCutRequestAdmissionSuccess = Readonly<{
-  resultVersion: "1.0";
-  status: "admitted";
-  outcome: MultiCutRequestAdmissionOutcome;
-  idempotency: WorkflowEntryIdempotencyIdentity;
-}>;
+export type MultiCutRequestAdmissionSuccess =
+  | Readonly<{
+    resultVersion: "2.0";
+    status: "new";
+    idempotency: WorkflowEntryIdempotencyIdentity;
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    reservationEvidence: MultiCutReplayReservationEvidence;
+  }>
+  | Readonly<{
+    resultVersion: "2.0";
+    status: "replay";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    resultReference: MultiCutReplayResultReference;
+  }>;
 
 export type MultiCutRequestAdmissionFailureClassification =
   | "missing-key"
@@ -78,7 +99,7 @@ export type MultiCutRequestAdmissionFailureClassification =
   | "internal-failure";
 
 export type MultiCutRequestAdmissionFailure = Readonly<{
-  resultVersion: "1.0";
+  resultVersion: "2.0";
   status: "failed";
   failure: MultiCutRequestAdmissionFailureClassification;
 }>;

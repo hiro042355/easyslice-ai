@@ -10,7 +10,16 @@ import type {
 } from "../../../lib/server/multiCutRequestAdmission/types";
 
 const createInput = (): MultiCutRequestAdmissionInput => ({
-  admissionInputVersion: "1.0",
+  admissionInputVersion: "2.0",
+  replayScope: {
+    scopeVersion: "1.0",
+    replayNamespace: "multi-cut-request-admission",
+    tenant: {
+      identityVersion: "1.0",
+      protectedTenantIdentity: "protected-tenant:admission",
+    },
+    operationIdentity: "multi-cut:create",
+  },
   idempotencyKey: "key:admission",
   fingerprintInput: {
     fingerprintInputVersion: "1.0",
@@ -66,6 +75,33 @@ const createInput = (): MultiCutRequestAdmissionInput => ({
   },
 });
 
+const reservationEvidence = Object.freeze({
+  evidenceVersion: "1.0" as const,
+  reservation: {
+    reservationVersion: "1.0" as const,
+    reservationIdentity: "reservation:authoritative",
+  },
+  expectedRevision: {
+    revisionVersion: "1.0" as const,
+    expectedRevision: "revision:1",
+  },
+  fencing: {
+    fencingVersion: "1.0" as const,
+    fencingToken: "fence:1",
+  },
+  lease: {
+    leaseVersion: "1.0" as const,
+    leaseIdentity: "lease:1",
+  },
+  leaseExpiresAt: "2030-01-01T00:05:00.000Z",
+  reservationAttempt: 1,
+});
+
+const resultReference = Object.freeze({
+  referenceVersion: "1.0" as const,
+  resultReferenceIdentity: "result:authoritative",
+});
+
 const replayCapability = (
   project: (
     input: Parameters<MultiCutReplayResolutionCapability["resolveReplay"]>[0],
@@ -76,22 +112,30 @@ const replayCapability = (
 
 test("projection is deterministic, immutable, and private", async () => {
   const captures: unknown[] = [];
+  const input = createInput();
   const dependency = replayCapability((input) => {
     captures.push(input);
-    return { resultVersion: "1.0", status: "new", identity: input.identity };
+    return {
+      resultVersion: "2.0",
+      status: "new",
+      identity: input.identity,
+      reservationEvidence,
+    };
   });
 
-  const first = await runReferenceMultiCutRequestAdmission(createInput(), dependency);
-  const second = await runReferenceMultiCutRequestAdmission(createInput(), dependency);
+  const first = await runReferenceMultiCutRequestAdmission(input, dependency);
+  const second = await runReferenceMultiCutRequestAdmission(input, dependency);
 
-  assert.equal(first.status, "admitted");
+  assert.equal(first.status, "new");
   assert.deepEqual(first, second);
   assert.equal(Object.isFrozen(captures[0]), true);
   const captured = captures[0] as {
+    readonly scope: MultiCutRequestAdmissionInput["replayScope"];
     readonly identity: {
       readonly requestFingerprintIdentity: string;
     };
   };
+  assert.equal(captured.scope, input.replayScope);
   assert.equal(Object.isFrozen(captured.identity), true);
   assert.match(
     captured.identity.requestFingerprintIdentity,
@@ -104,37 +148,52 @@ test("projection is deterministic, immutable, and private", async () => {
   assert.deepEqual(Object.keys(module), ["runReferenceMultiCutRequestAdmission"]);
 });
 
-test("new and replay preserve the replay capability identity", async () => {
-  for (const status of ["new", "replay"] as const) {
-    const result = await runReferenceMultiCutRequestAdmission(
-      createInput(),
-      replayCapability(() => ({
-        resultVersion: "1.0",
-        status,
-        identity: {
-          identityVersion: "1.0",
-          keyIdentity: `replay-key:${status}`,
-          requestFingerprintIdentity: `replay-fingerprint:${status}`,
-        },
-      })),
-    );
-
-    assert.deepEqual(result, {
-      resultVersion: "1.0",
-      status: "admitted",
-      outcome: status,
-      idempotency: {
+test("new preserves authoritative identity and reservation evidence", async () => {
+  const result = await runReferenceMultiCutRequestAdmission(
+    createInput(),
+    replayCapability(() => ({
+      resultVersion: "2.0",
+      status: "new",
+      identity: {
         identityVersion: "1.0",
-        keyIdentity: `replay-key:${status}`,
-        requestFingerprintIdentity: `replay-fingerprint:${status}`,
-        replayClassification: status,
+        keyIdentity: "replay-key:new",
+        requestFingerprintIdentity: "replay-fingerprint:new",
       },
-    });
-    assert.equal(Object.isFrozen(result), true);
-    if (result.status === "admitted") {
-      assert.equal(Object.isFrozen(result.idempotency), true);
-    }
-  }
+      reservationEvidence,
+    })),
+  );
+
+  assert.equal(result.status, "new");
+  if (result.status !== "new") throw new Error("expected new");
+  assert.equal(result.replayIdentity.keyIdentity, "replay-key:new");
+  assert.equal(result.reservationEvidence, reservationEvidence);
+  assert.equal(result.idempotency.replayClassification, "new");
+  assert.equal("resultReference" in result, false);
+  assert.equal(Object.isFrozen(result), true);
+  assert.equal(Object.isFrozen(result.idempotency), true);
+});
+
+test("replay preserves authoritative identity and result reference", async () => {
+  const result = await runReferenceMultiCutRequestAdmission(
+    createInput(),
+    replayCapability(() => ({
+      resultVersion: "2.0",
+      status: "replay",
+      identity: {
+        identityVersion: "1.0",
+        keyIdentity: "replay-key:replay",
+        requestFingerprintIdentity: "replay-fingerprint:replay",
+      },
+      resultReference,
+    })),
+  );
+
+  assert.equal(result.status, "replay");
+  if (result.status !== "replay") throw new Error("expected replay");
+  assert.equal(result.replayIdentity.keyIdentity, "replay-key:replay");
+  assert.equal(result.resultReference, resultReference);
+  assert.equal("reservationEvidence" in result, false);
+  assert.equal("finalResult" in result, false);
 });
 
 test("replay failures map to admission failures", async () => {
@@ -147,10 +206,10 @@ test("replay failures map to admission failures", async () => {
   for (const [status, failure] of cases) {
     const result = await runReferenceMultiCutRequestAdmission(
       createInput(),
-      replayCapability(() => ({ resultVersion: "1.0", status })),
+      replayCapability(() => ({ resultVersion: "2.0", status })),
     );
     assert.deepEqual(result, {
-      resultVersion: "1.0",
+      resultVersion: "2.0",
       status: "failed",
       failure,
     });
@@ -164,7 +223,7 @@ test("dependency exceptions are contained", async () => {
     },
   });
   assert.deepEqual(result, {
-    resultVersion: "1.0",
+    resultVersion: "2.0",
     status: "failed",
     failure: "internal-failure",
   });
@@ -174,7 +233,12 @@ test("invalid input is rejected before replay invocation", async () => {
   let invocations = 0;
   const dependency = replayCapability((input) => {
     invocations += 1;
-    return { resultVersion: "1.0", status: "new", identity: input.identity };
+    return {
+      resultVersion: "2.0",
+      status: "new",
+      identity: input.identity,
+      reservationEvidence,
+    };
   });
   const cases: readonly [
     MultiCutRequestAdmissionInput,
@@ -183,7 +247,7 @@ test("invalid input is rejected before replay invocation", async () => {
     [{ ...createInput(), idempotencyKey: "" }, "missing-key"],
     [{ ...createInput(), idempotencyKey: " key " }, "invalid-key"],
     [
-      { ...createInput(), admissionInputVersion: "2.0" as "1.0" },
+      { ...createInput(), admissionInputVersion: "1.0" as "2.0" },
       "unsupported-version",
     ],
   ];
@@ -191,7 +255,7 @@ test("invalid input is rejected before replay invocation", async () => {
   for (const [input, failure] of cases) {
     assert.deepEqual(
       await runReferenceMultiCutRequestAdmission(input, dependency),
-      { resultVersion: "1.0", status: "failed", failure },
+      { resultVersion: "2.0", status: "failed", failure },
     );
   }
   assert.equal(invocations, 0);

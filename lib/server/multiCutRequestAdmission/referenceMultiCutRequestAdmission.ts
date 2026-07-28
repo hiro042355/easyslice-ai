@@ -13,7 +13,7 @@ const failure = (
   >["failure"],
 ): MultiCutRequestAdmissionResult =>
   Object.freeze({
-    resultVersion: "1.0",
+    resultVersion: "2.0",
     status: "failed",
     failure: classification,
   });
@@ -74,7 +74,7 @@ export const runReferenceMultiCutRequestAdmission = async (
   input: MultiCutRequestAdmissionInput,
   replay: MultiCutReplayResolutionCapability,
 ): Promise<MultiCutRequestAdmissionResult> => {
-  if (input.admissionInputVersion !== "1.0") {
+  if (input.admissionInputVersion !== "2.0") {
     return failure("unsupported-version");
   }
   if (typeof input.idempotencyKey !== "string" || input.idempotencyKey.length === 0) {
@@ -112,7 +112,8 @@ export const runReferenceMultiCutRequestAdmission = async (
   try {
     const replayResult = await replay.resolveReplay(
       Object.freeze({
-        resolutionInputVersion: "1.0",
+        resolutionInputVersion: "2.0",
+        scope: input.replayScope,
         identity: projectedIdentity,
       }),
     );
@@ -131,17 +132,26 @@ export const runReferenceMultiCutRequestAdmission = async (
       return failure("internal-failure");
     }
     const replayIdentity = replayResult.identity;
+    if (replayResult.status === "replay") {
+      return Object.freeze({
+        resultVersion: "2.0",
+        status: "replay",
+        replayIdentity,
+        resultReference: replayResult.resultReference,
+      });
+    }
     return Object.freeze({
-      resultVersion: "1.0",
-      status: "admitted",
-      outcome: replayResult.status,
+      resultVersion: "2.0",
+      status: "new",
       idempotency: Object.freeze({
         identityVersion: "1.0",
         keyIdentity: replayIdentity.keyIdentity,
         requestFingerprintIdentity:
           replayIdentity.requestFingerprintIdentity,
-        replayClassification: replayResult.status,
+        replayClassification: "new",
       }),
+      replayIdentity,
+      reservationEvidence: replayResult.reservationEvidence,
     });
   } catch {
     return failure("internal-failure");

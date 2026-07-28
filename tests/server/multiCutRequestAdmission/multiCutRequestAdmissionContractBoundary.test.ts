@@ -72,7 +72,16 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
     replayClassification: "new",
   });
   const input = {
-    admissionInputVersion: "1.0",
+    admissionInputVersion: "2.0",
+    replayScope: {
+      scopeVersion: "1.0",
+      replayNamespace: "multi-cut-request-admission",
+      tenant: {
+        identityVersion: "1.0",
+        protectedTenantIdentity: "protected-tenant:admission",
+      },
+      operationIdentity: "multi-cut:create",
+    },
     idempotencyKey: existingIdentity.keyIdentity,
     fingerprintInput: {
       fingerprintInputVersion: "1.0",
@@ -134,16 +143,58 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
   });
   const replay: MultiCutReplayResolutionCapability = {
     resolveReplay: async () => ({
-      resultVersion: "1.0",
+      resultVersion: "2.0",
       status: "new",
       identity: replayIdentity,
+      reservationEvidence: {
+        evidenceVersion: "1.0",
+        reservation: {
+          reservationVersion: "1.0",
+          reservationIdentity: "reservation:admission",
+        },
+        expectedRevision: {
+          revisionVersion: "1.0",
+          expectedRevision: "revision:1",
+        },
+        fencing: {
+          fencingVersion: "1.0",
+          fencingToken: "fence:1",
+        },
+        lease: {
+          leaseVersion: "1.0",
+          leaseIdentity: "lease:1",
+        },
+        leaseExpiresAt: "2030-01-01T00:05:00.000Z",
+        reservationAttempt: 1,
+      },
     }),
   };
   const result: MultiCutRequestAdmissionResult = {
-    resultVersion: "1.0",
-    status: "admitted",
-    outcome: "new",
+    resultVersion: "2.0",
+    status: "new",
     idempotency: existingIdentity,
+    replayIdentity,
+    reservationEvidence: {
+      evidenceVersion: "1.0",
+      reservation: {
+        reservationVersion: "1.0",
+        reservationIdentity: "reservation:admission",
+      },
+      expectedRevision: {
+        revisionVersion: "1.0",
+        expectedRevision: "revision:1",
+      },
+      fencing: {
+        fencingVersion: "1.0",
+        fencingToken: "fence:1",
+      },
+      lease: {
+        leaseVersion: "1.0",
+        leaseIdentity: "lease:1",
+      },
+      leaseExpiresAt: "2030-01-01T00:05:00.000Z",
+      reservationAttempt: 1,
+    },
   };
 
   assert.equal(input.fingerprintInput.authenticatedRequest.requestIdentity, "request:admission");
