@@ -1,6 +1,18 @@
 import type {
+  MultiCutReplayExpectedRevision,
+  MultiCutReplayFencingToken,
+  MultiCutReplayReservationIdentity,
   MultiCutReplayResolvedIdentity,
-} from "../multiCutRequestAdmission/types";
+  MultiCutReplayResultReference,
+} from "../multiCutReplayShared/types";
+
+export type {
+  MultiCutReplayExpectedRevision,
+  MultiCutReplayFencingToken,
+  MultiCutReplayReservationIdentity,
+  MultiCutReplayResolvedIdentity,
+  MultiCutReplayResultReference,
+} from "../multiCutReplayShared/types";
 
 export type MultiCutReplayLifecycleContractVersion = "1.0";
 
@@ -9,26 +21,6 @@ export type MultiCutReplayRecordState =
   | "completed"
   | "released"
   | "failed";
-
-export type MultiCutReplayReservationIdentity = Readonly<{
-  reservationVersion: "1.0";
-  reservationIdentity: string;
-}>;
-
-export type MultiCutReplayExpectedRevision = Readonly<{
-  revisionVersion: "1.0";
-  expectedRevision: string;
-}>;
-
-export type MultiCutReplayFencingToken = Readonly<{
-  fencingVersion: "1.0";
-  fencingToken: string;
-}>;
-
-export type MultiCutReplayResultReference = Readonly<{
-  referenceVersion: "1.0";
-  resultReferenceIdentity: string;
-}>;
 
 export type MultiCutReplayCompletionMetadata = Readonly<{
   metadataVersion: "1.0";

@@ -38,6 +38,7 @@ test("multi-cut request admission contract is type-only and boundary-safe", asyn
       "../multiCutRoute/multiCutRouteContractTypes",
       "../source/multiCutSourceArtifactHandoffTypes",
       "../workflowEntry/types",
+      "../multiCutReplayShared/types",
     ],
   );
   assert.doesNotMatch(

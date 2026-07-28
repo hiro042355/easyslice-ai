@@ -38,7 +38,7 @@ test("replay lifecycle contract is type-only and boundary-safe", async () => {
   assert.deepEqual(imports, [
     {
       typeOnly: true,
-      target: "../multiCutRequestAdmission/types",
+      target: "../multiCutReplayShared/types",
     },
   ]);
   assert.doesNotMatch(

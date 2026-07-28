@@ -10,6 +10,13 @@ import type {
 import type {
   WorkflowEntryIdempotencyIdentity,
 } from "../workflowEntry/types";
+import type {
+  MultiCutReplayResolvedIdentity,
+} from "../multiCutReplayShared/types";
+
+export type {
+  MultiCutReplayResolvedIdentity,
+} from "../multiCutReplayShared/types";
 
 export type MultiCutRequestAdmissionContractVersion = "1.0";
 
@@ -24,12 +31,6 @@ export type MultiCutRequestAdmissionInput = Readonly<{
   admissionInputVersion: MultiCutRequestAdmissionContractVersion;
   idempotencyKey: WorkflowEntryIdempotencyIdentity["keyIdentity"];
   fingerprintInput: MultiCutCanonicalFingerprintInput;
-}>;
-
-export type MultiCutReplayResolvedIdentity = Readonly<{
-  identityVersion: "1.0";
-  keyIdentity: string;
-  requestFingerprintIdentity: string;
 }>;
 
 export type MultiCutReplayResolutionInput = Readonly<{
