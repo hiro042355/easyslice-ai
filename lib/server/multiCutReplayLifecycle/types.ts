@@ -1,20 +1,16 @@
 import type {
-  MultiCutReplayExpectedRevision,
-  MultiCutReplayFencingToken,
-  MultiCutReplayReservationIdentity,
+  MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
   MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
 export type {
-  MultiCutReplayExpectedRevision,
-  MultiCutReplayFencingToken,
-  MultiCutReplayReservationIdentity,
+  MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
   MultiCutReplayResultReference,
 } from "../multiCutReplayShared/types";
 
-export type MultiCutReplayLifecycleContractVersion = "1.0";
+export type MultiCutReplayLifecycleContractVersion = "2.0";
 
 export type MultiCutReplayRecordState =
   | "processing"
@@ -48,9 +44,7 @@ export type MultiCutReplayReleaseMetadata = Readonly<{
 type MultiCutReplayLifecycleTransitionBase = Readonly<{
   inputVersion: MultiCutReplayLifecycleContractVersion;
   replayIdentity: MultiCutReplayResolvedIdentity;
-  reservation: MultiCutReplayReservationIdentity;
-  expectedRevision: MultiCutReplayExpectedRevision;
-  fencing: MultiCutReplayFencingToken;
+  reservationEvidence: MultiCutReplayReservationEvidence;
 }>;
 
 export type MultiCutReplayLifecycleInput =
@@ -71,6 +65,11 @@ export type MultiCutReplayLifecycleInput =
     MultiCutReplayLifecycleTransitionBase & {
       transition: "release";
       metadata: MultiCutReplayReleaseMetadata;
+    }
+  >
+  | Readonly<
+    MultiCutReplayLifecycleTransitionBase & {
+      transition: "renew";
     }
   >;
 
@@ -111,6 +110,13 @@ export type MultiCutReplayLifecycleResult =
   }>
   | Readonly<{
     resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "renewed";
+    state: "processing";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    reservationEvidence: MultiCutReplayReservationEvidence;
+  }>
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
     status: "conflict";
     failure: MultiCutReplayLifecycleConflictClassification;
   }>
@@ -121,6 +127,10 @@ export type MultiCutReplayLifecycleResult =
   }>;
 
 export type MultiCutReplayLifecycleCapability = Readonly<{
+  /**
+   * Transitions an existing processing reservation. A released reservation is
+   * re-reserved only through the Resolution capability, never this capability.
+   */
   transitionReplay(
     input: MultiCutReplayLifecycleInput,
   ): Promise<MultiCutReplayLifecycleResult>;
@@ -132,7 +142,7 @@ export type MultiCutReplayRecoveryReason =
   | "lifecycle-commit-unknown"
   | "stale-processing";
 
-export type MultiCutReplayRecoveryInput = Readonly<{
+export type MultiCutReplayRecoveryLookupInput = Readonly<{
   inputVersion: MultiCutReplayLifecycleContractVersion;
   replayIdentity: MultiCutReplayResolvedIdentity;
   reason: MultiCutReplayRecoveryReason;
@@ -143,9 +153,7 @@ export type MultiCutReplayAuthoritativeRecord =
     recordVersion: "1.0";
     state: "processing";
     replayIdentity: MultiCutReplayResolvedIdentity;
-    reservation: MultiCutReplayReservationIdentity;
     revision: string;
-    fencing: MultiCutReplayFencingToken;
     leaseExpiresAt: string;
   }>
   | Readonly<{
@@ -180,7 +188,7 @@ export type MultiCutReplayRecoveryFailureClassification =
   | "dependency-unavailable"
   | "internal-failure";
 
-export type MultiCutReplayRecoveryResult =
+export type MultiCutReplayRecoveryLookupResult =
   | Readonly<{
     resultVersion: MultiCutReplayLifecycleContractVersion;
     status: "authoritative";
@@ -192,8 +200,45 @@ export type MultiCutReplayRecoveryResult =
     failure: MultiCutReplayRecoveryFailureClassification;
   }>;
 
+export type MultiCutReplayRecoveryTakeoverInput = Readonly<{
+  inputVersion: MultiCutReplayLifecycleContractVersion;
+  replayIdentity: MultiCutReplayResolvedIdentity;
+  reservationEvidence: MultiCutReplayReservationEvidence;
+}>;
+
+export type MultiCutReplayRecoveryTakeoverConflictClassification =
+  | "stale-revision"
+  | "stale-fence"
+  | "takeover-conflict";
+
+export type MultiCutReplayRecoveryTakeoverUnavailableClassification =
+  | "dependency-unavailable"
+  | "internal-failure";
+
+export type MultiCutReplayRecoveryTakeoverResult =
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "taken-over";
+    state: "processing";
+    replayIdentity: MultiCutReplayResolvedIdentity;
+    reservationEvidence: MultiCutReplayReservationEvidence;
+  }>
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "conflict";
+    failure: MultiCutReplayRecoveryTakeoverConflictClassification;
+  }>
+  | Readonly<{
+    resultVersion: MultiCutReplayLifecycleContractVersion;
+    status: "unavailable";
+    failure: MultiCutReplayRecoveryTakeoverUnavailableClassification;
+  }>;
+
 export type MultiCutReplayRecoveryCapability = Readonly<{
-  recoverReplay(
-    input: MultiCutReplayRecoveryInput,
-  ): Promise<MultiCutReplayRecoveryResult>;
+  lookupReplay(
+    input: MultiCutReplayRecoveryLookupInput,
+  ): Promise<MultiCutReplayRecoveryLookupResult>;
+  takeoverReplay(
+    input: MultiCutReplayRecoveryTakeoverInput,
+  ): Promise<MultiCutReplayRecoveryTakeoverResult>;
 }>;
