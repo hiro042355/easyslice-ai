@@ -4,9 +4,12 @@ import test from "node:test";
 
 import type {
   MultiCutReplayLogicalIdentityInvariantsV2,
+  MultiCutReplayLogicalProcessingRecordV2,
+  MultiCutReplayLogicalRecordRelationshipsV2,
   MultiCutReplayLogicalRecordIdentityV2,
   MultiCutReplayLogicalRecordV2,
   MultiCutReplayLogicalRequestSemanticsV2,
+  MultiCutReplayPersistentConcurrencyContinuitySemanticsV2,
 } from "../../../lib/server/multiCutReplayLogicalSchema/typesV2";
 import type {
   MultiCutReplayAuthoritativeIdentity,
@@ -49,11 +52,19 @@ const requestSemantics = (
 
 const processingRecord = (
   identity: MultiCutReplayAuthoritativeIdentity,
-): MultiCutReplayLogicalRecordV2 => ({
+): MultiCutReplayLogicalProcessingRecordV2 => ({
   logicalSchemaVersion: "2.0",
   recordIdentity: recordIdentity(identity),
   requestSemantics: requestSemantics(identity),
-  revision: "revision:1",
+  persistentConcurrencyContinuity: {
+    continuityVersion: "1.0",
+    revision: "revision:1",
+    lastFencingToken: {
+      fencingVersion: "1.0",
+      fencingToken: "fence:1",
+    },
+    lastReservationAttempt: 1,
+  },
   state: "processing",
   reservationEvidence: {
     evidenceVersion: "1.0",
@@ -166,7 +177,10 @@ test("lifecycle and recovery state projections preserve record identity", () => 
     logicalSchemaVersion: "2.0",
     recordIdentity: processing.recordIdentity,
     requestSemantics: processing.requestSemantics,
-    revision: "revision:2",
+    persistentConcurrencyContinuity: {
+      ...processing.persistentConcurrencyContinuity,
+      revision: "revision:2",
+    },
     state: "completed",
     resultReference: {
       referenceVersion: "1.0",
@@ -193,6 +207,13 @@ test("V2 invariants reject implicit V1 mixing and inference", () => {
     incompleteIdentityAcceptance: "rejected",
     v1UpgradeBehavior: "not-supported",
     mixedVersionLookup: "not-supported",
+    revisionBehavior: "monotonic-lifecycle-persistent",
+    fencingTokenBehavior: "monotonic-lifecycle-persistent",
+    reservationAttemptBehavior: "monotonic-lifecycle-persistent",
+    activeEvidenceRelationship: "independent",
+    terminalContinuityBehavior: "preserved",
+    replayIdentityMutation: "prohibited",
+    fingerprintMutation: "prohibited",
   };
 
   assert.equal(invariants.incompleteIdentityAcceptance, "rejected");
@@ -205,4 +226,68 @@ test("V2 invariants reject implicit V1 mixing and inference", () => {
     logicalSchemaVersion: "1.0",
   };
   assert.equal(v1Record.logicalSchemaVersion, "1.0");
+});
+
+test("persistent continuity is independent from active processing evidence", () => {
+  const processing = processingRecord(authoritativeIdentity);
+  const semantics: MultiCutReplayPersistentConcurrencyContinuitySemanticsV2 = {
+    semanticsVersion: "1.0",
+    revision: {
+      purpose: "record-mutation-cas",
+      lifecycle: "entire-replay-record-lifecycle",
+      owner: "replay-persistence",
+      generationAuthority: "postgresql",
+      mutationAuthority: "successful-authoritative-mutation-only",
+      persistenceSemantics: "lifecycle-persistent",
+      terminalSemantics: "retained",
+      retrySemantics: "never-predict-reconcile-first",
+      reconciliationSemantics: "compare-authoritative-persisted-value",
+    },
+    lastFencingToken: {
+      purpose: "ownership-epoch-successor-source",
+      lifecycle: "entire-replay-record-lifecycle",
+      owner: "replay-persistence",
+      generationAuthority: "postgresql",
+      mutationAuthority: "successful-authoritative-mutation-only",
+      persistenceSemantics: "lifecycle-persistent",
+      terminalSemantics: "retained",
+      retrySemantics: "never-predict-reconcile-first",
+      reconciliationSemantics: "compare-authoritative-persisted-value",
+    },
+    lastReservationAttempt: {
+      purpose: "ownership-acquisition-successor-source",
+      lifecycle: "entire-replay-record-lifecycle",
+      owner: "replay-persistence",
+      generationAuthority: "postgresql",
+      mutationAuthority: "successful-authoritative-mutation-only",
+      persistenceSemantics: "lifecycle-persistent",
+      terminalSemantics: "retained",
+      retrySemantics: "never-predict-reconcile-first",
+      reconciliationSemantics: "compare-authoritative-persisted-value",
+    },
+  };
+  const relationships: MultiCutReplayLogicalRecordRelationshipsV2 = {
+    relationshipVersion: "1.0",
+    replayRecord: {
+      replayIdentity: processing.recordIdentity,
+      persistentConcurrencyContinuity:
+        processing.persistentConcurrencyContinuity,
+      activeProcessingSession: processing.reservationEvidence,
+    },
+    boundary: {
+      persistentContinuityOwnsActiveLease: false,
+      activeSessionOwnsSuccessorAuthority: false,
+      terminalStateRetainsActiveSession: false,
+    },
+  };
+
+  assert.equal(semantics.lastFencingToken.terminalSemantics, "retained");
+  assert.equal(
+    relationships.replayRecord.persistentConcurrencyContinuity,
+    processing.persistentConcurrencyContinuity,
+  );
+  assert.notEqual(
+    relationships.replayRecord.activeProcessingSession,
+    processing.persistentConcurrencyContinuity,
+  );
 });
