@@ -4,6 +4,8 @@ export {
 
 export type {
   MultiCutReplayPersistenceParameterAuthorityV2,
+  MultiCutReplayPersistenceAttemptPolicyV2,
+  MultiCutReplayPersistenceDatabaseClockPolicyV2,
   MultiCutReplayPersistenceParameterContractV2,
   MultiCutReplayPersistenceParameterContractVersionV2,
   MultiCutReplayPersistenceParameterDirectionV2,
@@ -20,4 +22,11 @@ export type {
   MultiCutReplayPersistenceParameterTransactionVisibilityV2,
   MultiCutReplayPersistenceParameterValidationOwnerV2,
   MultiCutReplayPersistenceParameterValueTypeV2,
+  MultiCutReplayPersistenceLeaseDurationPolicyV2,
+  MultiCutReplayPersistencePostgresqlExpressionNameV2,
+  MultiCutReplayPersistencePostgresqlExpressionV2,
+  MultiCutReplayPersistencePostgresqlTypeV2,
+  MultiCutReplayPersistenceStaleLeasePolicyV2,
+  MultiCutReplayPersistenceStatementBindingV2,
+  MultiCutReplayPersistenceStatementIdV2,
 } from "./types";
