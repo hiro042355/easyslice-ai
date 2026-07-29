@@ -296,10 +296,7 @@ test("runtime boundary excludes infrastructure and public projector exports", as
     source,
     /export\s+(?:const|function)\s+projectRequestFingerprintIdentity/,
   );
-  assert.match(
-    source,
-    /const projectRequestFingerprintIdentity\s*=/,
-  );
+  assert.match(source, /from\s+"\.\/admissionIdentityGeneration"/);
   assert.match(source, /switch\s*\(replayResult\.status\)/);
   assert.match(source, /const unreachable:\s*never\s*=\s*replayResult/);
 });
