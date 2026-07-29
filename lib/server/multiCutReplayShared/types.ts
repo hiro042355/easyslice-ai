@@ -41,6 +41,12 @@ export type MultiCutReplayProtectedScope = Readonly<{
   operationIdentity: string;
 }>;
 
+export type MultiCutReplayAuthoritativeIdentity = Readonly<{
+  identityVersion: "2.0";
+  protectedScope: MultiCutReplayProtectedScope;
+  resolvedIdentity: MultiCutReplayResolvedIdentity;
+}>;
+
 export type MultiCutReplayReservationEvidence = Readonly<{
   evidenceVersion: "1.0";
   reservation: MultiCutReplayReservationIdentity;

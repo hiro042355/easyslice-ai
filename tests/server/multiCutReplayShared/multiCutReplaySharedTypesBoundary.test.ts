@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import type {
+  MultiCutReplayAuthoritativeIdentity,
   MultiCutReplayProtectedScope,
   MultiCutReplayReservationEvidence,
   MultiCutReplayResolvedIdentity,
@@ -69,9 +70,48 @@ test("shared replay values are readonly structural contracts", () => {
     referenceVersion: "1.0",
     resultReferenceIdentity: "result:shared",
   });
+  const authoritativeIdentity: MultiCutReplayAuthoritativeIdentity =
+    Object.freeze({
+      identityVersion: "2.0",
+      protectedScope: scope,
+      resolvedIdentity: identity,
+    });
 
   assert.equal(identity.identityVersion, "1.0");
   assert.equal(scope.tenant.protectedTenantIdentity, "tenant:protected");
+  assert.equal(authoritativeIdentity.identityVersion, "2.0");
+  assert.equal(
+    authoritativeIdentity.protectedScope.replayNamespace,
+    "multi-cut",
+  );
+  assert.equal(
+    authoritativeIdentity.resolvedIdentity.requestFingerprintIdentity,
+    "fingerprint:shared",
+  );
   assert.equal(evidence.reservationAttempt, 1);
   assert.equal(reference.resultReferenceIdentity, "result:shared");
+});
+
+test("identity schema v2 remains distinct from the v1 resolved identity", () => {
+  const v1: MultiCutReplayResolvedIdentity = {
+    identityVersion: "1.0",
+    keyIdentity: "key:shared",
+    requestFingerprintIdentity: "fingerprint:shared",
+  };
+  const v2: MultiCutReplayAuthoritativeIdentity = {
+    identityVersion: "2.0",
+    protectedScope: {
+      scopeVersion: "1.0",
+      replayNamespace: "multi-cut",
+      tenant: {
+        identityVersion: "1.0",
+        protectedTenantIdentity: "tenant:protected",
+      },
+      operationIdentity: "multi-cut:create",
+    },
+    resolvedIdentity: v1,
+  };
+
+  assert.notEqual(v1.identityVersion, v2.identityVersion);
+  assert.deepEqual(v2.resolvedIdentity, v1);
 });
