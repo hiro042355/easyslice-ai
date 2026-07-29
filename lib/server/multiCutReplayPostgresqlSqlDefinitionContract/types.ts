@@ -16,12 +16,37 @@ export type MultiCutReplaySqlDefinitionPlaceholderV2 = Readonly<{
 export type MultiCutReplaySqlDefinitionFieldMutationV2 = Readonly<{
   physicalField: string;
   action: "retain" | "replace" | "successor" | "clear" | "generated";
+  assignmentSource:
+    | "physical-field"
+    | "parameter-binding"
+    | "successor-reference"
+    | "literal-reference"
+    | "null-reference"
+    | "generated-expression-reference";
+  sourceReference: string;
+}>;
+
+export type MultiCutReplaySqlDefinitionPredicateV2 = Readonly<{
+  physicalField: string;
+  comparisonOperator: "=" | "<=";
+  comparisonSource: "placeholder" | "literal" | "expression-reference";
+  sourceReference: string;
+  literalSource: "none" | "statement-lifecycle-authority";
+  nullSemantics: "null-never-matches" | "null-is-ineligible";
+  evaluationRole: "identity" | "fingerprint" | "state" | "concurrency" | "processing" | "stale" | "none";
+}>;
+
+export type MultiCutReplaySqlDefinitionProjectionFieldV2 = Readonly<{
+  physicalField: string;
+  logicalOutput: string;
+  canonicalAlias: string;
 }>;
 
 export type MultiCutReplaySqlDefinitionProjectionV2 = Readonly<{
   kind: "select" | "returning" | "reconciliation";
-  orderedPhysicalFields: readonly string[];
+  orderedFields: readonly MultiCutReplaySqlDefinitionProjectionFieldV2[];
   responsibility: "authoritative-read" | "mutation-result" | "commit-unknown-reconciliation";
+  purpose: "lookup" | "returning" | "reconciliation";
 }>;
 
 export type MultiCutReplaySqlDefinitionStatementV2 = Readonly<{
@@ -44,13 +69,21 @@ export type MultiCutReplaySqlDefinitionStatementV2 = Readonly<{
   }>;
   invariantViolationContract: "fail-closed";
   placeholders: readonly MultiCutReplaySqlDefinitionPlaceholderV2[];
-  orderedPredicates: readonly string[];
+  orderedPredicates: readonly MultiCutReplaySqlDefinitionPredicateV2[];
   mutations: readonly MultiCutReplaySqlDefinitionFieldMutationV2[];
   projections: readonly MultiCutReplaySqlDefinitionProjectionV2[];
-  insertSources: readonly Readonly<{
-    physicalField: string;
-    source: "generated" | "binding" | "literal" | "retained" | "null";
-  }>[];
+  insertSources: readonly (
+    | Readonly<{ physicalField: string; source: "binding"; binding: string }>
+    | Readonly<{ physicalField: string; source: "literal"; exactLiteral: string; sourceAuthority: string }>
+    | Readonly<{ physicalField: string; source: "generated"; generatedAuthority: "postgresql"; expressionReference: string }>
+    | Readonly<{ physicalField: string; source: "retained"; retainedReference: string }>
+    | Readonly<{ physicalField: string; source: "null"; nullAuthority: "physical-state-nullability" }>
+  )[];
+  successorReferences: Readonly<{
+    revision: string | "not-used";
+    last_fencing_token: string | "not-used";
+    last_reservation_attempt: string | "not-used";
+  }>;
 }>;
 
 export type MultiCutReplaySqlDefinitionContractV2 = Readonly<{

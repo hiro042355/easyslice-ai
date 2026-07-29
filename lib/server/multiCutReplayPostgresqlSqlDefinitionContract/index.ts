@@ -7,5 +7,7 @@ export type {
   MultiCutReplaySqlDefinitionFieldMutationV2,
   MultiCutReplaySqlDefinitionPlaceholderV2,
   MultiCutReplaySqlDefinitionProjectionV2,
+  MultiCutReplaySqlDefinitionProjectionFieldV2,
+  MultiCutReplaySqlDefinitionPredicateV2,
   MultiCutReplaySqlDefinitionStatementV2,
 } from "./types";

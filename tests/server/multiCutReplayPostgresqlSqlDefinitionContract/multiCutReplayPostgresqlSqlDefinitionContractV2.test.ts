@@ -51,7 +51,9 @@ test("predicate and continuity order are fixed", () => {
     ({ statementId }) => statementId === "resolve-existing-replay",
   );
   const positions = contract.canonicalContinuityOrder.map((field) =>
-    released?.orderedPredicates.indexOf(field),
+    released?.orderedPredicates.findIndex(
+      ({ physicalField }) => physicalField === field,
+    ),
   );
   assert.ok(positions.every((position) => position !== undefined && position >= 0));
   assert.deepEqual(positions, [...positions].sort((left, right) => left! - right!));
@@ -67,12 +69,76 @@ test("mutation and projection matrices cover every physical field", () => {
       statement.statementId,
     );
     assert.ok(statement.projections.length >= 2, statement.statementId);
+    for (const projection of statement.projections) {
+      for (const field of projection.orderedFields) {
+        assert.ok(field.physicalField);
+        assert.ok(field.logicalOutput);
+        assert.equal(field.canonicalAlias, field.physicalField);
+      }
+    }
     assert.deepEqual(statement.cardinality, {
       success: "one",
       zeroAllowed: true,
       multiple: "invariant-violation",
     });
     assert.equal(statement.zeroRowContract.ambiguity, "not-single-cause");
+  }
+});
+
+test("predicate authority is complete and source-explicit", () => {
+  for (const statement of contract.statements) {
+    for (const predicate of statement.orderedPredicates) {
+      assert.ok(predicate.comparisonOperator, statement.statementId);
+      assert.ok(predicate.comparisonSource, statement.statementId);
+      assert.ok(predicate.sourceReference, statement.statementId);
+      assert.ok(predicate.literalSource, statement.statementId);
+      assert.ok(predicate.nullSemantics, statement.statementId);
+      assert.ok(predicate.evaluationRole, statement.statementId);
+    }
+  }
+  const released = contract.statements.find(
+    ({ statementId }) => statementId === "resolve-existing-replay",
+  );
+  assert.deepEqual(
+    released?.orderedPredicates.find(({ physicalField }) => physicalField === "state"),
+    {
+      physicalField: "state",
+      comparisonOperator: "=",
+      comparisonSource: "literal",
+      sourceReference: "literal:released",
+      literalSource: "statement-lifecycle-authority",
+      nullSemantics: "null-never-matches",
+      evaluationRole: "state",
+    },
+  );
+});
+
+test("assignment and successor authorities are complete", () => {
+  for (const statement of contract.statements) {
+    for (const mutation of statement.mutations) {
+      assert.ok(mutation.assignmentSource, statement.statementId);
+      assert.ok(mutation.sourceReference, statement.statementId);
+    }
+    for (const field of contract.canonicalContinuityOrder) {
+      const reference = statement.successorReferences[field];
+      assert.ok(reference === "not-used" || reference === `parameter-successor:${field}`);
+    }
+  }
+});
+
+test("insert literals and generated values identify their authority", () => {
+  const insert = contract.statements.find(
+    ({ statementId }) => statementId === "resolve-new-reservation",
+  );
+  for (const source of insert?.insertSources ?? []) {
+    if (source.source === "literal") {
+      assert.ok(source.exactLiteral);
+      assert.ok(source.sourceAuthority);
+    }
+    if (source.source === "generated") {
+      assert.equal(source.generatedAuthority, "postgresql");
+      assert.ok(source.expressionReference);
+    }
   }
 });
 

@@ -10,6 +10,7 @@ import {
 } from "../multiCutReplayPostgresqlStatementCatalog/catalog";
 import type {
   MultiCutReplaySqlDefinitionContractV2,
+  MultiCutReplaySqlDefinitionFieldMutationV2,
   MultiCutReplaySqlDefinitionPlaceholderV2,
   MultiCutReplaySqlDefinitionStatementV2,
 } from "./types";
@@ -113,6 +114,18 @@ const makePlaceholders = (
 const projectionFields = (bindings: readonly string[]): readonly string[] =>
   Object.freeze([...new Set(bindings.flatMap(flattenInput))]);
 
+const projectionAuthority = (fields: readonly string[]) =>
+  Object.freeze(
+    fields.map((physicalField) =>
+      Object.freeze({
+        physicalField,
+        logicalOutput:
+          columnByName.get(physicalField)?.logicalSource ?? physicalField,
+        canonicalAlias: physicalField,
+      }),
+    ),
+  );
+
 const makeStatement = (
   statementId: (typeof statementIds)[number],
 ): MultiCutReplaySqlDefinitionStatementV2 => {
@@ -147,13 +160,69 @@ const makeStatement = (
       "lease_expires_at",
     ].forEach((field) => actionByField.set(field, "generated"));
   }
-  const mutations = physical.table.columns.map(({ name }) => ({
-    physicalField: name,
-    action: actionByField.get(name) ?? "retain",
-  } as const));
+  if (statementId === "resolve-existing-replay") {
+    parameters.releasedRereservation.mutation.update.forEach((field) =>
+      actionByField.set(
+        field,
+        continuityFields.includes(field as never) ? "successor" : "replace",
+      ),
+    );
+    parameters.releasedRereservation.mutation.clear.forEach((field) =>
+      actionByField.set(field, "clear"),
+    );
+  }
+  if (["complete-processing-replay", "fail-processing-replay", "release-processing-replay"].includes(statementId)) {
+    ["state", "terminal_metadata_version", "terminal_at", "terminal_classification"]
+      .forEach((field) => actionByField.set(field, "replace"));
+    if (statementId === "complete-processing-replay") {
+      ["result_reference_version", "result_reference_identity"]
+        .forEach((field) => actionByField.set(field, "replace"));
+    } else {
+      ["result_reference_version", "result_reference_identity"]
+        .forEach((field) => actionByField.set(field, "clear"));
+    }
+  }
+  if (statementId === "takeover-stale-processing-replay") {
+    actionByField.set("state", "replace");
+  }
+  const inputBindingByField = new Map<string, string>();
+  binding.inputBindings.forEach((input) =>
+    flattenInput(input).forEach((field) => inputBindingByField.set(field, input)),
+  );
+  const literalByStatement: Readonly<Record<string, string>> = Object.freeze({
+    "resolve-existing-replay": "processing",
+    "complete-processing-replay": "completed",
+    "fail-processing-replay": "failed",
+    "release-processing-replay": "released",
+    "takeover-stale-processing-replay": "processing",
+  });
+  const mutations = physical.table.columns.map(({ name }) => {
+    const action = actionByField.get(name) ?? "retain";
+    const assignment: readonly [
+      MultiCutReplaySqlDefinitionFieldMutationV2["assignmentSource"],
+      string,
+    ] =
+      action === "retain"
+        ? ["physical-field", name]
+        : action === "clear"
+          ? ["null-reference", "null"]
+          : action === "successor"
+            ? ["successor-reference", `successor:${name}`]
+            : action === "generated"
+              ? ["generated-expression-reference", `initial:${name}`]
+              : name === "state"
+                ? ["literal-reference", `literal:${literalByStatement[statementId]}`]
+                : ["parameter-binding", inputBindingByField.get(name) ?? `projection:${name}`];
+    return Object.freeze({
+      physicalField: name,
+      action,
+      assignmentSource: assignment[0],
+      sourceReference: assignment[1],
+    });
+  });
   const returning = projectionFields(binding.returningBindings);
   const isLookup = entry.accessMode === "read";
-  const orderedPredicates = [
+  const orderedPredicateFields = [
     ...identityFields,
     ...(binding.inputBindings.includes("request_fingerprint_identity")
       ? fingerprintFields
@@ -176,21 +245,87 @@ const makeStatement = (
     ...processingFields.filter((field) =>
       binding.inputBindings.some((input) => flattenInput(input).includes(field)),
     ),
+    ...(statementId === "takeover-stale-processing-replay"
+      ? ["lease_expires_at"]
+      : []),
   ];
+  const stateLiteral =
+    statementId === "resolve-existing-replay" ? "released" : "processing";
+  const placeholders = makePlaceholders(binding.inputBindings);
+  const placeholderByField = new Map(
+    placeholders.map((placeholder) => [
+      placeholder.physicalField,
+      placeholder.placeholder,
+    ]),
+  );
+  const orderedPredicates = orderedPredicateFields.map((physicalField) => {
+    const role =
+      physicalField === "lease_expires_at"
+        ? "stale"
+        : comparisonRole(physicalField);
+    const isState = physicalField === "state";
+    const isStale = role === "stale";
+    return Object.freeze({
+      physicalField,
+      comparisonOperator: isStale ? "<=" : "=",
+      comparisonSource:
+        isState ? "literal" : isStale ? "expression-reference" : "placeholder",
+      sourceReference:
+        isState
+          ? `literal:${stateLiteral}`
+          : isStale
+            ? "postgresql-expression:authoritative-current-time"
+            : placeholderByField.get(physicalField) ?? `binding:${physicalField}`,
+      literalSource: isState ? "statement-lifecycle-authority" : "none",
+      nullSemantics: isStale ? "null-is-ineligible" : "null-never-matches",
+      evaluationRole: role,
+    } as const);
+  });
+  const insertBindingByField = new Map<string, string>();
+  binding.inputBindings.forEach((input) =>
+    flattenInput(input).forEach((field) => insertBindingByField.set(field, input)),
+  );
   const insertSources = statementId === "resolve-new-reservation"
-    ? physical.table.columns.map(({ name }) => ({
-        physicalField: name,
-        source: identityFields.includes(name) ||
-          fingerprintFields.includes(name as never) ||
-          ["internal_record_id", "reservation_identity", "lease_identity"].includes(name)
-          ? "binding"
-          : ["physical_schema_version", "logical_schema_version", "identity_version", "scope_version", "state"].includes(name)
-            ? "literal"
-            : [...continuityFields, "fencing_token", "reservation_attempt", "lease_expires_at"].includes(name as never)
-              ? "generated"
-              : "null",
-      } as const))
+    ? physical.table.columns.map(({ name }) => {
+        const inputBinding = insertBindingByField.get(name);
+        if (inputBinding) {
+          return { physicalField: name, source: "binding", binding: inputBinding } as const;
+        }
+        const literalValues: Readonly<Record<string, string>> = Object.freeze({
+          state: "processing",
+          reservation_evidence_version: "1.0",
+          reservation_version: "1.0",
+          expected_revision_version: "1.0",
+          fencing_version: "1.0",
+          lease_version: "1.0",
+        });
+        if (literalValues[name]) {
+          return {
+            physicalField: name,
+            source: "literal",
+            exactLiteral: literalValues[name],
+            sourceAuthority:
+              name === "state" ? "logical-schema-v2" : "replay-contracts-v4",
+          } as const;
+        }
+        if ([
+          ...continuityFields,
+          "expected_revision",
+          "fencing_token",
+          "reservation_attempt",
+        ].includes(name as never)) {
+          return { physicalField: name, source: "generated", generatedAuthority: "postgresql", expressionReference: `initial:${name}` } as const;
+        }
+        if (name === "lease_expires_at") {
+          return { physicalField: name, source: "generated", generatedAuthority: "postgresql", expressionReference: "postgresql-expression:initial-lease-expiry" } as const;
+        }
+        return { physicalField: name, source: "null", nullAuthority: "physical-state-nullability" } as const;
+      })
     : [];
+  const successor = (field: typeof continuityFields[number]) =>
+    semantics.persistentContinuity.advance.includes(field)
+      ? `parameter-successor:${field}`
+      : "not-used";
   return Object.freeze({
     statementId,
     operationClass: entry.operationKind,
@@ -211,24 +346,31 @@ const makeStatement = (
       commitUnknown: binding.cardinality.commitUnknown,
     }),
     invariantViolationContract: "fail-closed",
-    placeholders: makePlaceholders(binding.inputBindings),
+    placeholders,
     orderedPredicates: Object.freeze(orderedPredicates),
     mutations: Object.freeze(mutations),
     projections: Object.freeze([
       Object.freeze({
         kind: isLookup ? "select" : "returning",
-        orderedPhysicalFields: returning,
+        orderedFields: projectionAuthority(returning),
         responsibility: isLookup ? "authoritative-read" : "mutation-result",
+        purpose: isLookup ? "lookup" : "returning",
       }),
       Object.freeze({
         kind: "reconciliation",
-        orderedPhysicalFields: projectionFields(
-          parameters.releasedRereservation.returningBindings,
+        orderedFields: projectionAuthority(
+          projectionFields(parameters.releasedRereservation.returningBindings),
         ),
         responsibility: "commit-unknown-reconciliation",
+        purpose: "reconciliation",
       }),
     ]),
     insertSources: Object.freeze(insertSources),
+    successorReferences: Object.freeze({
+      revision: successor("revision"),
+      last_fencing_token: successor("last_fencing_token"),
+      last_reservation_attempt: successor("last_reservation_attempt"),
+    }),
   });
 };
 
