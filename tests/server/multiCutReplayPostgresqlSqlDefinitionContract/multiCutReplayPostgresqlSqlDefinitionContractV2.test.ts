@@ -121,7 +121,130 @@ test("assignment and successor authorities are complete", () => {
     }
     for (const field of contract.canonicalContinuityOrder) {
       const reference = statement.successorReferences[field];
-      assert.ok(reference === "not-used" || reference === `parameter-successor:${field}`);
+      assert.ok(
+        reference === "not-used" ||
+          reference === `successor:${statement.statementId}:${field}:checked` ||
+          reference === `successor:${statement.statementId}:${field}:retain`,
+      );
+    }
+  }
+});
+
+test("reference registry is unique and resolves every assignment and successor", () => {
+  const ids = contract.referenceRegistry.map(({ referenceId }) => referenceId);
+  assert.equal(new Set(ids).size, ids.length);
+  const registry = new Map(
+    contract.referenceRegistry.map((entry) => [entry.referenceId, entry]),
+  );
+  for (const required of [
+    "parameter-successor:revision",
+    "parameter-successor:last_fencing_token",
+    "parameter-successor:last_reservation_attempt",
+    "initial:revision",
+    "initial:last_fencing_token",
+    "initial:last_reservation_attempt",
+    "initial:state",
+    "initial:schema_version",
+    "projection:lookup",
+    "projection:returning",
+    "projection:reconciliation",
+  ]) {
+    assert.ok(registry.has(required), required);
+  }
+  for (const statement of contract.statements) {
+    for (const mutation of statement.mutations) {
+      const resolution = registry.get(mutation.sourceReference);
+      assert.ok(resolution, mutation.sourceReference);
+      assert.equal(resolution.targetMetadata.physicalFields.length, 1);
+      assert.equal(
+        resolution.targetMetadata.physicalFields[0],
+        mutation.physicalField,
+      );
+      assert.doesNotMatch(resolution.targetMetadata.valueReference, /^projection:/);
+    }
+    for (const reference of Object.values(statement.successorReferences)) {
+      assert.ok(reference === "not-used" || registry.has(reference), reference);
+    }
+  }
+});
+
+test("checked successors share one authoritative expression per reference", () => {
+  const checked = contract.referenceRegistry.filter(
+    ({ referenceId }) =>
+      referenceId.startsWith("successor:") && referenceId.endsWith(":checked"),
+  );
+  assert.ok(checked.length > 0);
+  for (const resolution of checked) {
+    assert.equal(
+      resolution.expressionSharing,
+      "same-reference-same-authoritative-expression",
+    );
+    assert.match(
+      resolution.targetMetadata.valueReference,
+      /^parameter-successor:/,
+    );
+  }
+});
+
+test("lookup projection registry is complete and absence is explicit", () => {
+  assert.deepEqual(
+    contract.lookupProjectionRegistry.map(({ group }) => group),
+    [
+      "identity",
+      "protected-scope",
+      "semantic-fingerprint",
+      "replay-state",
+      "persistent-continuity",
+      "active-processing-evidence",
+      "terminal-metadata",
+      "result-metadata",
+      "reconciliation-metadata",
+      "created-metadata",
+      "updated-metadata",
+    ],
+  );
+  const projected = new Set(
+    contract.lookupProjectionRegistry
+      .filter(({ availability }) => availability === "projected")
+      .flatMap(({ physicalFields }) => physicalFields),
+  );
+  const physicalFields =
+    MULTI_CUT_REPLAY_PHYSICAL_SCHEMA_V2.table.columns.map(({ name }) => name);
+  assert.equal(projected.size, physicalFields.length);
+  assert.ok(physicalFields.every((field) => projected.has(field)));
+  for (const group of contract.lookupProjectionRegistry.filter(
+    ({ group }) => group === "created-metadata" || group === "updated-metadata",
+  )) {
+    assert.equal(group.availability, "not-present-in-physical-schema");
+    assert.equal(group.resolutionRule, "explicitly-omit");
+  }
+  const lookup = contract.statements.find(
+    ({ statementId }) => statementId === "lookup-authoritative-replay",
+  );
+  assert.deepEqual(
+    lookup?.projections[0]?.orderedFields.map(({ physicalField }) => physicalField),
+    physicalFields,
+  );
+});
+
+test("zero-row contracts define logical-attempt reuse by statement responsibility", () => {
+  const lookup = contract.statements.find(
+    ({ statementId }) => statementId === "lookup-authoritative-replay",
+  );
+  assert.equal(lookup?.zeroRowContract.logicalAttemptReuse, "repeat-authoritative-read");
+  for (const statement of contract.statements) {
+    assert.ok(statement.zeroRowContract.logicalAttemptReuse);
+    if (
+      [
+        "complete-processing-replay",
+        "fail-processing-replay",
+        "release-processing-replay",
+      ].includes(statement.statementId)
+    ) {
+      assert.equal(
+        statement.zeroRowContract.logicalAttemptReuse,
+        "reuse-terminal-intent",
+      );
     }
   }
 });

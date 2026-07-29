@@ -66,6 +66,10 @@ export type MultiCutReplaySqlDefinitionStatementV2 = Readonly<{
     lookupRequired: boolean;
     reconciliationRequired: boolean;
     commitUnknown: string;
+    logicalAttemptReuse:
+      | "reuse-intent-and-expectations"
+      | "repeat-authoritative-read"
+      | "reuse-terminal-intent";
   }>;
   invariantViolationContract: "fail-closed";
   placeholders: readonly MultiCutReplaySqlDefinitionPlaceholderV2[];
@@ -84,6 +88,48 @@ export type MultiCutReplaySqlDefinitionStatementV2 = Readonly<{
     last_fencing_token: string | "not-used";
     last_reservation_attempt: string | "not-used";
   }>;
+}>;
+
+export type MultiCutReplaySqlReferenceResolutionV2 = Readonly<{
+  referenceId: string;
+  authorityOwner:
+    | "parameter-contract"
+    | "physical-schema"
+    | "logical-schema"
+    | "statement-catalog"
+    | "sql-definition-contract";
+  resolutionKind:
+    | "binding"
+    | "literal"
+    | "generated"
+    | "retained"
+    | "cleared"
+    | "successor"
+    | "projection";
+  targetMetadata: Readonly<{
+    physicalFields: readonly string[];
+    valueReference: string;
+  }>;
+  deterministicResolutionRule: string;
+  expressionSharing: "same-reference-same-authoritative-expression" | "not-applicable";
+}>;
+
+export type MultiCutReplaySqlLookupProjectionGroupV2 = Readonly<{
+  group:
+    | "identity"
+    | "protected-scope"
+    | "semantic-fingerprint"
+    | "replay-state"
+    | "persistent-continuity"
+    | "active-processing-evidence"
+    | "terminal-metadata"
+    | "result-metadata"
+    | "reconciliation-metadata"
+    | "created-metadata"
+    | "updated-metadata";
+  physicalFields: readonly string[];
+  availability: "projected" | "not-present-in-physical-schema";
+  resolutionRule: "project-in-order" | "explicitly-omit";
 }>;
 
 export type MultiCutReplaySqlDefinitionContractV2 = Readonly<{
@@ -108,4 +154,7 @@ export type MultiCutReplaySqlDefinitionContractV2 = Readonly<{
     last_fencing_token: "last_fencing_token";
     last_reservation_attempt: "last_reservation_attempt";
   }>;
+  referenceRegistry: readonly MultiCutReplaySqlReferenceResolutionV2[];
+  lookupProjectionRegistry:
+    readonly MultiCutReplaySqlLookupProjectionGroupV2[];
 }>;

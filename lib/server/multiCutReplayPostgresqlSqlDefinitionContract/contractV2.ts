@@ -12,6 +12,8 @@ import type {
   MultiCutReplaySqlDefinitionContractV2,
   MultiCutReplaySqlDefinitionFieldMutationV2,
   MultiCutReplaySqlDefinitionPlaceholderV2,
+  MultiCutReplaySqlLookupProjectionGroupV2,
+  MultiCutReplaySqlReferenceResolutionV2,
   MultiCutReplaySqlDefinitionStatementV2,
 } from "./types";
 
@@ -50,6 +52,45 @@ const processingFields = [
   "lease_expires_at",
   "reservation_attempt",
 ] as const;
+
+const lookupProjectionGroup = (
+  group: MultiCutReplaySqlLookupProjectionGroupV2["group"],
+  physicalFields: readonly string[],
+  availability: MultiCutReplaySqlLookupProjectionGroupV2["availability"],
+  resolutionRule: MultiCutReplaySqlLookupProjectionGroupV2["resolutionRule"],
+): MultiCutReplaySqlLookupProjectionGroupV2 =>
+  Object.freeze({
+    group,
+    physicalFields: Object.freeze([...physicalFields]),
+    availability,
+    resolutionRule,
+  });
+
+const lookupProjectionRegistry:
+  readonly MultiCutReplaySqlLookupProjectionGroupV2[] = Object.freeze([
+  lookupProjectionGroup("identity", ["internal_record_id", "physical_schema_version", "logical_schema_version", "identity_version", "key_identity"], "projected", "project-in-order"),
+  lookupProjectionGroup("protected-scope", ["scope_version", "replay_namespace", "tenant_identity_version", "protected_tenant_identity", "operation_identity"], "projected", "project-in-order"),
+  lookupProjectionGroup("semantic-fingerprint", ["request_fingerprint_identity"], "projected", "project-in-order"),
+  lookupProjectionGroup("replay-state", ["state"], "projected", "project-in-order"),
+  lookupProjectionGroup("persistent-continuity", continuityFields, "projected", "project-in-order"),
+  lookupProjectionGroup("active-processing-evidence", processingFields, "projected", "project-in-order"),
+  lookupProjectionGroup("terminal-metadata", ["terminal_metadata_version", "terminal_at", "terminal_classification"], "projected", "project-in-order"),
+  lookupProjectionGroup("result-metadata", ["result_reference_version", "result_reference_identity"], "projected", "project-in-order"),
+  lookupProjectionGroup("reconciliation-metadata", ["state", ...continuityFields, ...processingFields, "result_reference_version", "result_reference_identity", "terminal_metadata_version", "terminal_at", "terminal_classification"], "projected", "project-in-order"),
+  lookupProjectionGroup("created-metadata", [], "not-present-in-physical-schema", "explicitly-omit"),
+  lookupProjectionGroup("updated-metadata", [], "not-present-in-physical-schema", "explicitly-omit"),
+]);
+
+const lookupProjectionFieldSet = new Set(
+  lookupProjectionRegistry
+    .filter(({ availability }) => availability === "projected")
+    .flatMap(({ physicalFields }) => physicalFields),
+);
+const lookupProjectionFields = Object.freeze(
+  physical.table.columns
+    .map(({ name }) => name)
+    .filter((name) => lookupProjectionFieldSet.has(name)),
+);
 
 const flattenInput = (binding: string): readonly string[] => {
   const parameter = parameterByBinding.get(binding);
@@ -217,7 +258,7 @@ const makeStatement = (
       physicalField: name,
       action,
       assignmentSource: assignment[0],
-      sourceReference: assignment[1],
+      sourceReference: `assignment:${statementId}:${name}`,
     });
   });
   const returning = projectionFields(binding.returningBindings);
@@ -324,8 +365,10 @@ const makeStatement = (
     : [];
   const successor = (field: typeof continuityFields[number]) =>
     semantics.persistentContinuity.advance.includes(field)
-      ? `parameter-successor:${field}`
-      : "not-used";
+      ? `successor:${statementId}:${field}:checked`
+      : !actionByField.has(field)
+        ? `successor:${statementId}:${field}:retain`
+        : "not-used";
   return Object.freeze({
     statementId,
     operationClass: entry.operationKind,
@@ -344,6 +387,16 @@ const makeStatement = (
       reconciliationRequired:
         binding.cardinality.zeroRowNextAction === "authoritative-reconciliation",
       commitUnknown: binding.cardinality.commitUnknown,
+      logicalAttemptReuse:
+        statementId === "lookup-authoritative-replay"
+          ? "repeat-authoritative-read"
+          : [
+                "complete-processing-replay",
+                "fail-processing-replay",
+                "release-processing-replay",
+              ].includes(statementId)
+            ? "reuse-terminal-intent"
+            : "reuse-intent-and-expectations",
     }),
     invariantViolationContract: "fail-closed",
     placeholders,
@@ -352,7 +405,9 @@ const makeStatement = (
     projections: Object.freeze([
       Object.freeze({
         kind: isLookup ? "select" : "returning",
-        orderedFields: projectionAuthority(returning),
+        orderedFields: projectionAuthority(
+          isLookup ? lookupProjectionFields : returning,
+        ),
         responsibility: isLookup ? "authoritative-read" : "mutation-result",
         purpose: isLookup ? "lookup" : "returning",
       }),
@@ -374,6 +429,170 @@ const makeStatement = (
   });
 };
 
+const statements = Object.freeze(statementIds.map(makeStatement));
+
+const reference = (
+  referenceId: string,
+  authorityOwner: MultiCutReplaySqlReferenceResolutionV2["authorityOwner"],
+  resolutionKind: MultiCutReplaySqlReferenceResolutionV2["resolutionKind"],
+  physicalFields: readonly string[],
+  valueReference: string,
+  deterministicResolutionRule: string,
+  shared = false,
+): MultiCutReplaySqlReferenceResolutionV2 =>
+  Object.freeze({
+    referenceId,
+    authorityOwner,
+    resolutionKind,
+    targetMetadata: Object.freeze({
+      physicalFields: Object.freeze([...physicalFields]),
+      valueReference,
+    }),
+    deterministicResolutionRule,
+    expressionSharing: shared
+      ? "same-reference-same-authoritative-expression"
+      : "not-applicable",
+  });
+
+const baseReferences: readonly MultiCutReplaySqlReferenceResolutionV2[] = [
+  ...continuityFields.map((field) =>
+    reference(
+      `parameter-successor:${field}`,
+      "parameter-contract",
+      "successor",
+      [field],
+      field,
+      "resolve-the-authoritative-successor-declared-by-the-parameter-contract",
+      true,
+    ),
+  ),
+  ...[
+    "revision",
+    "last_fencing_token",
+    "last_reservation_attempt",
+    "expected_revision",
+    "fencing_token",
+    "reservation_attempt",
+    "lease_expires_at",
+  ].map((field) =>
+    reference(
+      `initial:${field}`,
+      "parameter-contract",
+      "generated",
+      [field],
+      `initial-${field}`,
+      "resolve-the-authoritative-initial-value-declared-by-the-parameter-contract",
+      true,
+    ),
+  ),
+  reference("initial:state", "logical-schema", "literal", ["state"], "processing", "resolve-the-initial-state-literal-from-the-logical-schema"),
+  reference("initial:schema_version", "physical-schema", "literal", ["physical_schema_version", "logical_schema_version", "identity_version"], "2.0", "resolve-the-version-literal-from-the-version-pinned-schema-contracts"),
+  ...(["lookup", "returning", "reconciliation"] as const).map((purpose) =>
+    reference(
+      `projection:${purpose}`,
+      "sql-definition-contract",
+      "projection",
+      purpose === "lookup" ? lookupProjectionFields : [],
+      purpose,
+      "resolve-the-canonical-projection-for-the-declared-purpose",
+    ),
+  ),
+];
+
+const successorReferenceRegistry = statements.flatMap((statement) =>
+  continuityFields.flatMap((field) => {
+    const referenceId = statement.successorReferences[field];
+    if (referenceId === "not-used") {
+      return [];
+    }
+    const checked = referenceId.endsWith(":checked");
+    return [
+      reference(
+        referenceId,
+        checked ? "parameter-contract" : "physical-schema",
+        checked ? "successor" : "retained",
+        [field],
+        checked ? `parameter-successor:${field}` : `physical-field:${field}`,
+        checked
+          ? "resolve-once-from-the-checked-parameter-successor-and-share-with-all-consumers"
+          : "retain-the-authoritative-persisted-value",
+        checked,
+      ),
+    ];
+  }),
+);
+
+const assignmentReferenceRegistry = statements.flatMap((statement) =>
+  statement.mutations.map((mutation) => {
+    const field = mutation.physicalField;
+    const placeholder = statement.placeholders.find(
+      ({ physicalField }) => physicalField === field,
+    );
+    const successorField =
+      field === "fencing_token"
+        ? "last_fencing_token"
+        : field === "reservation_attempt"
+          ? "last_reservation_attempt"
+          : continuityFields.includes(field as never)
+            ? field
+            : undefined;
+    const statementSuccessor = successorField
+      ? statement.successorReferences[
+          successorField as keyof typeof statement.successorReferences
+        ]
+      : "not-used";
+    const source =
+      mutation.action === "retain"
+        ? `physical-field:${field}`
+        : mutation.action === "clear"
+          ? "null"
+          : mutation.action === "successor"
+            ? statementSuccessor
+            : mutation.action === "generated"
+              ? `initial:${field}`
+              : field === "state"
+                ? `literal:statement-state:${statement.statementId}`
+                : field === "lease_expires_at"
+                  ? `postgresql-expression:${statement.statementId}:lease-expiry`
+                  : placeholder
+                    ? `binding:${placeholder.parameterBinding}`
+                    : `literal:contract-defined:${statement.statementId}:${field}`;
+    const kind =
+      mutation.action === "retain"
+        ? "retained"
+        : mutation.action === "clear"
+          ? "cleared"
+          : mutation.action === "successor"
+            ? "successor"
+            : mutation.action === "generated"
+              ? "generated"
+              : source.startsWith("binding:")
+                ? "binding"
+                : source.startsWith("literal:")
+                  ? "literal"
+                  : "generated";
+    return reference(
+      mutation.sourceReference,
+      mutation.action === "retain" || mutation.action === "clear"
+        ? "physical-schema"
+        : mutation.action === "successor" || mutation.action === "generated"
+          ? "parameter-contract"
+          : "sql-definition-contract",
+      kind,
+      [field],
+      source,
+      `resolve-the-${kind}-assignment-source-without-projection-fallback`,
+      mutation.action === "successor",
+    );
+  }),
+);
+
+const referenceRegistry = Object.freeze([
+  ...baseReferences,
+  ...successorReferenceRegistry,
+  ...assignmentReferenceRegistry,
+]);
+
 export const MULTI_CUT_REPLAY_SQL_DEFINITION_CONTRACT_V2:
   MultiCutReplaySqlDefinitionContractV2 = Object.freeze({
   contractVersion: "2.0",
@@ -387,10 +606,12 @@ export const MULTI_CUT_REPLAY_SQL_DEFINITION_CONTRACT_V2:
     "processing",
   ] as const),
   canonicalContinuityOrder: Object.freeze(continuityFields),
-  statements: Object.freeze(statementIds.map(makeStatement)),
+  statements,
   successorSources: Object.freeze({
     revision: "revision",
     last_fencing_token: "last_fencing_token",
     last_reservation_attempt: "last_reservation_attempt",
   }),
+  referenceRegistry,
+  lookupProjectionRegistry,
 });
