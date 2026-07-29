@@ -104,6 +104,11 @@ export type MultiCutReplayPersistenceParameterNameV2 =
   | "initial_lease_expiry"
   | "initial_reservation_attempt"
   | "expected_revision"
+  | "expected_last_fencing_token"
+  | "expected_last_reservation_attempt"
+  | "successor_revision"
+  | "successor_fencing_token"
+  | "successor_reservation_attempt"
   | "expected_ownership_evidence"
   | "next_revision"
   | "expected_fence"
@@ -224,6 +229,119 @@ export type MultiCutReplayPersistenceStatementBindingV2 = Readonly<{
     | "reservation-reconciliation-after-unknown-commit"
     | "workflow-completion-recovery-after-unknown-commit"
     | "repeat-read";
+  cardinality: Readonly<{
+    successRows: 1;
+    zeroRowsAllowed: true;
+    multipleRows: "invariant-violation";
+    uniquenessDependency: "authoritative-protected-scope-and-key";
+    zeroRowNextAction:
+      | "authoritative-lookup"
+      | "authoritative-reconciliation"
+      | "not-found-or-authoritative-read";
+    commitUnknown:
+      | "authoritative-reconciliation-required"
+      | "repeat-authoritative-read";
+  }>;
+}>;
+
+export type MultiCutReplayPersistenceContinuityFieldV2 =
+  | "revision"
+  | "last_fencing_token"
+  | "last_reservation_attempt";
+
+export type MultiCutReplayPersistencePhysicalBindingV2 = Readonly<{
+  physicalColumn: MultiCutReplayPersistenceContinuityFieldV2;
+  postgresqlType: "text" | "integer";
+  nullable: false;
+  required: true;
+  logicalFieldPath:
+    | "persistentConcurrencyContinuity.revision"
+    | "persistentConcurrencyContinuity.lastFencingToken"
+    | "persistentConcurrencyContinuity.lastReservationAttempt";
+  generationOwner: "postgresql";
+  validationOwner: "postgresql-generation";
+  persistenceOwner: "postgresql";
+  comparisonRole: "cas-source" | "successor-source";
+  mutationRole: "advance-on-every-successful-mutation" | "advance-on-ownership-acquisition";
+  projectionRole: "return-and-reconcile";
+  retryReuseRule: "retain-expectation-never-predict-successor";
+  transactionVisibility: "generated-and-returned-atomically";
+  terminalBehavior: "advance" | "retain";
+}>;
+
+export type MultiCutReplayPersistenceSuccessorMetadataV2 = Readonly<{
+  field: MultiCutReplayPersistenceContinuityFieldV2;
+  sourcePhysicalField: MultiCutReplayPersistenceContinuityFieldV2;
+  progression: "exactly-one-successor";
+  generationAuthority: "postgresql";
+  maximum: "9223372036854775807" | 2147483647;
+  checkedExpression: string;
+  overflowClassification: "dependency-internal-failure";
+  retryClassification: "non-retryable-with-same-record-state";
+  transactionBehavior: "rollback-without-row-mutation";
+  reconciliationBehavior: "authoritative-lookup-before-any-retry";
+}>;
+
+export type MultiCutReplayPersistenceStatementSemanticsV2 = Readonly<{
+  statementId: MultiCutReplayPersistenceStatementIdV2;
+  persistentContinuity: Readonly<{
+    expected: readonly MultiCutReplayPersistenceContinuityFieldV2[];
+    advance: readonly MultiCutReplayPersistenceContinuityFieldV2[];
+    retain: readonly MultiCutReplayPersistenceContinuityFieldV2[];
+  }>;
+  activeProcessingEvidence: Readonly<{
+    replace: readonly string[];
+    retain: readonly string[];
+    clear: readonly string[];
+  }>;
+}>;
+
+export type MultiCutReplayPersistenceReleasedRereservationV2 = Readonly<{
+  statementId: "resolve-existing-replay";
+  orderedPredicates: readonly string[];
+  quarantinePolicy: "migration-eligibility-note-not-sql-predicate";
+  inputBindings: readonly string[];
+  mutation: Readonly<{
+    update: readonly string[];
+    clear: readonly string[];
+    preserve: readonly string[];
+  }>;
+  returningBindings: readonly string[];
+  zeroRow: Readonly<{
+    classification: "ambiguous-concurrency-miss";
+    possibleCauses: readonly string[];
+    nextAction: "authoritative-lookup-and-reconciliation";
+    retryClassification: "do-not-blindly-retry";
+    logicalAttemptReuse: "reuse-all-intent-and-expectation-bindings";
+  }>;
+  cardinality: Readonly<{
+    successRows: 1;
+    zeroRowsAllowed: true;
+    multipleRows: "invariant-violation";
+    uniquenessDependency: "authoritative-protected-scope-and-key";
+    commitUnknown: "authoritative-reconciliation-required";
+  }>;
+}>;
+
+export type MultiCutReplayPersistenceInitialContinuityV2 = Readonly<{
+  canonicalOrder: readonly [
+    "revision",
+    "last_fencing_token",
+    "last_reservation_attempt",
+  ];
+  fields: readonly Readonly<{
+    physicalField:
+      | "revision"
+      | "last_fencing_token"
+      | "last_reservation_attempt"
+      | "fencing_token"
+      | "reservation_attempt";
+    sourceKind: "fixed-literal";
+    value: "1";
+    generationOwner: "postgresql";
+    retryReuseRule: "never-predict-reconcile-first";
+    reconciliationRole: "authoritative-returned-evidence";
+  }>[];
 }>;
 
 export type MultiCutReplayPersistenceParameterMetadataV2 = Readonly<{
@@ -257,6 +375,12 @@ export type MultiCutReplayPersistenceParameterContractV2 = Readonly<{
     "replay-identity-authority-and-contract-versioning-adr-v1",
     "replay-concurrency-authority-and-generation-ownership-adr-v1",
     "replay-lease-and-attempt-persistence-policy-adr-v1",
+    "replay-terminal-boundary-concurrency-continuity-adr-v1",
+    "shared-identity-schema-v2",
+    "replay-contracts-v4",
+    "logical-schema-v2",
+    "physical-schema-v2",
+    "replay-persistence-statement-catalog",
   ];
   attemptPolicy: MultiCutReplayPersistenceAttemptPolicyV2;
   leaseDurationPolicy: MultiCutReplayPersistenceLeaseDurationPolicyV2;
@@ -266,6 +390,15 @@ export type MultiCutReplayPersistenceParameterContractV2 = Readonly<{
     readonly MultiCutReplayPersistencePostgresqlExpressionV2[];
   statementBindings:
     readonly MultiCutReplayPersistenceStatementBindingV2[];
+  physicalContinuityBindings:
+    readonly MultiCutReplayPersistencePhysicalBindingV2[];
+  continuitySuccessors:
+    readonly MultiCutReplayPersistenceSuccessorMetadataV2[];
+  initialContinuity: MultiCutReplayPersistenceInitialContinuityV2;
+  statementSemantics:
+    readonly MultiCutReplayPersistenceStatementSemanticsV2[];
+  releasedRereservation:
+    MultiCutReplayPersistenceReleasedRereservationV2;
   parameters: readonly MultiCutReplayPersistenceParameterMetadataV2[];
   readiness: Readonly<{
     sqlMayChooseAuthority: false;

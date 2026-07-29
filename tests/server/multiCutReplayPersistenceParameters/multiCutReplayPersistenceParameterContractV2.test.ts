@@ -56,6 +56,12 @@ test("every parameter has one complete authority and SQL binding", () => {
       "replay-identity-authority-and-contract-versioning-adr-v1",
       "replay-concurrency-authority-and-generation-ownership-adr-v1",
       "replay-lease-and-attempt-persistence-policy-adr-v1",
+      "replay-terminal-boundary-concurrency-continuity-adr-v1",
+      "shared-identity-schema-v2",
+      "replay-contracts-v4",
+      "logical-schema-v2",
+      "physical-schema-v2",
+      "replay-persistence-statement-catalog",
     ],
   );
 
@@ -72,6 +78,170 @@ test("every parameter has one complete authority and SQL binding", () => {
     assert.equal(bindingNames.has(item.sqlBindingName), false, item.sqlBindingName);
     bindingNames.add(item.sqlBindingName);
   }
+});
+
+test("persistent continuity bindings exactly match Physical Schema V2", () => {
+  assert.deepEqual(
+    contract.physicalContinuityBindings.map(({ physicalColumn }) => physicalColumn),
+    ["revision", "last_fencing_token", "last_reservation_attempt"],
+  );
+  const physicalColumns = new Map(
+    MULTI_CUT_REPLAY_PHYSICAL_SCHEMA_V2.table.columns.map((column) => [
+      column.name,
+      column,
+    ]),
+  );
+  for (const binding of contract.physicalContinuityBindings) {
+    const physical = physicalColumns.get(binding.physicalColumn);
+    assert.equal(binding.postgresqlType, physical?.type, binding.physicalColumn);
+    assert.equal(binding.nullable, physical?.nullable, binding.physicalColumn);
+    assert.equal(binding.generationOwner, "postgresql", binding.physicalColumn);
+    assert.equal(
+      binding.retryReuseRule,
+      "retain-expectation-never-predict-successor",
+      binding.physicalColumn,
+    );
+  }
+});
+
+test("continuity successors are exact, overflow-safe, and authoritative", () => {
+  assert.deepEqual(
+    contract.continuitySuccessors.map(({ sourcePhysicalField }) => sourcePhysicalField),
+    ["revision", "last_fencing_token", "last_reservation_attempt"],
+  );
+  for (const successor of contract.continuitySuccessors) {
+    assert.equal(successor.progression, "exactly-one-successor");
+    assert.equal(successor.generationAuthority, "postgresql");
+    assert.equal(
+      successor.overflowClassification,
+      "dependency-internal-failure",
+    );
+    assert.equal(
+      successor.retryClassification,
+      "non-retryable-with-same-record-state",
+    );
+    assert.equal(successor.transactionBehavior, "rollback-without-row-mutation");
+    assert.equal(
+      successor.reconciliationBehavior,
+      "authoritative-lookup-before-any-retry",
+    );
+    assert.ok(successor.checkedExpression.length > 0);
+  }
+});
+
+test("initial reservation uses one canonical continuity order and source", () => {
+  assert.deepEqual(contract.initialContinuity.canonicalOrder, [
+    "revision",
+    "last_fencing_token",
+    "last_reservation_attempt",
+  ]);
+  assert.deepEqual(
+    contract.initialContinuity.fields.map(({ physicalField }) => physicalField),
+    [
+      "revision",
+      "last_fencing_token",
+      "last_reservation_attempt",
+      "fencing_token",
+      "reservation_attempt",
+    ],
+  );
+  for (const field of contract.initialContinuity.fields) {
+    assert.equal(field.sourceKind, "fixed-literal");
+    assert.equal(field.value, "1");
+    assert.equal(field.generationOwner, "postgresql");
+  }
+});
+
+test("released re-reservation is complete without inventing quarantine SQL", () => {
+  const semantics = contract.releasedRereservation;
+  assert.equal(semantics.statementId, "resolve-existing-replay");
+  for (const predicate of [
+    "state=released",
+    "revision=expected_revision",
+    "last_fencing_token=expected_last_fencing_token",
+    "last_reservation_attempt=expected_last_reservation_attempt",
+  ]) {
+    assert.ok(semantics.orderedPredicates.includes(predicate), predicate);
+  }
+  assert.equal(
+    semantics.quarantinePolicy,
+    "migration-eligibility-note-not-sql-predicate",
+  );
+  for (const field of [
+    "revision",
+    "last_fencing_token",
+    "last_reservation_attempt",
+    "fencing_token",
+    "reservation_attempt",
+    "lease_identity",
+    "lease_expires_at",
+  ]) {
+    assert.ok(semantics.mutation.update.includes(field), field);
+    assert.ok(semantics.returningBindings.includes(field), field);
+  }
+  for (const immutable of [
+    "internal_record_id",
+    "key_identity",
+    "request_fingerprint_identity",
+  ]) {
+    assert.ok(semantics.mutation.preserve.includes(immutable), immutable);
+    assert.equal(semantics.mutation.update.includes(immutable), false, immutable);
+  }
+  assert.equal(semantics.zeroRow.classification, "ambiguous-concurrency-miss");
+  assert.equal(
+    semantics.zeroRow.nextAction,
+    "authoritative-lookup-and-reconciliation",
+  );
+  assert.deepEqual(semantics.cardinality, {
+    successRows: 1,
+    zeroRowsAllowed: true,
+    multipleRows: "invariant-violation",
+    uniquenessDependency: "authoritative-protected-scope-and-key",
+    commitUnknown: "authoritative-reconciliation-required",
+  });
+});
+
+test("renew, terminal, and takeover semantics preserve the authority split", () => {
+  const byId = new Map(
+    contract.statementSemantics.map((statement) => [
+      statement.statementId,
+      statement,
+    ]),
+  );
+  const renew = byId.get("renew-processing-reservation");
+  assert.deepEqual(renew?.persistentContinuity.advance, ["revision"]);
+  assert.deepEqual(renew?.persistentContinuity.retain, [
+    "last_fencing_token",
+    "last_reservation_attempt",
+  ]);
+  assert.deepEqual(renew?.activeProcessingEvidence.replace, ["lease_expires_at"]);
+  assert.ok(renew?.activeProcessingEvidence.retain.includes("fencing_token"));
+
+  for (const id of [
+    "complete-processing-replay",
+    "fail-processing-replay",
+    "release-processing-replay",
+  ] as const) {
+    const terminal = byId.get(id);
+    assert.deepEqual(terminal?.persistentContinuity.advance, ["revision"], id);
+    assert.ok(
+      terminal?.activeProcessingEvidence.clear.includes("fencing_token"),
+      id,
+    );
+    assert.ok(
+      terminal?.activeProcessingEvidence.clear.includes("reservation_attempt"),
+      id,
+    );
+  }
+
+  const takeover = byId.get("takeover-stale-processing-replay");
+  assert.deepEqual(takeover?.persistentContinuity.advance, [
+    "revision",
+    "last_fencing_token",
+    "last_reservation_attempt",
+  ]);
+  assert.ok(takeover?.activeProcessingEvidence.replace.includes("lease_identity"));
+  assert.ok(takeover?.activeProcessingEvidence.replace.includes("fencing_token"));
 });
 
 test("authoritative selector is complete and fingerprint is separate", () => {
@@ -173,7 +343,7 @@ test("attempt policy is complete and preserves independent evidence semantics", 
   assert.equal(initial?.expression, "1::integer");
   assert.equal(
     takeover?.expression,
-    "(reservation_attempt::bigint + 1)::integer",
+    "(last_reservation_attempt::bigint + 1)::integer",
   );
 });
 
@@ -263,6 +433,22 @@ test("all eight statements have complete input, returning, visibility, and retry
     assert.ok(statement.returningBindings.length > 0, statement.statementId);
     assert.ok(statement.transactionVisibility, statement.statementId);
     assert.ok(statement.retryRule, statement.statementId);
+    assert.equal(statement.cardinality.successRows, 1, statement.statementId);
+    assert.equal(
+      statement.cardinality.zeroRowsAllowed,
+      true,
+      statement.statementId,
+    );
+    assert.equal(
+      statement.cardinality.multipleRows,
+      "invariant-violation",
+      statement.statementId,
+    );
+    assert.equal(
+      statement.cardinality.uniquenessDependency,
+      "authoritative-protected-scope-and-key",
+      statement.statementId,
+    );
   }
 
   const completion = contract.statementBindings.find(
