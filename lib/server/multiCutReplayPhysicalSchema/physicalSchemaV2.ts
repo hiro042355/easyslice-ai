@@ -13,6 +13,9 @@ export type MultiCutReplayPhysicalSchemaV2 = Readonly<{
   constraints: readonly MultiCutReplayPhysicalConstraintV2[];
   indexes: readonly MultiCutReplayPhysicalIndexV2[];
   relationships: readonly MultiCutReplayPhysicalRelationshipV2[];
+  persistentConcurrencyContinuity:
+    MultiCutReplayPhysicalPersistentConcurrencyContinuityV2;
+  physicalInvariants: readonly string[];
   responsibilities: {
     database: readonly string[];
     runtimeOrStatement: readonly string[];
@@ -57,6 +60,56 @@ export type MultiCutReplayPhysicalRelationshipV2 = Readonly<{
   purpose: string;
 }>;
 
+export type MultiCutReplayPhysicalPersistentConcurrencyFieldV2 = Readonly<{
+  name: "revision" | "last_fencing_token" | "last_reservation_attempt";
+  type: "text" | "integer";
+  nullable: false;
+  defaultPolicy: "none";
+  persistenceSemantics: "lifecycle-persistent";
+  lifecycle: "processing-and-terminal";
+  owner: "replay-record";
+  generationAuthority: "postgresql-only";
+  mutationAuthority: "successful-authoritative-mutation-only";
+  terminalSemantics: "retained";
+  retrySemantics: "never-predict-reconcile-first";
+  reconciliationSemantics: "compare-authoritative-persisted-value";
+  migrationClassification: Readonly<{
+    backfillable: boolean;
+    derived: boolean;
+    requiresRuntime: false;
+    requiresQuarantine: boolean;
+    impossibleToReconstruct: boolean;
+    scope:
+      | "existing-field-no-new-backfill"
+      | "processing-from-active-evidence-terminal-from-authority";
+  }>;
+}>;
+
+export type MultiCutReplayPhysicalPersistentConcurrencyContinuityV2 =
+  Readonly<{
+    continuityVersion: "1.0";
+    columnOrdering: readonly [
+      "revision",
+      "last_fencing_token",
+      "last_reservation_attempt",
+    ];
+    fields: readonly MultiCutReplayPhysicalPersistentConcurrencyFieldV2[];
+    activeProcessingEvidenceStartsAfter: "last_reservation_attempt";
+    relationship: Readonly<{
+      replayIdentityOwnsContinuity: true;
+      continuityIsActiveProcessingEvidence: false;
+      activeProcessingEvidenceIsTerminalPersistent: false;
+    }>;
+    terminalRowMigration: Readonly<{
+      existingTerminalRowsAreDirectlyBackfillable: false;
+      authoritativeSourceRequired: true;
+      guessedValuesPermitted: false;
+      nullToZeroPermitted: false;
+      unresolvedRows: "quarantine-from-re-reservation";
+      impossibleToReconstructWithoutAuthority: true;
+    }>;
+  }>;
+
 const identityColumns = [
   "physical_schema_version",
   "logical_schema_version",
@@ -88,7 +141,9 @@ export const MULTI_CUT_REPLAY_PHYSICAL_SCHEMA_V2:
       { name: "key_identity", type: "text", nullable: false, default: "none", mutable: false, logicalSource: "recordIdentity.keyIdentity" },
       { name: "request_fingerprint_identity", type: "text", nullable: false, default: "none", mutable: false, logicalSource: "requestSemantics.requestFingerprintIdentity" },
       { name: "state", type: "text", nullable: false, default: "none", mutable: true, logicalSource: "state" },
-      { name: "revision", type: "text", nullable: false, default: "none", mutable: true, logicalSource: "revision" },
+      { name: "revision", type: "text", nullable: false, default: "none", mutable: true, logicalSource: "persistentConcurrencyContinuity.revision" },
+      { name: "last_fencing_token", type: "text", nullable: false, default: "none", mutable: true, logicalSource: "persistentConcurrencyContinuity.lastFencingToken" },
+      { name: "last_reservation_attempt", type: "integer", nullable: false, default: "none", mutable: true, logicalSource: "persistentConcurrencyContinuity.lastReservationAttempt" },
       { name: "reservation_evidence_version", type: "text", nullable: true, default: "none", mutable: true, logicalSource: "reservationEvidence.evidenceVersion" },
       { name: "reservation_version", type: "text", nullable: true, default: "none", mutable: true, logicalSource: "reservationEvidence.reservation.reservationVersion" },
       { name: "reservation_identity", type: "text", nullable: true, default: "none", mutable: true, logicalSource: "reservationEvidence.reservation.reservationIdentity" },
@@ -119,7 +174,8 @@ export const MULTI_CUT_REPLAY_PHYSICAL_SCHEMA_V2:
     { name: "ck_multi_cut_replay_v2_state", kind: "check", columns: ["state"], invariant: "processing, completed, failed, or released only" },
     { name: "ck_multi_cut_replay_v2_identity_complete", kind: "check", columns: identityColumns, invariant: "all authoritative identity components are present and non-empty" },
     { name: "ck_multi_cut_replay_v2_fingerprint", kind: "check", columns: ["request_fingerprint_identity"], invariant: "semantic fingerprint is present but is not a selector" },
-    { name: "ck_multi_cut_replay_v2_processing", kind: "check", columns: ["state", "reservation_evidence_version", "reservation_version", "reservation_identity", "expected_revision_version", "expected_revision", "fencing_version", "fencing_token", "lease_version", "lease_identity", "lease_expires_at", "reservation_attempt"], invariant: "processing has complete versioned ownership and lease evidence; terminal states do not" },
+    { name: "ck_multi_cut_replay_v2_continuity", kind: "check", columns: ["state", "revision", "last_fencing_token", "last_reservation_attempt"], invariant: "persistent concurrency continuity remains present and monotonic in processing and terminal states" },
+    { name: "ck_multi_cut_replay_v2_processing", kind: "check", columns: ["state", "last_fencing_token", "last_reservation_attempt", "reservation_evidence_version", "reservation_version", "reservation_identity", "expected_revision_version", "expected_revision", "fencing_version", "fencing_token", "lease_version", "lease_identity", "lease_expires_at", "reservation_attempt"], invariant: "processing has complete versioned active ownership and lease evidence whose fence and attempt equal persistent continuity; terminal states clear active evidence without clearing persistent continuity" },
     { name: "ck_multi_cut_replay_v2_result", kind: "check", columns: ["state", "result_reference_version", "result_reference_identity"], invariant: "result linkage exists exactly for completed state" },
     { name: "ck_multi_cut_replay_v2_terminal", kind: "check", columns: ["state", "terminal_metadata_version", "terminal_at", "terminal_classification"], invariant: "versioned terminal metadata matches completed, failed, or released state" },
   ] as const),
@@ -131,8 +187,107 @@ export const MULTI_CUT_REPLAY_PHYSICAL_SCHEMA_V2:
     { name: "ix_multi_cut_replay_v2_result", columns: ["state", "result_reference_version", "result_reference_identity"], unique: false, purpose: "completed result linkage", supportedOperations: ["result-linkage-lookup"], authoritativeIdentity: false, whyRequired: "completed records may be found by their existing result linkage", whyNotAuthoritative: "result linkage is terminal output metadata, not replay identity" },
   ] as const),
   relationships: Object.freeze([]),
+  persistentConcurrencyContinuity: Object.freeze({
+    continuityVersion: "1.0",
+    columnOrdering: Object.freeze([
+      "revision",
+      "last_fencing_token",
+      "last_reservation_attempt",
+    ] as const),
+    fields: Object.freeze([
+      {
+        name: "revision",
+        type: "text",
+        nullable: false,
+        defaultPolicy: "none",
+        persistenceSemantics: "lifecycle-persistent",
+        lifecycle: "processing-and-terminal",
+        owner: "replay-record",
+        generationAuthority: "postgresql-only",
+        mutationAuthority: "successful-authoritative-mutation-only",
+        terminalSemantics: "retained",
+        retrySemantics: "never-predict-reconcile-first",
+        reconciliationSemantics: "compare-authoritative-persisted-value",
+        migrationClassification: Object.freeze({
+          backfillable: true,
+          derived: false,
+          requiresRuntime: false,
+          requiresQuarantine: false,
+          impossibleToReconstruct: false,
+          scope: "existing-field-no-new-backfill",
+        }),
+      },
+      {
+        name: "last_fencing_token",
+        type: "text",
+        nullable: false,
+        defaultPolicy: "none",
+        persistenceSemantics: "lifecycle-persistent",
+        lifecycle: "processing-and-terminal",
+        owner: "replay-record",
+        generationAuthority: "postgresql-only",
+        mutationAuthority: "successful-authoritative-mutation-only",
+        terminalSemantics: "retained",
+        retrySemantics: "never-predict-reconcile-first",
+        reconciliationSemantics: "compare-authoritative-persisted-value",
+        migrationClassification: Object.freeze({
+          backfillable: true,
+          derived: false,
+          requiresRuntime: false,
+          requiresQuarantine: true,
+          impossibleToReconstruct: true,
+          scope: "processing-from-active-evidence-terminal-from-authority",
+        }),
+      },
+      {
+        name: "last_reservation_attempt",
+        type: "integer",
+        nullable: false,
+        defaultPolicy: "none",
+        persistenceSemantics: "lifecycle-persistent",
+        lifecycle: "processing-and-terminal",
+        owner: "replay-record",
+        generationAuthority: "postgresql-only",
+        mutationAuthority: "successful-authoritative-mutation-only",
+        terminalSemantics: "retained",
+        retrySemantics: "never-predict-reconcile-first",
+        reconciliationSemantics: "compare-authoritative-persisted-value",
+        migrationClassification: Object.freeze({
+          backfillable: true,
+          derived: false,
+          requiresRuntime: false,
+          requiresQuarantine: true,
+          impossibleToReconstruct: true,
+          scope: "processing-from-active-evidence-terminal-from-authority",
+        }),
+      },
+    ] as const),
+    activeProcessingEvidenceStartsAfter: "last_reservation_attempt",
+    relationship: Object.freeze({
+      replayIdentityOwnsContinuity: true,
+      continuityIsActiveProcessingEvidence: false,
+      activeProcessingEvidenceIsTerminalPersistent: false,
+    }),
+    terminalRowMigration: Object.freeze({
+      existingTerminalRowsAreDirectlyBackfillable: false,
+      authoritativeSourceRequired: true,
+      guessedValuesPermitted: false,
+      nullToZeroPermitted: false,
+      unresolvedRows: "quarantine-from-re-reservation",
+      impossibleToReconstructWithoutAuthority: true,
+    }),
+  }),
+  physicalInvariants: Object.freeze([
+    "revision-monotonic",
+    "last-fencing-token-monotonic",
+    "last-reservation-attempt-monotonic",
+    "terminal-transition-preserves-continuity",
+    "active-processing-evidence-independent",
+    "replay-identity-mutation-prohibited",
+    "semantic-fingerprint-mutation-prohibited",
+  ]),
   responsibilities: Object.freeze({
-    database: Object.freeze(["not-null", "schema-version", "state-domain", "scope-key-uniqueness", "state-nullability-consistency"]),
-    runtimeOrStatement: Object.freeze(["identity-immutability-after-insert", "expected-revision-comparison", "fencing-comparison", "semantic-fingerprint-comparison", "transaction-atomicity"]),
+    database: Object.freeze(["not-null", "schema-version", "state-domain", "scope-key-uniqueness", "state-nullability-consistency", "persistent-continuity-generation", "persistent-continuity-mutation"]),
+    runtimeOrStatement: Object.freeze(["identity-immutability-after-insert", "expected-revision-comparison", "fencing-comparison", "semantic-fingerprint-comparison", "transaction-atomicity", "persistent-continuity-generation-prohibited"]),
   }),
 } as const);

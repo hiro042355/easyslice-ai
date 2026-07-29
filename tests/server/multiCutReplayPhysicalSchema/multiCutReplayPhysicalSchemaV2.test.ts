@@ -43,7 +43,9 @@ test("logical schema and concurrency evidence have complete physical mappings", 
     "recordIdentity.protectedScope.operationIdentity",
     "recordIdentity.keyIdentity",
     "requestSemantics.requestFingerprintIdentity",
-    "revision",
+    "persistentConcurrencyContinuity.revision",
+    "persistentConcurrencyContinuity.lastFencingToken",
+    "persistentConcurrencyContinuity.lastReservationAttempt",
     "reservationEvidence.evidenceVersion",
     "reservationEvidence.reservation.reservationVersion",
     "reservationEvidence.reservation.reservationIdentity",
@@ -66,6 +68,96 @@ test("logical schema and concurrency evidence have complete physical mappings", 
       logicalSource,
     );
   }
+});
+
+test("persistent concurrency continuity has complete physical metadata", () => {
+  assert.deepEqual(schema.persistentConcurrencyContinuity.columnOrdering, [
+    "revision",
+    "last_fencing_token",
+    "last_reservation_attempt",
+  ]);
+  assert.equal(
+    schema.persistentConcurrencyContinuity.activeProcessingEvidenceStartsAfter,
+    "last_reservation_attempt",
+  );
+
+  for (const field of schema.persistentConcurrencyContinuity.fields) {
+    assert.equal(field.nullable, false, field.name);
+    assert.equal(field.defaultPolicy, "none", field.name);
+    assert.equal(field.persistenceSemantics, "lifecycle-persistent", field.name);
+    assert.equal(field.lifecycle, "processing-and-terminal", field.name);
+    assert.equal(field.owner, "replay-record", field.name);
+    assert.equal(field.generationAuthority, "postgresql-only", field.name);
+    assert.equal(
+      field.mutationAuthority,
+      "successful-authoritative-mutation-only",
+      field.name,
+    );
+    assert.equal(field.terminalSemantics, "retained", field.name);
+    assert.equal(field.retrySemantics, "never-predict-reconcile-first", field.name);
+    assert.equal(
+      field.reconciliationSemantics,
+      "compare-authoritative-persisted-value",
+      field.name,
+    );
+    assert.equal(field.migrationClassification.requiresRuntime, false, field.name);
+  }
+
+  assert.equal(
+    columns.get("last_fencing_token")?.type,
+    "text",
+  );
+  assert.equal(
+    columns.get("last_reservation_attempt")?.type,
+    "integer",
+  );
+  for (const fieldName of [
+    "last_fencing_token",
+    "last_reservation_attempt",
+  ] as const) {
+    const field = schema.persistentConcurrencyContinuity.fields.find(
+      ({ name }) => name === fieldName,
+    );
+    assert.equal(field?.migrationClassification.backfillable, true, fieldName);
+    assert.equal(
+      field?.migrationClassification.requiresQuarantine,
+      true,
+      fieldName,
+    );
+    assert.equal(
+      field?.migrationClassification.impossibleToReconstruct,
+      true,
+      fieldName,
+    );
+  }
+});
+
+test("terminal migration and active evidence remain separate", () => {
+  const continuity = schema.persistentConcurrencyContinuity;
+  assert.equal(continuity.relationship.replayIdentityOwnsContinuity, true);
+  assert.equal(continuity.relationship.continuityIsActiveProcessingEvidence, false);
+  assert.equal(
+    continuity.relationship.activeProcessingEvidenceIsTerminalPersistent,
+    false,
+  );
+  assert.deepEqual(continuity.terminalRowMigration, {
+    existingTerminalRowsAreDirectlyBackfillable: false,
+    authoritativeSourceRequired: true,
+    guessedValuesPermitted: false,
+    nullToZeroPermitted: false,
+    unresolvedRows: "quarantine-from-re-reservation",
+    impossibleToReconstructWithoutAuthority: true,
+  });
+  assert.ok(
+    schema.physicalInvariants.includes(
+      "terminal-transition-preserves-continuity",
+    ),
+  );
+  assert.ok(
+    schema.physicalInvariants.includes(
+      "active-processing-evidence-independent",
+    ),
+  );
 });
 
 test("all scope and key columns are required, immutable, and have no default", () => {
