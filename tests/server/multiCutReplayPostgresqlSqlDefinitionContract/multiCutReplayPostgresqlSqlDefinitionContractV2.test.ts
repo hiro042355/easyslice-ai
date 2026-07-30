@@ -580,3 +580,37 @@ test("contract remains aligned with parameter bindings and contains no SQL body"
   assert.doesNotMatch(source, /\b(?:SELECT|INSERT|UPDATE|DELETE)\s+/i);
   assert.doesNotMatch(source, /(?:Runtime|Adapter|Executor|Client|node:pg|from\s+["']pg["'])/);
 });
+
+test("takeover assigns new ownership and predicates existing ownership", () => {
+  const statement = contract.statements.find(
+    ({ statementId }) => statementId === "takeover-stale-processing-replay",
+  );
+  assert.ok(statement);
+  const assignmentTarget = (
+    field: "reservation_identity" | "lease_identity",
+  ) =>
+    contract.terminalResolutionRegistry.find(
+      ({ referenceId }) =>
+        referenceId ===
+        `assignment:takeover-stale-processing-replay:${field}`,
+    )?.terminalTarget;
+  assert.equal(
+    assignmentTarget("reservation_identity"),
+    "takeover_reservation_identity",
+  );
+  assert.equal(assignmentTarget("lease_identity"), "takeover_lease_identity");
+  const predicate = (field: "reservation_identity" | "lease_identity") =>
+    statement.predicateBindings.find(
+      ({ physicalField }) => physicalField === field,
+    );
+  assert.equal(
+    predicate("reservation_identity")?.bindingId,
+    "expected_ownership_evidence",
+  );
+  assert.equal(predicate("reservation_identity")?.placeholderOrdinal, 13);
+  assert.equal(
+    predicate("lease_identity")?.bindingId,
+    "expected_ownership_evidence",
+  );
+  assert.equal(predicate("lease_identity")?.placeholderOrdinal, 14);
+});

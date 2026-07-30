@@ -300,6 +300,18 @@ const makeStatement = (
       placeholder.placeholder,
     ]),
   );
+  if (statementId === "takeover-stale-processing-replay") {
+    for (const physicalField of ["reservation_identity", "lease_identity"]) {
+      const expectedOwner = placeholders.find(
+        (placeholder) =>
+          placeholder.parameterBinding === "expected_ownership_evidence" &&
+          placeholder.physicalField === physicalField,
+      );
+      if (expectedOwner) {
+        placeholderByField.set(physicalField, expectedOwner.placeholder);
+      }
+    }
+  }
   const orderedPredicates = orderedPredicateFields.map((physicalField) => {
     const role =
       physicalField === "lease_expires_at"
@@ -610,7 +622,14 @@ const assignmentReferenceRegistry = statements.flatMap((statement) =>
     : statement.mutations.map((mutation) => {
     const field = mutation.physicalField;
     const placeholder = statement.placeholders.find(
-      ({ physicalField }) => physicalField === field,
+      ({ physicalField, parameterBinding }) =>
+        physicalField === field &&
+        (statement.statementId !== "takeover-stale-processing-replay" ||
+          !["reservation_identity", "lease_identity"].includes(field) ||
+          parameterBinding ===
+            (field === "reservation_identity"
+              ? "takeover_reservation_identity"
+              : "takeover_lease_identity")),
     );
     const successorField =
       field === "fencing_token"

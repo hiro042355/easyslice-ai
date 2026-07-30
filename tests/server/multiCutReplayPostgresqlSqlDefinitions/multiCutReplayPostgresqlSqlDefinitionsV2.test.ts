@@ -166,3 +166,17 @@ test("all rendered definitions are deeply immutable at the public boundary", () 
     assert.ok(Object.isFrozen(statement.bindingOrder));
   }
 });
+
+test("takeover SQL writes new ownership and predicates existing ownership", () => {
+  const statement =
+    definitions.byStatementId["takeover-stale-processing-replay"];
+  assert.match(statement.sql, /reservation_identity = \$17::text/);
+  assert.match(statement.sql, /lease_identity = \$18::text/);
+  assert.match(statement.sql, /AND reservation_identity = \$13::text/);
+  assert.match(statement.sql, /AND lease_identity = \$14::text/);
+  assert.equal(statement.placeholders.length, 19);
+  assert.deepEqual(
+    statement.placeholders.map(({ ordinal }) => ordinal),
+    Array.from({ length: 19 }, (_, index) => index + 1),
+  );
+});
