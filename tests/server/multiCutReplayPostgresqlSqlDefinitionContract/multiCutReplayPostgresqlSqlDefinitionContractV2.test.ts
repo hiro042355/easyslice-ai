@@ -383,6 +383,65 @@ test("literal, generated, successor, binding, retain, clear, and projection term
   );
 });
 
+test("resolution gate v4 classifies every assignment terminal without renderer inference", () => {
+  const assignments = contract.terminalResolutionRegistry.filter(
+    ({ referenceId }) => referenceId.startsWith("assignment:"),
+  );
+  assert.ok(assignments.length > 0);
+  const states = new Set(["processing", "completed", "failed", "released"]);
+  for (const assignment of assignments) {
+    assert.ok(assignment.terminalResolutionKind, assignment.referenceId);
+    assert.ok(assignment.terminalTarget, assignment.referenceId);
+    if (states.has(assignment.terminalTarget)) {
+      assert.equal(
+        assignment.terminalResolutionKind,
+        "exact-literal",
+        assignment.referenceId,
+      );
+    }
+    if (assignment.terminalTarget === "1.0") {
+      assert.equal(
+        assignment.terminalResolutionKind,
+        "exact-literal",
+        assignment.referenceId,
+      );
+    }
+    if (assignment.targetReferenceId?.startsWith("successor:")) {
+      assert.equal(
+        assignment.terminalResolutionKind,
+        "exact-checked-successor-definition",
+        assignment.referenceId,
+      );
+    }
+    if (
+      assignment.terminalResolutionKind ===
+      "exact-postgresql-generated-expression-authority"
+    ) {
+      assert.match(
+        assignment.terminalTarget,
+        /transaction_timestamp|lease-duration/,
+        assignment.referenceId,
+      );
+    }
+    if (
+      assignment.terminalResolutionKind === "exact-literal" ||
+      assignment.terminalResolutionKind ===
+        "exact-checked-successor-definition"
+    ) {
+      assert.doesNotMatch(
+        assignment.terminalTarget,
+        /lease-duration/,
+        assignment.referenceId,
+      );
+    }
+    assert.doesNotMatch(
+      assignment.deterministicResolutionRule,
+      /renderer|infer|implementation-defined/,
+      assignment.referenceId,
+    );
+  }
+});
+
 test("checked successors share one authoritative expression per reference", () => {
   const checked = contract.referenceRegistry.filter(
     ({ referenceId }) =>

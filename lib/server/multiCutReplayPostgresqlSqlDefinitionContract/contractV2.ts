@@ -665,23 +665,31 @@ const assignmentReferenceRegistry = statements.flatMap((statement) =>
             ? "successor"
             : mutation.action === "generated"
               ? "generated"
+              : source.startsWith("successor:")
+                ? "successor"
               : source.startsWith("binding:")
                 ? "binding"
-                : source.startsWith("literal:")
+                : source.startsWith("literal:") ||
+                    source === "1.0" ||
+                    ["processing", "completed", "failed", "released"].includes(
+                      source,
+                    )
                   ? "literal"
                   : "generated";
     return reference(
       mutation.sourceReference,
-      mutation.action === "retain" || mutation.action === "clear"
+      kind === "retained" || kind === "cleared"
         ? "physical-schema"
-        : mutation.action === "successor" || mutation.action === "generated"
+        : kind === "successor" || kind === "generated"
           ? "parameter-contract"
-          : "sql-definition-contract",
+          : kind === "literal"
+            ? "logical-schema"
+            : "sql-definition-contract",
       kind,
       [field],
       source,
       `resolve-the-${kind}-assignment-source-without-projection-fallback`,
-      mutation.action === "successor",
+      kind === "successor" || kind === "generated",
     );
     }),
 );
