@@ -132,6 +132,64 @@ export type MultiCutReplaySqlLookupProjectionGroupV2 = Readonly<{
   resolutionRule: "project-in-order" | "explicitly-omit";
 }>;
 
+export type MultiCutReplaySqlTerminalResolutionV2 = Readonly<{
+  referenceId: string;
+  ownerStatement: MultiCutReplayPersistenceStatementIdV2 | "shared";
+  sqlClause:
+    | "insert-source"
+    | "predicate"
+    | "assignment"
+    | "projection"
+    | "successor";
+  physicalField: string;
+  logicalField: string;
+  resolutionKind:
+    | "literal"
+    | "binding"
+    | "persisted-field"
+    | "postgresql-generated"
+    | "checked-successor"
+    | "null"
+    | "retained"
+    | "cleared"
+    | "projection";
+  terminalResolutionKind:
+    | "exact-literal"
+    | "exact-placeholder-binding"
+    | "exact-persisted-physical-field"
+    | "exact-postgresql-generated-expression-authority"
+    | "exact-checked-successor-definition"
+    | "exact-null"
+    | "exact-retained-field"
+    | "exact-cleared-field"
+    | "exact-projection-field-and-alias";
+  terminalTarget: string;
+  authoritySource:
+    | "logical-schema-v2"
+    | "physical-schema-v2"
+    | "parameter-contract-v2"
+    | "lease-and-attempt-policy-adr-v1"
+    | "terminal-continuity-adr-v1"
+    | "sql-definition-contract-v2";
+  postgresqlCast:
+    | "uuid"
+    | "text"
+    | "integer"
+    | "bigint"
+    | "timestamptz"
+    | "boolean";
+  nullableBehavior:
+    | "not-null"
+    | "nullable-value"
+    | "null-clears-field"
+    | "null-is-ineligible";
+  reuseSharingIdentity: string;
+  deterministicResolutionRule: string;
+  targetReferenceId?: string;
+  recursiveResolutionPath: readonly string[];
+  usageClassification: "statement-owned" | "shared-authority";
+}>;
+
 export type MultiCutReplaySqlDefinitionContractV2 = Readonly<{
   contractVersion: "2.0";
   canonicalPredicateOrder: readonly [
@@ -155,6 +213,8 @@ export type MultiCutReplaySqlDefinitionContractV2 = Readonly<{
     last_reservation_attempt: "last_reservation_attempt";
   }>;
   referenceRegistry: readonly MultiCutReplaySqlReferenceResolutionV2[];
+  terminalResolutionRegistry:
+    readonly MultiCutReplaySqlTerminalResolutionV2[];
   lookupProjectionRegistry:
     readonly MultiCutReplaySqlLookupProjectionGroupV2[];
 }>;

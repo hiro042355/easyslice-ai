@@ -14,6 +14,7 @@ import type {
   MultiCutReplaySqlDefinitionPlaceholderV2,
   MultiCutReplaySqlLookupProjectionGroupV2,
   MultiCutReplaySqlReferenceResolutionV2,
+  MultiCutReplaySqlTerminalResolutionV2,
   MultiCutReplaySqlDefinitionStatementV2,
 } from "./types";
 
@@ -487,6 +488,41 @@ const baseReferences: readonly MultiCutReplaySqlReferenceResolutionV2[] = [
   ),
   reference("initial:state", "logical-schema", "literal", ["state"], "processing", "resolve-the-initial-state-literal-from-the-logical-schema"),
   reference("initial:schema_version", "physical-schema", "literal", ["physical_schema_version", "logical_schema_version", "identity_version"], "2.0", "resolve-the-version-literal-from-the-version-pinned-schema-contracts"),
+  ...(["processing", "completed", "failed", "released"] as const).map((value) =>
+    reference(
+      `literal:${value}`,
+      "logical-schema",
+      "literal",
+      ["state"],
+      value,
+      "resolve-the-exact-text-state-literal",
+    ),
+  ),
+  reference(
+    "postgresql-expression:authoritative-current-time",
+    "parameter-contract",
+    "generated",
+    ["lease_expires_at"],
+    "transaction-clock",
+    "resolve-to-the-transaction-stable-postgresql-clock-authority",
+    true,
+  ),
+  ...([
+    "initial-lease-expiry",
+    "resolve-existing-replay:lease-expiry",
+    "renew-processing-reservation:lease-expiry",
+    "takeover-stale-processing-replay:lease-expiry",
+  ] as const).map((name) =>
+    reference(
+      `postgresql-expression:${name}`,
+      "parameter-contract",
+      "generated",
+      ["lease_expires_at"],
+      "lease-expiry-from-transaction-clock-and-validated-duration",
+      "resolve-to-authoritative-time-plus-the-lease-duration-milliseconds-binding",
+      true,
+    ),
+  ),
   ...(["lookup", "returning", "reconciliation"] as const).map((purpose) =>
     reference(
       `projection:${purpose}`,
@@ -523,7 +559,10 @@ const successorReferenceRegistry = statements.flatMap((statement) =>
 );
 
 const assignmentReferenceRegistry = statements.flatMap((statement) =>
-  statement.mutations.map((mutation) => {
+  statement.statementId === "resolve-new-reservation" ||
+  statement.statementId === "lookup-authoritative-replay"
+    ? []
+    : statement.mutations.map((mutation) => {
     const field = mutation.physicalField;
     const placeholder = statement.placeholders.find(
       ({ physicalField }) => physicalField === field,
@@ -541,6 +580,13 @@ const assignmentReferenceRegistry = statements.flatMap((statement) =>
           successorField as keyof typeof statement.successorReferences
         ]
       : "not-used";
+    const stateLiteralByStatement: Readonly<Record<string, string>> = {
+      "resolve-existing-replay": "processing",
+      "complete-processing-replay": "completed",
+      "fail-processing-replay": "failed",
+      "release-processing-replay": "released",
+      "takeover-stale-processing-replay": "processing",
+    };
     const source =
       mutation.action === "retain"
         ? `physical-field:${field}`
@@ -551,12 +597,20 @@ const assignmentReferenceRegistry = statements.flatMap((statement) =>
             : mutation.action === "generated"
               ? `initial:${field}`
               : field === "state"
-                ? `literal:statement-state:${statement.statementId}`
+                ? stateLiteralByStatement[statement.statementId]
                 : field === "lease_expires_at"
                   ? `postgresql-expression:${statement.statementId}:lease-expiry`
+                  : field.endsWith("_version")
+                    ? "1.0"
+                    : field === "expected_revision"
+                      ? statement.successorReferences.revision
+                      : field === "fencing_token"
+                        ? statement.successorReferences.last_fencing_token
+                        : field === "reservation_attempt"
+                          ? statement.successorReferences.last_reservation_attempt
                   : placeholder
                     ? `binding:${placeholder.parameterBinding}`
-                    : `literal:contract-defined:${statement.statementId}:${field}`;
+                    : `binding:${field}`;
     const kind =
       mutation.action === "retain"
         ? "retained"
@@ -584,7 +638,7 @@ const assignmentReferenceRegistry = statements.flatMap((statement) =>
       `resolve-the-${kind}-assignment-source-without-projection-fallback`,
       mutation.action === "successor",
     );
-  }),
+    }),
 );
 
 const referenceRegistry = Object.freeze([
@@ -592,6 +646,203 @@ const referenceRegistry = Object.freeze([
   ...successorReferenceRegistry,
   ...assignmentReferenceRegistry,
 ]);
+
+const referenceIds = new Set(
+  referenceRegistry.map(({ referenceId }) => referenceId),
+);
+
+const statementFromReference = (
+  referenceId: string,
+): MultiCutReplaySqlTerminalResolutionV2["ownerStatement"] => {
+  const statement = statementIds.find((id) => referenceId.includes(`:${id}:`));
+  return statement ?? "shared";
+};
+
+const castForTerminal = (
+  physicalField: string,
+): MultiCutReplaySqlTerminalResolutionV2["postgresqlCast"] =>
+  castByPhysicalType[columnByName.get(physicalField)?.type ?? "text"];
+
+const terminalResolutionRegistry:
+  readonly MultiCutReplaySqlTerminalResolutionV2[] = Object.freeze(
+  referenceRegistry.map((entry) => {
+    const referenceId = entry.referenceId;
+    const physicalField = entry.targetMetadata.physicalFields[0] ?? "*";
+    const valueReference = entry.targetMetadata.valueReference;
+    const targetReferenceId = referenceIds.has(valueReference)
+      ? valueReference
+      : undefined;
+    const isInitialOne =
+      referenceId.startsWith("initial:") &&
+      [
+        "revision",
+        "last_fencing_token",
+        "last_reservation_attempt",
+        "expected_revision",
+        "fencing_token",
+        "reservation_attempt",
+      ].includes(referenceId.slice("initial:".length));
+    const isExpression = referenceId.startsWith("postgresql-expression:");
+    const isSuccessor =
+      referenceId.startsWith("parameter-successor:") ||
+      (referenceId.startsWith("successor:") &&
+        referenceId.endsWith(":checked"));
+    const isRetainedSuccessor =
+      referenceId.startsWith("successor:") &&
+      referenceId.endsWith(":retain");
+    const isProjection = referenceId.startsWith("projection:");
+    const isAssignment = referenceId.startsWith("assignment:");
+    const assignmentKind = isAssignment ? entry.resolutionKind : undefined;
+    const resolutionKind:
+      MultiCutReplaySqlTerminalResolutionV2["resolutionKind"] =
+      isInitialOne || referenceId === "initial:schema_version" ||
+      referenceId === "initial:state" || referenceId.startsWith("literal:")
+        ? "literal"
+        : isExpression
+          ? "postgresql-generated"
+          : isSuccessor
+            ? "checked-successor"
+            : isRetainedSuccessor
+              ? "retained"
+              : isProjection
+                ? "projection"
+                : assignmentKind === "binding"
+                  ? "binding"
+                  : assignmentKind === "literal"
+                    ? "literal"
+                    : assignmentKind === "generated"
+                      ? "postgresql-generated"
+                      : assignmentKind === "successor"
+                        ? "checked-successor"
+                        : assignmentKind === "retained"
+                          ? "retained"
+                          : assignmentKind === "cleared"
+                            ? "cleared"
+                            : "persisted-field";
+    const terminalResolutionKind:
+      MultiCutReplaySqlTerminalResolutionV2["terminalResolutionKind"] =
+      resolutionKind === "literal"
+        ? "exact-literal"
+        : resolutionKind === "binding"
+          ? "exact-placeholder-binding"
+          : resolutionKind === "postgresql-generated"
+            ? "exact-postgresql-generated-expression-authority"
+            : resolutionKind === "checked-successor"
+              ? "exact-checked-successor-definition"
+              : resolutionKind === "retained"
+                ? "exact-retained-field"
+                : resolutionKind === "cleared"
+                  ? "exact-cleared-field"
+                  : resolutionKind === "projection"
+                    ? "exact-projection-field-and-alias"
+                    : "exact-persisted-physical-field";
+    const terminalTarget =
+      isInitialOne
+        ? "1"
+        : referenceId === "initial:schema_version"
+          ? "2.0"
+          : referenceId === "initial:state"
+            ? "processing"
+            : referenceId.startsWith("literal:")
+              ? referenceId.slice("literal:".length)
+              : referenceId ===
+                  "postgresql-expression:authoritative-current-time"
+                ? "transaction_timestamp()"
+                : isExpression ||
+                    valueReference.includes("lease-expiry")
+                  ? "transaction_timestamp()+validated-lease-duration-milliseconds"
+                  : isSuccessor ||
+                      (isAssignment &&
+                        entry.resolutionKind === "successor")
+                    ? `checked-exactly-one-successor:${physicalField}`
+                    : isRetainedSuccessor ||
+                        entry.resolutionKind === "retained"
+                      ? `retained-physical-field:${physicalField}`
+                      : entry.resolutionKind === "cleared"
+                        ? "NULL"
+                        : entry.resolutionKind === "binding"
+                          ? valueReference.replace(/^binding:/, "")
+                          : entry.resolutionKind === "literal"
+                            ? valueReference
+                            : isProjection
+                              ? `canonical-${referenceId.slice("projection:".length)}-projection`
+                              : valueReference;
+    const ownerStatement = statementFromReference(referenceId);
+    const sqlClause: MultiCutReplaySqlTerminalResolutionV2["sqlClause"] =
+      isAssignment
+        ? "assignment"
+        : isProjection
+          ? "projection"
+          : isSuccessor || isRetainedSuccessor
+            ? "successor"
+            : referenceId.startsWith("initial:")
+              ? "insert-source"
+              : referenceId.startsWith("literal:") ||
+                  referenceId ===
+                    "postgresql-expression:authoritative-current-time"
+                ? "predicate"
+                : "insert-source";
+    const authoritySource:
+      MultiCutReplaySqlTerminalResolutionV2["authoritySource"] =
+      isExpression || terminalTarget.includes("lease-duration")
+        ? "lease-and-attempt-policy-adr-v1"
+        : isSuccessor ||
+            terminalResolutionKind === "exact-checked-successor-definition"
+          ? "parameter-contract-v2"
+          : resolutionKind === "literal"
+            ? "logical-schema-v2"
+            : resolutionKind === "retained" ||
+                resolutionKind === "cleared" ||
+                resolutionKind === "persisted-field"
+              ? "physical-schema-v2"
+              : resolutionKind === "binding"
+                ? "parameter-contract-v2"
+                : "sql-definition-contract-v2";
+    return Object.freeze({
+      referenceId,
+      ownerStatement,
+      sqlClause,
+      physicalField,
+      logicalField:
+        columnByName.get(physicalField)?.logicalSource ?? physicalField,
+      resolutionKind,
+      terminalResolutionKind,
+      terminalTarget,
+      authoritySource,
+      postgresqlCast: castForTerminal(physicalField),
+      nullableBehavior:
+        entry.resolutionKind === "cleared"
+          ? "null-clears-field"
+          : columnByName.get(physicalField)?.nullable
+            ? "nullable-value"
+            : "not-null",
+      reuseSharingIdentity:
+        entry.expressionSharing ===
+        "same-reference-same-authoritative-expression"
+          ? referenceId
+          : ownerStatement === "shared"
+            ? `shared:${referenceId}`
+            : `statement:${ownerStatement}:${referenceId}`,
+      deterministicResolutionRule:
+        terminalTarget === "transaction_timestamp()"
+          ? "use-the-sole-transaction-stable-postgresql-clock-function"
+          : terminalTarget.includes("lease-duration")
+            ? "combine-the-shared-transaction-clock-with-the-validated-bigint-millisecond-duration"
+            : terminalResolutionKind ===
+                "exact-checked-successor-definition"
+              ? "increment-the-persisted-source-by-exactly-one-with-overflow-rejection"
+              : `resolve-directly-to-${terminalResolutionKind}`,
+      ...(targetReferenceId ? { targetReferenceId } : {}),
+      recursiveResolutionPath: Object.freeze(
+        targetReferenceId
+          ? [referenceId, targetReferenceId]
+          : [referenceId],
+      ),
+      usageClassification:
+        ownerStatement === "shared" ? "shared-authority" : "statement-owned",
+    });
+  }),
+);
 
 export const MULTI_CUT_REPLAY_SQL_DEFINITION_CONTRACT_V2:
   MultiCutReplaySqlDefinitionContractV2 = Object.freeze({
@@ -613,5 +864,6 @@ export const MULTI_CUT_REPLAY_SQL_DEFINITION_CONTRACT_V2:
     last_reservation_attempt: "last_reservation_attempt",
   }),
   referenceRegistry,
+  terminalResolutionRegistry,
   lookupProjectionRegistry,
 });

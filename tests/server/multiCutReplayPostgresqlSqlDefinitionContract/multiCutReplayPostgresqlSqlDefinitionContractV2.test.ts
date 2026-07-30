@@ -152,7 +152,12 @@ test("reference registry is unique and resolves every assignment and successor",
     assert.ok(registry.has(required), required);
   }
   for (const statement of contract.statements) {
-    for (const mutation of statement.mutations) {
+    const updateMutations =
+      statement.statementId === "resolve-new-reservation" ||
+      statement.statementId === "lookup-authoritative-replay"
+        ? []
+        : statement.mutations;
+    for (const mutation of updateMutations) {
       const resolution = registry.get(mutation.sourceReference);
       assert.ok(resolution, mutation.sourceReference);
       assert.equal(resolution.targetMetadata.physicalFields.length, 1);
@@ -166,6 +171,149 @@ test("reference registry is unique and resolves every assignment and successor",
       assert.ok(reference === "not-used" || registry.has(reference), reference);
     }
   }
+});
+
+test("resolution gate v2 reaches exactly one terminal for every registered reference", () => {
+  const references = contract.referenceRegistry.map(({ referenceId }) => referenceId);
+  const terminals = contract.terminalResolutionRegistry;
+  assert.equal(new Set(references).size, references.length);
+  assert.equal(
+    new Set(terminals.map(({ referenceId }) => referenceId)).size,
+    terminals.length,
+  );
+  assert.deepEqual(
+    terminals.map(({ referenceId }) => referenceId),
+    references,
+  );
+  const forbidden = /contract-defined|authority-defined|parameter-defined|implementation-defined|renderer-choice|projection-fallback|generated-elsewhere/;
+  for (const terminal of terminals) {
+    assert.ok(terminal.terminalTarget, terminal.referenceId);
+    assert.ok(terminal.deterministicResolutionRule, terminal.referenceId);
+    assert.ok(terminal.authoritySource, terminal.referenceId);
+    assert.ok(terminal.postgresqlCast, terminal.referenceId);
+    assert.doesNotMatch(terminal.terminalTarget, forbidden);
+    assert.equal(terminal.recursiveResolutionPath[0], terminal.referenceId);
+    assert.equal(
+      new Set(terminal.recursiveResolutionPath).size,
+      terminal.recursiveResolutionPath.length,
+      terminal.referenceId,
+    );
+    if (terminal.targetReferenceId) {
+      assert.ok(references.includes(terminal.targetReferenceId));
+      assert.equal(
+        terminal.recursiveResolutionPath.at(-1),
+        terminal.targetReferenceId,
+      );
+    }
+  }
+});
+
+test("all logical predicate and insert references are registered and terminal", () => {
+  const references = new Set(
+    contract.referenceRegistry.map(({ referenceId }) => referenceId),
+  );
+  const terminals = new Set(
+    contract.terminalResolutionRegistry.map(({ referenceId }) => referenceId),
+  );
+  const used: string[] = [];
+  for (const statement of contract.statements) {
+    for (const predicate of statement.orderedPredicates) {
+      if (/^(literal|postgresql-expression):/.test(predicate.sourceReference)) {
+        used.push(predicate.sourceReference);
+      }
+    }
+    for (const source of statement.insertSources) {
+      if (source.source === "generated") {
+        used.push(source.expressionReference);
+      }
+    }
+    if (
+      statement.statementId !== "resolve-new-reservation" &&
+      statement.statementId !== "lookup-authoritative-replay"
+    ) {
+      used.push(...statement.mutations.map(({ sourceReference }) => sourceReference));
+    }
+    used.push(
+      ...Object.values(statement.successorReferences).filter(
+        (reference) => reference !== "not-used",
+      ),
+    );
+  }
+  for (const reference of new Set(used)) {
+    assert.ok(references.has(reference), reference);
+    assert.ok(terminals.has(reference), reference);
+  }
+});
+
+test("literal, generated, successor, binding, retain, clear, and projection terminals are exact", () => {
+  const byId = new Map(
+    contract.terminalResolutionRegistry.map((entry) => [entry.referenceId, entry]),
+  );
+  for (const [referenceId, target] of [
+    ["literal:processing", "processing"],
+    ["literal:completed", "completed"],
+    ["literal:failed", "failed"],
+    ["literal:released", "released"],
+    ["initial:revision", "1"],
+    ["initial:last_fencing_token", "1"],
+    ["initial:last_reservation_attempt", "1"],
+    ["initial:fencing_token", "1"],
+    ["initial:reservation_attempt", "1"],
+    ["initial:schema_version", "2.0"],
+  ]) {
+    assert.equal(byId.get(referenceId)?.terminalTarget, target, referenceId);
+    assert.equal(
+      byId.get(referenceId)?.terminalResolutionKind,
+      "exact-literal",
+      referenceId,
+    );
+  }
+  assert.equal(
+    byId.get("postgresql-expression:authoritative-current-time")?.terminalTarget,
+    "transaction_timestamp()",
+  );
+  for (const entry of contract.terminalResolutionRegistry.filter(
+    ({ referenceId }) => referenceId.includes("lease-expiry"),
+  )) {
+    assert.equal(
+      entry.terminalTarget,
+      "transaction_timestamp()+validated-lease-duration-milliseconds",
+    );
+    assert.equal(entry.postgresqlCast, "timestamptz");
+  }
+  for (const entry of contract.terminalResolutionRegistry.filter(
+    ({ referenceId }) => referenceId.startsWith("parameter-successor:"),
+  )) {
+    assert.equal(
+      entry.terminalResolutionKind,
+      "exact-checked-successor-definition",
+    );
+    assert.match(entry.deterministicResolutionRule, /exactly-one/);
+  }
+  assert.ok(
+    contract.terminalResolutionRegistry.some(
+      ({ terminalResolutionKind }) =>
+        terminalResolutionKind === "exact-placeholder-binding",
+    ),
+  );
+  assert.ok(
+    contract.terminalResolutionRegistry.some(
+      ({ terminalResolutionKind }) =>
+        terminalResolutionKind === "exact-retained-field",
+    ),
+  );
+  assert.ok(
+    contract.terminalResolutionRegistry.some(
+      ({ terminalResolutionKind }) =>
+        terminalResolutionKind === "exact-cleared-field",
+    ),
+  );
+  assert.ok(
+    contract.terminalResolutionRegistry.some(
+      ({ terminalResolutionKind }) =>
+        terminalResolutionKind === "exact-projection-field-and-alias",
+    ),
+  );
 });
 
 test("checked successors share one authoritative expression per reference", () => {

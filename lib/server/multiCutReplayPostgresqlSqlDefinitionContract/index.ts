@@ -12,4 +12,5 @@ export type {
   MultiCutReplaySqlDefinitionStatementV2,
   MultiCutReplaySqlReferenceResolutionV2,
   MultiCutReplaySqlLookupProjectionGroupV2,
+  MultiCutReplaySqlTerminalResolutionV2,
 } from "./types";
