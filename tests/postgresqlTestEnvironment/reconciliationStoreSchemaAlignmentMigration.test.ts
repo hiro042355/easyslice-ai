@@ -63,6 +63,7 @@ test("fresh V000001 to V000003 migration validates catalog, history, and readine
       { version: "000001", success: true },
       { version: "000002", success: true },
       { version: "000003", success: true },
+      { version: "000004", success: true },
     ]);
 
     const columns = await environment.pool.query<{ table_name: string; column_name: string }>(

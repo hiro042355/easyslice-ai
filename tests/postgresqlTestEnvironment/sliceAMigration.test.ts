@@ -32,6 +32,13 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
     );
     assert.deepEqual(tables.rows.map((row) => row.table_name), EXPECTED_TABLES);
 
+    const replayTable = await environment.pool.query<{ table_name: string }>(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'multi_cut_replay_records_v2'",
+    );
+    assert.deepEqual(replayTable.rows, [
+      { table_name: "multi_cut_replay_records_v2" },
+    ]);
+
     const indexes = await environment.pool.query<{ indexname: string }>(
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'workflow' ORDER BY indexname",
     );
@@ -88,6 +95,7 @@ test("replay is idempotent, validate succeeds, and migration version is unique",
       { version: "000001", success: true },
       { version: "000002", success: true },
       { version: "000003", success: true },
+      { version: "000004", success: true },
     ]);
   });
 });
