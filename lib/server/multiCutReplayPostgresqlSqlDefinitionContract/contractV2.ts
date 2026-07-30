@@ -323,6 +323,50 @@ const makeStatement = (
       evaluationRole: role,
     } as const);
   });
+  const predicateBindings = orderedPredicates.flatMap((predicate, index) => {
+    if (predicate.comparisonSource !== "placeholder") {
+      return [];
+    }
+    const direct = placeholders.find(
+      ({ placeholder }) => placeholder === predicate.sourceReference,
+    );
+    const continuitySourceField =
+      predicate.physicalField === "last_fencing_token"
+        ? "fencing_token"
+        : predicate.physicalField === "last_reservation_attempt"
+          ? "reservation_attempt"
+          : undefined;
+    const placeholder =
+      direct ??
+      placeholders.find(
+        ({ physicalField }) => physicalField === continuitySourceField,
+      );
+    if (!placeholder) {
+      throw new Error(
+        `incomplete-predicate-binding:${statementId}:${predicate.physicalField}`,
+      );
+    }
+    return [
+      Object.freeze({
+        predicateId: `${statementId}:predicate:${index + 1}:${predicate.physicalField}`,
+        statementId,
+        bindingReference: predicate.sourceReference,
+        bindingId: placeholder.parameterBinding,
+        placeholderId: `${statementId}:placeholder:${placeholder.ordinal}`,
+        placeholderOrdinal: placeholder.ordinal,
+        placeholderToken: placeholder.placeholder,
+        postgresqlCast: placeholder.postgresqlCast,
+        comparisonRole: predicate.evaluationRole,
+        logicalField:
+          columnByName.get(predicate.physicalField)?.logicalSource ??
+          predicate.physicalField,
+        physicalField: predicate.physicalField,
+        resolutionRule: direct
+          ? "direct-placeholder"
+          : "persistent-continuity-from-active-evidence-placeholder",
+      } as const),
+    ];
+  });
   const insertBindingByField = new Map<string, string>();
   binding.inputBindings.forEach((input) =>
     flattenInput(input).forEach((field) => insertBindingByField.set(field, input)),
@@ -402,6 +446,7 @@ const makeStatement = (
     invariantViolationContract: "fail-closed",
     placeholders,
     orderedPredicates: Object.freeze(orderedPredicates),
+    predicateBindings: Object.freeze(predicateBindings),
     mutations: Object.freeze(mutations),
     projections: Object.freeze([
       Object.freeze({

@@ -113,6 +113,73 @@ test("predicate authority is complete and source-explicit", () => {
   );
 });
 
+test("resolution gate v3 reaches one exact placeholder for every placeholder predicate", () => {
+  const expectedCompletedBindings = new Set([
+    "renew-processing-reservation:last_fencing_token",
+    "renew-processing-reservation:last_reservation_attempt",
+    "complete-processing-replay:last_fencing_token",
+    "complete-processing-replay:last_reservation_attempt",
+    "fail-processing-replay:last_fencing_token",
+    "fail-processing-replay:last_reservation_attempt",
+    "release-processing-replay:last_fencing_token",
+    "release-processing-replay:last_reservation_attempt",
+  ]);
+  const completedBindings = new Set<string>();
+  const predicateIds = new Set<string>();
+  for (const statement of contract.statements) {
+    const placeholderPredicates = statement.orderedPredicates.filter(
+      ({ comparisonSource }) => comparisonSource === "placeholder",
+    );
+    assert.equal(
+      statement.predicateBindings.length,
+      placeholderPredicates.length,
+      statement.statementId,
+    );
+    const placeholdersById = new Map(
+      statement.placeholders.map((placeholder) => [
+        `${statement.statementId}:placeholder:${placeholder.ordinal}`,
+        placeholder,
+      ]),
+    );
+    for (const binding of statement.predicateBindings) {
+      assert.equal(predicateIds.has(binding.predicateId), false);
+      predicateIds.add(binding.predicateId);
+      const predicate = statement.orderedPredicates.find(
+        ({ physicalField, sourceReference }) =>
+          physicalField === binding.physicalField &&
+          sourceReference === binding.bindingReference,
+      );
+      assert.ok(predicate, binding.predicateId);
+      const placeholder = placeholdersById.get(binding.placeholderId);
+      assert.ok(placeholder, binding.placeholderId);
+      assert.equal(binding.placeholderOrdinal, placeholder.ordinal);
+      assert.equal(binding.placeholderToken, placeholder.placeholder);
+      assert.equal(binding.postgresqlCast, placeholder.postgresqlCast);
+      assert.equal(binding.bindingId, placeholder.parameterBinding);
+      assert.equal(binding.comparisonRole, predicate.evaluationRole);
+      if (
+        binding.resolutionRule ===
+        "persistent-continuity-from-active-evidence-placeholder"
+      ) {
+        completedBindings.add(
+          `${statement.statementId}:${binding.physicalField}`,
+        );
+        assert.equal(
+          binding.physicalField === "last_fencing_token"
+            ? placeholder.physicalField
+            : placeholder.physicalField,
+          binding.physicalField === "last_fencing_token"
+            ? "fencing_token"
+            : "reservation_attempt",
+        );
+      } else {
+        assert.equal(binding.bindingReference, binding.placeholderToken);
+      }
+    }
+  }
+  assert.deepEqual(completedBindings, expectedCompletedBindings);
+});
+
 test("assignment and successor authorities are complete", () => {
   for (const statement of contract.statements) {
     for (const mutation of statement.mutations) {

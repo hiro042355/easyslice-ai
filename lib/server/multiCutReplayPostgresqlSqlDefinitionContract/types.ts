@@ -36,6 +36,23 @@ export type MultiCutReplaySqlDefinitionPredicateV2 = Readonly<{
   evaluationRole: "identity" | "fingerprint" | "state" | "concurrency" | "processing" | "stale" | "none";
 }>;
 
+export type MultiCutReplaySqlPredicateBindingResolutionV2 = Readonly<{
+  predicateId: string;
+  statementId: MultiCutReplayPersistenceStatementIdV2;
+  bindingReference: string;
+  bindingId: string;
+  placeholderId: string;
+  placeholderOrdinal: number;
+  placeholderToken: `$${number}`;
+  postgresqlCast: MultiCutReplaySqlDefinitionPlaceholderV2["postgresqlCast"];
+  comparisonRole: MultiCutReplaySqlDefinitionPredicateV2["evaluationRole"];
+  logicalField: string;
+  physicalField: string;
+  resolutionRule:
+    | "direct-placeholder"
+    | "persistent-continuity-from-active-evidence-placeholder";
+}>;
+
 export type MultiCutReplaySqlDefinitionProjectionFieldV2 = Readonly<{
   physicalField: string;
   logicalOutput: string;
@@ -74,6 +91,8 @@ export type MultiCutReplaySqlDefinitionStatementV2 = Readonly<{
   invariantViolationContract: "fail-closed";
   placeholders: readonly MultiCutReplaySqlDefinitionPlaceholderV2[];
   orderedPredicates: readonly MultiCutReplaySqlDefinitionPredicateV2[];
+  predicateBindings:
+    readonly MultiCutReplaySqlPredicateBindingResolutionV2[];
   mutations: readonly MultiCutReplaySqlDefinitionFieldMutationV2[];
   projections: readonly MultiCutReplaySqlDefinitionProjectionV2[];
   insertSources: readonly (

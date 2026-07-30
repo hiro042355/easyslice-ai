@@ -9,6 +9,7 @@ export type {
   MultiCutReplaySqlDefinitionProjectionV2,
   MultiCutReplaySqlDefinitionProjectionFieldV2,
   MultiCutReplaySqlDefinitionPredicateV2,
+  MultiCutReplaySqlPredicateBindingResolutionV2,
   MultiCutReplaySqlDefinitionStatementV2,
   MultiCutReplaySqlReferenceResolutionV2,
   MultiCutReplaySqlLookupProjectionGroupV2,
