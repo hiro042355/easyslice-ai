@@ -285,7 +285,11 @@ const makeStatement = (
       semantics.persistentContinuity.expected.includes(field),
     ),
     ...processingFields.filter((field) =>
-      binding.inputBindings.some((input) => flattenInput(input).includes(field)),
+      binding.inputBindings.some((input) => flattenInput(input).includes(field)) &&
+      !(
+        statementId === "resolve-existing-replay" &&
+        ["reservation_identity", "lease_identity"].includes(field)
+      ),
     ),
     ...(statementId === "takeover-stale-processing-replay"
       ? ["lease_expires_at"]

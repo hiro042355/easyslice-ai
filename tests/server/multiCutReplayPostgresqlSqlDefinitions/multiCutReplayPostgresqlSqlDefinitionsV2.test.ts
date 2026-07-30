@@ -206,3 +206,16 @@ test("terminal SQL consumes every published placeholder exactly as typed", () =>
     );
   }
 });
+
+test("released re-reservation writes new ownership without using it as a predicate", () => {
+  const statement = definitions.byStatementId["resolve-existing-replay"];
+  const [setClause, whereClause] = statement.sql.split("\nWHERE\n");
+  assert.match(setClause, /reservation_identity = \$14::text/);
+  assert.match(setClause, /lease_identity = \$15::text/);
+  assert.match(whereClause, /state = 'released'/);
+  assert.doesNotMatch(whereClause, /reservation_identity\s*=/);
+  assert.doesNotMatch(whereClause, /lease_identity\s*=/);
+  assert.match(whereClause, /revision = \$11::text/);
+  assert.match(whereClause, /last_fencing_token = \$12::text/);
+  assert.match(whereClause, /last_reservation_attempt = \$13::integer/);
+});

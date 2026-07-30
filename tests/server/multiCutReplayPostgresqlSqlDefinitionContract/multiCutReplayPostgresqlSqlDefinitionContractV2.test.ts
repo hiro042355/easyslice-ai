@@ -639,3 +639,36 @@ test("terminal version assignments consume their published parameter bindings", 
   );
   assert.equal(resultVersion?.terminalTarget, "result_reference_version");
 });
+
+test("released re-reservation assigns new ownership without predicating it", () => {
+  const statement = contract.statements.find(
+    ({ statementId }) => statementId === "resolve-existing-replay",
+  );
+  assert.ok(statement);
+  assert.equal(
+    statement.orderedPredicates.some(({ physicalField }) =>
+      ["reservation_identity", "lease_identity"].includes(physicalField),
+    ),
+    false,
+  );
+  assert.equal(
+    statement.orderedPredicates.find(
+      ({ physicalField }) => physicalField === "state",
+    )?.sourceReference,
+    "literal:released",
+  );
+  for (const [
+    field,
+    binding,
+  ] of [
+    ["reservation_identity", "reservation_identity"],
+    ["lease_identity", "lease_identity"],
+  ] as const) {
+    const terminal = contract.terminalResolutionRegistry.find(
+      ({ referenceId }) =>
+        referenceId === `assignment:resolve-existing-replay:${field}`,
+    );
+    assert.equal(terminal?.terminalTarget, binding);
+    assert.equal(terminal?.terminalResolutionKind, "exact-placeholder-binding");
+  }
+});
