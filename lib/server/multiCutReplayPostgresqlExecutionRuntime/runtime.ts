@@ -19,6 +19,7 @@ const safeFailure = (
   classification:
     MultiCutReplayPostgresqlExecutionRuntimeFailureClassification;
   safeReason: string;
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
 }> => {
   if (
     typeof failure === "object" &&
@@ -32,6 +33,36 @@ const safeFailure = (
         "safeReason" in failure && typeof failure.safeReason === "string"
           ? failure.safeReason
           : "commit-outcome-unknown",
+      ...("sqlStateClass" in failure &&
+      (failure.sqlStateClass === "08" ||
+        failure.sqlStateClass === "23" ||
+        failure.sqlStateClass === "25" ||
+        failure.sqlStateClass === "40" ||
+        failure.sqlStateClass === "42" ||
+        failure.sqlStateClass === "57")
+        ? { sqlStateClass: failure.sqlStateClass }
+        : {}),
+    });
+  }
+  if (
+    typeof failure === "object" &&
+    failure !== null &&
+    "classification" in failure &&
+    failure.classification === "execution-failure" &&
+    "retryClassification" in failure
+  ) {
+    return Object.freeze({
+      classification: "non-retryable",
+      safeReason: fallback,
+      ...("sqlStateClass" in failure &&
+      (failure.sqlStateClass === "08" ||
+        failure.sqlStateClass === "23" ||
+        failure.sqlStateClass === "25" ||
+        failure.sqlStateClass === "40" ||
+        failure.sqlStateClass === "42" ||
+        failure.sqlStateClass === "57")
+        ? { sqlStateClass: failure.sqlStateClass }
+        : {}),
     });
   }
   return Object.freeze({
@@ -65,6 +96,7 @@ const rollbackAndRelease = async (
   classification: MultiCutReplayPostgresqlExecutionRuntimeFailureClassification,
   safeReason: string,
   adapterResult?: MultiCutReplayPostgresqlPureAdapterResult,
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57",
 ): Promise<MultiCutReplayPostgresqlExecutionRuntimeResult> => {
   try {
     await connection.rollback();
@@ -108,6 +140,7 @@ const rollbackAndRelease = async (
     phase,
     classification,
     safeReason,
+    ...(sqlStateClass ? { sqlStateClass } : {}),
     ...(adapterResult ? { adapterResult } : {}),
   });
 };
@@ -206,6 +239,9 @@ export const createMultiCutReplayPostgresqlExecutionRuntime = (
           adapterFailureClassification(adapterResult),
           "adapter-result-failed",
           adapterResult,
+          adapterResult.status === "execution-failure"
+            ? adapterResult.sqlStateClass
+            : undefined,
         );
       }
 

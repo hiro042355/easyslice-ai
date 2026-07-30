@@ -42,6 +42,7 @@ export type MultiCutReplayPostgresqlFakeClientFailure = Readonly<{
   failureVersion: "1.0";
   classification: "execution-failure" | "commit-unknown";
   safeReason: string;
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
 }>;
 
 export type MultiCutReplayPostgresqlPureAdapterInput = Readonly<{
@@ -96,6 +97,7 @@ export type MultiCutReplayPostgresqlPureAdapterResult =
     statementId: MultiCutReplayPersistenceStatementIdV2;
     classification: "execution-failure" | "commit-unknown";
     safeReason: string;
+    sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
     metadata: MultiCutReplayPostgresqlPureAdapterMetadata;
   }>;
 

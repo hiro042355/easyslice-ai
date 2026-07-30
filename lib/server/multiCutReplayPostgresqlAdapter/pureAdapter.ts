@@ -88,7 +88,14 @@ const isFakeFailure = (
   (failure.classification === "execution-failure" ||
     failure.classification === "commit-unknown") &&
   "safeReason" in failure &&
-  typeof failure.safeReason === "string";
+  typeof failure.safeReason === "string" &&
+  (!("sqlStateClass" in failure) ||
+    failure.sqlStateClass === "08" ||
+    failure.sqlStateClass === "23" ||
+    failure.sqlStateClass === "25" ||
+    failure.sqlStateClass === "40" ||
+    failure.sqlStateClass === "42" ||
+    failure.sqlStateClass === "57");
 
 const mapResult = (
   input: MultiCutReplayPostgresqlPureAdapterInput,
@@ -155,6 +162,9 @@ export const createMultiCutReplayPostgresqlPureAdapter = (
           statementId: input.statementId,
           classification: failure.classification,
           safeReason: failure.safeReason,
+          ...(failure.sqlStateClass
+            ? { sqlStateClass: failure.sqlStateClass }
+            : {}),
           metadata: metadataFor(input.statementId),
         });
       }

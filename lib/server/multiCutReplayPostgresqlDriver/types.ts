@@ -21,6 +21,7 @@ export type MultiCutReplayPostgresqlDriverFailure = Readonly<{
   classification: "execution-failure" | "commit-unknown";
   retryClassification: "retryable" | "non-retryable" | "commit-unknown";
   safeReason: string;
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
 }>;
 
 export type MultiCutReplayPostgresqlDriverConnection = Readonly<{

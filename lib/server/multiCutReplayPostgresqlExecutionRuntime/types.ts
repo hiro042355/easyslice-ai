@@ -41,6 +41,7 @@ export type MultiCutReplayPostgresqlExecutionRuntimeResult =
     classification:
       MultiCutReplayPostgresqlExecutionRuntimeFailureClassification;
     safeReason: string;
+    sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
     adapterResult?: MultiCutReplayPostgresqlPureAdapterResult;
   }>;
 

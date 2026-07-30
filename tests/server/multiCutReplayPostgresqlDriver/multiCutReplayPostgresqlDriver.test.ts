@@ -65,7 +65,13 @@ const driverError = (
     | "serialization-conflict"
     | "commit-outcome-unknown",
   safeReason: string = kind,
-) => Object.freeze({ errorVersion: "1.0" as const, kind, safeReason });
+  sqlStateClass?: "08" | "23" | "40",
+) => Object.freeze({
+  errorVersion: "1.0" as const,
+  kind,
+  safeReason,
+  ...(sqlStateClass ? { sqlStateClass } : {}),
+});
 
 test("driver bridge preserves connection and transaction lifecycle", async () => {
   const fake = createReferenceMultiCutReplayPostgresqlFakeDriver(
@@ -126,6 +132,57 @@ test("serialization conflict maps to retryable driver failure", () => {
       safeReason: "serialization",
     },
   );
+});
+
+test("safe SQLSTATE classes propagate without changing failure semantics", async () => {
+  const cases = [
+    ["connection-unavailable", "08", "retryable"],
+    ["query-rejected", "23", "non-retryable"],
+    ["serialization-conflict", "40", "retryable"],
+  ] as const;
+  for (const [kind, sqlStateClass, retryClassification] of cases) {
+    const mapped = mapMultiCutReplayPostgresqlDriverError(
+      driverError(kind, `safe-${sqlStateClass}`, sqlStateClass),
+    );
+    assert.equal(mapped.sqlStateClass, sqlStateClass);
+    assert.equal(mapped.retryClassification, retryClassification);
+    assert.equal(mapped.safeReason, `safe-${sqlStateClass}`);
+    assert.equal(mapped.classification, "execution-failure");
+
+    const fake = createReferenceMultiCutReplayPostgresqlFakeDriver(
+      Object.freeze({ rows: Object.freeze([]), rowCount: 0, command: "SELECT" }),
+      Object.freeze({
+        stage: kind === "connection-unavailable" ? "acquire" : "query",
+        error: driverError(kind, `safe-${sqlStateClass}`, sqlStateClass),
+      }),
+    );
+    const result = await createMultiCutReplayPostgresqlExecutionRuntime(
+      createMultiCutReplayPostgresqlDriverConnectionProvider(fake.driver),
+    ).execute(readInput);
+    assert.equal(result.status, "failed");
+    if (result.status === "failed") {
+      assert.equal(result.sqlStateClass, sqlStateClass);
+      assert.equal(
+        result.classification,
+        kind === "connection-unavailable" ? "non-retryable" : "retryable",
+      );
+      assert.equal(
+        result.safeReason,
+        kind === "connection-unavailable"
+          ? "connection-acquire-failed"
+          : "adapter-result-failed",
+      );
+    }
+  }
+});
+
+test("missing SQLSTATE class preserves the existing safe fallback", () => {
+  const mapped = mapMultiCutReplayPostgresqlDriverError(
+    driverError("query-rejected", "safe-fallback"),
+  );
+  assert.equal("sqlStateClass" in mapped, false);
+  assert.equal(mapped.retryClassification, "non-retryable");
+  assert.equal(mapped.safeReason, "safe-fallback");
 });
 
 test("query rejection maps to non-retryable driver failure", () => {
