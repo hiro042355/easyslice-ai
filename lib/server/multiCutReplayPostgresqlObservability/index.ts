@@ -6,6 +6,7 @@ export type {
   ReplayPostgresqlObservabilityEvent,
   ReplayPostgresqlObservabilityPort,
   ReplayPostgresqlOperation,
+  ReplayPostgresqlPoolLifecycleEvent,
   ReplayPostgresqlRollbackFailureEvent,
   ReplayPostgresqlSafeSqlStateClass,
 } from "./types";

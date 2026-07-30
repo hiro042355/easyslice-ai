@@ -35,6 +35,7 @@ export type MultiCutReplayPostgresqlProductionCompositionDependencies =
   Readonly<{
     poolFactory?: MultiCutReplayPostgresqlProductionPoolFactory;
     observability?: ReplayPostgresqlObservabilityPort;
+    drainTimeoutMs?: number;
   }>;
 
 export type MultiCutReplayPostgresqlProductionCompositionShutdownResult =

@@ -11,7 +11,8 @@ export type ReplayPostgresqlOperation =
   | "transaction-rollback"
   | "acquire"
   | "release-connection"
-  | "discard-connection";
+  | "discard-connection"
+  | "shutdown";
 
 export type ReplayPostgresqlSafeSqlStateClass =
   | "08"
@@ -65,10 +66,25 @@ export type ReplayPostgresqlConnectionDiscardedEvent =
       outcome: "completed";
     }>;
 
+export type ReplayPostgresqlPoolLifecycleEvent =
+  ReplayPostgresqlObservabilityEventBase &
+    Readonly<{
+      eventType:
+        | "replay-postgresql-pool-draining"
+        | "replay-postgresql-pool-drained"
+        | "replay-postgresql-pool-drain-timeout"
+        | "replay-postgresql-pool-closed";
+      lifecyclePhase: "pool";
+      outcome: "started" | "completed" | "failed";
+      safeReason: string;
+      connectionDisposition?: "released" | "discarded";
+    }>;
+
 export type ReplayPostgresqlObservabilityEvent =
   | ReplayPostgresqlExecutionFailureEvent
   | ReplayPostgresqlRollbackFailureEvent
-  | ReplayPostgresqlConnectionDiscardedEvent;
+  | ReplayPostgresqlConnectionDiscardedEvent
+  | ReplayPostgresqlPoolLifecycleEvent;
 
 export type ReplayPostgresqlObservabilityPort = Readonly<{
   emit(event: ReplayPostgresqlObservabilityEvent): void;

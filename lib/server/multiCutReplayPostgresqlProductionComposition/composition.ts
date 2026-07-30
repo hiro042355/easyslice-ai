@@ -18,8 +18,13 @@ import type {
   MultiCutReplayPostgresqlProductionComposition,
   MultiCutReplayPostgresqlProductionCompositionDependencies,
   MultiCutReplayPostgresqlProductionCompositionResult,
+  MultiCutReplayPostgresqlProductionCompositionShutdownResult,
   MultiCutReplayPostgresqlProductionCompositionState,
 } from "./types";
+import {
+  emitReplayPostgresqlEvent,
+  NO_OP_REPLAY_POSTGRESQL_OBSERVABILITY_PORT,
+} from "../multiCutReplayPostgresqlObservability";
 
 const isNonEmpty = (value: string): boolean => value.trim().length > 0;
 
@@ -57,9 +62,18 @@ export const createMultiCutReplayPostgresqlProductionComposition = async (
   config: PostgreSQLConnectionConfig,
   dependencies: MultiCutReplayPostgresqlProductionCompositionDependencies = {},
 ): Promise<MultiCutReplayPostgresqlProductionCompositionResult> => {
-  if (!isValidConfiguration(config)) {
+  if (
+    !isValidConfiguration(config) ||
+    (dependencies.drainTimeoutMs !== undefined &&
+      (!Number.isFinite(dependencies.drainTimeoutMs) ||
+        !Number.isInteger(dependencies.drainTimeoutMs) ||
+        dependencies.drainTimeoutMs < 0))
+  ) {
     return failure("configuration-failure", "invalid-postgresql-configuration");
   }
+  const observability =
+    dependencies.observability ?? NO_OP_REPLAY_POSTGRESQL_OBSERVABILITY_PORT;
+  const drainTimeoutMs = dependencies.drainTimeoutMs ?? 5_000;
 
   let pool: PostgreSQLConnectionPool | undefined;
   try {
@@ -85,44 +99,90 @@ export const createMultiCutReplayPostgresqlProductionComposition = async (
         : {}),
     });
     let state: MultiCutReplayPostgresqlProductionCompositionState = "ready";
+    let shutdownPromise:
+      Promise<MultiCutReplayPostgresqlProductionCompositionShutdownResult>
+      | undefined;
 
     const composition: MultiCutReplayPostgresqlProductionComposition =
       Object.freeze({
         compositionVersion: "1.0",
         runtime,
         state: () => state,
-        async shutdown() {
+        shutdown() {
           if (state === "closed") {
-            return Object.freeze({ status: "already-closed" as const });
+            return Promise.resolve(
+              Object.freeze({ status: "already-closed" as const }),
+            );
           }
-          if (state === "shutting-down") {
-            return Object.freeze({
-              status: "failed" as const,
-              classification: "shutdown-failure" as const,
-              safeReason: "shutdown-already-in-progress",
-            });
-          }
+          if (shutdownPromise) return shutdownPromise;
           state = "shutting-down";
-          try {
-            const closed = await readyPool.close();
-            if (closed === "drain-timeout") {
+          emitReplayPostgresqlEvent(observability, Object.freeze({
+            schemaVersion: "1.0",
+            eventType: "replay-postgresql-pool-draining",
+            operation: "shutdown",
+            lifecyclePhase: "pool",
+            outcome: "started",
+            safeReason: "pool-drain-started",
+          }));
+          shutdownPromise = (async () => {
+            try {
+              const closed = await readyPool.close({ timeoutMs: drainTimeoutMs });
+              if (closed === "drain-timeout") {
+                state = "failed";
+                emitReplayPostgresqlEvent(observability, Object.freeze({
+                  schemaVersion: "1.0",
+                  eventType: "replay-postgresql-pool-drain-timeout",
+                  operation: "shutdown",
+                  lifecyclePhase: "pool",
+                  outcome: "failed",
+                  safeReason: "pool-close-drain-timeout",
+                  connectionDisposition: "discarded",
+                }));
+                emitReplayPostgresqlEvent(observability, Object.freeze({
+                  schemaVersion: "1.0",
+                  eventType: "replay-postgresql-pool-closed",
+                  operation: "shutdown",
+                  lifecyclePhase: "pool",
+                  outcome: "completed",
+                  safeReason: "pool-closed-after-forced-discard",
+                  connectionDisposition: "discarded",
+                }));
+                return Object.freeze({
+                  status: "failed" as const,
+                  classification: "shutdown-failure" as const,
+                  safeReason: "pool-close-drain-timeout",
+                });
+              }
+              state = "closed";
+              emitReplayPostgresqlEvent(observability, Object.freeze({
+                schemaVersion: "1.0",
+                eventType: "replay-postgresql-pool-drained",
+                operation: "shutdown",
+                lifecyclePhase: "pool",
+                outcome: "completed",
+                safeReason: "pool-drain-completed",
+                connectionDisposition: "released",
+              }));
+              emitReplayPostgresqlEvent(observability, Object.freeze({
+                schemaVersion: "1.0",
+                eventType: "replay-postgresql-pool-closed",
+                operation: "shutdown",
+                lifecyclePhase: "pool",
+                outcome: "completed",
+                safeReason: "pool-closed",
+                connectionDisposition: "released",
+              }));
+              return Object.freeze({ status: "closed" as const });
+            } catch {
               state = "failed";
               return Object.freeze({
                 status: "failed" as const,
                 classification: "shutdown-failure" as const,
-                safeReason: "pool-close-drain-timeout",
+                safeReason: "pool-close-failed",
               });
             }
-            state = "closed";
-            return Object.freeze({ status: "closed" as const });
-          } catch {
-            state = "failed";
-            return Object.freeze({
-              status: "failed" as const,
-              classification: "shutdown-failure" as const,
-              safeReason: "pool-close-failed",
-            });
-          }
+          })();
+          return shutdownPromise;
         },
       });
 

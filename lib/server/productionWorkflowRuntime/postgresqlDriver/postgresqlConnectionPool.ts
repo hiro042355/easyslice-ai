@@ -3,6 +3,7 @@ import { createPostgreSQLTypeParsers, decodePostgreSQLValue, encodePostgreSQLPar
 import { isSafeStatementId } from "./postgresqlDriverUtils";
 import { mapPostgreSQLError } from "./postgresqlErrorMapper";
 import { PostgreSQLTransactionConnectionAdapter } from "./postgresqlTransactionConnection";
+import { PostgreSQLDrainCoordinator } from "./postgresqlDrainCoordinator";
 import type { PostgreSQLConnection, PostgreSQLConnectionConfig, PostgreSQLConnectionPool, PostgreSQLConnectionState, PostgreSQLExecutionFailure, PostgreSQLPoolState, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRow, PostgreSQLTransactionConnection } from "./types";
 
 function invalid(stage: "pool" | "checkout" | "query" | "begin", statementId?: string): PostgreSQLExecutionFailure {
@@ -70,6 +71,7 @@ export class PostgreSQLConnectionAdapter implements PostgreSQLConnection {
   }
   discard(): "discarded" | "already-released" {
     if (this.connectionState === "released" || this.connectionState === "discarded") return "already-released";
+    this.transaction?.markDiscarded();
     this.connectionState = "discarded"; this.client.release(true); this.onDone(); return "discarded";
   }
 }
@@ -77,7 +79,9 @@ export class PostgreSQLConnectionAdapter implements PostgreSQLConnection {
 export class PostgreSQLConnectionPoolAdapter implements PostgreSQLConnectionPool {
   private poolState: PostgreSQLPoolState = "created";
   private pool: Pool | undefined;
-  private checkedOut = 0;
+  private readonly drainCoordinator = new PostgreSQLDrainCoordinator();
+  private closePromise:
+    Promise<"closed" | "drain-timeout"> | undefined;
   constructor(private readonly config: PostgreSQLConnectionConfig) {}
   state(): PostgreSQLPoolState { return this.poolState; }
   async start(): Promise<"ready" | "already-started" | PostgreSQLExecutionFailure> {
@@ -90,13 +94,38 @@ export class PostgreSQLConnectionPoolAdapter implements PostgreSQLConnectionPool
   }
   async checkout(): Promise<PostgreSQLConnection | PostgreSQLExecutionFailure> {
     if (this.poolState !== "ready" || !this.pool) return { status: "failure", issue: "disposed", diagnostic: { stage: "checkout", issue: "disposed", retryable: false } };
-    try { const client = await this.pool.connect(); this.checkedOut += 1; return new PostgreSQLConnectionAdapter(client, () => { this.checkedOut -= 1; }); }
+    try {
+      const client = await this.pool.connect();
+      if (this.poolState !== "ready") {
+        client.release(true);
+        return { status: "failure", issue: "disposed", diagnostic: { stage: "checkout", issue: "disposed", retryable: false } };
+      }
+      let connection: PostgreSQLConnectionAdapter;
+      const registration = this.drainCoordinator.register({
+        discard: () => connection.discard(),
+      });
+      connection = new PostgreSQLConnectionAdapter(
+        client,
+        () => registration.release(),
+      );
+      return connection;
+    }
     catch (error) { return mapPostgreSQLError(error, { stage: "checkout" }); }
   }
-  async close(): Promise<"closed" | "already-closed" | "drain-timeout"> {
+  async close(
+    options: Readonly<{ timeoutMs: number }> = Object.freeze({
+      timeoutMs: 5_000,
+    }),
+  ): Promise<"closed" | "already-closed" | "drain-timeout"> {
     if (this.poolState === "closed") return "already-closed";
+    if (this.closePromise) return this.closePromise;
     this.poolState = "draining";
-    if (this.checkedOut > 0) return "drain-timeout";
-    await this.pool?.end(); this.poolState = "closed"; return "closed";
+    this.closePromise = (async () => {
+      const drained = await this.drainCoordinator.drain(options.timeoutMs);
+      await this.pool?.end();
+      this.poolState = "closed";
+      return drained.status === "drained" ? "closed" : "drain-timeout";
+    })();
+    return this.closePromise;
   }
 }

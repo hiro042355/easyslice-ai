@@ -20,6 +20,10 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
     private readonly onRelease?: () => unknown,
   ) {}
   state(): PostgreSQLTransactionState { return this.transactionState; }
+  markDiscarded(): void {
+    this.transactionState = "released";
+    this.reuse = "must-discard";
+  }
   async query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult> {
     if (this.transactionState !== "active") return { status: "failure", issue: "disposed", diagnostic: { stage: "query", statementId: request.statementId, issue: "disposed", connectionState: "transaction-active", transactionState: this.transactionState, retryable: false } };
     const result = await this.execute(this.client, request, "transaction-active", this.transactionState);

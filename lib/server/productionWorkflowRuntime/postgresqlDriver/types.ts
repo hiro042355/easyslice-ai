@@ -103,5 +103,7 @@ export type PostgreSQLConnectionPool = Readonly<{
   state(): PostgreSQLPoolState;
   start(): Promise<"ready" | "already-started" | PostgreSQLExecutionFailure>;
   checkout(): Promise<PostgreSQLConnection | PostgreSQLExecutionFailure>;
-  close(): Promise<"closed" | "already-closed" | "drain-timeout">;
+  close(options?: Readonly<{ timeoutMs: number }>): Promise<
+    "closed" | "already-closed" | "drain-timeout"
+  >;
 }>;
