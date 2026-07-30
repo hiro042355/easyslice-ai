@@ -672,3 +672,43 @@ test("released re-reservation assigns new ownership without predicating it", () 
     assert.equal(terminal?.terminalResolutionKind, "exact-placeholder-binding");
   }
 });
+
+test("takeover assignment authority prefers checked successors over predicate inputs", () => {
+  for (const [
+    field,
+    target,
+  ] of [
+    ["fencing_token", "checked-exactly-one-successor:fencing_token"],
+    [
+      "reservation_attempt",
+      "checked-exactly-one-successor:reservation_attempt",
+    ],
+  ] as const) {
+    const terminal = contract.terminalResolutionRegistry.find(
+      ({ referenceId }) =>
+        referenceId ===
+        `assignment:takeover-stale-processing-replay:${field}`,
+    );
+    assert.equal(
+      terminal?.terminalResolutionKind,
+      "exact-checked-successor-definition",
+    );
+    assert.equal(terminal?.terminalTarget, target);
+  }
+  const statement = contract.statements.find(
+    ({ statementId }) => statementId === "takeover-stale-processing-replay",
+  );
+  assert.ok(statement);
+  assert.equal(
+    statement.predicateBindings.find(
+      ({ physicalField }) => physicalField === "fencing_token",
+    )?.placeholderOrdinal,
+    16,
+  );
+  assert.equal(
+    statement.predicateBindings.find(
+      ({ physicalField }) => physicalField === "reservation_attempt",
+    )?.placeholderOrdinal,
+    15,
+  );
+});

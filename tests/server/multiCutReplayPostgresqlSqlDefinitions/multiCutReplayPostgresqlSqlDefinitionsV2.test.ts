@@ -219,3 +219,21 @@ test("released re-reservation writes new ownership without using it as a predica
   assert.match(whereClause, /last_fencing_token = \$12::text/);
   assert.match(whereClause, /last_reservation_attempt = \$13::integer/);
 });
+
+test("takeover SQL assigns checked successors and predicates old continuity", () => {
+  const statement =
+    definitions.byStatementId["takeover-stale-processing-replay"];
+  const [setClause, whereClause] = statement.sql.split("\nWHERE\n");
+  assert.match(
+    setClause,
+    /fencing_token = CASE WHEN last_fencing_token[\s\S]+?END/,
+  );
+  assert.match(
+    setClause,
+    /reservation_attempt = \(last_reservation_attempt::bigint \+ 1\)::integer/,
+  );
+  assert.doesNotMatch(setClause, /fencing_token = \$16::text/);
+  assert.doesNotMatch(setClause, /reservation_attempt = \$15::integer/);
+  assert.match(whereClause, /fencing_token = \$16::text/);
+  assert.match(whereClause, /reservation_attempt = \$15::integer/);
+});

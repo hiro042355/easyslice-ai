@@ -668,16 +668,16 @@ const assignmentReferenceRegistry = statements.flatMap((statement) =>
                 ? stateLiteralByStatement[statement.statementId]
                  : field === "lease_expires_at"
                    ? `postgresql-expression:${statement.statementId}:lease-expiry`
-                  : placeholder
-                    ? `binding:${placeholder.parameterBinding}`
-                   : field.endsWith("_version")
-                     ? "1.0"
-                    : field === "expected_revision"
+                  : field === "expected_revision"
                       ? statement.successorReferences.revision
                       : field === "fencing_token"
                         ? statement.successorReferences.last_fencing_token
                         : field === "reservation_attempt"
                           ? statement.successorReferences.last_reservation_attempt
+                          : placeholder
+                            ? `binding:${placeholder.parameterBinding}`
+                            : field.endsWith("_version")
+                              ? "1.0"
                   : `binding:${field}`;
     const kind =
       mutation.action === "retain"
