@@ -180,3 +180,29 @@ test("takeover SQL writes new ownership and predicates existing ownership", () =
     Array.from({ length: 19 }, (_, index) => index + 1),
   );
 });
+
+test("terminal SQL consumes every published placeholder exactly as typed", () => {
+  for (const statementId of [
+    "complete-processing-replay",
+    "fail-processing-replay",
+    "release-processing-replay",
+  ] as const) {
+    const statement = definitions.byStatementId[statementId];
+    for (const placeholder of statement.placeholders) {
+      assert.match(
+        statement.sql,
+        new RegExp(
+          `\\${placeholder.placeholder}::${placeholder.postgresqlCast}\\b`,
+        ),
+        `${statementId}:${placeholder.placeholder}`,
+      );
+    }
+    assert.deepEqual(
+      statement.placeholders.map(({ ordinal }) => ordinal),
+      Array.from(
+        { length: statement.placeholders.length },
+        (_, index) => index + 1,
+      ),
+    );
+  }
+});

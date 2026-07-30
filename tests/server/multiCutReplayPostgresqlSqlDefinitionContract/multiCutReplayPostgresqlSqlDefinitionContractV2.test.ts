@@ -614,3 +614,28 @@ test("takeover assigns new ownership and predicates existing ownership", () => {
   );
   assert.equal(predicate("lease_identity")?.placeholderOrdinal, 14);
 });
+
+test("terminal version assignments consume their published parameter bindings", () => {
+  for (const statementId of [
+    "complete-processing-replay",
+    "fail-processing-replay",
+    "release-processing-replay",
+  ] as const) {
+    const terminal = contract.terminalResolutionRegistry.find(
+      ({ referenceId }) =>
+        referenceId === `assignment:${statementId}:terminal_metadata_version`,
+    );
+    assert.equal(terminal?.terminalResolutionKind, "exact-placeholder-binding");
+    assert.equal(terminal?.terminalTarget, "terminal_metadata_version");
+  }
+  const resultVersion = contract.terminalResolutionRegistry.find(
+    ({ referenceId }) =>
+      referenceId ===
+      "assignment:complete-processing-replay:result_reference_version",
+  );
+  assert.equal(
+    resultVersion?.terminalResolutionKind,
+    "exact-placeholder-binding",
+  );
+  assert.equal(resultVersion?.terminalTarget, "result_reference_version");
+});
