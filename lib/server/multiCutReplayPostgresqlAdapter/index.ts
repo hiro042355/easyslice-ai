@@ -9,3 +9,24 @@ export type {
   MultiCutReplayPostgresqlAdapterRequest,
   MultiCutReplayPostgresqlAdapterResult,
 } from "./types";
+export {
+  createMultiCutReplayPostgresqlPureAdapter,
+} from "./pureAdapter";
+export {
+  createReferenceMultiCutReplayPostgresqlFakeClient,
+} from "./referenceFakeClient";
+export type {
+  ReferenceMultiCutReplayPostgresqlFakeClient,
+} from "./referenceFakeClient";
+export type {
+  MultiCutReplayPostgresqlFakeClient,
+  MultiCutReplayPostgresqlFakeClientFailure,
+  MultiCutReplayPostgresqlFakeClientResult,
+  MultiCutReplayPostgresqlPureAdapter,
+  MultiCutReplayPostgresqlPureAdapterBindings,
+  MultiCutReplayPostgresqlPureAdapterInput,
+  MultiCutReplayPostgresqlPureAdapterMetadata,
+  MultiCutReplayPostgresqlPureAdapterResult,
+  MultiCutReplayPostgresqlPureExecutionParameter,
+  MultiCutReplayPostgresqlPureExecutionRequest,
+} from "./pureTypes";
