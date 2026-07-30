@@ -29,7 +29,7 @@ async function execute(client: PoolClient, request: PostgreSQLQueryRequest, conn
     if (request.expectedResult === "single" && rows.length === 0) return { status: "not-found" };
     if (request.expectedResult === "single" && rows.length !== 1) return { status: "cardinality-conflict" };
     if (request.expectedResult === "none" && rows.length !== 0) return { status: "cardinality-conflict" };
-    return { status: "success", rows: Object.freeze(rows), rowCount: result.rowCount ?? rows.length };
+    return { status: "success", rows: Object.freeze(rows), rowCount: result.rowCount ?? rows.length, command: result.command };
   } catch (error) {
     return mapPostgreSQLError(error, { stage: "query", statementId: request.statementId, connectionState, transactionState });
   }

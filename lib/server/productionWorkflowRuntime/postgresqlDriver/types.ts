@@ -47,7 +47,7 @@ export type PostgreSQLExecutionFailure = Readonly<{
 }>;
 
 export type PostgreSQLQueryResult =
-  | Readonly<{ status: "success"; rows: readonly PostgreSQLRow[]; rowCount: number }>
+  | Readonly<{ status: "success"; rows: readonly PostgreSQLRow[]; rowCount: number; command: string }>
   | Readonly<{ status: "not-found" }>
   | Readonly<{ status: "cardinality-conflict" }>
   | PostgreSQLExecutionFailure;

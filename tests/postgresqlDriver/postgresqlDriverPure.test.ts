@@ -7,6 +7,7 @@ import {
   normalizePostgreSQLUtcTimestamp, parsePostgreSQLBigIntString, parsePostgreSQLNumericString,
   parsePostgreSQLRevision, parsePostgreSQLSafeInteger,
 } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver";
+import { PostgreSQLConnectionAdapter } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver/postgresqlConnectionPool";
 
 test("600,000+ driver codec, error, revision, and registry assertions", () => {
   const codes = ["23505", "23503", "23514", "40001", "40P01", "08006", "57014", "25006", "42501", "42P01", "42703"];
@@ -66,4 +67,32 @@ test("constraint, reuse, commit unknown, and registry boundaries are safe", () =
   const second = listPostgreSQLDriverDescriptors();
   assert.notEqual(first, second);
   assert.equal(first[0]?.abortSignal, "unsupported-pg-8.22.0");
+});
+
+test("query command is preserved exactly from the pg result", async () => {
+  const client = {
+    on() {},
+    removeListener() {},
+    release() {},
+    async query() {
+      return {
+        command: "FIXTURE_COMMAND",
+        rowCount: 0,
+        oid: 0,
+        rows: [],
+        fields: [],
+      };
+    },
+  };
+  const connection = new PostgreSQLConnectionAdapter(client as never, () => {});
+  const result = await connection.query({
+    statementId: "driver.command-preservation",
+    text: "SELECT 1 WHERE false",
+    values: [],
+    expectedResult: "many",
+  });
+  assert.equal(result.status, "success");
+  if (result.status === "success") {
+    assert.equal(result.command, "FIXTURE_COMMAND");
+  }
 });

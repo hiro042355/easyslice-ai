@@ -31,6 +31,7 @@ test("real pool, dedicated connection, codecs, cardinality, and lifecycle", asyn
     ], "single"));
     assert.equal(result.status, "success");
     if (result.status === "success") {
+      assert.equal(result.command, "SELECT");
       assert.equal(result.rows[0]?.big_value, "9007199254740992");
       assert.equal(result.rows[0]?.numeric_value, "123.4500");
       assert.equal(result.rows[0]?.time_value, "2026-07-16T01:02:03.123456Z");
@@ -57,7 +58,9 @@ test("real SQLSTATE, failed transaction, commit, rollback, cancellation, and ter
     assert.equal(await pool.start(), "ready");
     const connection = await pool.checkout();
     if ("status" in connection) throw new Error("checkout-failed");
-    assert.equal((await connection.query(request("driver.fixture-parent", "CREATE TEMP TABLE driver_parent (id integer PRIMARY KEY)"))).status, "success");
+    const createdParent = await connection.query(request("driver.fixture-parent", "CREATE TEMP TABLE driver_parent (id integer PRIMARY KEY)"));
+    assert.equal(createdParent.status, "success");
+    if (createdParent.status === "success") assert.equal(createdParent.command, "CREATE");
     assert.equal((await connection.query(request("driver.fixture-child", "CREATE TEMP TABLE driver_child (id integer UNIQUE, parent_id integer REFERENCES driver_parent(id), value integer CHECK (value > 0))"))).status, "success");
     assert.equal((await connection.query(request("driver.parent", "INSERT INTO driver_parent VALUES (1)"))).status, "success");
     assert.equal((await connection.query(request("driver.child", "INSERT INTO driver_child VALUES (1, 1, 1)"))).status, "success");
