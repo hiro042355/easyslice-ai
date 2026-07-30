@@ -12,6 +12,7 @@ export type {
 export type {
   MultiCutReplayPostgresqlConnectionProvider,
   MultiCutReplayPostgresqlExecutionRuntime,
+  MultiCutReplayPostgresqlExecutionRuntimeDependencies,
   MultiCutReplayPostgresqlExecutionRuntimeFailureClassification,
   MultiCutReplayPostgresqlExecutionRuntimeInput,
   MultiCutReplayPostgresqlExecutionRuntimeResult,

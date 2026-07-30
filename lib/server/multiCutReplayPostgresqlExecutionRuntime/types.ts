@@ -3,6 +3,9 @@ import type {
   MultiCutReplayPostgresqlPureAdapterInput,
   MultiCutReplayPostgresqlPureAdapterResult,
 } from "../multiCutReplayPostgresqlAdapter";
+import type {
+  ReplayPostgresqlObservabilityPort,
+} from "../multiCutReplayPostgresqlObservability";
 
 export type MultiCutReplayPostgresqlExecutionRuntimeFailureClassification =
   | "retryable"
@@ -49,4 +52,8 @@ export type MultiCutReplayPostgresqlExecutionRuntime = Readonly<{
   execute(
     input: MultiCutReplayPostgresqlExecutionRuntimeInput,
   ): Promise<MultiCutReplayPostgresqlExecutionRuntimeResult>;
+}>;
+
+export type MultiCutReplayPostgresqlExecutionRuntimeDependencies = Readonly<{
+  observability?: ReplayPostgresqlObservabilityPort;
 }>;

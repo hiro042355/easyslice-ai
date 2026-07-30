@@ -11,6 +11,9 @@ import type {
   PostgreSQLConnectionConfig,
   PostgreSQLConnectionPool,
 } from "../productionWorkflowRuntime/postgresqlDriver";
+import type {
+  ReplayPostgresqlObservabilityPort,
+} from "../multiCutReplayPostgresqlObservability";
 
 export type MultiCutReplayPostgresqlProductionCompositionFailureClassification =
   | "configuration-failure"
@@ -31,6 +34,7 @@ export type MultiCutReplayPostgresqlProductionPoolFactory = Readonly<{
 export type MultiCutReplayPostgresqlProductionCompositionDependencies =
   Readonly<{
     poolFactory?: MultiCutReplayPostgresqlProductionPoolFactory;
+    observability?: ReplayPostgresqlObservabilityPort;
   }>;
 
 export type MultiCutReplayPostgresqlProductionCompositionShutdownResult =

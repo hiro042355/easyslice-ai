@@ -6,6 +6,9 @@ import type {
   PostgreSQLConnectionPool,
   PostgreSQLSafeDiagnostic,
 } from "../productionWorkflowRuntime/postgresqlDriver";
+import type {
+  ReplayPostgresqlObservabilityPort,
+} from "../multiCutReplayPostgresqlObservability";
 
 export type MultiCutReplayPostgresqlProductionBridgeError =
   MultiCutReplayPostgresqlDriverError &
@@ -20,6 +23,7 @@ export type MultiCutReplayPostgresqlProductionBridgeError =
 export type MultiCutReplayPostgresqlProductionBridgeDependencies =
   Readonly<{
     pool: PostgreSQLConnectionPool;
+    observability?: ReplayPostgresqlObservabilityPort;
   }>;
 
 export type MultiCutReplayPostgresqlProductionBridge =

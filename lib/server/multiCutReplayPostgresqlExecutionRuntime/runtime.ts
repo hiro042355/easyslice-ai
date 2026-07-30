@@ -7,10 +7,29 @@ import type {
 import type {
   MultiCutReplayPostgresqlConnectionProvider,
   MultiCutReplayPostgresqlExecutionRuntime,
+  MultiCutReplayPostgresqlExecutionRuntimeDependencies,
   MultiCutReplayPostgresqlExecutionRuntimeFailureClassification,
   MultiCutReplayPostgresqlExecutionRuntimeResult,
   MultiCutReplayPostgresqlTransactionConnection,
 } from "./types";
+import {
+  emitReplayPostgresqlEvent,
+  NO_OP_REPLAY_POSTGRESQL_OBSERVABILITY_PORT,
+} from "../multiCutReplayPostgresqlObservability";
+import type {
+  ReplayPostgresqlOperation,
+} from "../multiCutReplayPostgresqlObservability";
+
+const operationByStatement = Object.freeze({
+  "resolve-new-reservation": "reserve",
+  "resolve-existing-replay": "reserve",
+  "lookup-authoritative-replay": "lookup",
+  "renew-processing-reservation": "renew",
+  "complete-processing-replay": "complete",
+  "fail-processing-replay": "fail",
+  "release-processing-replay": "release",
+  "takeover-stale-processing-replay": "takeover",
+} satisfies Readonly<Record<string, ReplayPostgresqlOperation>>);
 
 const safeFailure = (
   failure: unknown,
@@ -145,7 +164,7 @@ const rollbackAndRelease = async (
   });
 };
 
-export const createMultiCutReplayPostgresqlExecutionRuntime = (
+const createUnobservedRuntime = (
   provider: MultiCutReplayPostgresqlConnectionProvider,
 ): MultiCutReplayPostgresqlExecutionRuntime =>
   Object.freeze({
@@ -300,3 +319,49 @@ export const createMultiCutReplayPostgresqlExecutionRuntime = (
       });
     },
   });
+
+export const createMultiCutReplayPostgresqlExecutionRuntime = (
+  provider: MultiCutReplayPostgresqlConnectionProvider,
+  dependencies: MultiCutReplayPostgresqlExecutionRuntimeDependencies = {},
+): MultiCutReplayPostgresqlExecutionRuntime => {
+  const runtime = createUnobservedRuntime(provider);
+  const observability =
+    dependencies.observability ?? NO_OP_REPLAY_POSTGRESQL_OBSERVABILITY_PORT;
+  return Object.freeze({
+    async execute(input) {
+      const result = await runtime.execute(input);
+      if (result.status !== "failed") return result;
+      const operation = operationByStatement[input.statementId];
+      if (result.phase === "rollback") {
+        emitReplayPostgresqlEvent(observability, Object.freeze({
+          schemaVersion: "1.0",
+          eventType: "replay-postgresql-rollback-failed",
+          operation,
+          lifecyclePhase: "transaction",
+          transactionPhase: "rollback",
+          classification: "non-retryable",
+          retryMetadata: "non-retryable",
+          safeReason: result.safeReason,
+          ...(result.sqlStateClass
+            ? { sqlStateClass: result.sqlStateClass }
+            : {}),
+          connectionDisposition: "released",
+          outcome: "failed",
+        }));
+        return result;
+      }
+      emitReplayPostgresqlEvent(observability, Object.freeze({
+        schemaVersion: "1.0",
+        eventType: "replay-postgresql-execution-failed",
+        operation,
+        lifecyclePhase: "execution",
+        classification: result.classification,
+        retryMetadata: result.classification,
+        safeReason: result.safeReason,
+        ...(result.sqlStateClass ? { sqlStateClass: result.sqlStateClass } : {}),
+        outcome: "failed",
+      }));
+      return result;
+    },
+  });
+};

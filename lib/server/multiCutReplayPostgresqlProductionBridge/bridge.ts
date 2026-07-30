@@ -18,6 +18,13 @@ import type {
   PostgreSQLValue,
 } from "../productionWorkflowRuntime/postgresqlDriver";
 import { projectMultiCutReplayPostgresqlParameter } from "./parameterProjection";
+import {
+  emitReplayPostgresqlEvent,
+  NO_OP_REPLAY_POSTGRESQL_OBSERVABILITY_PORT,
+} from "../multiCutReplayPostgresqlObservability";
+import type {
+  ReplayPostgresqlObservabilityPort,
+} from "../multiCutReplayPostgresqlObservability";
 import type {
   MultiCutReplayPostgresqlProductionBridge,
   MultiCutReplayPostgresqlProductionBridgeDependencies,
@@ -120,8 +127,25 @@ const projectResult = (
 
 const createConnection = (
   connection: PostgreSQLConnection,
+  observability: ReplayPostgresqlObservabilityPort,
 ): MultiCutReplayPostgresqlDriverConnection => {
   let transaction: PostgreSQLTransactionConnection | undefined;
+  let discardObserved = false;
+  const observeDiscard = (
+    reasonCategory: "active-transaction" | "commit-unknown" | "rollback-failure",
+  ): void => {
+    if (discardObserved) return;
+    discardObserved = true;
+    emitReplayPostgresqlEvent(observability, Object.freeze({
+      schemaVersion: "1.0",
+      eventType: "replay-postgresql-connection-discarded",
+      operation: "discard-connection",
+      lifecyclePhase: "connection",
+      reasonCategory,
+      connectionDisposition: "discarded",
+      outcome: "completed",
+    }));
+  };
   return Object.freeze({
     async begin() {
       if (transaction) throw bridgeError("disposed");
@@ -143,6 +167,7 @@ const createConnection = (
         result.status === "unknown-outcome" ||
         result.status === "connection-unavailable"
       ) {
+        observeDiscard("commit-unknown");
         throw bridgeError("commit-outcome-unknown");
       }
       throw bridgeError("disposed");
@@ -153,6 +178,7 @@ const createConnection = (
       if (result.status === "rolled-back" || result.status === "not-required") {
         return;
       }
+      observeDiscard("rollback-failure");
       throw bridgeError(
         result.status === "connection-lost"
           ? "connection-unavailable"
@@ -165,6 +191,8 @@ const createConnection = (
 export const createMultiCutReplayPostgresqlProductionBridge = (
   dependencies: MultiCutReplayPostgresqlProductionBridgeDependencies,
 ): MultiCutReplayPostgresqlProductionBridge => {
+  const observability =
+    dependencies.observability ?? NO_OP_REPLAY_POSTGRESQL_OBSERVABILITY_PORT;
   const connections = new WeakMap<
     MultiCutReplayPostgresqlDriverConnection,
     PostgreSQLConnection
@@ -175,7 +203,7 @@ export const createMultiCutReplayPostgresqlProductionBridge = (
       if ("status" in acquired) {
         throw bridgeError(acquired.issue, acquired.diagnostic);
       }
-      const projected = createConnection(acquired);
+      const projected = createConnection(acquired, observability);
       connections.set(projected, acquired);
       return projected;
     },
@@ -185,6 +213,15 @@ export const createMultiCutReplayPostgresqlProductionBridge = (
       const result = connection.release();
       if (result === "transaction-active") {
         connection.discard();
+        emitReplayPostgresqlEvent(observability, Object.freeze({
+          schemaVersion: "1.0",
+          eventType: "replay-postgresql-connection-discarded",
+          operation: "discard-connection",
+          lifecyclePhase: "connection",
+          reasonCategory: "active-transaction",
+          connectionDisposition: "discarded",
+          outcome: "completed",
+        }));
       }
       connections.delete(projected);
     },

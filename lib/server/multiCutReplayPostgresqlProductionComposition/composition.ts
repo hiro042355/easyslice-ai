@@ -69,11 +69,21 @@ export const createMultiCutReplayPostgresqlProductionComposition = async (
       await pool.close();
       return failure("startup-failure", `pool-start-${started.issue}`);
     }
+    const readyPool = pool;
 
-    const bridge = createMultiCutReplayPostgresqlProductionBridge({ pool });
+    const bridge = createMultiCutReplayPostgresqlProductionBridge({
+      pool: readyPool,
+      ...(dependencies.observability
+        ? { observability: dependencies.observability }
+        : {}),
+    });
     const provider =
       createMultiCutReplayPostgresqlDriverConnectionProvider(bridge);
-    const runtime = createMultiCutReplayPostgresqlExecutionRuntime(provider);
+    const runtime = createMultiCutReplayPostgresqlExecutionRuntime(provider, {
+      ...(dependencies.observability
+        ? { observability: dependencies.observability }
+        : {}),
+    });
     let state: MultiCutReplayPostgresqlProductionCompositionState = "ready";
 
     const composition: MultiCutReplayPostgresqlProductionComposition =
@@ -94,7 +104,7 @@ export const createMultiCutReplayPostgresqlProductionComposition = async (
           }
           state = "shutting-down";
           try {
-            const closed = await pool.close();
+            const closed = await readyPool.close();
             if (closed === "drain-timeout") {
               state = "failed";
               return Object.freeze({
