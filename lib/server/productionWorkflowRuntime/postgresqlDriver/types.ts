@@ -74,6 +74,7 @@ export type PostgreSQLRollbackResult =
 export type PostgreSQLConnectionConfig = Readonly<{
   host: string; port: number; database: string; user: string; password: string;
   maxConnections: number; connectionTimeoutMs: number; idleTimeoutMs: number;
+  queryTimeoutMs?: number;
   applicationName: string; tls: Readonly<{ mode: "disabled" | "verify-full" }>;
 }>;
 

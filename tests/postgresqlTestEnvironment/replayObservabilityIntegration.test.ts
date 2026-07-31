@@ -23,6 +23,7 @@ before(async () => {
       maxConnections: 2,
       connectionTimeoutMs: 5_000,
       idleTimeoutMs: 5_000,
+      queryTimeoutMs: 5_000,
       applicationName: "replay-observability-integration",
       tls: { mode: "disabled" },
     },

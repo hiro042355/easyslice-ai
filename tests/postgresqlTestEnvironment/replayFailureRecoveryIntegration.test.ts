@@ -37,6 +37,7 @@ before(async () => {
     maxConnections: 6,
     connectionTimeoutMs: 5_000,
     idleTimeoutMs: 5_000,
+    queryTimeoutMs: 5_000,
     applicationName: "replay-failure-recovery-integration",
     tls: { mode: "disabled" as const },
   };

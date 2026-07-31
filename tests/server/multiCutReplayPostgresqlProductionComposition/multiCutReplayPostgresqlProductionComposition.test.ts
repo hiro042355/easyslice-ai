@@ -24,6 +24,7 @@ const configuration: PostgreSQLConnectionConfig = Object.freeze({
   maxConnections: 4,
   connectionTimeoutMs: 1_000,
   idleTimeoutMs: 30_000,
+  queryTimeoutMs: 2_000,
   applicationName: "multi-cut-replay",
   tls: Object.freeze({ mode: "verify-full" }),
 });
@@ -87,6 +88,36 @@ test("configuration is validated before the pool factory is invoked", async () =
     safeReason: "invalid-postgresql-configuration",
   });
   assert.equal(calls, 0);
+});
+
+test("bounded query timeout policy is required and validated", async () => {
+  for (const queryTimeoutMs of [
+    undefined,
+    0,
+    -1,
+    0.5,
+    Number.POSITIVE_INFINITY,
+    Number.MAX_SAFE_INTEGER + 1,
+  ]) {
+    let calls = 0;
+    const result = await createMultiCutReplayPostgresqlProductionComposition(
+      { ...configuration, queryTimeoutMs },
+      {
+        poolFactory: Object.freeze({
+          create() {
+            calls += 1;
+            return createPoolFixture().pool;
+          },
+        }),
+      },
+    );
+    assert.deepEqual(result, {
+      status: "failed",
+      classification: "configuration-failure",
+      safeReason: "invalid-postgresql-configuration",
+    });
+    assert.equal(calls, 0);
+  }
 });
 
 test("configuration is injected and production dependencies are wired", async () => {

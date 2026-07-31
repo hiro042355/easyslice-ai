@@ -61,6 +61,8 @@ test("constraint, reuse, commit unknown, and registry boundaries are safe", () =
   assert.equal(classifyPostgreSQLConstraint("secret_constraint", "23514"), "shape-constraint-failed");
   assert.equal(classifyConnectionReuse("query-cancelled"), "safe-to-reuse");
   assert.equal(classifyConnectionReuse("query-cancelled", "failed"), "must-rollback-before-reuse");
+  assert.equal(classifyPostgreSQLIssue("57014", { statementTimeoutAuthority: true }), "timeout");
+  assert.equal(classifyConnectionReuse("timeout", "failed"), "must-rollback-before-reuse");
   assert.deepEqual(classifyCommitFailure("sent-or-unknown", false), { status: "unknown-outcome" });
   assert.deepEqual(classifyCommitFailure("before-send", true), { status: "definitely-rolled-back" });
   const first = listPostgreSQLDriverDescriptors();

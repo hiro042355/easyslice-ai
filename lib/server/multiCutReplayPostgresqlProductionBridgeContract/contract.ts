@@ -81,7 +81,7 @@ export const MULTI_CUT_REPLAY_PRODUCTION_BRIDGE_CONTRACT =
     failures: Object.freeze(([
       ["invalid-request", "query-rejected", false, false, "not-retained", "not-required"],
       ["query-cancelled", "query-rejected", false, false, "safe-class-only", "not-required"],
-      ["timeout", "query-rejected", true, false, "not-retained", "not-required"],
+      ["timeout", "query-rejected", true, false, "safe-class-only", "not-required"],
       ["connection-unavailable", "connection-unavailable", false, false, "safe-class-only", "required"],
       ["schema-mismatch", "query-rejected", false, false, "safe-class-only", "required"],
       ["constraint-conflict", "query-rejected", false, false, "safe-class-only", "required"],

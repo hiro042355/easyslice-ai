@@ -2,7 +2,13 @@ import type { PoolClient } from "pg";
 import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRollbackResult, PostgreSQLTransactionConnection, PostgreSQLTransactionState } from "./types";
 import { classifyConnectionReuse, mapPostgreSQLError } from "./postgresqlErrorMapper";
 
-type Execute = (client: PoolClient, request: PostgreSQLQueryRequest, connectionState: "transaction-active", transactionState: "active" | "failed") => Promise<PostgreSQLQueryResult>;
+type Execute = (
+  client: PoolClient,
+  request: PostgreSQLQueryRequest,
+  connectionState: "transaction-active",
+  transactionState: "active" | "failed",
+  statementTimeoutAuthority?: boolean,
+) => Promise<PostgreSQLQueryResult>;
 
 export function classifyCommitFailure(phase: "before-send" | "sent-or-unknown", rollbackProven: boolean): PostgreSQLCommitResult {
   if (phase === "before-send" && rollbackProven) return { status: "definitely-rolled-back" };
@@ -18,6 +24,7 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
     private readonly onFinish: () => void,
     private readonly onDiscard: () => unknown,
     private readonly onRelease?: () => unknown,
+    private readonly statementTimeoutAuthority = false,
   ) {}
   state(): PostgreSQLTransactionState { return this.transactionState; }
   markDiscarded(): void {
@@ -26,7 +33,7 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
   }
   async query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult> {
     if (this.transactionState !== "active") return { status: "failure", issue: "disposed", diagnostic: { stage: "query", statementId: request.statementId, issue: "disposed", connectionState: "transaction-active", transactionState: this.transactionState, retryable: false } };
-    const result = await this.execute(this.client, request, "transaction-active", this.transactionState);
+    const result = await this.execute(this.client, request, "transaction-active", this.transactionState, this.statementTimeoutAuthority);
     if (result.status === "failure" && result.issue !== "invalid-request") {
       this.transactionState = "failed";
       this.reuse = classifyConnectionReuse(result.issue, "failed");
@@ -60,7 +67,11 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
       this.onFinish();
       return { status: "rolled-back" };
     } catch (error) {
-      const mapped = mapPostgreSQLError(error, { stage: "rollback", connectionState: "transaction-active", transactionState: "rolling-back" });
+      const mapped = mapPostgreSQLError(
+        error,
+        { stage: "rollback", connectionState: "transaction-active", transactionState: "rolling-back" },
+        { statementTimeoutAuthority: this.statementTimeoutAuthority },
+      );
       this.transactionState = "unknown";
       this.reuse = "must-discard";
       this.onDiscard();

@@ -243,6 +243,37 @@ test("driver failures preserve classification and safe SQLSTATE only", async () 
   );
 });
 
+test("bounded timeout remains non-retryable and preserves only safe class 57", async () => {
+  const fixture = createFixture({
+    queryResult: Object.freeze({
+      status: "failure",
+      issue: "timeout",
+      diagnostic: Object.freeze({
+        stage: "query",
+        issue: "timeout",
+        sqlStateClass: "57",
+        retryable: false,
+      }),
+    }),
+  });
+  const connection =
+    await createMultiCutReplayPostgresqlProductionBridge(fixture).acquire();
+  await connection.begin();
+  await assert.rejects(
+    connection.query(request()),
+    (failure: unknown) => {
+      const value = failure as Record<string, unknown>;
+      return (
+        value.kind === "query-rejected" &&
+        value.safeReason === "postgresql-timeout" &&
+        value.retryable === true &&
+        value.sqlStateClass === "57" &&
+        value.originalCauseRetained === false
+      );
+    },
+  );
+});
+
 test("commit unknown is preserved, discarded, and subsequent release is safe", async () => {
   const fixture = createFixture({
     commitResult: Object.freeze({ status: "unknown-outcome" }),

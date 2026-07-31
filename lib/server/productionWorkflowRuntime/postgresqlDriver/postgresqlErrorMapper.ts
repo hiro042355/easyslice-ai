@@ -1,6 +1,9 @@
 import type { PostgreSQLConnectionReuse, PostgreSQLConstraintClass, PostgreSQLDriverIssueCode, PostgreSQLExecutionFailure, PostgreSQLSafeDiagnostic, PostgreSQLTransactionState } from "./types";
 
 type ErrorShape = Readonly<{ code?: unknown; constraint?: unknown }>;
+export type PostgreSQLTimeoutMechanismContext = Readonly<{
+  statementTimeoutAuthority: boolean;
+}>;
 const hasErrorShape = (value: unknown): value is ErrorShape => typeof value === "object" && value !== null;
 
 const constraintClasses: Readonly<Record<string, PostgreSQLConstraintClass>> = Object.freeze({
@@ -19,12 +22,19 @@ export function classifyPostgreSQLConstraint(name: unknown, code: string): Postg
   return "unknown-constraint";
 }
 
-export function classifyPostgreSQLIssue(code: unknown): PostgreSQLDriverIssueCode {
+export function classifyPostgreSQLIssue(
+  code: unknown,
+  timeoutContext?: PostgreSQLTimeoutMechanismContext,
+): PostgreSQLDriverIssueCode {
   if (typeof code !== "string") return "unknown-failure";
   if (code === "23505" || code === "23503" || code === "23514") return "constraint-conflict";
   if (code === "40001" || code === "40P01") return "retryable-conflict";
   if (code.startsWith("08") || code === "57P01" || code === "57P02" || code === "57P03") return "connection-unavailable";
-  if (code === "57014") return "query-cancelled";
+  if (code === "57014") {
+    return timeoutContext?.statementTimeoutAuthority === true
+      ? "timeout"
+      : "query-cancelled";
+  }
   if (code === "25006") return "read-only";
   if (code === "42501") return "insufficient-privilege";
   if (code === "42P01" || code === "42703") return "schema-mismatch";
@@ -42,9 +52,10 @@ export function classifyConnectionReuse(issue: PostgreSQLDriverIssueCode, transa
 export function mapPostgreSQLError(
   error: unknown,
   diagnostic: Omit<PostgreSQLSafeDiagnostic, "issue" | "retryable" | "sqlStateClass">,
+  timeoutContext?: PostgreSQLTimeoutMechanismContext,
 ): PostgreSQLExecutionFailure {
   const code = hasErrorShape(error) && typeof error.code === "string" ? error.code : undefined;
-  const issue = classifyPostgreSQLIssue(code);
+  const issue = classifyPostgreSQLIssue(code, timeoutContext);
   const safe: PostgreSQLSafeDiagnostic = {
     ...diagnostic,
     issue,

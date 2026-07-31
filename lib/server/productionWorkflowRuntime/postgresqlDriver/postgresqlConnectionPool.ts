@@ -15,7 +15,7 @@ function validateRequest(request: PostgreSQLQueryRequest): boolean {
     && request.values.length <= 1_000 && ["none", "single", "many"].includes(request.expectedResult);
 }
 
-async function execute(client: PoolClient, request: PostgreSQLQueryRequest, connectionState: PostgreSQLConnectionState, transactionState?: "active" | "failed"): Promise<PostgreSQLQueryResult> {
+async function execute(client: PoolClient, request: PostgreSQLQueryRequest, connectionState: PostgreSQLConnectionState, transactionState?: "active" | "failed", statementTimeoutAuthority = false): Promise<PostgreSQLQueryResult> {
   if (!validateRequest(request)) return invalid("query", request.statementId);
   let values: unknown[];
   try { values = request.values.map(encodePostgreSQLParameter); }
@@ -32,7 +32,11 @@ async function execute(client: PoolClient, request: PostgreSQLQueryRequest, conn
     if (request.expectedResult === "none" && rows.length !== 0) return { status: "cardinality-conflict" };
     return { status: "success", rows: Object.freeze(rows), rowCount: result.rowCount ?? rows.length, command: result.command };
   } catch (error) {
-    return mapPostgreSQLError(error, { stage: "query", statementId: request.statementId, connectionState, transactionState });
+    return mapPostgreSQLError(
+      error,
+      { stage: "query", statementId: request.statementId, connectionState, transactionState },
+      { statementTimeoutAuthority },
+    );
   }
 }
 
@@ -40,17 +44,17 @@ export class PostgreSQLConnectionAdapter implements PostgreSQLConnection {
   private connectionState: PostgreSQLConnectionState = "checked-out";
   private transaction: PostgreSQLTransactionConnectionAdapter | undefined;
   private readonly clientErrorListener = (): void => { this.connectionState = "unknown"; };
-  constructor(private readonly client: PoolClient, private readonly onDone: () => void) {
+  constructor(private readonly client: PoolClient, private readonly onDone: () => void, private readonly statementTimeoutAuthority = false) {
     this.client.on("error", this.clientErrorListener);
   }
   state(): PostgreSQLConnectionState { return this.connectionState; }
   async query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult> {
     if (this.connectionState !== "checked-out") return { status: "failure", issue: "disposed", diagnostic: { stage: "query", statementId: request.statementId, issue: "disposed", connectionState: this.connectionState, retryable: false } };
-    return execute(this.client, request, this.connectionState);
+    return execute(this.client, request, this.connectionState, undefined, this.statementTimeoutAuthority);
   }
   async begin(): Promise<PostgreSQLTransactionConnection | PostgreSQLExecutionFailure> {
     if (this.connectionState !== "checked-out") return invalid("begin");
-    const result = await execute(this.client, { statementId: "transaction.begin", text: "BEGIN", values: [], expectedResult: "none" }, this.connectionState);
+    const result = await execute(this.client, { statementId: "transaction.begin", text: "BEGIN", values: [], expectedResult: "none" }, this.connectionState, undefined, this.statementTimeoutAuthority);
     if (result.status === "failure") return result;
     if (result.status !== "success") return invalid("begin");
     this.connectionState = "transaction-active";
@@ -60,6 +64,7 @@ export class PostgreSQLConnectionAdapter implements PostgreSQLConnection {
       () => { this.connectionState = "checked-out"; },
       () => this.discard(),
       () => this.release(),
+      this.statementTimeoutAuthority,
     );
     return this.transaction;
   }
@@ -87,7 +92,7 @@ export class PostgreSQLConnectionPoolAdapter implements PostgreSQLConnectionPool
   async start(): Promise<"ready" | "already-started" | PostgreSQLExecutionFailure> {
     if (this.poolState !== "created") return "already-started";
     this.poolState = "starting";
-    this.pool = new Pool({ host: this.config.host, port: this.config.port, database: this.config.database, user: this.config.user, password: this.config.password, max: this.config.maxConnections, connectionTimeoutMillis: this.config.connectionTimeoutMs, idleTimeoutMillis: this.config.idleTimeoutMs, application_name: this.config.applicationName, ssl: this.config.tls.mode === "verify-full" ? { rejectUnauthorized: true } : false, types: createPostgreSQLTypeParsers(), allowExitOnIdle: true });
+    this.pool = new Pool({ host: this.config.host, port: this.config.port, database: this.config.database, user: this.config.user, password: this.config.password, max: this.config.maxConnections, connectionTimeoutMillis: this.config.connectionTimeoutMs, idleTimeoutMillis: this.config.idleTimeoutMs, ...(this.config.queryTimeoutMs !== undefined ? { statement_timeout: this.config.queryTimeoutMs } : {}), application_name: this.config.applicationName, ssl: this.config.tls.mode === "verify-full" ? { rejectUnauthorized: true } : false, types: createPostgreSQLTypeParsers(), allowExitOnIdle: true });
     this.pool.on("error", () => { if (this.poolState !== "draining" && this.poolState !== "closed") this.poolState = "failed"; });
     try { await this.pool.query("SELECT 1"); this.poolState = "ready"; return "ready"; }
     catch (error) { this.poolState = "failed"; return mapPostgreSQLError(error, { stage: "pool" }); }
@@ -107,6 +112,7 @@ export class PostgreSQLConnectionPoolAdapter implements PostgreSQLConnectionPool
       connection = new PostgreSQLConnectionAdapter(
         client,
         () => registration.release(),
+        this.config.queryTimeoutMs !== undefined,
       );
       return connection;
     }

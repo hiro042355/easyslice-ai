@@ -161,3 +161,56 @@ test("real read-only, deadlock, and serialization conflicts are conservatively c
     await environment.pool.query("DROP TABLE public.driver_conflict_probe");
   });
 });
+
+test("server statement timeout is authoritative and transaction cleanup permits reuse", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const pool = new PostgreSQLConnectionPoolAdapter({
+      ...environment.connection,
+      maxConnections: 2,
+      connectionTimeoutMs: 5_000,
+      idleTimeoutMs: 5_000,
+      queryTimeoutMs: 50,
+      applicationName: "postgresql-driver-timeout-test",
+      tls: { mode: "disabled" },
+    });
+    assert.equal(await pool.start(), "ready");
+
+    const outside = await pool.checkout();
+    if ("status" in outside) throw new Error("checkout-failed");
+    const outsideTimeout = await outside.query(
+      request("driver.timeout.outside", "SELECT pg_sleep(1)", [], "single"),
+    );
+    assert.equal(outsideTimeout.status, "failure");
+    if (outsideTimeout.status === "failure") {
+      assert.equal(outsideTimeout.issue, "timeout");
+      assert.equal(outsideTimeout.diagnostic.retryable, false);
+      assert.equal(outsideTimeout.diagnostic.sqlStateClass, "57");
+    }
+    assert.equal(outside.release(), "released");
+
+    const transactionConnection = await pool.checkout();
+    if ("status" in transactionConnection) throw new Error("checkout-failed");
+    const transaction = await transactionConnection.begin();
+    if ("status" in transaction) throw new Error("begin-failed");
+    const transactionTimeout = await transaction.query(
+      request("driver.timeout.transaction", "SELECT pg_sleep(1)", [], "single"),
+    );
+    assert.equal(transactionTimeout.status, "failure");
+    if (transactionTimeout.status === "failure") {
+      assert.equal(transactionTimeout.issue, "timeout");
+      assert.equal(transactionTimeout.diagnostic.transactionState, "active");
+      assert.equal(transactionTimeout.diagnostic.retryable, false);
+    }
+    assert.deepEqual(await transaction.rollback(), { status: "rolled-back" });
+    assert.equal(transaction.release(), "released");
+
+    const reused = await pool.checkout();
+    if ("status" in reused) throw new Error("checkout-failed");
+    const healthy = await reused.query(
+      request("driver.timeout.reuse", "SELECT 1 AS value", [], "single"),
+    );
+    assert.equal(healthy.status, "success");
+    reused.release();
+    assert.equal(await pool.close(), "closed");
+  });
+});

@@ -20,6 +20,7 @@ before(async () => {
     maxConnections: 4,
     connectionTimeoutMs: 5_000,
     idleTimeoutMs: 5_000,
+    queryTimeoutMs: 5_000,
     applicationName: "replay-production-integration",
     tls: { mode: "disabled" },
   });

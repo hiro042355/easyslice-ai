@@ -38,6 +38,7 @@ before(async () => {
     maxConnections: 4,
     connectionTimeoutMs: 5_000,
     idleTimeoutMs: 5_000,
+    queryTimeoutMs: 5_000,
     applicationName: "replay-connection-loss-integration",
     tls: { mode: "disabled" },
   };

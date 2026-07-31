@@ -44,6 +44,10 @@ const isValidConfiguration = (
   config.connectionTimeoutMs > 0 &&
   Number.isInteger(config.idleTimeoutMs) &&
   config.idleTimeoutMs > 0 &&
+  config.queryTimeoutMs !== undefined &&
+  Number.isFinite(config.queryTimeoutMs) &&
+  Number.isSafeInteger(config.queryTimeoutMs) &&
+  config.queryTimeoutMs > 0 &&
   isNonEmpty(config.applicationName) &&
   (config.tls.mode === "disabled" || config.tls.mode === "verify-full");
 
