@@ -104,6 +104,27 @@ export const MULTI_CUT_REPLAY_PRODUCTION_BRIDGE_CONTRACT =
         reconciliation,
       }),
     )),
+    queryConnectionDisposition: Object.freeze({
+      authorityOwner: "production-postgresql-driver",
+      productionSource:
+        "PostgreSQLSafeDiagnostic.queryConnectionDisposition",
+      bridgeTarget:
+        "MultiCutReplayPostgresqlDriverError.queryConnectionDisposition",
+      replayDriverTarget:
+        "MultiCutReplayPostgresqlDriverFailure.queryConnectionDisposition",
+      values: Object.freeze([
+        "safe-to-reuse",
+        "must-rollback-before-reuse",
+        "must-discard",
+        "unknown",
+      ] as const),
+      projection: "direct",
+      inference: "forbidden",
+      overwrite: "forbidden",
+      queryFailureOnly: true,
+      commitUnknownIncluded: false,
+      compatibility: "optional-field-addition",
+    }),
     connections: Object.freeze(([
       ["acquired", "allowed", "allowed", "same-terminal-outcome", "return-to-pool", "release"],
       ["transaction-open", "prohibited", "allowed", "prohibited-while-active", "transaction-must-finish-first", "not-reachable"],

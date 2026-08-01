@@ -2,6 +2,9 @@ import type {
   MultiCutReplayPostgresqlFakeClientResult,
   MultiCutReplayPostgresqlPureExecutionRequest,
 } from "../multiCutReplayPostgresqlAdapter";
+import type {
+  PostgreSQLQueryConnectionDisposition,
+} from "../productionWorkflowRuntime/postgresqlDriver";
 
 export type MultiCutReplayPostgresqlDriverErrorKind =
   | "connection-unavailable"
@@ -14,6 +17,7 @@ export type MultiCutReplayPostgresqlDriverError = Readonly<{
   errorVersion: "1.0";
   kind: MultiCutReplayPostgresqlDriverErrorKind;
   safeReason: string;
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
 
 export type MultiCutReplayPostgresqlDriverFailure = Readonly<{
@@ -22,6 +26,7 @@ export type MultiCutReplayPostgresqlDriverFailure = Readonly<{
   retryClassification: "retryable" | "non-retryable" | "commit-unknown";
   safeReason: string;
   sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
 
 export type MultiCutReplayPostgresqlDriverConnection = Readonly<{

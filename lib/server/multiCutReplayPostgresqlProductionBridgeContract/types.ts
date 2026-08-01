@@ -2,6 +2,7 @@ import type { MultiCutReplaySqlDefinitionPlaceholderV2 } from "../multiCutReplay
 import type {
   PostgreSQLDriverIssueCode,
   PostgreSQLParameter,
+  PostgreSQLQueryConnectionDisposition,
 } from "../productionWorkflowRuntime/postgresqlDriver";
 import type { MultiCutReplayPostgresqlDriverErrorKind } from "../multiCutReplayPostgresqlDriver";
 
@@ -31,6 +32,24 @@ export type MultiCutReplayProductionBridgeFailureProjection = Readonly<{
   safeReason: "classified-safe-reason";
   reconciliation: "required" | "not-required";
 }>;
+
+export type MultiCutReplayProductionBridgeQueryDispositionProjection =
+  Readonly<{
+    authorityOwner: "production-postgresql-driver";
+    productionSource:
+      "PostgreSQLSafeDiagnostic.queryConnectionDisposition";
+    bridgeTarget:
+      "MultiCutReplayPostgresqlDriverError.queryConnectionDisposition";
+    replayDriverTarget:
+      "MultiCutReplayPostgresqlDriverFailure.queryConnectionDisposition";
+    values: readonly PostgreSQLQueryConnectionDisposition[];
+    projection: "direct";
+    inference: "forbidden";
+    overwrite: "forbidden";
+    queryFailureOnly: true;
+    commitUnknownIncluded: false;
+    compatibility: "optional-field-addition";
+  }>;
 
 export type MultiCutReplayProductionBridgeConnectionState =
   | "acquired"
@@ -80,6 +99,8 @@ export type MultiCutReplayProductionBridgeContract = Readonly<{
     domainMapping: "forbidden";
   }>;
   failures: readonly MultiCutReplayProductionBridgeFailureProjection[];
+  queryConnectionDisposition:
+    MultiCutReplayProductionBridgeQueryDispositionProjection;
   connections: readonly MultiCutReplayProductionBridgeConnectionStateRule[];
   transactionOwner: "multi-cut-replay-postgresql-execution-runtime";
   mechanismProvider: "production-postgresql-driver";

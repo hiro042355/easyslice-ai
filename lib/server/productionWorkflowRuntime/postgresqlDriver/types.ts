@@ -37,6 +37,7 @@ export type PostgreSQLSafeDiagnostic = Readonly<{
   connectionState?: PostgreSQLConnectionState;
   transactionState?: PostgreSQLTransactionState;
   retryable: boolean;
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
 
 export type PostgreSQLExecutionFailure = Readonly<{
@@ -55,7 +56,14 @@ export type PostgreSQLQueryResult =
 export type PostgreSQLPoolState = "created" | "starting" | "ready" | "draining" | "closed" | "failed";
 export type PostgreSQLConnectionState = "checked-out" | "transaction-active" | "released" | "discarded" | "unknown";
 export type PostgreSQLTransactionState = "idle" | "active" | "failed" | "committing" | "committed" | "rolling-back" | "rolled-back" | "unknown" | "released";
-export type PostgreSQLConnectionReuse = "safe-to-reuse" | "must-rollback-before-reuse" | "must-discard" | "unknown";
+export type PostgreSQLQueryConnectionDisposition =
+  | "safe-to-reuse"
+  | "must-rollback-before-reuse"
+  | "must-discard"
+  | "unknown";
+
+export type PostgreSQLConnectionReuse =
+  PostgreSQLQueryConnectionDisposition;
 
 export type PostgreSQLCommitResult =
   | Readonly<{ status: "committed" }>
