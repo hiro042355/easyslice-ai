@@ -3,6 +3,19 @@ export {
   projectMultiCutReplayCompleteParticipationResultToLifecycleV1,
   validateMultiCutReplayLifecycleProjectionResultV1,
 } from "./projectionContractV1";
+export {
+  createMultiCutReplayLifecycleCompleteProductionOutputV1,
+  MULTI_CUT_REPLAY_LIFECYCLE_COMPLETE_PRODUCTION_TRANSACTION_OWNERSHIP_V1,
+} from "./completeProductionOutputContractV1";
+export type {
+  MultiCutReplayLifecycleCompleteProductionCompletedOutputV1,
+  MultiCutReplayLifecycleCompleteProductionExecutionFailureOutputV1,
+  MultiCutReplayLifecycleCompleteProductionInvariantOutputV1,
+  MultiCutReplayLifecycleCompleteProductionNotAppliedOutputV1,
+  MultiCutReplayLifecycleCompleteProductionOutputVersionV1,
+  MultiCutReplayLifecycleCompleteProductionResultV1,
+  MultiCutReplayLifecycleCompleteProductionTransactionOwnershipV1,
+} from "./completeProductionOutputTypesV1";
 export type {
   MultiCutReplayLifecycleCardinalityProjectionV1,
   MultiCutReplayLifecycleCompletedProjectionV1,
