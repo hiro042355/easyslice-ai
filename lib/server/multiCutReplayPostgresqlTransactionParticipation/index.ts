@@ -5,6 +5,9 @@ export {
   createMultiCutReplayCompleteParticipationRequestV2,
   MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP_V2,
 } from "./contractV2";
+export {
+  createMultiCutReplayCompleteTransactionParticipantV2,
+} from "./participantV2";
 export type {
   MultiCutReplayCompleteParticipationContractVersion,
   MultiCutReplayCompleteParticipationOwnership,
