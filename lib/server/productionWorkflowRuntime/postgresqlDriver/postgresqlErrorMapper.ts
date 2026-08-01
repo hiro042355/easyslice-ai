@@ -60,6 +60,16 @@ export function mapPostgreSQLError(
     ...diagnostic,
     issue,
     retryable: issue === "retryable-conflict",
+    ...(diagnostic.stage === "query"
+      ? {
+          queryConnectionDisposition: classifyConnectionReuse(
+            issue,
+            diagnostic.transactionState === "active"
+              ? "failed"
+              : diagnostic.transactionState,
+          ),
+        }
+      : {}),
     ...(code && ["08", "23", "25", "40", "42", "57"].includes(code.slice(0, 2))
       ? { sqlStateClass: code.slice(0, 2) as "08" | "23" | "25" | "40" | "42" | "57" }
       : {}),

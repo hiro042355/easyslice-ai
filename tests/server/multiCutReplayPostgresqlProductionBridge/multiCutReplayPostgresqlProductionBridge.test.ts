@@ -223,6 +223,7 @@ test("driver failures preserve classification and safe SQLSTATE only", async () 
         issue: "retryable-conflict",
         sqlStateClass: "40",
         retryable: true,
+        queryConnectionDisposition: "must-rollback-before-reuse",
       }),
     }),
   });
@@ -237,9 +238,61 @@ test("driver failures preserve classification and safe SQLSTATE only", async () 
         value.kind === "serialization-conflict" &&
         value.retryable === true &&
         value.sqlStateClass === "40" &&
+        value.queryConnectionDisposition === "must-rollback-before-reuse" &&
         value.originalCauseRetained === false
       );
     },
+  );
+});
+
+test("query connection disposition is projected directly without fallback", async () => {
+  for (const disposition of [
+    "safe-to-reuse",
+    "must-rollback-before-reuse",
+    "must-discard",
+    "unknown",
+  ] as const) {
+    const fixture = createFixture({
+      queryResult: Object.freeze({
+        status: "failure",
+        issue: "unknown-failure",
+        diagnostic: Object.freeze({
+          stage: "query",
+          issue: "unknown-failure",
+          retryable: false,
+          queryConnectionDisposition: disposition,
+        }),
+      }),
+    });
+    const connection =
+      await createMultiCutReplayPostgresqlProductionBridge(fixture).acquire();
+    await connection.begin();
+    await assert.rejects(
+      connection.query(request()),
+      (failure: unknown) =>
+        (failure as Record<string, unknown>).queryConnectionDisposition ===
+        disposition,
+    );
+  }
+
+  const legacy = createFixture({
+    queryResult: Object.freeze({
+      status: "failure",
+      issue: "unknown-failure",
+      diagnostic: Object.freeze({
+        stage: "query",
+        issue: "unknown-failure",
+        retryable: false,
+      }),
+    }),
+  });
+  const connection =
+    await createMultiCutReplayPostgresqlProductionBridge(legacy).acquire();
+  await connection.begin();
+  await assert.rejects(
+    connection.query(request()),
+    (failure: unknown) =>
+      !("queryConnectionDisposition" in (failure as Record<string, unknown>)),
   );
 });
 

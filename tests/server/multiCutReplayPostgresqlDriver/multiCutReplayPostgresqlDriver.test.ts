@@ -66,11 +66,17 @@ const driverError = (
     | "commit-outcome-unknown",
   safeReason: string = kind,
   sqlStateClass?: "08" | "23" | "40",
+  queryConnectionDisposition?:
+    | "safe-to-reuse"
+    | "must-rollback-before-reuse"
+    | "must-discard"
+    | "unknown",
 ) => Object.freeze({
   errorVersion: "1.0" as const,
   kind,
   safeReason,
   ...(sqlStateClass ? { sqlStateClass } : {}),
+  ...(queryConnectionDisposition ? { queryConnectionDisposition } : {}),
 });
 
 test("driver bridge preserves connection and transaction lifecycle", async () => {
@@ -183,6 +189,33 @@ test("missing SQLSTATE class preserves the existing safe fallback", () => {
   assert.equal("sqlStateClass" in mapped, false);
   assert.equal(mapped.retryClassification, "non-retryable");
   assert.equal(mapped.safeReason, "safe-fallback");
+});
+
+test("query connection disposition is preserved without inference", () => {
+  for (const disposition of [
+    "safe-to-reuse",
+    "must-rollback-before-reuse",
+    "must-discard",
+    "unknown",
+  ] as const) {
+    const mapped = mapMultiCutReplayPostgresqlDriverError(
+      driverError("query-rejected", "query-failed", undefined, disposition),
+    );
+    assert.equal(mapped.queryConnectionDisposition, disposition);
+  }
+  const legacy = mapMultiCutReplayPostgresqlDriverError(
+    driverError("query-rejected"),
+  );
+  assert.equal("queryConnectionDisposition" in legacy, false);
+  const commitUnknown = mapMultiCutReplayPostgresqlDriverError(
+    driverError(
+      "commit-outcome-unknown",
+      "commit-unknown",
+      undefined,
+      "must-discard",
+    ),
+  );
+  assert.equal("queryConnectionDisposition" in commitUnknown, false);
 });
 
 test("query rejection maps to non-retryable driver failure", () => {

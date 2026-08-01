@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   classifyCommitFailure, classifyConnectionReuse, classifyPostgreSQLConstraint, classifyPostgreSQLIssue,
+  mapPostgreSQLError,
   copyValidatedJson, decodePostgreSQLValue, encodePostgreSQLParameter,
   getPostgreSQLDriverDescriptor, listPostgreSQLDriverDescriptors,
   evaluatePostgreSQLProductionReadiness, POSTGRESQL_PRODUCTION_CAPABILITIES,
@@ -160,5 +161,21 @@ test("query command is preserved exactly from the pg result", async () => {
   assert.equal(result.status, "success");
   if (result.status === "success") {
     assert.equal(result.command, "FIXTURE_COMMAND");
+  }
+});
+
+test("query connection disposition is decided by the driver authority", () => {
+  const cases = [
+    [{ code: "23505" }, undefined, "safe-to-reuse"],
+    [{ code: "40001" }, "active", "must-rollback-before-reuse"],
+    [{ code: "08006" }, "active", "must-discard"],
+    [{}, "active", "must-rollback-before-reuse"],
+  ] as const;
+  for (const [error, transactionState, expected] of cases) {
+    const result = mapPostgreSQLError(error, {
+      stage: "query",
+      ...(transactionState ? { transactionState } : {}),
+    });
+    assert.equal(result.diagnostic.queryConnectionDisposition, expected);
   }
 });

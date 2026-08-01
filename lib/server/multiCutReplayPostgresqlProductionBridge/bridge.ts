@@ -76,6 +76,9 @@ const bridgeError = (
     ...(rule?.sqlState === "safe-class-only" && diagnostic?.sqlStateClass
       ? { sqlStateClass: diagnostic.sqlStateClass }
       : {}),
+    ...(diagnostic?.queryConnectionDisposition
+      ? { queryConnectionDisposition: diagnostic.queryConnectionDisposition }
+      : {}),
     originalCauseRetained: false,
     reconciliationRequired: rule?.reconciliation === "required",
   });

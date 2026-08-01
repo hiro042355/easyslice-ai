@@ -6,7 +6,10 @@ import type {
 const isDriverError = (
   failure: unknown,
 ): failure is MultiCutReplayPostgresqlDriverError &
-  Readonly<{ sqlStateClass?: MultiCutReplayPostgresqlDriverFailure["sqlStateClass"] }> =>
+  Readonly<{
+    sqlStateClass?: MultiCutReplayPostgresqlDriverFailure["sqlStateClass"];
+    queryConnectionDisposition?: MultiCutReplayPostgresqlDriverFailure["queryConnectionDisposition"];
+  }> =>
   typeof failure === "object" &&
   failure !== null &&
   "errorVersion" in failure &&
@@ -25,7 +28,12 @@ const isDriverError = (
     failure.sqlStateClass === "25" ||
     failure.sqlStateClass === "40" ||
     failure.sqlStateClass === "42" ||
-    failure.sqlStateClass === "57");
+    failure.sqlStateClass === "57") &&
+  (!("queryConnectionDisposition" in failure) ||
+    failure.queryConnectionDisposition === "safe-to-reuse" ||
+    failure.queryConnectionDisposition === "must-rollback-before-reuse" ||
+    failure.queryConnectionDisposition === "must-discard" ||
+    failure.queryConnectionDisposition === "unknown");
 
 export const mapMultiCutReplayPostgresqlDriverError = (
   failure: unknown,
@@ -59,5 +67,8 @@ export const mapMultiCutReplayPostgresqlDriverError = (
         : "non-retryable",
     safeReason: failure.safeReason,
     ...(failure.sqlStateClass ? { sqlStateClass: failure.sqlStateClass } : {}),
+    ...(failure.queryConnectionDisposition
+      ? { queryConnectionDisposition: failure.queryConnectionDisposition }
+      : {}),
   });
 };
