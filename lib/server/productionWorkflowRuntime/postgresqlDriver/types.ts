@@ -81,7 +81,10 @@ export type PostgreSQLConnectionConfig = Readonly<{
 export type PostgreSQLDriverDescriptor = Readonly<{
   descriptorVersion: "1.0"; id: "postgresql-driver-adapter-v1"; driver: "pg";
   driverMajor: 8; sqlStyle: "parameterized-explicit"; namedPreparedStatements: false;
-  abortSignal: "unsupported-pg-8.22.0"; productionReady: false;
+  abortSignal: "unsupported-pg-8.22.0";
+  capabilities: PostgreSQLProductionCapabilities;
+  readinessBlockers: readonly PostgreSQLReadinessBlocker[];
+  productionReady: boolean;
 }>;
 
 export type PostgreSQLConnection = Readonly<{
@@ -108,3 +111,7 @@ export type PostgreSQLConnectionPool = Readonly<{
     "closed" | "already-closed" | "drain-timeout"
   >;
 }>;
+import type {
+  PostgreSQLProductionCapabilities,
+  PostgreSQLReadinessBlocker,
+} from "./postgresqlProductionReadiness";

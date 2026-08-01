@@ -4,6 +4,7 @@ import {
   classifyCommitFailure, classifyConnectionReuse, classifyPostgreSQLConstraint, classifyPostgreSQLIssue,
   copyValidatedJson, decodePostgreSQLValue, encodePostgreSQLParameter,
   getPostgreSQLDriverDescriptor, listPostgreSQLDriverDescriptors,
+  evaluatePostgreSQLProductionReadiness, POSTGRESQL_PRODUCTION_CAPABILITIES,
   normalizePostgreSQLUtcTimestamp, parsePostgreSQLBigIntString, parsePostgreSQLNumericString,
   parsePostgreSQLRevision, parsePostgreSQLSafeInteger,
 } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver";
@@ -19,7 +20,7 @@ test("600,000+ driver codec, error, revision, and registry assertions", () => {
     assert.equal(parsePostgreSQLRevision(decimal), index);
     assert.equal(parsePostgreSQLNumericString(`${decimal}.00`), `${decimal}.00`);
     assert.equal(classifyPostgreSQLIssue(codes[index % codes.length]), expected[index % expected.length]);
-    assert.equal(getPostgreSQLDriverDescriptor("postgresql-driver-adapter-v1")?.productionReady, false);
+    assert.equal(getPostgreSQLDriverDescriptor("postgresql-driver-adapter-v1")?.productionReady, true);
   }
 });
 
@@ -69,6 +70,69 @@ test("constraint, reuse, commit unknown, and registry boundaries are safe", () =
   const second = listPostgreSQLDriverDescriptors();
   assert.notEqual(first, second);
   assert.equal(first[0]?.abortSignal, "unsupported-pg-8.22.0");
+  assert.equal(first[0]?.productionReady, true);
+  assert.deepEqual(first[0]?.readinessBlockers, []);
+  assert.equal(first[0]?.capabilities, POSTGRESQL_PRODUCTION_CAPABILITIES);
+});
+
+test("readiness is derived from every required capability in deterministic order", () => {
+  const ready = evaluatePostgreSQLProductionReadiness(POSTGRESQL_PRODUCTION_CAPABILITIES);
+  assert.deepEqual(ready, { productionReady: true, blockers: [] });
+
+  const matrix = [
+    ["safeErrorContract", "safe-error-contract"],
+    ["transactionSafety", "transaction-safety"],
+    ["commitUnknownContainment", "commit-unknown-containment"],
+    ["connectionRecovery", "connection-recovery"],
+    ["boundedQueryExecution", "bounded-query-execution"],
+    ["boundedGracefulDrain", "bounded-graceful-drain"],
+    ["safeObservability", "safe-observability"],
+  ] as const;
+  for (const [capability, blocker] of matrix) {
+    const result = evaluatePostgreSQLProductionReadiness({
+      ...POSTGRESQL_PRODUCTION_CAPABILITIES,
+      [capability]: "unsupported",
+    });
+    assert.deepEqual(result, { productionReady: false, blockers: [blocker] });
+  }
+
+  for (const evidence of Object.keys(POSTGRESQL_PRODUCTION_CAPABILITIES.integrationEvidence)) {
+    const integrationResult = evaluatePostgreSQLProductionReadiness({
+      ...POSTGRESQL_PRODUCTION_CAPABILITIES,
+      integrationEvidence: {
+        ...POSTGRESQL_PRODUCTION_CAPABILITIES.integrationEvidence,
+        [evidence]: "deferred",
+      },
+    });
+    assert.deepEqual(integrationResult, {
+      productionReady: false,
+      blockers: ["integration-evidence"],
+    });
+  }
+
+  const multiple = evaluatePostgreSQLProductionReadiness({
+    ...POSTGRESQL_PRODUCTION_CAPABILITIES,
+    transactionSafety: "deferred",
+    boundedGracefulDrain: "unsupported",
+    integrationEvidence: {
+      ...POSTGRESQL_PRODUCTION_CAPABILITIES.integrationEvidence,
+      normalPath: "unsupported",
+      staticRegression: "deferred",
+    },
+  });
+  assert.deepEqual(multiple, {
+    productionReady: false,
+    blockers: ["transaction-safety", "bounded-graceful-drain", "integration-evidence"],
+  });
+  assert.equal(new Set(multiple.blockers).size, multiple.blockers.length);
+});
+
+test("unsupported AbortSignal remains optional and does not block readiness", () => {
+  assert.equal(POSTGRESQL_PRODUCTION_CAPABILITIES.abortSignal, "unsupported-pg-8.22.0");
+  assert.deepEqual(evaluatePostgreSQLProductionReadiness(POSTGRESQL_PRODUCTION_CAPABILITIES), {
+    productionReady: true,
+    blockers: [],
+  });
 });
 
 test("query command is preserved exactly from the pg result", async () => {
