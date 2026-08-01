@@ -1,5 +1,6 @@
 import type { MultiCutReplayPersistenceStatementIdV2 } from "../multiCutReplayPersistenceParameters/types";
 import type { MultiCutReplaySqlDefinitionPlaceholderV2 } from "../multiCutReplayPostgresqlSqlDefinitionContract/types";
+import type { PostgreSQLQueryConnectionDisposition } from "../productionWorkflowRuntime/postgresqlDriver/types";
 
 export type MultiCutReplayPostgresqlPureAdapterBindings =
   Readonly<
@@ -26,10 +27,36 @@ export type MultiCutReplayPostgresqlPureExecutionRequest = Readonly<{
   values: readonly unknown[];
 }>;
 
+export type MultiCutReplayPostgresqlQueryExecutionSuccess = Readonly<{
+  kind: "success";
+  rows: readonly Readonly<Record<string, unknown>>[];
+  rowCount: number;
+  command: string;
+}>;
+
 export type MultiCutReplayPostgresqlFakeClientResult = Readonly<{
   rows: readonly Readonly<Record<string, unknown>>[];
   rowCount: number;
   command: string;
+}>;
+
+export type MultiCutReplayPostgresqlQueryExecutionFailure = Readonly<{
+  kind: "execution-failure";
+  failureVersion: "1.0";
+  classification: "execution-failure";
+  safeReason: string;
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
+}>;
+
+export type MultiCutReplayPostgresqlQueryExecutionResult =
+  | MultiCutReplayPostgresqlQueryExecutionSuccess
+  | MultiCutReplayPostgresqlQueryExecutionFailure;
+
+export type MultiCutReplayPostgresqlQueryOnlyClient = Readonly<{
+  execute(
+    request: MultiCutReplayPostgresqlPureExecutionRequest,
+  ): Promise<MultiCutReplayPostgresqlQueryExecutionResult>;
 }>;
 
 export type MultiCutReplayPostgresqlFakeClient = Readonly<{
@@ -43,6 +70,7 @@ export type MultiCutReplayPostgresqlFakeClientFailure = Readonly<{
   classification: "execution-failure" | "commit-unknown";
   safeReason: string;
   sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
 
 export type MultiCutReplayPostgresqlPureAdapterInput = Readonly<{
@@ -62,7 +90,7 @@ export type MultiCutReplayPostgresqlPureAdapterMetadata = Readonly<{
     | "reuse-terminal-intent";
 }>;
 
-export type MultiCutReplayPostgresqlPureAdapterResult =
+export type MultiCutReplayPostgresqlPureQueryMappingResult =
   | Readonly<{
     resultVersion: "1.0";
     status: "mapped";
@@ -95,11 +123,34 @@ export type MultiCutReplayPostgresqlPureAdapterResult =
     resultVersion: "1.0";
     status: "execution-failure";
     statementId: MultiCutReplayPersistenceStatementIdV2;
-    classification: "execution-failure" | "commit-unknown";
+    classification: "execution-failure";
+    safeReason: string;
+    sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+    queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
+    metadata: MultiCutReplayPostgresqlPureAdapterMetadata;
+  }>;
+
+export type MultiCutReplayPostgresqlPureAdapterResult =
+  | MultiCutReplayPostgresqlPureQueryMappingResult
+  | Readonly<{
+    resultVersion: "1.0";
+    status: "execution-failure";
+    statementId: MultiCutReplayPersistenceStatementIdV2;
+    classification: "commit-unknown";
     safeReason: string;
     sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
     metadata: MultiCutReplayPostgresqlPureAdapterMetadata;
   }>;
+
+export type MultiCutReplayPostgresqlPureQueryMappingCore = Readonly<{
+  coreVersion: "1.0";
+  createExecutionRequest(
+    input: MultiCutReplayPostgresqlPureAdapterInput,
+  ): MultiCutReplayPostgresqlPureExecutionRequest;
+  execute(
+    input: MultiCutReplayPostgresqlPureAdapterInput,
+  ): Promise<MultiCutReplayPostgresqlPureQueryMappingResult>;
+}>;
 
 export type MultiCutReplayPostgresqlPureAdapter = Readonly<{
   createExecutionRequest(
