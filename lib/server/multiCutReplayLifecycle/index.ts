@@ -7,6 +7,17 @@ export {
   createMultiCutReplayLifecycleCompleteProductionOutputV1,
   MULTI_CUT_REPLAY_LIFECYCLE_COMPLETE_PRODUCTION_TRANSACTION_OWNERSHIP_V1,
 } from "./completeProductionOutputContractV1";
+export {
+  createMultiCutReplayLifecycleCompleteParameterInputFailureV1,
+  createMultiCutReplayLifecycleCompleteParticipationRequestFailureV1,
+} from "./completePreParticipationFailureContractV1";
+export type {
+  MultiCutReplayLifecycleCompleteAdapterResultV1,
+  MultiCutReplayLifecycleCompleteParameterInputFailureV1,
+  MultiCutReplayLifecycleCompleteParticipationRequestFailureV1,
+  MultiCutReplayLifecycleCompletePreParticipationFailureV1,
+  MultiCutReplayLifecycleCompletePreParticipationVersionV1,
+} from "./completePreParticipationFailureTypesV1";
 export type {
   MultiCutReplayLifecycleCompleteProductionCompletedOutputV1,
   MultiCutReplayLifecycleCompleteProductionExecutionFailureOutputV1,
