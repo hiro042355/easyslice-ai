@@ -2,7 +2,7 @@ import {
   createCompleteProcessingReplayParameterValues,
 } from "../multiCutReplayPersistenceParameters";
 import {
-  createMultiCutReplayPostgresqlQueryMappingCore,
+  createMultiCutReplayPostgresqlQueryMappingCoreV2,
 } from "../multiCutReplayPostgresqlAdapter/queryMappingCore";
 import {
   createMultiCutReplayCompleteParticipationRequestV2,
@@ -88,7 +88,7 @@ export const createMultiCutReplayCompleteTransactionParticipantV2 = ():
       throw new Error(`invalid-complete-participation-request:${validated.reason}`);
     }
     const isolatedRequest = validated.request;
-    const core = createMultiCutReplayPostgresqlQueryMappingCore(query);
+    const core = createMultiCutReplayPostgresqlQueryMappingCoreV2(query);
     const result = await core.execute(
       createCompleteProcessingReplayParameterValues(
         isolatedRequest.parameterInput,
@@ -133,6 +133,7 @@ export const createMultiCutReplayCompleteTransactionParticipantV2 = ():
           status: "execution-failure",
           transactionPhase: "query",
           classification: result.classification,
+          issue: result.issue,
           safeReason: result.safeReason,
           ...(result.sqlStateClass
             ? { sqlStateClass: result.sqlStateClass }

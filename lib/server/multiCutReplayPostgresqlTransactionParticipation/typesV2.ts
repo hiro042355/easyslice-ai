@@ -5,7 +5,8 @@ import type {
   MultiCutReplayPostgresqlPureAdapterMetadata,
   MultiCutReplayPostgresqlPureExecutionRequest,
   MultiCutReplayPostgresqlPureQueryMappingResult,
-  MultiCutReplayPostgresqlQueryExecutionResult,
+  MultiCutReplayPostgresqlPureQueryMappingResultV2,
+  MultiCutReplayPostgresqlQueryExecutionResultV2,
 } from "../multiCutReplayPostgresqlAdapter/pureTypes";
 import type {
   PostgreSQLQueryConnectionDisposition,
@@ -60,7 +61,7 @@ export type MultiCutReplayCompleteExecutionRequestV2 = Readonly<
 export type MultiCutReplayCompleteQueryExecutionPortV2 = Readonly<{
   execute(
     request: MultiCutReplayCompleteExecutionRequestV2,
-  ): Promise<MultiCutReplayPostgresqlQueryExecutionResult>;
+  ): Promise<MultiCutReplayPostgresqlQueryExecutionResultV2>;
 }>;
 
 export type MultiCutReplayCompleteOwnerActionV2 =
@@ -94,7 +95,7 @@ type PureCardinalityResult = Extract<
 >;
 
 type PureExecutionFailureResult = Extract<
-  MultiCutReplayPostgresqlPureQueryMappingResult,
+  MultiCutReplayPostgresqlPureQueryMappingResultV2,
   { status: "execution-failure" }
 >;
 
@@ -136,6 +137,7 @@ export type MultiCutReplayCompleteParticipationResultV2 =
       status: "execution-failure";
       transactionPhase: "query";
       classification: PureExecutionFailureResult["classification"];
+      issue: PureExecutionFailureResult["issue"];
       safeReason: PureExecutionFailureResult["safeReason"];
       sqlStateClass?: PureExecutionFailureResult["sqlStateClass"];
       queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;

@@ -46,6 +46,7 @@ export type MultiCutReplayLifecycleExecutionFailureProjectionV1 = Readonly<{
   sourceStatus: "execution-failure";
   status: "unavailable";
   classification: ParticipationResult<"execution-failure">["classification"];
+  issue: ParticipationResult<"execution-failure">["issue"];
   safeReason: string;
   sqlStateClass?: ParticipationResult<"execution-failure">["sqlStateClass"];
   queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;

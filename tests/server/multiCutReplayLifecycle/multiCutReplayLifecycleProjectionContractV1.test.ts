@@ -109,7 +109,7 @@ test("cardinality is an internal invariant violation rather than a domain confli
 test("execution failure retains only safe diagnostics and optional fields", () => {
   const input: MultiCutReplayCompleteParticipationResultV2 = {
     resultVersion: "2.0", status: "execution-failure", transactionPhase: "query",
-    classification: "execution-failure", safeReason: "safe", sqlStateClass: "40",
+    classification: "execution-failure", issue: "retryable-conflict", safeReason: "safe", sqlStateClass: "40",
     queryConnectionDisposition: "must-discard", queryMetadata: metadata,
     ownerAction: "rollback-required", rollbackRequired: true,
   };
@@ -117,6 +117,7 @@ test("execution failure retains only safe diagnostics and optional fields", () =
   assert.equal(result.status, "unavailable");
   if (result.status !== "unavailable") return;
   assert.equal(result.safeReason, "safe");
+  assert.equal(result.issue, "retryable-conflict");
   assert.equal(result.sqlStateClass, "40");
   assert.equal(result.queryConnectionDisposition, "must-discard");
   assert.equal(result.retryMetadata, "not-retryable");
@@ -126,7 +127,7 @@ test("execution failure retains only safe diagnostics and optional fields", () =
 test("execution failure preserves absence of optional diagnostics", () => {
   const input: MultiCutReplayCompleteParticipationResultV2 = {
     resultVersion: "2.0", status: "execution-failure", transactionPhase: "query",
-    classification: "execution-failure", safeReason: "safe", queryMetadata: metadata,
+    classification: "execution-failure", issue: "unknown-failure", safeReason: "safe", queryMetadata: metadata,
     ownerAction: "rollback-required", rollbackRequired: true,
   };
   const result = projectMultiCutReplayCompleteParticipationResultToLifecycleV1(input);
@@ -142,6 +143,13 @@ test("projection is deterministic, deeply frozen, and validates its version", ()
   assert.equal(Object.isFrozen(first.participationEvidence), true);
   assert.equal(validateMultiCutReplayLifecycleProjectionResultV1(first).status, "valid");
   assert.equal(validateMultiCutReplayLifecycleProjectionResultV1({ ...first, schemaVersion: "2.0" }).status, "invalid");
+  const failure = projectMultiCutReplayCompleteParticipationResultToLifecycleV1({
+    resultVersion: "2.0", status: "execution-failure", transactionPhase: "query",
+    classification: "execution-failure", issue: "timeout", safeReason: "safe",
+    queryMetadata: metadata, ownerAction: "rollback-required", rollbackRequired: true,
+  });
+  assert.equal(validateMultiCutReplayLifecycleProjectionResultV1(failure).status, "valid");
+  assert.equal(validateMultiCutReplayLifecycleProjectionResultV1({ ...failure, issue: "invented" }).status, "invalid");
 });
 
 test("contract source has no commit-unknown, raw SQL, IO, or default branch", () => {

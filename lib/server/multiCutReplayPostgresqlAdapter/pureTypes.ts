@@ -1,6 +1,9 @@
 import type { MultiCutReplayPersistenceStatementIdV2 } from "../multiCutReplayPersistenceParameters/types";
 import type { MultiCutReplaySqlDefinitionPlaceholderV2 } from "../multiCutReplayPostgresqlSqlDefinitionContract/types";
-import type { PostgreSQLQueryConnectionDisposition } from "../productionWorkflowRuntime/postgresqlDriver/types";
+import type {
+  PostgreSQLDriverIssueCode,
+  PostgreSQLQueryConnectionDisposition,
+} from "../productionWorkflowRuntime/postgresqlDriver/types";
 
 export type MultiCutReplayPostgresqlPureAdapterBindings =
   Readonly<
@@ -53,10 +56,27 @@ export type MultiCutReplayPostgresqlQueryExecutionResult =
   | MultiCutReplayPostgresqlQueryExecutionSuccess
   | MultiCutReplayPostgresqlQueryExecutionFailure;
 
+export type MultiCutReplayPostgresqlQueryExecutionFailureV2 = Readonly<
+  Omit<MultiCutReplayPostgresqlQueryExecutionFailure, "failureVersion"> & {
+    failureVersion: "2.0";
+    issue: PostgreSQLDriverIssueCode;
+  }
+>;
+
+export type MultiCutReplayPostgresqlQueryExecutionResultV2 =
+  | MultiCutReplayPostgresqlQueryExecutionSuccess
+  | MultiCutReplayPostgresqlQueryExecutionFailureV2;
+
 export type MultiCutReplayPostgresqlQueryOnlyClient = Readonly<{
   execute(
     request: MultiCutReplayPostgresqlPureExecutionRequest,
   ): Promise<MultiCutReplayPostgresqlQueryExecutionResult>;
+}>;
+
+export type MultiCutReplayPostgresqlQueryOnlyClientV2 = Readonly<{
+  execute(
+    request: MultiCutReplayPostgresqlPureExecutionRequest,
+  ): Promise<MultiCutReplayPostgresqlQueryExecutionResultV2>;
 }>;
 
 export type MultiCutReplayPostgresqlFakeClient = Readonly<{
@@ -142,6 +162,20 @@ export type MultiCutReplayPostgresqlPureAdapterResult =
     metadata: MultiCutReplayPostgresqlPureAdapterMetadata;
   }>;
 
+export type MultiCutReplayPostgresqlPureQueryMappingResultV2 =
+  | Exclude<
+      MultiCutReplayPostgresqlPureQueryMappingResult,
+      { status: "execution-failure" }
+    >
+  | Readonly<
+      Extract<
+        MultiCutReplayPostgresqlPureQueryMappingResult,
+        { status: "execution-failure" }
+      > & {
+        issue: PostgreSQLDriverIssueCode;
+      }
+    >;
+
 export type MultiCutReplayPostgresqlPureQueryMappingCore = Readonly<{
   coreVersion: "1.0";
   createExecutionRequest(
@@ -150,6 +184,16 @@ export type MultiCutReplayPostgresqlPureQueryMappingCore = Readonly<{
   execute(
     input: MultiCutReplayPostgresqlPureAdapterInput,
   ): Promise<MultiCutReplayPostgresqlPureQueryMappingResult>;
+}>;
+
+export type MultiCutReplayPostgresqlPureQueryMappingCoreV2 = Readonly<{
+  coreVersion: "2.0";
+  createExecutionRequest(
+    input: MultiCutReplayPostgresqlPureAdapterInput,
+  ): MultiCutReplayPostgresqlPureExecutionRequest;
+  execute(
+    input: MultiCutReplayPostgresqlPureAdapterInput,
+  ): Promise<MultiCutReplayPostgresqlPureQueryMappingResultV2>;
 }>;
 
 export type MultiCutReplayPostgresqlPureAdapter = Readonly<{

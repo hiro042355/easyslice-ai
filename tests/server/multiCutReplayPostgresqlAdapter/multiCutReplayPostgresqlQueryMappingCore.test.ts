@@ -6,6 +6,7 @@ import { MULTI_CUT_REPLAY_POSTGRESQL_SQL_DEFINITIONS_V2 as definitions } from ".
 import {
   createMultiCutReplayPostgresqlPureAdapter,
   createMultiCutReplayPostgresqlQueryMappingCore,
+  createMultiCutReplayPostgresqlQueryMappingCoreV2,
   createReferenceMultiCutReplayPostgresqlFakeClient,
   createReferenceMultiCutReplayPostgresqlFakeQueryOnlyClient,
   executeReplayPostgresqlQueryOnly,
@@ -105,6 +106,40 @@ test("missing optional diagnostics remain absent and no retry occurs", async () 
   assert.equal(fixture.capturedRequests.length, 1);
 });
 
+test("V2 query-only core preserves every authoritative transport issue without changing metadata", async () => {
+  const issues = [
+    "invalid-request", "query-cancelled", "timeout", "connection-unavailable",
+    "schema-mismatch", "constraint-conflict", "retryable-conflict", "read-only",
+    "insufficient-privilege", "unknown-failure", "disposed",
+  ] as const;
+  for (const issue of issues) {
+    const core = createMultiCutReplayPostgresqlQueryMappingCoreV2(Object.freeze({
+      async execute() {
+        return Object.freeze({
+          kind: "execution-failure" as const,
+          failureVersion: "2.0" as const,
+          classification: "execution-failure" as const,
+          issue,
+          safeReason: `postgresql-${issue}`,
+        });
+      },
+    }));
+    const result = await core.execute(input);
+    assert.equal(result.status, "execution-failure");
+    if (result.status !== "execution-failure") continue;
+    assert.equal(result.issue, issue);
+    assert.equal(result.safeReason, `postgresql-${issue}`);
+    assert.equal(
+      result.metadata.retryClassification,
+      definitions.byStatementId[input.statementId].retryClass,
+    );
+    assert.equal(
+      result.metadata.reconciliationClassification,
+      definitions.byStatementId[input.statementId].reconciliationClass,
+    );
+  }
+});
+
 test("query-only core rejects commit-unknown while compatibility wrapper preserves it", async () => {
   const commitUnknown = Object.freeze({
     failureVersion: "1.0" as const,
@@ -181,7 +216,7 @@ test("query-only boundary owns no transaction, retry, infrastructure, or commit-
     queryOnlySource,
     /(?:process\.env|from\s+["']pg["']|ExecutionRuntime|Participation|Workflow|ProductionComposition)/,
   );
-  assert.equal((queryOnlySource.match(/client\.execute\(/g) ?? []).length, 1);
+  assert.equal((queryOnlySource.match(/client\.execute\(/g) ?? []).length, 2);
   assert.match(wrapperSource, /classification:\s*"commit-unknown"/);
   assert.match(indexSource, /executeReplayPostgresqlQueryOnly/);
   assert.match(indexSource, /createMultiCutReplayPostgresqlQueryMappingCore/);

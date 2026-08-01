@@ -169,7 +169,7 @@ test("all participant outcomes flow through projection and output without reclas
   const outcomes: MultiCutReplayCompleteParticipationResultV2[] = [
     { resultVersion: "2.0", status: "zero-row", command: "UPDATE", rowCount: 0, zeroRowClassification: "not-single-cause", lookupRequired: true, reconciliationRequired: true, queryMetadata: oneRow().queryMetadata, ownerAction: "do-not-commit", rollbackRequired: true },
     { resultVersion: "2.0", status: "cardinality-violation", expectedRowCount: 1, actualRowCount: 2, classification: "invariant-violation", queryMetadata: oneRow().queryMetadata, ownerAction: "rollback-required", rollbackRequired: true },
-    { resultVersion: "2.0", status: "execution-failure", transactionPhase: "query", classification: "execution-failure", safeReason: "safe", sqlStateClass: "40", queryConnectionDisposition: "must-discard", queryMetadata: oneRow().queryMetadata, ownerAction: "rollback-required", rollbackRequired: true },
+    { resultVersion: "2.0", status: "execution-failure", transactionPhase: "query", classification: "execution-failure", issue: "retryable-conflict", safeReason: "safe", sqlStateClass: "40", queryConnectionDisposition: "must-discard", queryMetadata: oneRow().queryMetadata, ownerAction: "rollback-required", rollbackRequired: true },
   ];
   const expected = ["not-applied", "internal-invariant-violation", "execution-failure"];
   for (let index = 0; index < outcomes.length; index += 1) {
@@ -185,7 +185,7 @@ test("all participant outcomes flow through projection and output without reclas
 test("execution diagnostics and disposition remain optional and unchanged", async () => {
   const failure: MultiCutReplayCompleteParticipationResultV2 = {
     resultVersion: "2.0", status: "execution-failure", transactionPhase: "query",
-    classification: "execution-failure", safeReason: "safe",
+    classification: "execution-failure", issue: "unknown-failure", safeReason: "safe",
     queryMetadata: oneRow().queryMetadata, ownerAction: "rollback-required", rollbackRequired: true,
   };
   const output = await harness(failure).adapter.complete(createInput());
@@ -194,6 +194,7 @@ test("execution diagnostics and disposition remain optional and unchanged", asyn
   assert.equal(output.status, "execution-failure");
   if (output.status !== "execution-failure") return;
   assert.equal(output.projection.safeReason, "safe");
+  assert.equal(output.projection.issue, "unknown-failure");
   assert.equal("sqlStateClass" in output.projection, false);
   assert.equal("queryConnectionDisposition" in output.projection, false);
 });

@@ -92,7 +92,7 @@ test("execution failure preserves safe metadata and every disposition", () => {
   for (const disposition of ["safe-to-reuse", "must-rollback-before-reuse", "must-discard", "unknown"] as const) {
     const input: MultiCutReplayCompleteParticipationResultV2 = {
       resultVersion: "2.0", status: "execution-failure", transactionPhase: "query",
-      classification: "execution-failure", safeReason: "safe", sqlStateClass: "40",
+      classification: "execution-failure", issue: "retryable-conflict", safeReason: "safe", sqlStateClass: "40",
       queryConnectionDisposition: disposition, queryMetadata: metadata,
       ownerAction: "rollback-required", rollbackRequired: true,
     };
@@ -100,6 +100,7 @@ test("execution failure preserves safe metadata and every disposition", () => {
     assert.equal(output.status, "execution-failure");
     if (output.status !== "execution-failure") continue;
     assert.equal(output.projection.safeReason, "safe");
+    assert.equal(output.projection.issue, "retryable-conflict");
     assert.equal(output.projection.sqlStateClass, "40");
     assert.equal(output.projection.queryConnectionDisposition, disposition);
     assert.equal(output.projection.retryMetadata, "not-retryable");
@@ -110,7 +111,7 @@ test("execution failure preserves safe metadata and every disposition", () => {
 test("missing optional failure diagnostics remain absent", () => {
   const input: MultiCutReplayCompleteParticipationResultV2 = {
     resultVersion: "2.0", status: "execution-failure", transactionPhase: "query",
-    classification: "execution-failure", safeReason: "safe", queryMetadata: metadata,
+    classification: "execution-failure", issue: "unknown-failure", safeReason: "safe", queryMetadata: metadata,
     ownerAction: "rollback-required", rollbackRequired: true,
   };
   const output = createMultiCutReplayLifecycleCompleteProductionOutputV1(project(input));

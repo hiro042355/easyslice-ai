@@ -9,7 +9,7 @@ import {
   type MultiCutReplayCompleteQueryExecutionPortV2,
 } from "../../../lib/server/multiCutReplayPostgresqlTransactionParticipation";
 import type {
-  MultiCutReplayPostgresqlQueryExecutionResult,
+  MultiCutReplayPostgresqlQueryExecutionResultV2,
 } from "../../../lib/server/multiCutReplayPostgresqlAdapter/pureTypes";
 
 const createRequest = (): MultiCutReplayCompleteParticipationRequestV2 => {
@@ -77,7 +77,7 @@ const completeRow = Object.freeze({
   terminal_classification: "workflow-completed",
 });
 
-const createFake = (configured: MultiCutReplayPostgresqlQueryExecutionResult) => {
+const createFake = (configured: MultiCutReplayPostgresqlQueryExecutionResultV2) => {
   let invocations = 0;
   const captured: unknown[] = [];
   const port: MultiCutReplayCompleteQueryExecutionPortV2 = Object.freeze({
@@ -177,8 +177,9 @@ test("execution failure preserves optional safe diagnostics and every dispositio
   ] as const) {
     const fake = createFake(Object.freeze({
       kind: "execution-failure",
-      failureVersion: "1.0",
+      failureVersion: "2.0",
       classification: "execution-failure",
+      issue: "retryable-conflict",
       safeReason: "query-failed",
       sqlStateClass: "40",
       queryConnectionDisposition: disposition,
@@ -189,6 +190,7 @@ test("execution failure preserves optional safe diagnostics and every dispositio
     assert.equal(result.status, "execution-failure");
     if (result.status !== "execution-failure") continue;
     assert.equal(result.safeReason, "query-failed");
+    assert.equal(result.issue, "retryable-conflict");
     assert.equal(result.sqlStateClass, "40");
     assert.equal(result.queryConnectionDisposition, disposition);
     assert.equal(result.ownerAction, "rollback-required");
@@ -198,8 +200,9 @@ test("execution failure preserves optional safe diagnostics and every dispositio
 test("missing optional failure diagnostics remain absent", async () => {
   const fake = createFake(Object.freeze({
     kind: "execution-failure",
-    failureVersion: "1.0",
+    failureVersion: "2.0",
     classification: "execution-failure",
+    issue: "unknown-failure",
     safeReason: "query-failed",
   }));
   const result = await createMultiCutReplayCompleteTransactionParticipantV2()

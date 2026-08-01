@@ -112,6 +112,7 @@ export const projectMultiCutReplayCompleteParticipationResultToLifecycleV1 = (
         sourceStatus: "execution-failure",
         status: "unavailable",
         classification: participationEvidence.classification,
+        issue: participationEvidence.issue,
         safeReason: participationEvidence.safeReason,
         ...(participationEvidence.sqlStateClass
           ? { sqlStateClass: participationEvidence.sqlStateClass }
@@ -134,6 +135,20 @@ export const projectMultiCutReplayCompleteParticipationResultToLifecycleV1 = (
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const POSTGRESQL_DRIVER_ISSUES = new Set([
+  "invalid-request",
+  "query-cancelled",
+  "timeout",
+  "connection-unavailable",
+  "schema-mismatch",
+  "constraint-conflict",
+  "retryable-conflict",
+  "read-only",
+  "insufficient-privilege",
+  "unknown-failure",
+  "disposed",
+]);
+
 const isLifecycleProjectionResultV1 = (
   value: unknown,
 ): value is MultiCutReplayLifecycleProjectionResultV1 => {
@@ -153,7 +168,10 @@ const isLifecycleProjectionResultV1 = (
       value.participationEvidence.status === "cardinality-violation") ||
     (value.sourceStatus === "execution-failure" &&
       value.status === "unavailable" &&
-      value.participationEvidence.status === "execution-failure")
+      value.participationEvidence.status === "execution-failure" &&
+      typeof value.issue === "string" &&
+      POSTGRESQL_DRIVER_ISSUES.has(value.issue) &&
+      value.issue === value.participationEvidence.issue)
   );
 };
 

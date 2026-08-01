@@ -10,7 +10,13 @@ import {
   type MultiCutReplayCompleteParticipationResultV2,
   type MultiCutReplayCompleteQueryExecutionPortV2,
 } from "../../../lib/server/multiCutReplayPostgresqlTransactionParticipation";
-import type { MultiCutReplayPostgresqlQueryOnlyClient } from "../../../lib/server/multiCutReplayPostgresqlAdapter/pureTypes";
+import type { MultiCutReplayPostgresqlQueryOnlyClientV2 } from "../../../lib/server/multiCutReplayPostgresqlAdapter/pureTypes";
+import type {
+  MultiCutReplayPostgresqlQueryExecutionFailureV2,
+} from "../../../lib/server/multiCutReplayPostgresqlAdapter/pureTypes";
+import type {
+  DurableWorkflowSameSessionQueryFailure,
+} from "../../../lib/server/productionWorkflowRuntime/durableTransaction";
 import {
   WORKFLOW_COMPLETION_ATOMIC_RECOVERY_OWNERSHIP,
 } from "../../../lib/server/workflowCompletionAtomicRecovery";
@@ -153,11 +159,53 @@ test("query port is exactly compatible with the Pure Query Mapping Core client",
       return Object.freeze({ kind: "success", rows: Object.freeze([]), rowCount: 0, command: "UPDATE" });
     },
   });
-  const compatible: MultiCutReplayPostgresqlQueryOnlyClient = queryPort;
+  const compatible: MultiCutReplayPostgresqlQueryOnlyClientV2 = queryPort;
   assert.equal(typeof compatible.execute, "function");
   for (const forbidden of ["begin", "commit", "rollback", "acquire", "release", "discard", "close"]) {
     assert.equal(forbidden in queryPort, false);
   }
+});
+
+test("query failure V2 mechanically preserves the Same-session transport issue", () => {
+  const source: DurableWorkflowSameSessionQueryFailure = Object.freeze({
+    resultVersion: "1.0",
+    status: "execution-failure",
+    phase: "query",
+    classification: "connection-unavailable",
+    safeReason: "postgresql-connection-unavailable",
+    sqlStateClass: "08",
+    queryConnectionDisposition: "must-discard",
+  });
+  const projected: MultiCutReplayPostgresqlQueryExecutionFailureV2 = Object.freeze({
+    kind: "execution-failure",
+    failureVersion: "2.0",
+    classification: "execution-failure",
+    issue: source.classification,
+    safeReason: source.safeReason,
+    ...(source.sqlStateClass !== undefined
+      ? { sqlStateClass: source.sqlStateClass }
+      : {}),
+    ...(source.queryConnectionDisposition !== undefined
+      ? { queryConnectionDisposition: source.queryConnectionDisposition }
+      : {}),
+  });
+  assert.equal(projected.kind, "execution-failure");
+  assert.equal(projected.issue, "connection-unavailable");
+  assert.equal(projected.safeReason, source.safeReason);
+  assert.equal(projected.sqlStateClass, source.sqlStateClass);
+  assert.equal(
+    projected.queryConnectionDisposition,
+    source.queryConnectionDisposition,
+  );
+
+  // @ts-expect-error V2 requires the authoritative PostgreSQL transport issue.
+  const missingIssue: MultiCutReplayPostgresqlQueryExecutionFailureV2 = {
+    kind: "execution-failure",
+    failureVersion: "2.0",
+    classification: "execution-failure",
+    safeReason: "postgresql-unknown-failure",
+  };
+  void missingIssue;
 });
 
 test("V2 result union covers one-row, zero-row, cardinality, and query failure only", () => {
@@ -183,8 +231,8 @@ test("V2 result union covers one-row, zero-row, cardinality, and query failure o
     }),
     Object.freeze({ resultVersion: "2.0", status: "zero-row", command: "UPDATE", rowCount: 0, zeroRowClassification: "not-single-cause", lookupRequired: false, reconciliationRequired: true, queryMetadata: metadata, ownerAction: "do-not-commit", rollbackRequired: true }),
     Object.freeze({ resultVersion: "2.0", status: "cardinality-violation", expectedRowCount: 1, actualRowCount: 2, classification: "invariant-violation", queryMetadata: metadata, ownerAction: "rollback-required", rollbackRequired: true }),
-    Object.freeze({ resultVersion: "2.0", status: "execution-failure", transactionPhase: "query", classification: "execution-failure", safeReason: "query-failed", sqlStateClass: "40", queryConnectionDisposition: "must-rollback-before-reuse", queryMetadata: metadata, ownerAction: "rollback-required", rollbackRequired: true }),
-    Object.freeze({ resultVersion: "2.0", status: "execution-failure", transactionPhase: "query", classification: "execution-failure", safeReason: "unknown", queryMetadata: metadata, ownerAction: "rollback-required", rollbackRequired: true }),
+    Object.freeze({ resultVersion: "2.0", status: "execution-failure", transactionPhase: "query", classification: "execution-failure", issue: "retryable-conflict", safeReason: "query-failed", sqlStateClass: "40", queryConnectionDisposition: "must-rollback-before-reuse", queryMetadata: metadata, ownerAction: "rollback-required", rollbackRequired: true }),
+    Object.freeze({ resultVersion: "2.0", status: "execution-failure", transactionPhase: "query", classification: "execution-failure", issue: "unknown-failure", safeReason: "unknown", queryMetadata: metadata, ownerAction: "rollback-required", rollbackRequired: true }),
   ]);
   assert.deepEqual(results.map(({ status }) => status), [
     "one-row", "zero-row", "cardinality-violation", "execution-failure", "execution-failure",
