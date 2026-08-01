@@ -1,6 +1,23 @@
 export {
+  MULTI_CUT_REPLAY_COMPLETE_PROCESSING_INPUT_BINDINGS_V2,
   MULTI_CUT_REPLAY_PERSISTENCE_PARAMETER_CONTRACT_V2,
 } from "./contractV2";
+
+export {
+  createCompleteProcessingReplayParameterValues,
+  validateMultiCutReplayCompleteProcessingParameterInput,
+} from "./completeProcessingReplayInputContract";
+
+export type {
+  MultiCutReplayCompleteProcessingBindingIdV2,
+  MultiCutReplayCompleteProcessingBindingsV2,
+  MultiCutReplayCompleteProcessingBindingValueByIdV2,
+  MultiCutReplayCompleteProcessingOwnershipBindingV2,
+  MultiCutReplayCompleteProcessingParameterInputV1,
+  MultiCutReplayCompleteProcessingParameterInputValidationResult,
+  MultiCutReplayCompleteProcessingParameterValues,
+  MultiCutReplayCompleteProcessingReplayIdentityBindingV2,
+} from "./completeProcessingReplayInputTypes";
 
 export type {
   MultiCutReplayPersistenceParameterAuthorityV2,

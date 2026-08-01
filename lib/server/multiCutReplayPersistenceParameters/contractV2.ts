@@ -24,6 +24,19 @@ const selectorBindings = Object.freeze([
   "key_identity",
 ]);
 
+export const MULTI_CUT_REPLAY_COMPLETE_PROCESSING_INPUT_BINDINGS_V2 =
+  Object.freeze([
+    "replay_identity",
+    "expected_revision",
+    "expected_ownership_evidence",
+    "expected_fence",
+    "result_reference_version",
+    "result_reference_identity",
+    "terminal_metadata_version",
+    "terminal_at",
+    "terminal_classification",
+  ] as const);
+
 const leaseExpiryExpression =
   "transaction_timestamp() + ($lease_duration_milliseconds::bigint * INTERVAL '1 millisecond')";
 
@@ -179,7 +192,7 @@ export const MULTI_CUT_REPLAY_PERSISTENCE_PARAMETER_CONTRACT_V2:
     }),
     Object.freeze({
       statementId: "complete-processing-replay",
-      inputBindings: Object.freeze(["replay_identity", "expected_revision", "expected_ownership_evidence", "expected_fence", "result_reference_version", "result_reference_identity", "terminal_metadata_version", "terminal_at", "terminal_classification"]),
+      inputBindings: MULTI_CUT_REPLAY_COMPLETE_PROCESSING_INPUT_BINDINGS_V2,
       returningBindings: Object.freeze(["next_revision", "result_reference_version", "result_reference_identity", "terminal_metadata_version", "terminal_at", "terminal_classification"]),
       transactionVisibility: "workflow-completion-transaction",
       retryRule: "workflow-completion-recovery-after-unknown-commit",
