@@ -18,7 +18,14 @@ export type DurableWorkflowSameSessionEvidence = Readonly<{
   validOnlyDuringActiveTransaction: true;
 }>;
 
-export type DurableWorkflowSameSessionQueryRequest = PostgreSQLQueryRequest;
+export type DurableWorkflowSameSessionQueryRequestV1 = Readonly<
+  Omit<PostgreSQLQueryRequest, "expectedResult"> & {
+    expectedResult: "many";
+  }
+>;
+
+export type DurableWorkflowSameSessionQueryRequest =
+  DurableWorkflowSameSessionQueryRequestV1;
 
 export type DurableWorkflowSameSessionQuerySuccess = Readonly<{
   resultVersion: "1.0";

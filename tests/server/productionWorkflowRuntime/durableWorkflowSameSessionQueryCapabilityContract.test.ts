@@ -4,6 +4,7 @@ import test from "node:test";
 import type {
   DurableWorkflowSameSessionQueryCapability,
   DurableWorkflowSameSessionQueryFailure,
+  DurableWorkflowSameSessionQueryRequestV1,
   DurableWorkflowSameSessionQueryResult,
   DurableWorkflowTransactionContext,
   DurableWorkflowTransactionContextV3,
@@ -76,7 +77,7 @@ test("success preserves command, row count, rows, null, and caller copy isolatio
     statementId: "lookup-authoritative-replay",
     text: "SELECT replay_state, nullable_value",
     values: [],
-    expectedResult: "single",
+    expectedResult: "many",
   });
   sourceRows[0].replay_state = "completed";
 
@@ -148,4 +149,44 @@ test("V3 is additive and leaves the existing V2 context contract unchanged", () 
   assert.equal(typeof acceptsV2, "function");
   assert.equal(typeof acceptsV3, "function");
   assert.equal("sameSessionQuery" in ({} as DurableWorkflowTransactionContext), false);
+});
+
+test("request V1 closes the result contract with many-only cardinality", () => {
+  const acceptsMany = (
+    request: DurableWorkflowSameSessionQueryRequestV1,
+  ): "many" => request.expectedResult;
+  const base = {
+    statementId: "complete-processing-replay",
+    text: "UPDATE replay SET state = $1 RETURNING *",
+    values: Object.freeze([{ kind: "string", value: "completed" }] as const),
+  };
+
+  assert.equal(acceptsMany({ ...base, expectedResult: "many" }), "many");
+
+  // @ts-expect-error Same-session cardinality belongs to the Pure Query Core.
+  acceptsMany({ ...base, expectedResult: "single" });
+  // @ts-expect-error Same-session capability cannot accept command-only cardinality.
+  acceptsMany({ ...base, expectedResult: "none" });
+  // @ts-expect-error The cardinality contract cannot be omitted.
+  acceptsMany(base);
+
+  const genericRequest: import("../../../lib/server/productionWorkflowRuntime/postgresqlDriver").PostgreSQLQueryRequest = {
+    ...base,
+    expectedResult: "many",
+  };
+  // @ts-expect-error An unverified generic request is not a many-only request.
+  acceptsMany(genericRequest);
+});
+
+test("result union remains success or execution-failure only", () => {
+  const statuses: DurableWorkflowSameSessionQueryResult["status"][] = [
+    "success",
+    "execution-failure",
+  ];
+  const statusSet = new Set<string>(statuses);
+
+  assert.deepEqual(statuses, ["success", "execution-failure"]);
+  assert.equal(statusSet.has("not-found"), false);
+  assert.equal(statusSet.has("cardinality-conflict"), false);
+  assert.equal(statusSet.has("commit-unknown"), false);
 });
