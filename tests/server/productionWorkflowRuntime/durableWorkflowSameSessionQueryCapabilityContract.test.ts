@@ -106,8 +106,6 @@ test("failure safely preserves optional SQLSTATE class and every connection disp
       phase: "query",
       classification: "connection-unavailable",
       safeReason: "classified-query-failure",
-      retryMetadata: "retryable",
-      reconciliationMetadata: "authoritative-lookup-required",
       sqlStateClass: "08",
       queryConnectionDisposition,
     }),
@@ -125,6 +123,9 @@ test("failure safely preserves optional SQLSTATE class and every connection disp
   assert.ok(failures.every((failure) => !("commitUnknown" in failure)));
   assert.ok(failures.every((failure) => !("sqlState" in failure)));
   assert.ok(failures.every((failure) => !("backendPid" in failure)));
+  assert.ok(failures.every((failure) => !("retryMetadata" in failure)));
+  assert.ok(failures.every((failure) => !("reconciliationMetadata" in failure)));
+  assert.ok(failures.every((failure) => !("retryable" in failure)));
 });
 
 test("optional safe failure fields remain optional without inferred defaults", () => {
@@ -134,12 +135,23 @@ test("optional safe failure fields remain optional without inferred defaults", (
     phase: "query",
     classification: "unknown-failure",
     safeReason: "classified-query-failure",
-    retryMetadata: "non-retryable",
-    reconciliationMetadata: "not-required",
   };
 
   assert.equal("sqlStateClass" in failure, false);
   assert.equal("queryConnectionDisposition" in failure, false);
+
+  const retryPolicyLeak: DurableWorkflowSameSessionQueryFailure = {
+    ...failure,
+    // @ts-expect-error Retry policy belongs to the Pure Query Mapping Core.
+    retryMetadata: "non-retryable",
+  };
+  const reconciliationPolicyLeak: DurableWorkflowSameSessionQueryFailure = {
+    ...failure,
+    // @ts-expect-error Reconciliation policy belongs to operation semantics.
+    reconciliationMetadata: "not-required",
+  };
+  void retryPolicyLeak;
+  void reconciliationPolicyLeak;
 });
 
 test("V3 is additive and leaves the existing V2 context contract unchanged", () => {

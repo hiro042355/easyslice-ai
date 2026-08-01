@@ -41,8 +41,6 @@ export type DurableWorkflowSameSessionQueryFailure = Readonly<{
   phase: "query";
   classification: PostgreSQLDriverIssueCode;
   safeReason: string;
-  retryMetadata: "retryable" | "non-retryable";
-  reconciliationMetadata: "not-required" | "authoritative-lookup-required";
   sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
   queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
