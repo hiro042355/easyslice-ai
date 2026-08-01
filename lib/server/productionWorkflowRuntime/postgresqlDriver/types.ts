@@ -47,11 +47,19 @@ export type PostgreSQLExecutionFailure = Readonly<{
   diagnostic: PostgreSQLSafeDiagnostic;
 }>;
 
+export type PostgreSQLQueryFailureSafeReason =
+  `postgresql-${PostgreSQLDriverIssueCode}`;
+
+export type PostgreSQLQueryExecutionFailure = PostgreSQLExecutionFailure &
+  Readonly<{
+    safeReason: PostgreSQLQueryFailureSafeReason;
+  }>;
+
 export type PostgreSQLQueryResult =
   | Readonly<{ status: "success"; rows: readonly PostgreSQLRow[]; rowCount: number; command: string }>
   | Readonly<{ status: "not-found" }>
   | Readonly<{ status: "cardinality-conflict" }>
-  | PostgreSQLExecutionFailure;
+  | PostgreSQLQueryExecutionFailure;
 
 export type PostgreSQLPoolState = "created" | "starting" | "ready" | "draining" | "closed" | "failed";
 export type PostgreSQLConnectionState = "checked-out" | "transaction-active" | "released" | "discarded" | "unknown";

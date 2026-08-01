@@ -1,5 +1,5 @@
 export { PostgreSQLConnectionPoolAdapter } from "./postgresqlConnectionPool";
-export { classifyConnectionReuse, classifyPostgreSQLConstraint, classifyPostgreSQLIssue, mapPostgreSQLError } from "./postgresqlErrorMapper";
+export { classifyConnectionReuse, classifyPostgreSQLConstraint, classifyPostgreSQLIssue, getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 export { getPostgreSQLDriverDescriptor, listPostgreSQLDriverDescriptors } from "./postgresqlDriverRegistry";
 export { PostgreSQLDrainCoordinator } from "./postgresqlDrainCoordinator";
 export {

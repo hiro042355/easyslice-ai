@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRollbackResult, PostgreSQLTransactionConnection, PostgreSQLTransactionState } from "./types";
-import { classifyConnectionReuse, mapPostgreSQLError } from "./postgresqlErrorMapper";
+import { classifyConnectionReuse, getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 
 type Execute = (
   client: PoolClient,
@@ -32,7 +32,7 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
     this.reuse = "must-discard";
   }
   async query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult> {
-    if (this.transactionState !== "active") return { status: "failure", issue: "disposed", diagnostic: { stage: "query", statementId: request.statementId, issue: "disposed", connectionState: "transaction-active", transactionState: this.transactionState, retryable: false } };
+    if (this.transactionState !== "active") return Object.freeze({ status: "failure", issue: "disposed", safeReason: getPostgreSQLQueryFailureSafeReason("disposed"), diagnostic: Object.freeze({ stage: "query", statementId: request.statementId, issue: "disposed", connectionState: "transaction-active", transactionState: this.transactionState, retryable: false }) });
     const result = await this.execute(this.client, request, "transaction-active", this.transactionState, this.statementTimeoutAuthority);
     if (result.status === "failure" && result.issue !== "invalid-request") {
       this.transactionState = "failed";

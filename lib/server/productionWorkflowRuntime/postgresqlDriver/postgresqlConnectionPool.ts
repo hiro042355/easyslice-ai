@@ -1,13 +1,27 @@
 import { Pool, type PoolClient, type QueryResult } from "pg";
 import { createPostgreSQLTypeParsers, decodePostgreSQLValue, encodePostgreSQLParameter } from "./postgresqlTypeCodec";
 import { isSafeStatementId } from "./postgresqlDriverUtils";
-import { mapPostgreSQLError } from "./postgresqlErrorMapper";
+import { getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 import { PostgreSQLTransactionConnectionAdapter } from "./postgresqlTransactionConnection";
 import { PostgreSQLDrainCoordinator } from "./postgresqlDrainCoordinator";
 import type { PostgreSQLConnection, PostgreSQLConnectionConfig, PostgreSQLConnectionPool, PostgreSQLConnectionState, PostgreSQLExecutionFailure, PostgreSQLPoolState, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRow, PostgreSQLTransactionConnection } from "./types";
 
-function invalid(stage: "pool" | "checkout" | "query" | "begin", statementId?: string): PostgreSQLExecutionFailure {
-  return { status: "failure", issue: "invalid-request", diagnostic: { stage, statementId, issue: "invalid-request", retryable: false } };
+function invalid(stage: "pool" | "checkout" | "begin", statementId?: string): PostgreSQLExecutionFailure {
+  return { status: "failure", issue: "invalid-request", diagnostic: { stage, ...(statementId !== undefined ? { statementId } : {}), issue: "invalid-request", retryable: false } };
+}
+
+function invalidQuery(statementId: string): Extract<PostgreSQLQueryResult, { status: "failure" }> {
+  return Object.freeze({
+    status: "failure",
+    issue: "invalid-request",
+    safeReason: getPostgreSQLQueryFailureSafeReason("invalid-request"),
+    diagnostic: Object.freeze({
+      stage: "query",
+      statementId,
+      issue: "invalid-request",
+      retryable: false,
+    }),
+  });
 }
 
 function validateRequest(request: PostgreSQLQueryRequest): boolean {
@@ -16,10 +30,10 @@ function validateRequest(request: PostgreSQLQueryRequest): boolean {
 }
 
 async function execute(client: PoolClient, request: PostgreSQLQueryRequest, connectionState: PostgreSQLConnectionState, transactionState?: "active" | "failed", statementTimeoutAuthority = false): Promise<PostgreSQLQueryResult> {
-  if (!validateRequest(request)) return invalid("query", request.statementId);
+  if (!validateRequest(request)) return invalidQuery(request.statementId);
   let values: unknown[];
   try { values = request.values.map(encodePostgreSQLParameter); }
-  catch { return invalid("query", request.statementId); }
+  catch { return invalidQuery(request.statementId); }
   try {
     const result: QueryResult<Record<string, unknown>> = await client.query({ text: request.text, values });
     const rows: PostgreSQLRow[] = result.rows.map((row) => {
@@ -34,7 +48,7 @@ async function execute(client: PoolClient, request: PostgreSQLQueryRequest, conn
   } catch (error) {
     return mapPostgreSQLError(
       error,
-      { stage: "query", statementId: request.statementId, connectionState, transactionState },
+      { stage: "query", statementId: request.statementId, connectionState, ...(transactionState !== undefined ? { transactionState } : {}) },
       { statementTimeoutAuthority },
     );
   }
@@ -49,7 +63,7 @@ export class PostgreSQLConnectionAdapter implements PostgreSQLConnection {
   }
   state(): PostgreSQLConnectionState { return this.connectionState; }
   async query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult> {
-    if (this.connectionState !== "checked-out") return { status: "failure", issue: "disposed", diagnostic: { stage: "query", statementId: request.statementId, issue: "disposed", connectionState: this.connectionState, retryable: false } };
+    if (this.connectionState !== "checked-out") return Object.freeze({ status: "failure", issue: "disposed", safeReason: getPostgreSQLQueryFailureSafeReason("disposed"), diagnostic: Object.freeze({ stage: "query", statementId: request.statementId, issue: "disposed", connectionState: this.connectionState, retryable: false }) });
     return execute(this.client, request, this.connectionState, undefined, this.statementTimeoutAuthority);
   }
   async begin(): Promise<PostgreSQLTransactionConnection | PostgreSQLExecutionFailure> {

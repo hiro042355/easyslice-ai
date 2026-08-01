@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   classifyCommitFailure, classifyConnectionReuse, classifyPostgreSQLConstraint, classifyPostgreSQLIssue,
-  mapPostgreSQLError,
+  getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError,
   copyValidatedJson, decodePostgreSQLValue, encodePostgreSQLParameter,
   getPostgreSQLDriverDescriptor, listPostgreSQLDriverDescriptors,
   evaluatePostgreSQLProductionReadiness, POSTGRESQL_PRODUCTION_CAPABILITIES,
@@ -177,5 +177,73 @@ test("query connection disposition is decided by the driver authority", () => {
       ...(transactionState ? { transactionState } : {}),
     });
     assert.equal(result.diagnostic.queryConnectionDisposition, expected);
+  }
+});
+
+test("query safe reason has one mapper authority and preserves safe diagnostics", () => {
+  const cases = [
+    ["40001", "retryable-conflict", "postgresql-retryable-conflict", "40", "must-rollback-before-reuse"],
+    ["40P01", "retryable-conflict", "postgresql-retryable-conflict", "40", "must-rollback-before-reuse"],
+    ["23505", "constraint-conflict", "postgresql-constraint-conflict", "23", "must-rollback-before-reuse"],
+    ["42P01", "schema-mismatch", "postgresql-schema-mismatch", "42", "must-rollback-before-reuse"],
+    ["57014", "query-cancelled", "postgresql-query-cancelled", "57", "must-rollback-before-reuse"],
+    ["08006", "connection-unavailable", "postgresql-connection-unavailable", "08", "must-discard"],
+  ] as const;
+
+  for (const [code, issue, safeReason, sqlStateClass, disposition] of cases) {
+    const result = mapPostgreSQLError(
+      { code, message: "private", stack: "private" },
+      { stage: "query", transactionState: "active" },
+    );
+    assert.equal(result.issue, issue);
+    assert.equal(result.safeReason, safeReason);
+    assert.equal(result.safeReason, getPostgreSQLQueryFailureSafeReason(result.issue));
+    assert.equal(result.diagnostic.sqlStateClass, sqlStateClass);
+    assert.equal(result.diagnostic.queryConnectionDisposition, disposition);
+    assert.equal(Object.isFrozen(result), true);
+    assert.equal(Object.isFrozen(result.diagnostic), true);
+    assert.equal("message" in result, false);
+    assert.equal("stack" in result, false);
+    assert.equal("sqlState" in result, false);
+  }
+
+  const unknown = mapPostgreSQLError(
+    Object.freeze({ privateValue: true }),
+    { stage: "query", transactionState: "active" },
+  );
+  assert.equal(unknown.safeReason, "postgresql-unknown-failure");
+  assert.equal("sqlStateClass" in unknown.diagnostic, false);
+});
+
+test("timeout authority and transaction-ended rejection retain formal safe reasons", async () => {
+  const timeout = mapPostgreSQLError(
+    { code: "57014" },
+    { stage: "query", transactionState: "active" },
+    { statementTimeoutAuthority: true },
+  );
+  assert.equal(timeout.issue, "timeout");
+  assert.equal(timeout.safeReason, "postgresql-timeout");
+  assert.equal(timeout.diagnostic.sqlStateClass, "57");
+
+  const client = {
+    on() {},
+    removeListener() {},
+    release() {},
+    async query() {
+      return { command: "SELECT", rowCount: 0, oid: 0, rows: [], fields: [] };
+    },
+  };
+  const connection = new PostgreSQLConnectionAdapter(client as never, () => {});
+  assert.equal(connection.release(), "released");
+  const ended = await connection.query({
+    statementId: "driver.ended-safe-reason",
+    text: "SELECT 1",
+    values: [],
+    expectedResult: "single",
+  });
+  assert.equal(ended.status, "failure");
+  if (ended.status === "failure") {
+    assert.equal(ended.safeReason, "postgresql-disposed");
+    assert.equal(ended.issue, "disposed");
   }
 });

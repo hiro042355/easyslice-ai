@@ -64,7 +64,9 @@ test("real SQLSTATE, failed transaction, commit, rollback, cancellation, and ter
     assert.equal((await connection.query(request("driver.fixture-child", "CREATE TEMP TABLE driver_child (id integer UNIQUE, parent_id integer REFERENCES driver_parent(id), value integer CHECK (value > 0))"))).status, "success");
     assert.equal((await connection.query(request("driver.parent", "INSERT INTO driver_parent VALUES (1)"))).status, "success");
     assert.equal((await connection.query(request("driver.child", "INSERT INTO driver_child VALUES (1, 1, 1)"))).status, "success");
-    assert.equal((await connection.query(request("driver.unique", "INSERT INTO driver_child VALUES (1, 1, 1)"))).status, "failure");
+    const uniqueFailure = await connection.query(request("driver.unique", "INSERT INTO driver_child VALUES (1, 1, 1)"));
+    assert.equal(uniqueFailure.status, "failure");
+    if (uniqueFailure.status === "failure") assert.equal(uniqueFailure.safeReason, "postgresql-constraint-conflict");
     assert.equal((await connection.query(request("driver.fk", "INSERT INTO driver_child VALUES (2, 99, 1)"))).status, "failure");
     assert.equal((await connection.query(request("driver.check", "INSERT INTO driver_child VALUES (3, 1, 0)"))).status, "failure");
     assert.equal((await connection.query(request("driver.undefined-table", "SELECT * FROM driver_missing", [], "many"))).status, "failure");
@@ -90,13 +92,17 @@ test("real SQLSTATE, failed transaction, commit, rollback, cancellation, and ter
     await cancelledConnection.query(request("driver.timeout-set", "SET statement_timeout = 50"));
     const cancelled = await cancelledConnection.query(request("driver.cancelled", "SELECT pg_sleep(1)", [], "single"));
     assert.equal(cancelled.status, "failure");
-    if (cancelled.status === "failure") assert.equal(cancelled.issue, "query-cancelled");
+    if (cancelled.status === "failure") {
+      assert.equal(cancelled.issue, "query-cancelled");
+      assert.equal(cancelled.safeReason, "postgresql-query-cancelled");
+    }
     cancelledConnection.release();
 
     const terminatedConnection = await pool.checkout();
     if ("status" in terminatedConnection) throw new Error("checkout-failed");
     const terminated = await terminatedConnection.query(request("driver.terminate", "SELECT pg_terminate_backend(pg_backend_pid())", [], "single"));
     assert.equal(terminated.status, "failure");
+    if (terminated.status === "failure") assert.equal(terminated.safeReason, "postgresql-connection-unavailable");
     terminatedConnection.discard();
     assert.equal(await pool.close(), "closed");
   });

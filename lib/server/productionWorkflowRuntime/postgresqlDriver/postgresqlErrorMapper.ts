@@ -1,4 +1,4 @@
-import type { PostgreSQLConnectionReuse, PostgreSQLConstraintClass, PostgreSQLDriverIssueCode, PostgreSQLExecutionFailure, PostgreSQLSafeDiagnostic, PostgreSQLTransactionState } from "./types";
+import type { PostgreSQLConnectionReuse, PostgreSQLConstraintClass, PostgreSQLDriverIssueCode, PostgreSQLExecutionFailure, PostgreSQLQueryExecutionFailure, PostgreSQLQueryFailureSafeReason, PostgreSQLSafeDiagnostic, PostgreSQLTransactionState } from "./types";
 
 type ErrorShape = Readonly<{ code?: unknown; constraint?: unknown }>;
 export type PostgreSQLTimeoutMechanismContext = Readonly<{
@@ -49,11 +49,28 @@ export function classifyConnectionReuse(issue: PostgreSQLDriverIssueCode, transa
   return "safe-to-reuse";
 }
 
+export function getPostgreSQLQueryFailureSafeReason(
+  issue: PostgreSQLDriverIssueCode,
+): PostgreSQLQueryFailureSafeReason {
+  return `postgresql-${issue}`;
+}
+
+export function mapPostgreSQLError(
+  error: unknown,
+  diagnostic: Omit<PostgreSQLSafeDiagnostic, "issue" | "retryable" | "sqlStateClass"> & Readonly<{ stage: "query" }>,
+  timeoutContext?: PostgreSQLTimeoutMechanismContext,
+): PostgreSQLQueryExecutionFailure;
 export function mapPostgreSQLError(
   error: unknown,
   diagnostic: Omit<PostgreSQLSafeDiagnostic, "issue" | "retryable" | "sqlStateClass">,
   timeoutContext?: PostgreSQLTimeoutMechanismContext,
-): PostgreSQLExecutionFailure {
+): PostgreSQLExecutionFailure;
+
+export function mapPostgreSQLError(
+  error: unknown,
+  diagnostic: Omit<PostgreSQLSafeDiagnostic, "issue" | "retryable" | "sqlStateClass">,
+  timeoutContext?: PostgreSQLTimeoutMechanismContext,
+): PostgreSQLExecutionFailure | PostgreSQLQueryExecutionFailure {
   const code = hasErrorShape(error) && typeof error.code === "string" ? error.code : undefined;
   const issue = classifyPostgreSQLIssue(code, timeoutContext);
   const safe: PostgreSQLSafeDiagnostic = {
@@ -74,12 +91,15 @@ export function mapPostgreSQLError(
       ? { sqlStateClass: code.slice(0, 2) as "08" | "23" | "25" | "40" | "42" | "57" }
       : {}),
   };
-  return {
+  return Object.freeze({
     status: "failure",
     issue,
+    ...(diagnostic.stage === "query"
+      ? { safeReason: getPostgreSQLQueryFailureSafeReason(issue) }
+      : {}),
     ...(issue === "constraint-conflict" || issue === "schema-mismatch"
       ? { constraintClass: classifyPostgreSQLConstraint(hasErrorShape(error) ? error.constraint : undefined, code ?? "") }
       : {}),
     diagnostic: Object.freeze(safe),
-  };
+  });
 }

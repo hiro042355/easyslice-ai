@@ -63,6 +63,7 @@ const bridgeError = (
     | "commit-outcome-unknown"
     | "non-postgresql-thrown-value",
   diagnostic?: PostgreSQLExecutionFailure["diagnostic"],
+  authoritativeQuerySafeReason?: Extract<PostgreSQLQueryResult, { status: "failure" }>["safeReason"],
 ): MultiCutReplayPostgresqlProductionBridgeError => {
   const rule = contract.failures.find((entry) => entry.source === source);
   const target: MultiCutReplayPostgresqlDriverErrorKind =
@@ -70,7 +71,7 @@ const bridgeError = (
   return Object.freeze({
     errorVersion: "1.0",
     kind: target,
-    safeReason: `postgresql-${source}`,
+    safeReason: authoritativeQuerySafeReason ?? `postgresql-${source}`,
     retryable: rule?.retryable ?? false,
     commitUnknown: rule?.commitUnknown ?? false,
     ...(rule?.sqlState === "safe-class-only" && diagnostic?.sqlStateClass
@@ -118,7 +119,7 @@ const projectResult = (
   result: PostgreSQLQueryResult,
 ): MultiCutReplayPostgresqlFakeClientResult => {
   if (result.status === "failure") {
-    throw bridgeError(result.issue, result.diagnostic);
+    throw bridgeError(result.issue, result.diagnostic, result.safeReason);
   }
   if (result.status !== "success") return rejectUnexpected();
   return Object.freeze({
