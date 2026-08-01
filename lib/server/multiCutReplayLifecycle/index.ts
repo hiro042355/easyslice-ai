@@ -11,6 +11,16 @@ export {
   createMultiCutReplayLifecycleCompleteParameterInputFailureV1,
   createMultiCutReplayLifecycleCompleteParticipationRequestFailureV1,
 } from "./completePreParticipationFailureContractV1";
+export {
+  createDefaultMultiCutReplayLifecycleCompleteProductionAdapter,
+  createMultiCutReplayLifecycleCompleteProductionAdapter,
+} from "./completeProductionAdapter";
+export type {
+  MultiCutReplayLifecycleCompleteProductionAdapter,
+  MultiCutReplayLifecycleCompleteProductionAdapterDependencies,
+  MultiCutReplayLifecycleCompleteProductionAdapterInputV1,
+  MultiCutReplayLifecycleCompleteProductionAuthorityV1,
+} from "./completeProductionAdapterTypes";
 export type {
   MultiCutReplayLifecycleCompleteAdapterResultV1,
   MultiCutReplayLifecycleCompleteParameterInputFailureV1,
