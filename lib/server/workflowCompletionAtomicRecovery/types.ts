@@ -12,6 +12,32 @@ import type {
 
 export type WorkflowCompletionAtomicRecoveryContractVersion = "1.0";
 
+export type WorkflowCompletionAttemptRelation =
+  | "same-attempt"
+  | "different-attempt"
+  | "missing-attempt-evidence"
+  | "inconsistent-attempt-evidence";
+
+export type WorkflowCompletionAttemptSemantics = Readonly<{
+  contractVersion: WorkflowCompletionAtomicRecoveryContractVersion;
+  identityAuthority: "logical-attempt-identity";
+  comparisonAuthority: "equality-only";
+  orderingAuthority: "none";
+  differentAttemptClassification: "competing-attempt";
+  automaticRetryForDifferentAttempt: false;
+  orderingInferencePermitted: false;
+}>;
+
+export type WorkflowCompletionAttemptRelationInput = Readonly<{
+  requestAttempt?: WorkflowProtectedIdentity;
+  observedAttempt?: WorkflowProtectedIdentity;
+}>;
+
+export type WorkflowCompletionAttemptRelationResult = Readonly<{
+  resultVersion: WorkflowCompletionAtomicRecoveryContractVersion;
+  relation: WorkflowCompletionAttemptRelation;
+}>;
+
 export type WorkflowCompletionAtomicMutationComponent =
   | "workflow-final-result-persistence"
   | "workflow-completion-state"
@@ -133,7 +159,7 @@ export type WorkflowCompletionCombinedReconciliationIssueCode =
   | "replay-revision-mismatch"
   | "outbox-event-mismatch"
   | "ownership-conflict"
-  | "newer-attempt-observed"
+  | "competing-attempt-observed"
   | "partial-atomic-observation";
 
 export type WorkflowCompletionReconciliationResult =
@@ -161,10 +187,11 @@ export type WorkflowCompletionReconciliationResult =
     }>
   | Readonly<{
       resultVersion: WorkflowCompletionAtomicRecoveryContractVersion;
-      status: "superseded";
+      status: "competing-attempt";
       snapshot: WorkflowCompletionCombinedAuthoritativeSnapshot;
-      issue: "newer-attempt-observed";
+      issue: "competing-attempt-observed";
       retryPermitted: false;
+      manualInterventionRequired: true;
     }>
   | Readonly<{
       resultVersion: WorkflowCompletionAtomicRecoveryContractVersion;

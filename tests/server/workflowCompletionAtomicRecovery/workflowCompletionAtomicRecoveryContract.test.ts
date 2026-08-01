@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import {
+  WORKFLOW_COMPLETION_ATTEMPT_SEMANTICS,
   WORKFLOW_COMPLETION_ATOMIC_MUTATION_PLAN,
   WORKFLOW_COMPLETION_ATOMIC_RECOVERY_OWNERSHIP,
+  classifyWorkflowCompletionAttemptRelation,
 } from "../../../lib/server/workflowCompletionAtomicRecovery";
 import type {
   WorkflowCompletionCommitIntent,
@@ -136,23 +138,66 @@ test("commit intent and reconciliation request preserve fixed authoritative iden
   assert.equal("metadata" in request, false);
 });
 
-test("reconciliation result distinguishes success, not committed, inconsistency, supersession, and unavailable", () => {
+test("logical attempt identity is equality-only with no ordering authority", () => {
+  const semantics = WORKFLOW_COMPLETION_ATTEMPT_SEMANTICS;
+  assert.equal(semantics.comparisonAuthority, "equality-only");
+  assert.equal(semantics.orderingAuthority, "none");
+  assert.equal(semantics.differentAttemptClassification, "competing-attempt");
+  assert.equal(semantics.automaticRetryForDifferentAttempt, false);
+  assert.equal(semantics.orderingInferencePermitted, false);
+  assert.equal(Object.isFrozen(semantics), true);
+
+  const sameCopy = protectedIdentity("logical-attempt");
+  assert.deepEqual(
+    classifyWorkflowCompletionAttemptRelation({
+      requestAttempt: intent.logicalAttemptIdentity,
+      observedAttempt: sameCopy,
+    }),
+    { resultVersion: "1.0", relation: "same-attempt" },
+  );
+  assert.deepEqual(
+    classifyWorkflowCompletionAttemptRelation({
+      requestAttempt: intent.logicalAttemptIdentity,
+      observedAttempt: protectedIdentity("competing-attempt"),
+    }),
+    { resultVersion: "1.0", relation: "different-attempt" },
+  );
+  assert.deepEqual(
+    classifyWorkflowCompletionAttemptRelation({
+      requestAttempt: intent.logicalAttemptIdentity,
+    }),
+    { resultVersion: "1.0", relation: "missing-attempt-evidence" },
+  );
+  assert.deepEqual(
+    classifyWorkflowCompletionAttemptRelation({
+      requestAttempt: intent.logicalAttemptIdentity,
+      observedAttempt: Object.freeze({
+        identityVersion: "1.0",
+        namespace: "",
+        protectedValue: "invalid",
+      }),
+    }),
+    { resultVersion: "1.0", relation: "inconsistent-attempt-evidence" },
+  );
+});
+
+test("reconciliation result distinguishes success, not committed, inconsistency, competing attempt, and unavailable", () => {
   const results: readonly WorkflowCompletionReconciliationResult[] = [
     Object.freeze({ resultVersion: "1.0", status: "reconciled-success", snapshot, retryPermitted: false }),
     Object.freeze({ resultVersion: "1.0", status: "definite-not-committed", snapshot, retryPermitted: true, retryAuthority: "workflow-completion-transaction-owner-policy", sameLogicalAttemptRequired: true }),
     Object.freeze({ resultVersion: "1.0", status: "inconsistent-observation", snapshot, issues: Object.freeze(["partial-atomic-observation"] as const), retryPermitted: false, manualInterventionRequired: true }),
-    Object.freeze({ resultVersion: "1.0", status: "superseded", snapshot, issue: "newer-attempt-observed", retryPermitted: false }),
+    Object.freeze({ resultVersion: "1.0", status: "competing-attempt", snapshot, issue: "competing-attempt-observed", retryPermitted: false, manualInterventionRequired: true }),
     Object.freeze({ resultVersion: "1.0", status: "unavailable", issue: "lookup-unavailable", retryPermitted: false }),
   ];
   assert.deepEqual(results.map(({ status }) => status), [
-    "reconciled-success", "definite-not-committed", "inconsistent-observation", "superseded", "unavailable",
+    "reconciled-success", "definite-not-committed", "inconsistent-observation", "competing-attempt", "unavailable",
   ]);
   assert.equal(results.filter(({ retryPermitted }) => retryPermitted).length, 1);
 });
 
 test("contract boundary contains no implementation, transaction control, SQL, raw errors, or free metadata", () => {
   const root = join(process.cwd(), "lib", "server", "workflowCompletionAtomicRecovery");
-  const source = ["types.ts", "contractV1.ts", "index.ts"]
+  const source = ["types.ts", "contractV1.ts", "attemptSemantics.ts", "index.ts"]
     .map((file) => readFileSync(join(root, file), "utf8"))
     .join("\n");
   for (const forbidden of [
@@ -162,4 +207,8 @@ test("contract boundary contains no implementation, transaction control, SQL, ra
   ]) assert.equal(source.includes(forbidden), false, forbidden);
   assert.equal(source.includes("multiCutReplayPostgresqlTransactionParticipation"), false);
   assert.equal(source.includes("multiCutReplayPostgresqlExecutionRuntime"), false);
+  for (const unsupported of [
+    "newer-attempt-observed", "older-attempt-observed", 'status: "superseded"',
+    ".sort(", "localeCompare", "Date.parse", "reservationAttempt",
+  ]) assert.equal(source.includes(unsupported), false, unsupported);
 });
