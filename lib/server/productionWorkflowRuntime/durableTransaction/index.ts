@@ -4,4 +4,5 @@ export { createDurableWorkflowTransactionManagerV2, DURABLE_WORKFLOW_TRANSACTION
 export { getDurableWorkflowTransactionDescriptor, listDurableWorkflowTransactionDescriptors } from "./durableWorkflowTransactionRegistry";
 export { isDurableWorkflowTransactionManager, validateDurableWorkflowTransactionManager } from "./durableWorkflowTransactionValidator";
 export { copyDatabaseScalar, durableTransactionFailure, durableTransactionSuccess, isSafeStatementId, isValidTimeout, validateDurableWorkflowTransactionOptions } from "./durableWorkflowTransactionUtils";
+export type * from "./sameSessionQueryTypes";
 export type * from "./types";
