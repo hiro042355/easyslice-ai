@@ -7,6 +7,10 @@ export {
   createCompleteProcessingReplayParameterValues,
   validateMultiCutReplayCompleteProcessingParameterInput,
 } from "./completeProcessingReplayInputContract";
+export {
+  createMultiCutReplayCompleteProcessingParameterInput,
+  MULTI_CUT_REPLAY_COMPLETE_PARAMETER_AUTHORITY_MAPPING_V1,
+} from "./completeProcessingReplayInputFactory";
 
 export type {
   MultiCutReplayCompleteProcessingBindingIdV2,
@@ -18,6 +22,13 @@ export type {
   MultiCutReplayCompleteProcessingParameterValues,
   MultiCutReplayCompleteProcessingReplayIdentityBindingV2,
 } from "./completeProcessingReplayInputTypes";
+export type {
+  MultiCutReplayCompleteLifecycleInputV4,
+  MultiCutReplayCompleteParameterAuthorityMappingV1,
+  MultiCutReplayCompleteParameterInputFactoryInputV1,
+  MultiCutReplayCompleteParameterInputFactoryResultV1,
+  MultiCutReplayCompleteParameterInputVersionAuthorityV1,
+} from "./completeProcessingReplayInputFactoryTypes";
 
 export type {
   MultiCutReplayPersistenceParameterAuthorityV2,
