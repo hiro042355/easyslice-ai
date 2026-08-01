@@ -2,6 +2,7 @@ export {
   MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP,
 } from "./contractV1";
 export {
+  createMultiCutReplayCompleteParticipationRequestV2,
   MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP_V2,
 } from "./contractV2";
 export type {
@@ -23,6 +24,8 @@ export type {
   MultiCutReplayCompleteParticipationContractVersionV2,
   MultiCutReplayCompleteParticipationOwnershipV2,
   MultiCutReplayCompleteParticipationRequestV2,
+  MultiCutReplayCompleteParticipationRequestFactoryInputV2,
+  MultiCutReplayCompleteParticipationRequestValidationResultV2,
   MultiCutReplayCompleteParticipationResultV2,
   MultiCutReplayCompleteQueryMetadataV2,
   MultiCutReplayCompleteQueryExecutionPortV2,

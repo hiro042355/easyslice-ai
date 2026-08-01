@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP,
   MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP_V2,
+  createMultiCutReplayCompleteParticipationRequestV2,
   type MultiCutReplayCompleteParticipationRequestV2,
   type MultiCutReplayCompleteParticipationResultV2,
   type MultiCutReplayCompleteQueryExecutionPortV2,
@@ -47,15 +48,31 @@ const parameterInput = Object.freeze({
   }),
 } as const);
 
-const request: MultiCutReplayCompleteParticipationRequestV2 = Object.freeze({
-  schemaVersion: "2.0",
-  contractVersion: "2.0",
-  statementId: "complete-processing-replay",
-  operationIdentity: "complete-replay-participation",
-  sameSessionRequirement: "workflow-completion-transaction-session",
-  transactionOwner: "workflow-completion-transaction-owner",
+const authoritativeReplayIdentity = Object.freeze({
+  identityVersion: "2.0",
+  protectedScope: Object.freeze({
+    scopeVersion: "1.0",
+    replayNamespace: "multi-cut",
+    tenant: Object.freeze({
+      identityVersion: "1.0",
+      protectedTenantIdentity: "tenant",
+    }),
+    operationIdentity: "operation",
+  }),
+  resolvedIdentity: Object.freeze({
+    identityVersion: "1.0",
+    keyIdentity: "key",
+    requestFingerprintIdentity: "fingerprint-authority",
+  }),
+} as const);
+
+const createdRequest = createMultiCutReplayCompleteParticipationRequestV2({
+  authoritativeReplayIdentity,
   parameterInput,
 });
+assert.equal(createdRequest.status, "valid");
+const request: MultiCutReplayCompleteParticipationRequestV2 =
+  createdRequest.status === "valid" ? createdRequest.request : assert.fail();
 
 const metadata = Object.freeze({
   metadataVersion: "1.0",
@@ -68,10 +85,66 @@ test("V2 is additive, complete-only, and retains the typed parameter input", () 
   assert.equal(MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP.contractVersion, "1.0");
   assert.equal(MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP_V2.contractVersion, "2.0");
   assert.equal(request.statementId, "complete-processing-replay");
-  assert.equal(request.parameterInput, parameterInput);
+  assert.notEqual(request.parameterInput, parameterInput);
+  assert.equal(
+    request.authoritativeReplayIdentity.resolvedIdentity.requestFingerprintIdentity,
+    "fingerprint-authority",
+  );
   assert.deepEqual(MULTI_CUT_REPLAY_COMPLETE_PARTICIPATION_OWNERSHIP_V2.statementScope, [
     "complete-processing-replay",
   ]);
+});
+
+test("request factory preserves and copy-isolates the full authoritative identity", () => {
+  assert.notEqual(request.authoritativeReplayIdentity, authoritativeReplayIdentity);
+  assert.notEqual(
+    request.authoritativeReplayIdentity.protectedScope,
+    authoritativeReplayIdentity.protectedScope,
+  );
+  assert.notEqual(
+    request.authoritativeReplayIdentity.resolvedIdentity,
+    authoritativeReplayIdentity.resolvedIdentity,
+  );
+  assert.equal(Object.isFrozen(request.authoritativeReplayIdentity), true);
+  assert.equal(Object.isFrozen(request.authoritativeReplayIdentity.resolvedIdentity), true);
+});
+
+test("overlapping identity mismatch fails closed without choosing either authority", () => {
+  const mismatches = [
+    { replay_namespace: "other" },
+    { protected_tenant_identity: "other" },
+    { operation_identity: "other" },
+    { key_identity: "other" },
+  ];
+  for (const mismatch of mismatches) {
+    const result = createMultiCutReplayCompleteParticipationRequestV2({
+      authoritativeReplayIdentity,
+      parameterInput: {
+        ...parameterInput,
+        bindings: {
+          ...parameterInput.bindings,
+          replay_identity: {
+            ...parameterInput.bindings.replay_identity,
+            ...mismatch,
+          },
+        },
+      },
+    });
+    assert.deepEqual(result, {
+      resultVersion: "2.0",
+      status: "invalid",
+      reason: "identity-mismatch",
+    });
+  }
+});
+
+test("fingerprint remains domain evidence and is absent from SQL parameter input", () => {
+  assert.equal(
+    request.authoritativeReplayIdentity.resolvedIdentity.requestFingerprintIdentity,
+    authoritativeReplayIdentity.resolvedIdentity.requestFingerprintIdentity,
+  );
+  assert.equal("request_fingerprint_identity" in parameterInput.bindings, false);
+  assert.equal("requestFingerprintIdentity" in parameterInput.bindings, false);
 });
 
 test("query port is exactly compatible with the Pure Query Mapping Core client", () => {
@@ -96,16 +169,7 @@ test("V2 result union covers one-row, zero-row, cardinality, and query failure o
       rowCount: 1,
       projection: Object.freeze({
         projectionVersion: "1.0",
-        replayIdentity: Object.freeze({
-          identityVersion: "2.0",
-          protectedScope: Object.freeze({
-            scopeVersion: "1.0",
-            replayNamespace: "multi-cut",
-            tenant: Object.freeze({ identityVersion: "1.0", protectedTenantIdentity: "tenant" }),
-            operationIdentity: "operation",
-          }),
-          resolvedIdentity: Object.freeze({ identityVersion: "1.0", keyIdentity: "key", requestFingerprintIdentity: "fingerprint" }),
-        }),
+        replayIdentity: request.authoritativeReplayIdentity,
         state: "completed",
         revision: "5",
         lastFencingToken: "8",
@@ -128,6 +192,10 @@ test("V2 result union covers one-row, zero-row, cardinality, and query failure o
   assert.equal("queryConnectionDisposition" in results[4], false);
   assert.equal("sqlStateClass" in results[4], false);
   assert.equal(JSON.stringify(results).includes("commit-unknown"), false);
+  assert.equal(
+    results[0].status === "one-row" && results[0].projection.replayIdentity,
+    request.authoritativeReplayIdentity,
+  );
 });
 
 test("all four authoritative query connection dispositions remain representable", () => {

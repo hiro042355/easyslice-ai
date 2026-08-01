@@ -13,6 +13,7 @@ import type {
 import type {
   WorkflowCompletionAtomicRecoveryOwnership,
 } from "../workflowCompletionAtomicRecovery/types";
+import type { MultiCutReplayAuthoritativeIdentity } from "../multiCutReplayShared/types";
 import type {
   MultiCutReplayCompletePersistenceProjection,
 } from "./types";
@@ -26,8 +27,29 @@ export type MultiCutReplayCompleteParticipationRequestV2 = Readonly<{
   operationIdentity: "complete-replay-participation";
   sameSessionRequirement: "workflow-completion-transaction-session";
   transactionOwner: "workflow-completion-transaction-owner";
+  authoritativeReplayIdentity: MultiCutReplayAuthoritativeIdentity;
   parameterInput: MultiCutReplayCompleteProcessingParameterInputV1;
 }>;
+
+export type MultiCutReplayCompleteParticipationRequestFactoryInputV2 = Readonly<{
+  authoritativeReplayIdentity: MultiCutReplayAuthoritativeIdentity;
+  parameterInput: MultiCutReplayCompleteProcessingParameterInputV1;
+}>;
+
+export type MultiCutReplayCompleteParticipationRequestValidationResultV2 =
+  | Readonly<{
+      resultVersion: "2.0";
+      status: "valid";
+      request: MultiCutReplayCompleteParticipationRequestV2;
+    }>
+  | Readonly<{
+      resultVersion: "2.0";
+      status: "invalid";
+      reason:
+        | "invalid-authoritative-identity"
+        | "invalid-parameter-input"
+        | "identity-mismatch";
+    }>;
 
 export type MultiCutReplayCompleteExecutionRequestV2 = Readonly<
   Omit<MultiCutReplayPostgresqlPureExecutionRequest, "statementId"> & {
