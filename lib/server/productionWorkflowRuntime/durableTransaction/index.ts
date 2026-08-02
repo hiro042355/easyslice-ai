@@ -8,7 +8,10 @@ export {
 } from "./postgresqlGeneralSameSessionQueryCapability";
 export {
   isDurableWorkflowDatabaseSafeExecutionFailureV2,
+  projectDurableWorkflowDatabaseCardinalityConflictV2,
+  projectDurableWorkflowDatabaseNotFoundV2,
   projectDurableWorkflowDatabaseSafeFailureV2,
+  projectDurableWorkflowGeneralQueryFailureV2,
 } from "./safeDatabaseFailureV2";
 export {
   classifyDurableWorkflowPostgresqlFailureV1,

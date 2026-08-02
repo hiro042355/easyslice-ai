@@ -80,6 +80,7 @@ function projectResult(result: PostgreSQLQueryResult): DurableWorkflowGeneralSam
         phase: "query",
         classification: result.issue,
         safeReason: result.safeReason,
+        retryable: result.diagnostic.retryable,
         ...(result.diagnostic.sqlStateClass === undefined ? {} : { sqlStateClass: result.diagnostic.sqlStateClass }),
         ...(result.diagnostic.queryConnectionDisposition === undefined ? {} : { queryConnectionDisposition: result.diagnostic.queryConnectionDisposition }),
       });

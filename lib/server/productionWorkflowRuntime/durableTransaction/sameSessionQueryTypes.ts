@@ -1,6 +1,7 @@
 import type {
   PostgreSQLDriverIssueCode,
   PostgreSQLQueryConnectionDisposition,
+  PostgreSQLQueryFailureSafeReason,
   PostgreSQLQueryRequest,
   PostgreSQLRow,
 } from "../postgresqlDriver/types";
@@ -83,7 +84,16 @@ export type DurableWorkflowGeneralSameSessionQueryCardinalityConflictV1 =
   }>;
 
 export type DurableWorkflowGeneralSameSessionQueryExecutionFailureV1 =
-  DurableWorkflowSameSessionQueryFailure;
+  Readonly<{
+    resultVersion: "1.0";
+    status: "execution-failure";
+    phase: "query";
+    classification: PostgreSQLDriverIssueCode;
+    safeReason: PostgreSQLQueryFailureSafeReason;
+    retryable: boolean;
+    sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+    queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
+  }>;
 
 export type DurableWorkflowGeneralSameSessionQueryResultV1 =
   | DurableWorkflowGeneralSameSessionQuerySuccessV1

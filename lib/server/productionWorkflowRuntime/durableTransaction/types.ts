@@ -70,8 +70,24 @@ export type DurableWorkflowDatabaseSafeExecutionFailureV2 = Readonly<{
   queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
 
+export type DurableWorkflowDatabaseNotFoundV2 = Readonly<{
+  status: "not-found";
+  expectedResult: "single";
+  actualRowCount: 0;
+  command: string;
+}>;
+
+export type DurableWorkflowDatabaseCardinalityConflictV2 = Readonly<{
+  status: "cardinality-conflict";
+  expectedResult: "single" | "none";
+  actualRowCount: number;
+  command: string;
+}>;
+
 export type DurableWorkflowDatabaseExecutionResultV2 =
-  | Exclude<DurableWorkflowDatabaseExecutionResult, { status: "failure" }>
+  | Extract<DurableWorkflowDatabaseExecutionResult, { status: "success" }>
+  | DurableWorkflowDatabaseNotFoundV2
+  | DurableWorkflowDatabaseCardinalityConflictV2
   | DurableWorkflowDatabaseSafeExecutionFailureV2;
 
 export type DurableWorkflowDatabaseCapability = Readonly<{

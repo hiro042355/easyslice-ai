@@ -1,8 +1,15 @@
 import type { PostgreSQLQueryExecutionFailure } from "../postgresqlDriver/types";
 import type {
+  DurableWorkflowDatabaseCardinalityConflictV2,
+  DurableWorkflowDatabaseNotFoundV2,
   DurableWorkflowDatabaseSafeExecutionFailureV2,
   DurableWorkflowTransactionFailureCode,
 } from "./types";
+import type {
+  DurableWorkflowGeneralSameSessionQueryCardinalityConflictV1,
+  DurableWorkflowGeneralSameSessionQueryExecutionFailureV1,
+  DurableWorkflowGeneralSameSessionQueryNotFoundV1,
+} from "./sameSessionQueryTypes";
 
 export type DurableWorkflowDatabaseSafeFailureProjectionInputV2 = Readonly<{
   source: PostgreSQLQueryExecutionFailure;
@@ -46,4 +53,45 @@ export function isDurableWorkflowDatabaseSafeExecutionFailureV2(
     && typeof Reflect.get(value, "issue") === "string"
     && typeof safeReason === "string"
     && safeReason.length > 0;
+}
+
+export function projectDurableWorkflowGeneralQueryFailureV2(
+  source: DurableWorkflowGeneralSameSessionQueryExecutionFailureV1,
+  failure: DurableWorkflowTransactionFailureCode,
+): DurableWorkflowDatabaseSafeExecutionFailureV2 {
+  return Object.freeze({
+    resultVersion: "2.0",
+    status: "failure",
+    kind: "execution-failure",
+    failure,
+    retryable: source.retryable,
+    issue: source.classification,
+    safeReason: source.safeReason,
+    ...(source.sqlStateClass === undefined ? {} : { sqlStateClass: source.sqlStateClass }),
+    ...(source.queryConnectionDisposition === undefined
+      ? {}
+      : { queryConnectionDisposition: source.queryConnectionDisposition }),
+  });
+}
+
+export function projectDurableWorkflowDatabaseNotFoundV2(
+  source: DurableWorkflowGeneralSameSessionQueryNotFoundV1,
+): DurableWorkflowDatabaseNotFoundV2 {
+  return Object.freeze({
+    status: source.status,
+    expectedResult: source.expectedResult,
+    actualRowCount: source.actualRowCount,
+    command: source.command,
+  });
+}
+
+export function projectDurableWorkflowDatabaseCardinalityConflictV2(
+  source: DurableWorkflowGeneralSameSessionQueryCardinalityConflictV1,
+): DurableWorkflowDatabaseCardinalityConflictV2 {
+  return Object.freeze({
+    status: source.status,
+    expectedResult: source.expectedResult,
+    actualRowCount: source.actualRowCount,
+    command: source.command,
+  });
 }

@@ -93,7 +93,7 @@ test("execution failure preserves safe facts and introduces no policy or commit-
   const result = await capability.executeQuery(request("single"));
   assert.deepEqual(result, {
     resultVersion: "1.0", status: "execution-failure", phase: "query", classification: "timeout",
-    safeReason: "postgresql-timeout", sqlStateClass: "57", queryConnectionDisposition: "must-rollback-before-reuse",
+    safeReason: "postgresql-timeout", retryable: true, sqlStateClass: "57", queryConnectionDisposition: "must-rollback-before-reuse",
   });
   for (const forbidden of ["retryMetadata", "reconciliationMetadata", "commit-unknown", "diagnostic", "sqlState", "text", "values"]) assert.equal(forbidden in result, false);
 });
