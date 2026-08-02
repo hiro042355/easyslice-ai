@@ -1,4 +1,9 @@
 import type { WorkflowUtcTimestamp } from "../types";
+import type {
+  PostgreSQLDriverIssueCode,
+  PostgreSQLQueryConnectionDisposition,
+  PostgreSQLQueryFailureSafeReason,
+} from "../postgresqlDriver/types";
 
 export type DurableWorkflowTransactionContextState =
   | "active"
@@ -51,9 +56,33 @@ export type DurableWorkflowDatabaseExecutionResult =
   | Readonly<{ status: "cardinality-conflict" }>
   | Readonly<{ status: "failure"; failure: DurableWorkflowTransactionFailureCode; retryable: boolean }>;
 
+export type DurableWorkflowDatabaseSafeFailureVersionV2 = "2.0";
+
+export type DurableWorkflowDatabaseSafeExecutionFailureV2 = Readonly<{
+  resultVersion: DurableWorkflowDatabaseSafeFailureVersionV2;
+  status: "failure";
+  kind: "execution-failure";
+  failure: DurableWorkflowTransactionFailureCode;
+  retryable: boolean;
+  issue: PostgreSQLDriverIssueCode;
+  safeReason: PostgreSQLQueryFailureSafeReason;
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
+}>;
+
+export type DurableWorkflowDatabaseExecutionResultV2 =
+  | Exclude<DurableWorkflowDatabaseExecutionResult, { status: "failure" }>
+  | DurableWorkflowDatabaseSafeExecutionFailureV2;
+
 export type DurableWorkflowDatabaseCapability = Readonly<{
   capabilityVersion: "1.0";
   execute(command: DurableWorkflowDatabaseCommand): Promise<DurableWorkflowDatabaseExecutionResult>;
+}>;
+
+export type DurableWorkflowDatabaseCapabilityV2 = Readonly<{
+  capabilityVersion: "1.0";
+  failureContractVersion: DurableWorkflowDatabaseSafeFailureVersionV2;
+  execute(command: DurableWorkflowDatabaseCommand): Promise<DurableWorkflowDatabaseExecutionResultV2>;
 }>;
 
 export type DurableWorkflowTransactionContext = Readonly<{

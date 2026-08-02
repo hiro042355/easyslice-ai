@@ -1,6 +1,11 @@
 export { DurableWorkflowAsyncScopeOwner } from "./durableWorkflowAsyncScope";
 export { DurableWorkflowTransactionContextOwner } from "./durableWorkflowTransactionContext";
 export { createDurableWorkflowPostgresqlSameSessionQueryCapability } from "./postgresqlSameSessionQueryCapability";
+export {
+  isDurableWorkflowDatabaseSafeExecutionFailureV2,
+  projectDurableWorkflowDatabaseSafeFailureV2,
+} from "./safeDatabaseFailureV2";
+export type { DurableWorkflowDatabaseSafeFailureProjectionInputV2 } from "./safeDatabaseFailureV2";
 export { createDurableWorkflowTransactionManagerV2, DURABLE_WORKFLOW_TRANSACTION_DESCRIPTOR } from "./durableWorkflowTransactionManagerV2";
 export { getDurableWorkflowTransactionDescriptor, listDurableWorkflowTransactionDescriptors } from "./durableWorkflowTransactionRegistry";
 export { isDurableWorkflowTransactionManager, validateDurableWorkflowTransactionManager } from "./durableWorkflowTransactionValidator";
