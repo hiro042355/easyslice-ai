@@ -41,10 +41,11 @@ async function execute(client: PoolClient, request: PostgreSQLQueryRequest, conn
       for (const field of result.fields) output[field.name] = decodePostgreSQLValue(field.dataTypeID, row[field.name]);
       return Object.freeze(output);
     });
-    if (request.expectedResult === "single" && rows.length === 0) return { status: "not-found" };
-    if (request.expectedResult === "single" && rows.length !== 1) return { status: "cardinality-conflict" };
-    if (request.expectedResult === "none" && rows.length !== 0) return { status: "cardinality-conflict" };
-    return { status: "success", rows: Object.freeze(rows), rowCount: result.rowCount ?? rows.length, command: result.command };
+    const actualRowCount = result.rowCount ?? rows.length;
+    if (request.expectedResult === "single" && rows.length === 0) return Object.freeze({ status: "not-found", expectedResult: "single", actualRowCount: 0, command: result.command });
+    if (request.expectedResult === "single" && rows.length !== 1) return Object.freeze({ status: "cardinality-conflict", expectedResult: "single", actualRowCount, command: result.command });
+    if (request.expectedResult === "none" && rows.length !== 0) return Object.freeze({ status: "cardinality-conflict", expectedResult: "none", actualRowCount, command: result.command });
+    return { status: "success", rows: Object.freeze(rows), rowCount: actualRowCount, command: result.command };
   } catch (error) {
     return mapPostgreSQLError(
       error,

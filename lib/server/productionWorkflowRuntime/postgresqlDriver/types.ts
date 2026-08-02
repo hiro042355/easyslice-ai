@@ -57,8 +57,18 @@ export type PostgreSQLQueryExecutionFailure = PostgreSQLExecutionFailure &
 
 export type PostgreSQLQueryResult =
   | Readonly<{ status: "success"; rows: readonly PostgreSQLRow[]; rowCount: number; command: string }>
-  | Readonly<{ status: "not-found" }>
-  | Readonly<{ status: "cardinality-conflict" }>
+  | Readonly<{
+      status: "not-found";
+      expectedResult: "single";
+      actualRowCount: 0;
+      command: string;
+    }>
+  | Readonly<{
+      status: "cardinality-conflict";
+      expectedResult: "single" | "none";
+      actualRowCount: number;
+      command: string;
+    }>
   | PostgreSQLQueryExecutionFailure;
 
 export type PostgreSQLPoolState = "created" | "starting" | "ready" | "draining" | "closed" | "failed";

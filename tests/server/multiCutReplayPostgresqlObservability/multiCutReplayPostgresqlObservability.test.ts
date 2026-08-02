@@ -249,7 +249,12 @@ test("active transaction discard emits exactly once", async () => {
   });
   const connection: PostgreSQLConnection = Object.freeze({
     state: () => active ? "transaction-active" : "checked-out",
-    query: async () => Object.freeze({ status: "not-found" as const }),
+    query: async () => Object.freeze({
+      status: "not-found" as const,
+      expectedResult: "single" as const,
+      actualRowCount: 0 as const,
+      command: "SELECT",
+    }),
     begin: async () => {
       active = true;
       return transaction;

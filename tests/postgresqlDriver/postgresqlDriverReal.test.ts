@@ -42,8 +42,9 @@ test("real pool, dedicated connection, codecs, cardinality, and lifecycle", asyn
     bytes[0] = 1;
     json.ordered[0] = "changed";
 
-    assert.equal((await connection.query(request("driver.not-found", "SELECT 1 WHERE false", [], "single"))).status, "not-found");
-    assert.equal((await connection.query(request("driver.cardinality", "SELECT value FROM (VALUES (1), (2)) AS x(value)", [], "single"))).status, "cardinality-conflict");
+    assert.deepEqual(await connection.query(request("driver.not-found", "SELECT 1 WHERE false", [], "single")), Object.freeze({ status: "not-found", expectedResult: "single", actualRowCount: 0, command: "SELECT" }));
+    assert.deepEqual(await connection.query(request("driver.cardinality", "SELECT value FROM (VALUES (1), (2)) AS x(value)", [], "single")), Object.freeze({ status: "cardinality-conflict", expectedResult: "single", actualRowCount: 2, command: "SELECT" }));
+    assert.deepEqual(await connection.query(request("driver.none-cardinality", "SELECT value FROM (VALUES (1), (2)) AS x(value)", [], "none")), Object.freeze({ status: "cardinality-conflict", expectedResult: "none", actualRowCount: 2, command: "SELECT" }));
     assert.equal(connection.release(), "released");
     assert.equal(connection.release(), "already-released");
     assert.equal((await connection.query(request("driver.after-release", "SELECT 1", [], "single"))).status, "failure");
