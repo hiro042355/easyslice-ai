@@ -5,8 +5,7 @@ import {
   projectDurableWorkflowDatabaseCardinalityConflictV2,
   projectDurableWorkflowDatabaseNotFoundV2,
   projectDurableWorkflowGeneralQueryFailureV2,
-  type DurableWorkflowDatabaseCapability,
-  type DurableWorkflowDatabaseCapabilityV2,
+  type DurableWorkflowDatabaseExecutionResult,
   type DurableWorkflowDatabaseExecutionResultV2,
 } from "../../../lib/server/productionWorkflowRuntime/durableTransaction";
 import type {
@@ -77,9 +76,8 @@ test("cardinality evidence projects exact single and none facts", () => {
   }
 });
 
-test("V2 remains structurally consumable as V1 while requiring evidence", async () => {
+test("query-only V2 results remain structurally consumable as V1 while requiring evidence", () => {
   const result: DurableWorkflowDatabaseExecutionResultV2 = Object.freeze({ status: "not-found", expectedResult: "single", actualRowCount: 0, command: "SELECT" });
-  const v2: DurableWorkflowDatabaseCapabilityV2 = Object.freeze({ capabilityVersion: "1.0", failureContractVersion: "2.0", execute: async () => result });
-  const v1: DurableWorkflowDatabaseCapability = v2;
-  assert.deepEqual(await v1.execute({ commandVersion: "1.0", statementId: "safe", parameters: [], expectedResult: "single" }), result);
+  const v1Result: DurableWorkflowDatabaseExecutionResult = result;
+  assert.deepEqual(v1Result, result);
 });

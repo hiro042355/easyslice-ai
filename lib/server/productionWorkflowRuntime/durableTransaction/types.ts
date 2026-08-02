@@ -4,6 +4,7 @@ import type {
   PostgreSQLQueryConnectionDisposition,
   PostgreSQLQueryFailureSafeReason,
 } from "../postgresqlDriver/types";
+import type { DurableWorkflowDatabaseResolverFailureV2 } from "./resolverFailureV2";
 
 export type DurableWorkflowTransactionContextState =
   | "active"
@@ -88,6 +89,7 @@ export type DurableWorkflowDatabaseExecutionResultV2 =
   | Extract<DurableWorkflowDatabaseExecutionResult, { status: "success" }>
   | DurableWorkflowDatabaseNotFoundV2
   | DurableWorkflowDatabaseCardinalityConflictV2
+  | DurableWorkflowDatabaseResolverFailureV2
   | DurableWorkflowDatabaseSafeExecutionFailureV2;
 
 export type DurableWorkflowDatabaseCapability = Readonly<{

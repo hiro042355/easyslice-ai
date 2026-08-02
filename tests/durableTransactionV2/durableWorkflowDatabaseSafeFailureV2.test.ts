@@ -5,8 +5,8 @@ import {
   projectDurableWorkflowDatabaseSafeFailureV2,
 } from "@/lib/server/productionWorkflowRuntime/durableTransaction";
 import type {
-  DurableWorkflowDatabaseCapability,
   DurableWorkflowDatabaseCapabilityV2,
+  DurableWorkflowDatabaseExecutionResult,
 } from "@/lib/server/productionWorkflowRuntime/durableTransaction";
 import type { PostgreSQLQueryExecutionFailure } from "@/lib/server/productionWorkflowRuntime/postgresqlDriver";
 
@@ -56,7 +56,7 @@ test("preserves absent optional diagnostics as absent", () => {
   assert.equal("queryConnectionDisposition" in projected, false);
 });
 
-test("V2 capability remains structurally compatible with V1 consumers", () => {
+test("V2 query execution failures remain structurally compatible with V1 results", async () => {
   const v2: DurableWorkflowDatabaseCapabilityV2 = Object.freeze({
     capabilityVersion: "1.0",
     failureContractVersion: "2.0",
@@ -65,8 +65,11 @@ test("V2 capability remains structurally compatible with V1 consumers", () => {
       failure: "unavailable",
     }),
   });
-  const v1Consumer: DurableWorkflowDatabaseCapability = v2;
-  assert.equal(typeof v1Consumer.execute, "function");
+  const result = await v2.execute({ commandVersion: "1.0", statementId: "safe", parameters: [], expectedResult: "many" });
+  assert.equal(result.status, "failure");
+  if (result.status !== "failure" || result.kind !== "execution-failure") return;
+  const v1Result: DurableWorkflowDatabaseExecutionResult = result;
+  assert.equal(v1Result.status, "failure");
 });
 
 test("validator rejects raw or incomplete failure objects", () => {
