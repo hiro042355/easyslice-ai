@@ -5,6 +5,7 @@ import type {
   PostgreSQLQueryFailureSafeReason,
 } from "../postgresqlDriver/types";
 import type { DurableWorkflowDatabaseResolverFailureV2 } from "./resolverFailureV2";
+import type { ProductionStructuredJsonValueV2 } from "../structuredJsonValueV2";
 
 export type DurableWorkflowTransactionContextState =
   | "active"
@@ -85,11 +86,41 @@ export type DurableWorkflowDatabaseCardinalityConflictV2 = Readonly<{
   command: string;
 }>;
 
+export type DurableWorkflowDatabaseValueV2 = ProductionStructuredJsonValueV2 | Uint8Array;
+export type DurableWorkflowDatabaseRowV2 = Readonly<Record<string, DurableWorkflowDatabaseValueV2>>;
+
+export type DurableWorkflowDatabaseSuccessResultV2 = Readonly<{
+  status: "success";
+  rows: readonly DurableWorkflowDatabaseRowV2[];
+  rowCount: number;
+  command: string;
+}>;
+
+export type DurableWorkflowDatabaseRowProjectionFailureReasonV2 =
+  | "unsupported-row-value"
+  | "non-finite-number"
+  | "cyclic-value"
+  | "invalid-structured-json"
+  | "invalid-binary-value";
+
+export type DurableWorkflowDatabaseRowProjectionFailureV2 = Readonly<{
+  resultVersion: "2.0";
+  status: "failure";
+  kind: "row-projection-failure";
+  phase: "result-projection";
+  reason: DurableWorkflowDatabaseRowProjectionFailureReasonV2;
+  queryInvoked: true;
+  mutationAttempted: boolean;
+  retryAttempted: false;
+  ownerAction: "do-not-commit";
+}>;
+
 export type DurableWorkflowDatabaseExecutionResultV2 =
-  | Extract<DurableWorkflowDatabaseExecutionResult, { status: "success" }>
+  | DurableWorkflowDatabaseSuccessResultV2
   | DurableWorkflowDatabaseNotFoundV2
   | DurableWorkflowDatabaseCardinalityConflictV2
   | DurableWorkflowDatabaseResolverFailureV2
+  | DurableWorkflowDatabaseRowProjectionFailureV2
   | DurableWorkflowDatabaseSafeExecutionFailureV2;
 
 export type DurableWorkflowDatabaseCapability = Readonly<{
