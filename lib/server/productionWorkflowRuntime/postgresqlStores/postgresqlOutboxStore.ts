@@ -1,13 +1,40 @@
 import type { DurableWorkflowDatabaseRow } from "../durableTransaction";
 import { bytesField, execute, immutableJsonObject, stringField, validDigest, validUuid } from "./postgresqlStoreUtils";
 import type { PostgreSQLInternalUuidGenerator, PostgreSQLOutboxRecord, PostgreSQLOutboxStoreV2 } from "./types";
+import { createSliceAInvalidRowFailureV2, projectSliceAJsonObjectV2 } from "./sliceAJsonConsumerV2";
+import type { SliceADatabaseRowV2, SliceAJsonValidationFailureV2, SliceAJsonValueV2 } from "./sliceAJsonConsumerV2";
+
+function buildOutboxRecord<T extends Readonly<Record<string, unknown>>>(row:DurableWorkflowDatabaseRow,payload:T):Omit<PostgreSQLOutboxRecord,"safePayload">&Readonly<{safePayload:T}>|undefined{
+  const internalId=stringField(row,"event_id"),event=bytesField(row,"event_digest"),aggregate=bytesField(row,"aggregate_digest"),resultId=stringField(row,"result_id"),eventType=stringField(row,"event_type"),deliveryState=stringField(row,"delivery_state"),attemptValue=row.attempt,nextEligibleAt=stringField(row,"next_eligible_at"),revision=stringField(row,"revision");
+  if(!internalId||!event||!aggregate||!resultId||!eventType||!deliveryState||!(typeof attemptValue==="number"||typeof attemptValue==="string")||!nextEligibleAt||!revision||!validUuid(internalId)||!validUuid(resultId))return undefined;
+  const owner=bytesField(row,"claim_owner_digest"),fence=stringField(row,"fencing_revision"),lease=stringField(row,"lease_expires_at"),delivered=stringField(row,"delivered_at"),failure=stringField(row,"safe_failure_class");
+  return Object.freeze({internalId,eventIdentity:Object.freeze({algorithm:"sha256",version:1,bytes:event}),aggregateIdentity:Object.freeze({algorithm:"sha256",version:1,bytes:aggregate}),resultId,eventType,safePayload:payload,deliveryState:deliveryState as PostgreSQLOutboxRecord["deliveryState"],attempt:Number(attemptValue),nextEligibleAt,revision,...(owner?{claimOwnerIdentity:Object.freeze({algorithm:"sha256" as const,version:1 as const,bytes:owner})}:{}),...(fence?{fencingRevision:fence}:{}),...(lease?{leaseExpiresAt:lease}:{}),...(delivered?{deliveredAt:delivered}:{}),...(failure?{safeFailureClass:failure}:{})});
+}
 
 function parse(row:DurableWorkflowDatabaseRow):PostgreSQLOutboxRecord|undefined{
-  const internalId=stringField(row,"event_id"),event=bytesField(row,"event_digest"),aggregate=bytesField(row,"aggregate_digest"),resultId=stringField(row,"result_id"),eventType=stringField(row,"event_type"),payloadText=stringField(row,"safe_payload"),deliveryState=stringField(row,"delivery_state"),attemptValue=row.attempt,nextEligibleAt=stringField(row,"next_eligible_at"),revision=stringField(row,"revision");
-  if(!internalId||!event||!aggregate||!resultId||!eventType||!payloadText||!deliveryState||!(typeof attemptValue==="number"||typeof attemptValue==="string")||!nextEligibleAt||!revision||!validUuid(internalId)||!validUuid(resultId))return undefined;
+  const payloadText=stringField(row,"safe_payload");
+  if(!payloadText)return undefined;
   let payload:Record<string,string|number|boolean|null>;try{payload=JSON.parse(payloadText);}catch{return undefined;}
-  const owner=bytesField(row,"claim_owner_digest"),fence=stringField(row,"fencing_revision"),lease=stringField(row,"lease_expires_at"),delivered=stringField(row,"delivered_at"),failure=stringField(row,"safe_failure_class");
-  return Object.freeze({internalId,eventIdentity:Object.freeze({algorithm:"sha256",version:1,bytes:event}),aggregateIdentity:Object.freeze({algorithm:"sha256",version:1,bytes:aggregate}),resultId,eventType,safePayload:immutableJsonObject(payload),deliveryState:deliveryState as PostgreSQLOutboxRecord["deliveryState"],attempt:Number(attemptValue),nextEligibleAt,revision,...(owner?{claimOwnerIdentity:Object.freeze({algorithm:"sha256" as const,version:1 as const,bytes:owner})}:{}),...(fence?{fencingRevision:fence}:{}),...(lease?{leaseExpiresAt:lease}:{}),...(delivered?{deliveredAt:delivered}:{}),...(failure?{safeFailureClass:failure}:{})});
+  return buildOutboxRecord(row,immutableJsonObject(payload));
+}
+
+export type PostgreSQLOutboxRecordV2 = Omit<PostgreSQLOutboxRecord, "safePayload"> & Readonly<{
+  safePayload: Readonly<Record<string, SliceAJsonValueV2>>;
+}>;
+
+export type PostgreSQLOutboxRowProjectionV2 =
+  | Readonly<{ status: "success"; record: PostgreSQLOutboxRecordV2 }>
+  | SliceAJsonValidationFailureV2;
+
+export function projectPostgreSQLOutboxRowV2(row: SliceADatabaseRowV2): PostgreSQLOutboxRowProjectionV2 {
+  const payload = projectSliceAJsonObjectV2(row.safe_payload);
+  if (payload.status === "failure") return payload;
+  const base = buildOutboxRecord(row as DurableWorkflowDatabaseRow, payload.value);
+  if (!base) return createSliceAInvalidRowFailureV2();
+  return Object.freeze({
+    status: "success",
+    record: Object.freeze({ ...base, safePayload: payload.value }),
+  });
 }
 
 export function createPostgreSQLOutboxStore(generator:PostgreSQLInternalUuidGenerator):PostgreSQLOutboxStoreV2{return Object.freeze({storeVersion:"2.0",async append(context,resultId,draft){

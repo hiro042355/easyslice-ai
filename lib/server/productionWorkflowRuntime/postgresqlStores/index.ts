@@ -1,6 +1,10 @@
-export {createPostgreSQLFinalResultStore,parseFinalResultRow} from "./postgresqlFinalResultStore";
+export {createPostgreSQLFinalResultStore,parseFinalResultRow,projectPostgreSQLFinalResultRowV2} from "./postgresqlFinalResultStore";
+export type {PostgreSQLFinalResultRowProjectionV2} from "./postgresqlFinalResultStore";
 export {createPostgreSQLResultReferenceVault} from "./postgresqlResultReferenceVault";
-export {createPostgreSQLOutboxStore} from "./postgresqlOutboxStore";
+export {createPostgreSQLOutboxStore,projectPostgreSQLOutboxRowV2} from "./postgresqlOutboxStore";
+export type {PostgreSQLOutboxRecordV2,PostgreSQLOutboxRowProjectionV2} from "./postgresqlOutboxStore";
+export {createSliceAInvalidRowFailureV2,projectSliceAJsonObjectV2} from "./sliceAJsonConsumerV2";
+export type * from "./sliceAJsonConsumerV2";
 export {createPostgreSQLSliceAAtomicCommit} from "./postgresqlSliceAAtomicCommit";
 export {POSTGRESQL_SLICE_A_STATEMENT_CATALOG,registerPostgreSQLSliceAStatementCatalog} from "./postgresqlStatementCatalog";
 export { resolvePostgreSQLSliceAStatementV1 } from "./postgresqlStatementResolver";
