@@ -28,6 +28,11 @@ export {
   projectPostgresqlQuerySuccessToDurableSuccessV2,
 } from "./durableQuerySuccessEvidenceV2";
 export type * from "./durableQuerySuccessEvidenceV2";
+export {
+  createDefaultPostgresqlDurableWorkflowDatabaseCapabilityV2,
+  createPostgresqlDurableWorkflowDatabaseCapabilityV2,
+} from "./postgresqlDurableWorkflowDatabaseCapabilityV2";
+export type * from "./postgresqlDurableWorkflowDatabaseCapabilityV2";
 export type { DurableWorkflowDatabaseSafeFailureProjectionInputV2 } from "./safeDatabaseFailureV2";
 export { createDurableWorkflowTransactionManagerV2, DURABLE_WORKFLOW_TRANSACTION_DESCRIPTOR } from "./durableWorkflowTransactionManagerV2";
 export { getDurableWorkflowTransactionDescriptor, listDurableWorkflowTransactionDescriptors } from "./durableWorkflowTransactionRegistry";
