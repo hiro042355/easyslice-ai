@@ -1,5 +1,9 @@
 import type { PostgreSQLTransactionConnectionV2 } from "../postgresqlDriver/types";
 import {
+  createWorkflowCompletionStateSameSessionParticipantV1,
+  type WorkflowCompletionStateSameSessionParticipantV1,
+} from "../../workflowCompletionStatePersistence/participantV1";
+import {
   createDurableWorkflowPostgresqlSameSessionQueryCapabilitySetV1,
 } from "./postgresqlGeneralSameSessionQueryCapability";
 import {
@@ -52,7 +56,9 @@ export type ProductionSessionConstructionResultV1 = Readonly<{
   >;
   manyOnlySameSessionQueryCapability: DurableWorkflowSameSessionQueryCapability;
   durableWorkflowDatabaseCapabilityV2: DurableWorkflowDatabaseCapabilityV2;
+  manyOnlySameSessionQueryCapabilityV2: DurableWorkflowSameSessionQueryCapabilityV2;
   contextV3: DurableWorkflowTransactionContextV3;
+  workflowCompletionStateParticipant: WorkflowCompletionStateSameSessionParticipantV1;
   workflowCompletionStateParticipantDependency: WorkflowCompletionStateParticipantConstructionDependencyV1;
   sameSessionEvidence: ProductionSessionSameConnectionEvidenceV1;
 }>;
@@ -101,19 +107,26 @@ export function constructProductionTransactionSessionCapabilitiesV3(
   const databaseV2 = createDefaultPostgresqlDurableWorkflowDatabaseCapabilityV2({
     sameSessionQueryCapability: capabilities.general,
   });
+  const manyOnlyV2 = narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2(capabilities.general);
   const participantDependency = Object.freeze({
     dependencyVersion: "1.0",
-    sameSessionQueryCapability: narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2(capabilities.general),
+    sameSessionQueryCapability: manyOnlyV2,
     sameSessionEvidence: SAME_CONNECTION_EVIDENCE,
   } as const);
+  const participant = createWorkflowCompletionStateSameSessionParticipantV1(Object.freeze({
+    factoryVersion: "1.0",
+    sameSessionQuery: manyOnlyV2,
+  }));
 
   return Object.freeze({
     constructionVersion: "1.0",
     generalSameSessionQueryCapability: capabilities.general,
     manyOnlySameSessionQueryCapability: capabilities.manyOnly,
+    manyOnlySameSessionQueryCapabilityV2: manyOnlyV2,
     durableWorkflowDatabaseCapabilityV2: databaseV2,
     contextV3: createContextV3(input.transactionContextV2, capabilities.manyOnly),
     workflowCompletionStateParticipantDependency: participantDependency,
+    workflowCompletionStateParticipant: participant,
     sameSessionEvidence: SAME_CONNECTION_EVIDENCE,
   });
 }
