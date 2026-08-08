@@ -5,6 +5,7 @@ export {
   createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV1,
   createDurableWorkflowPostgresqlSameSessionQueryCapabilitySetV1,
   narrowDurableWorkflowGeneralSameSessionQueryCapabilityV1,
+  narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2,
 } from "./postgresqlGeneralSameSessionQueryCapability";
 export {
   isDurableWorkflowDatabaseSafeExecutionFailureV2,

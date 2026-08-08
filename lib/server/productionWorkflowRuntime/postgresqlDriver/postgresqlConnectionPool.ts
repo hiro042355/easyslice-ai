@@ -4,7 +4,7 @@ import { isSafeStatementId } from "./postgresqlDriverUtils";
 import { getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 import { PostgreSQLTransactionConnectionAdapter } from "./postgresqlTransactionConnection";
 import { PostgreSQLDrainCoordinator } from "./postgresqlDrainCoordinator";
-import type { PostgreSQLConnection, PostgreSQLConnectionConfig, PostgreSQLConnectionPool, PostgreSQLConnectionState, PostgreSQLExecutionFailure, PostgreSQLPoolState, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRow, PostgreSQLTransactionConnection } from "./types";
+import type { PostgreSQLConnection, PostgreSQLConnectionConfig, PostgreSQLConnectionPool, PostgreSQLConnectionState, PostgreSQLExecutionFailure, PostgreSQLPoolState, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRow, PostgreSQLTransactionConnectionV2 } from "./types";
 
 function invalid(stage: "pool" | "checkout" | "begin", statementId?: string): PostgreSQLExecutionFailure {
   return { status: "failure", issue: "invalid-request", diagnostic: { stage, ...(statementId !== undefined ? { statementId } : {}), issue: "invalid-request", retryable: false } };
@@ -67,7 +67,7 @@ export class PostgreSQLConnectionAdapter implements PostgreSQLConnection {
     if (this.connectionState !== "checked-out") return Object.freeze({ status: "failure", issue: "disposed", safeReason: getPostgreSQLQueryFailureSafeReason("disposed"), diagnostic: Object.freeze({ stage: "query", statementId: request.statementId, issue: "disposed", connectionState: this.connectionState, retryable: false }) });
     return execute(this.client, request, this.connectionState, undefined, this.statementTimeoutAuthority);
   }
-  async begin(): Promise<PostgreSQLTransactionConnection | PostgreSQLExecutionFailure> {
+  async begin(): Promise<PostgreSQLTransactionConnectionV2 | PostgreSQLExecutionFailure> {
     if (this.connectionState !== "checked-out") return invalid("begin");
     const result = await execute(this.client, { statementId: "transaction.begin", text: "BEGIN", values: [], expectedResult: "none" }, this.connectionState, undefined, this.statementTimeoutAuthority);
     if (result.status === "failure") return result;

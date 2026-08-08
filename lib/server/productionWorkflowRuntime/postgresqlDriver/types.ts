@@ -97,6 +97,13 @@ export type PostgreSQLRollbackResult =
   | Readonly<{ status: "connection-lost" }>
   | Readonly<{ status: "invalid-state" }>;
 
+export type PostgreSQLTransactionDiscardResult =
+  | Readonly<{ status: "discarded" }>
+  | Readonly<{
+      status: "discard-failure";
+      safeReason: "postgresql-discard-failed";
+    }>;
+
 export type PostgreSQLConnectionConfig = Readonly<{
   host: string; port: number; database: string; user: string; password: string;
   maxConnections: number; connectionTimeoutMs: number; idleTimeoutMs: number;
@@ -116,7 +123,7 @@ export type PostgreSQLDriverDescriptor = Readonly<{
 export type PostgreSQLConnection = Readonly<{
   state(): PostgreSQLConnectionState;
   query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult>;
-  begin(): Promise<PostgreSQLTransactionConnection | PostgreSQLExecutionFailure>;
+  begin(): Promise<PostgreSQLTransactionConnectionV2 | PostgreSQLExecutionFailure>;
   release(): "released" | "already-released" | "transaction-active";
   discard(): "discarded" | "already-released";
 }>;
@@ -128,6 +135,12 @@ export type PostgreSQLTransactionConnection = Readonly<{
   rollback(): Promise<PostgreSQLRollbackResult>;
   release(): "released" | "already-released" | "transaction-active";
 }>;
+
+export type PostgreSQLTransactionConnectionV2 =
+  PostgreSQLTransactionConnection & Readonly<{
+    lifecycleVersion: "2.0";
+    discard(): PostgreSQLTransactionDiscardResult;
+  }>;
 
 export type PostgreSQLConnectionPool = Readonly<{
   state(): PostgreSQLPoolState;

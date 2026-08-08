@@ -1,4 +1,4 @@
-import type { PostgreSQLTransactionConnection } from "../postgresqlDriver/types";
+import type { PostgreSQLTransactionConnectionV2 } from "../postgresqlDriver/types";
 import {
   createDurableWorkflowPostgresqlSameSessionQueryCapabilitySetV1,
 } from "./postgresqlGeneralSameSessionQueryCapability";
@@ -7,12 +7,14 @@ import {
 } from "./postgresqlDurableWorkflowDatabaseCapabilityV2";
 import type {
   DurableWorkflowSameSessionQueryCapability,
+  DurableWorkflowSameSessionQueryCapabilityV2,
   DurableWorkflowTransactionContextV3,
 } from "./sameSessionQueryTypes";
 import type {
   DurableWorkflowDatabaseCapabilityV2,
   DurableWorkflowTransactionContext,
 } from "./types";
+import { narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2 } from "./postgresqlGeneralSameSessionQueryCapability";
 
 export type ProductionSessionConstructionAuthorityVersionV1 = "1.0";
 
@@ -31,14 +33,14 @@ export type ProductionSessionSameConnectionEvidenceV1 = Readonly<{
 export type WorkflowCompletionStateParticipantConstructionDependencyV1 =
   Readonly<{
     dependencyVersion: "1.0";
-    sameSessionQueryCapability: DurableWorkflowSameSessionQueryCapability;
+    sameSessionQueryCapability: DurableWorkflowSameSessionQueryCapabilityV2;
     sameSessionEvidence: ProductionSessionSameConnectionEvidenceV1;
   }>;
 
 /** Server-internal construction boundary. The connection must already be active. */
 export type ProductionSessionConstructionInputV1 = Readonly<{
   constructionVersion: "1.0";
-  transactionConnection: PostgreSQLTransactionConnection;
+  transactionConnection: PostgreSQLTransactionConnectionV2;
   transactionContextV2: DurableWorkflowTransactionContext;
   transactionOwnerEvidence: ProductionSessionTransactionOwnerEvidenceV1;
 }>;
@@ -101,7 +103,7 @@ export function constructProductionTransactionSessionCapabilitiesV3(
   });
   const participantDependency = Object.freeze({
     dependencyVersion: "1.0",
-    sameSessionQueryCapability: capabilities.manyOnly,
+    sameSessionQueryCapability: narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2(capabilities.general),
     sameSessionEvidence: SAME_CONNECTION_EVIDENCE,
   } as const);
 

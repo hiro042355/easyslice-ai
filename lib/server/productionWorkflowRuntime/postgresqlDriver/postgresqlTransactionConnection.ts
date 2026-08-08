@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRollbackResult, PostgreSQLTransactionConnection, PostgreSQLTransactionState } from "./types";
+import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRollbackResult, PostgreSQLTransactionConnectionV2, PostgreSQLTransactionDiscardResult, PostgreSQLTransactionState } from "./types";
 import { classifyConnectionReuse, getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 
 type Execute = (
@@ -15,9 +15,11 @@ export function classifyCommitFailure(phase: "before-send" | "sent-or-unknown", 
   return { status: "unknown-outcome" };
 }
 
-export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransactionConnection {
+export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransactionConnectionV2 {
+  readonly lifecycleVersion = "2.0" as const;
   private transactionState: PostgreSQLTransactionState = "active";
   private reuse: PostgreSQLConnectionReuse = "must-rollback-before-reuse";
+  private discardInvoked = false;
   constructor(
     private readonly client: PoolClient,
     private readonly execute: Execute,
@@ -28,6 +30,7 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
   ) {}
   state(): PostgreSQLTransactionState { return this.transactionState; }
   markDiscarded(): void {
+    this.discardInvoked = true;
     this.transactionState = "released";
     this.reuse = "must-discard";
   }
@@ -52,7 +55,7 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
     } catch {
       this.transactionState = "unknown";
       this.reuse = "must-discard";
-      this.onDiscard();
+      this.discard();
       return { status: "unknown-outcome" };
     }
   }
@@ -74,7 +77,7 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
       );
       this.transactionState = "unknown";
       this.reuse = "must-discard";
-      this.onDiscard();
+      this.discard();
       return mapped.issue === "connection-unavailable" ? { status: "connection-lost" } : { status: "rollback-failed" };
     }
   }
@@ -85,5 +88,22 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
     this.onRelease?.();
     this.transactionState = "released";
     return "released";
+  }
+  discard(): PostgreSQLTransactionDiscardResult {
+    if (this.discardInvoked) return Object.freeze({ status: "discarded" });
+    this.discardInvoked = true;
+    try {
+      this.onDiscard();
+      this.transactionState = "released";
+      this.reuse = "must-discard";
+      return Object.freeze({ status: "discarded" });
+    } catch {
+      this.transactionState = "unknown";
+      this.reuse = "must-discard";
+      return Object.freeze({
+        status: "discard-failure",
+        safeReason: "postgresql-discard-failed",
+      });
+    }
   }
 }

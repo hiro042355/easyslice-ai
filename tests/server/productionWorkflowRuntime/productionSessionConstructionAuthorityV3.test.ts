@@ -9,7 +9,7 @@ import {
 import type {
   PostgreSQLQueryRequest,
   PostgreSQLQueryResult,
-  PostgreSQLTransactionConnection,
+  PostgreSQLTransactionConnectionV2,
 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 
 function context(): DurableWorkflowTransactionContext {
@@ -30,8 +30,9 @@ function context(): DurableWorkflowTransactionContext {
   });
 }
 
-function connection(calls: PostgreSQLQueryRequest[]): PostgreSQLTransactionConnection {
+function connection(calls: PostgreSQLQueryRequest[]): PostgreSQLTransactionConnectionV2 {
   return Object.freeze({
+    lifecycleVersion: "2.0",
     state: () => "active" as const,
     query: async (request): Promise<PostgreSQLQueryResult> => {
       calls.push(request);
@@ -40,6 +41,7 @@ function connection(calls: PostgreSQLQueryRequest[]): PostgreSQLTransactionConne
     commit: async () => Object.freeze({ status: "committed" as const }),
     rollback: async () => Object.freeze({ status: "rolled-back" as const }),
     release: () => "transaction-active" as const,
+    discard: () => Object.freeze({ status: "discarded" as const }),
   });
 }
 
@@ -61,10 +63,7 @@ test("constructs immutable V3-ready capabilities from one active connection", as
   assert.equal(Object.isFrozen(result.sameSessionEvidence), true);
   assert.equal(result.contextV3.contextVersion, "3.0");
   assert.equal(result.contextV3.sameSessionQuery, result.manyOnlySameSessionQueryCapability);
-  assert.equal(
-    result.workflowCompletionStateParticipantDependency.sameSessionQueryCapability,
-    result.manyOnlySameSessionQueryCapability,
-  );
+  assert.equal(result.workflowCompletionStateParticipantDependency.sameSessionQueryCapability.capabilityVersion, "2.0");
   assert.deepEqual(result.sameSessionEvidence, {
     version: "1.0",
     source: "single-postgresql-transaction-connection",

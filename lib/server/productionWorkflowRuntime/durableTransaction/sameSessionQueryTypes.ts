@@ -48,6 +48,37 @@ export type DurableWorkflowSameSessionQueryFailure = Readonly<{
   queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
 }>;
 
+export type DurableWorkflowSameSessionQuerySuccessV2 = Readonly<{
+  resultVersion: "2.0";
+  status: "success";
+  rows: readonly PostgreSQLRow[];
+  rowCount: number;
+  command: string;
+}>;
+
+export type DurableWorkflowSameSessionQueryFailureV2 = Readonly<{
+  resultVersion: "2.0";
+  status: "execution-failure";
+  phase: "query";
+  classification: PostgreSQLDriverIssueCode;
+  safeReason: PostgreSQLQueryFailureSafeReason;
+  retryable: boolean;
+  sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
+  queryConnectionDisposition?: PostgreSQLQueryConnectionDisposition;
+}>;
+
+export type DurableWorkflowSameSessionQueryResultV2 =
+  | DurableWorkflowSameSessionQuerySuccessV2
+  | DurableWorkflowSameSessionQueryFailureV2;
+
+export type DurableWorkflowSameSessionQueryCapabilityV2 = Readonly<{
+  capabilityVersion: "2.0";
+  evidence: DurableWorkflowSameSessionEvidence;
+  executeQuery(
+    request: DurableWorkflowSameSessionQueryRequest,
+  ): Promise<DurableWorkflowSameSessionQueryResultV2>;
+}>;
+
 export type DurableWorkflowSameSessionQueryResult =
   | DurableWorkflowSameSessionQuerySuccess
   | DurableWorkflowSameSessionQueryFailure;

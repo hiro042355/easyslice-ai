@@ -11,6 +11,7 @@ import type {
   DurableWorkflowGeneralSameSessionQueryRequestV1,
   DurableWorkflowGeneralSameSessionQueryResultV1,
   DurableWorkflowSameSessionQueryCapability,
+  DurableWorkflowSameSessionQueryCapabilityV2,
   DurableWorkflowSameSessionQueryCapabilitySetV1,
 } from "./sameSessionQueryTypes";
 
@@ -110,6 +111,38 @@ export function narrowDurableWorkflowGeneralSameSessionQueryCapabilityV1(
       const result = await general.executeQuery(request);
       if (result.status === "success" || result.status === "execution-failure") return result;
       throw new Error("postgresql-many-query-result-invariant");
+    },
+  });
+}
+
+export function narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2(
+  general: DurableWorkflowGeneralSameSessionQueryCapabilityV1,
+): DurableWorkflowSameSessionQueryCapabilityV2 {
+  return Object.freeze({
+    capabilityVersion: "2.0",
+    evidence: general.evidence,
+    async executeQuery(request) {
+      const source = await general.executeQuery(request);
+      if (source.status === "success") return Object.freeze({
+        resultVersion: "2.0",
+        status: "success",
+        rows: source.rows,
+        rowCount: source.rowCount,
+        command: source.command,
+      });
+      if (source.status === "execution-failure") return Object.freeze({
+        resultVersion: "2.0",
+        status: "execution-failure",
+        phase: "query",
+        classification: source.classification,
+        safeReason: source.safeReason,
+        retryable: source.retryable,
+        ...(source.sqlStateClass === undefined ? {} : { sqlStateClass: source.sqlStateClass }),
+        ...(source.queryConnectionDisposition === undefined ? {} : {
+          queryConnectionDisposition: source.queryConnectionDisposition,
+        }),
+      });
+      throw new TypeError("many-only-query-cardinality-invariant");
     },
   });
 }
