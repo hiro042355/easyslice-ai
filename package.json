@@ -42,6 +42,7 @@
     "test:postgresql-reconciliation-stores": "tsx --test --test-concurrency=1 tests/postgresqlReconciliationStores/*.test.ts"
   },
   "dependencies": {
+    "@google-cloud/kms": "^5.7.0",
     "adm-zip": "^0.5.17",
     "cors": "^2.8.6",
     "express": "^5.2.1",
