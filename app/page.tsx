@@ -511,6 +511,12 @@ const handleSubtitle = async () => {
             anchorSecond: highlight.second,
             sourceDurationSeconds: videoDuration || undefined,
             evidence: subtitleEvidence,
+            storySegments: (data.subtitles ?? []).map(
+              (subtitle: { second: number; text: string }) => ({
+                startSeconds: subtitle.second,
+                text: subtitle.text,
+              })
+            ),
           });
           return {
             start: String(boundary.start),
@@ -863,6 +869,10 @@ const handleSummary = async () => {
           anchorSecond: item.second,
           sourceDurationSeconds: videoDuration || undefined,
           evidence: subtitleEvidence,
+          storySegments: subtitles.map((subtitle) => ({
+            startSeconds: subtitle.second,
+            text: subtitle.text,
+          })),
         });
         return {
           start: String(boundary.start),

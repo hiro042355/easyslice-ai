@@ -9,6 +9,7 @@ export type ClipBoundaryCandidateKind =
 export type ClipBoundaryEvidenceKind =
   | "subtitle-timing"
   | "audio-window"
+  | "explicit-ai-end"
   | "requested-end";
 
 export type ClipBoundaryEvidence = Readonly<{
@@ -21,6 +22,7 @@ export type CanonicalClipBoundaryInput = Readonly<{
   anchorSecond: number;
   sourceDurationSeconds?: number;
   evidence?: readonly ClipBoundaryEvidence[];
+  storySegments?: readonly ClipStorySegmentV1[];
 }>;
 
 export type ClipBoundaryDecision = Readonly<{
@@ -34,11 +36,14 @@ export type ClipBoundaryDecision = Readonly<{
     | "source-duration"
     | "adaptive-target";
   selectedEvidenceKind?: ClipBoundaryEvidenceKind;
+  storyReason?: StoryBoundaryReasonV1 | "story-insufficient-fallback";
+  storyEvidenceVersion?: "1.0";
 }>;
 
 const MIN_ADAPTIVE_DURATION_SECONDS = 15;
 const TARGET_ADAPTIVE_DURATION_SECONDS = 30;
 const MAX_ADAPTIVE_DURATION_SECONDS = 60;
+const MAX_START_REFINEMENT_SECONDS = 5;
 
 const START_LEAD_IN_SECONDS: Readonly<Record<ClipBoundaryCandidateKind, number>> = {
   "subtitle-highlight": 0,
@@ -64,21 +69,80 @@ const compareEvidence = (
   return left.kind.localeCompare(right.kind);
 };
 
+const STORY_REASON_PRIORITY: Readonly<Record<StoryBoundaryReasonV1, number>> = {
+  "payoff-completion": 1,
+  "question-answer-completion": 2,
+  "semantic-completion": 3,
+  "story-boundary": 4,
+};
+
+const compareStoryCandidates = (
+  targetEnd: number,
+  left: StoryBoundaryCandidateV1,
+  right: StoryBoundaryCandidateV1
+) => {
+  const priority = STORY_REASON_PRIORITY[left.reason] - STORY_REASON_PRIORITY[right.reason];
+  if (priority !== 0) return priority;
+  const distance = Math.abs(left.endSeconds - targetEnd) - Math.abs(right.endSeconds - targetEnd);
+  if (distance !== 0) return distance;
+  return left.endSeconds - right.endSeconds;
+};
+
 export const decideCanonicalClipBoundary = (
   input: CanonicalClipBoundaryInput
 ): ClipBoundaryDecision => {
   const sourceDuration = normalizeSourceDuration(input.sourceDurationSeconds);
   const anchor = normalizeNonNegativeSecond(input.anchorSecond);
   const unclampedStart = Math.max(0, anchor - START_LEAD_IN_SECONDS[input.candidateKind]);
-  const start = sourceDuration === undefined
+  const adaptiveStart = sourceDuration === undefined
     ? unclampedStart
     : Math.min(unclampedStart, Math.max(0, sourceDuration - 1));
+  const storyEvidence = buildClipStoryEvidenceV1(
+    input.storySegments ?? [],
+    sourceDuration
+  );
+  const containingStartUnit = storyEvidence.units.find(
+    (unit) => unit.startSeconds <= adaptiveStart && unit.endSeconds > adaptiveStart
+  );
+  const refinedStart = containingStartUnit?.startSeconds;
+  const start =
+    refinedStart !== undefined &&
+    adaptiveStart - refinedStart <= MAX_START_REFINEMENT_SECONDS
+      ? refinedStart
+      : adaptiveStart;
   const evidence = (input.evidence ?? []).filter(
     (item) => Number.isFinite(item.second) && item.second > start
   );
   const requestedEnd = evidence
     .filter((item) => item.kind === "requested-end")
     .sort((left, right) => left.second - right.second)[0];
+  const explicitAiEnd = evidence
+    .filter((item) => item.kind === "explicit-ai-end")
+    .sort((left, right) => left.second - right.second)
+    .find((item) =>
+      storyEvidence.boundaryCandidates.some(
+        (candidate) => Math.abs(candidate.endSeconds - item.second) < 0.001
+      )
+    );
+
+  if (explicitAiEnd) {
+    const matchingStoryCandidate = storyEvidence.boundaryCandidates.find(
+      (candidate) => Math.abs(candidate.endSeconds - explicitAiEnd.second) < 0.001
+    );
+    const end = sourceDuration === undefined
+      ? explicitAiEnd.second
+      : Math.min(explicitAiEnd.second, sourceDuration);
+    return Object.freeze({
+      decisionVersion: CLIP_BOUNDARY_DECISION_VERSION,
+      start,
+      end,
+      duration: end - start,
+      endAuthority: "adaptive-evidence",
+      selectedEvidenceKind: explicitAiEnd.kind,
+      storyReason: matchingStoryCandidate?.reason ?? "story-boundary",
+      storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
+    });
+  }
 
   if (requestedEnd) {
     const end = sourceDuration === undefined
@@ -100,6 +164,25 @@ export const decideCanonicalClipBoundary = (
     ? start + MAX_ADAPTIVE_DURATION_SECONDS
     : Math.min(start + MAX_ADAPTIVE_DURATION_SECONDS, sourceDuration);
   const minimumEnd = Math.min(start + MIN_ADAPTIVE_DURATION_SECONDS, maximumEnd);
+  const storyCandidate = storyEvidence.boundaryCandidates
+    .filter(
+      (candidate) =>
+        candidate.endSeconds >= minimumEnd && candidate.endSeconds <= maximumEnd
+    )
+    .sort((left, right) => compareStoryCandidates(targetEnd, left, right))[0];
+
+  if (storyCandidate) {
+    return Object.freeze({
+      decisionVersion: CLIP_BOUNDARY_DECISION_VERSION,
+      start,
+      end: storyCandidate.endSeconds,
+      duration: storyCandidate.endSeconds - start,
+      endAuthority: "adaptive-evidence",
+      selectedEvidenceKind: "subtitle-timing",
+      storyReason: storyCandidate.reason,
+      storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
+    });
+  }
   const adaptiveEvidence = evidence
     .filter(
       (item) =>
@@ -117,6 +200,12 @@ export const decideCanonicalClipBoundary = (
       duration: adaptiveEvidence.second - start,
       endAuthority: "adaptive-evidence",
       selectedEvidenceKind: adaptiveEvidence.kind,
+      ...(storyEvidence.units.length > 0
+        ? {
+            storyReason: "story-insufficient-fallback" as const,
+            storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
+          }
+        : {}),
     });
   }
 
@@ -128,6 +217,12 @@ export const decideCanonicalClipBoundary = (
       end,
       duration: end - start,
       endAuthority: "source-duration",
+      ...(storyEvidence.units.length > 0
+        ? {
+            storyReason: "story-insufficient-fallback" as const,
+            storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
+          }
+        : {}),
     });
   }
 
@@ -138,5 +233,17 @@ export const decideCanonicalClipBoundary = (
     end,
     duration: end - start,
     endAuthority: "adaptive-target",
+    ...(storyEvidence.units.length > 0
+      ? {
+          storyReason: "story-insufficient-fallback" as const,
+          storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
+        }
+      : {}),
   });
 };
+import { buildClipStoryEvidenceV1 } from "./storyBoundaryDetector";
+import type {
+  ClipStorySegmentV1,
+  StoryBoundaryCandidateV1,
+  StoryBoundaryReasonV1,
+} from "./storyBoundaryTypes";
