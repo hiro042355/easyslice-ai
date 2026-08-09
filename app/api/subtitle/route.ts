@@ -4,6 +4,7 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 import { mkdir, readdir, readFile, rm } from "fs/promises";
+import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -125,7 +126,7 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
           })
           .filter((item: any) => item.score > 0)
           .sort((a: any, b: any) => b.score - a.score)
-          .slice(0, 5);
+          .slice(0, CLIP_FINAL_SELECTION_POLICY_V1.candidatePoolLimit);
 
         const fullText = subtitles.map((s: any) => s.text).join(" ");
         const summary = fullText.slice(0, 500);

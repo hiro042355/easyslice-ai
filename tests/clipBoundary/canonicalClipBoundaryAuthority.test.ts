@@ -24,6 +24,8 @@ test("selects the closest available evidence to the adaptive target", () => {
     duration: 33,
     endAuthority: "adaptive-evidence",
     selectedEvidenceKind: "subtitle-timing",
+    startReason: "candidate-anchor",
+    endReason: "adaptive-evidence",
   });
 });
 

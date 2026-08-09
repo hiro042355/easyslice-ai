@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   const highlights = ranked
     .filter((item: any) => item.score > 0)
     .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, CLIP_FINAL_SELECTION_POLICY_V1.candidatePoolLimit);
 
   return NextResponse.json({ success: true, highlights });
 }

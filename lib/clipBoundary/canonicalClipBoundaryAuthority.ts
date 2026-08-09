@@ -36,6 +36,17 @@ export type ClipBoundaryDecision = Readonly<{
     | "source-duration"
     | "adaptive-target";
   selectedEvidenceKind?: ClipBoundaryEvidenceKind;
+  startReason:
+    | "candidate-anchor"
+    | "candidate-lead-in"
+    | "story-utterance-start"
+    | "source-boundary";
+  endReason:
+    | "requested-end"
+    | "adaptive-evidence"
+    | "source-duration"
+    | "adaptive-target"
+    | StoryBoundaryReasonV1;
   storyReason?: StoryBoundaryReasonV1 | "story-insufficient-fallback";
   storyEvidenceVersion?: "1.0";
 }>;
@@ -110,6 +121,14 @@ export const decideCanonicalClipBoundary = (
     adaptiveStart - refinedStart <= MAX_START_REFINEMENT_SECONDS
       ? refinedStart
       : adaptiveStart;
+  const startReason: ClipBoundaryDecision["startReason"] =
+    start !== adaptiveStart
+      ? "story-utterance-start"
+      : sourceDuration !== undefined && adaptiveStart !== unclampedStart
+        ? "source-boundary"
+        : START_LEAD_IN_SECONDS[input.candidateKind] > 0
+          ? "candidate-lead-in"
+          : "candidate-anchor";
   const evidence = (input.evidence ?? []).filter(
     (item) => Number.isFinite(item.second) && item.second > start
   );
@@ -139,6 +158,8 @@ export const decideCanonicalClipBoundary = (
       duration: end - start,
       endAuthority: "adaptive-evidence",
       selectedEvidenceKind: explicitAiEnd.kind,
+      startReason,
+      endReason: matchingStoryCandidate?.reason ?? "story-boundary",
       storyReason: matchingStoryCandidate?.reason ?? "story-boundary",
       storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
     });
@@ -156,6 +177,8 @@ export const decideCanonicalClipBoundary = (
       duration: safeEnd - start,
       endAuthority: "requested-end",
       selectedEvidenceKind: requestedEnd.kind,
+      startReason,
+      endReason: "requested-end",
     });
   }
 
@@ -179,6 +202,8 @@ export const decideCanonicalClipBoundary = (
       duration: storyCandidate.endSeconds - start,
       endAuthority: "adaptive-evidence",
       selectedEvidenceKind: "subtitle-timing",
+      startReason,
+      endReason: storyCandidate.reason,
       storyReason: storyCandidate.reason,
       storyEvidenceVersion: storyEvidence.storyEvidenceVersion,
     });
@@ -200,6 +225,8 @@ export const decideCanonicalClipBoundary = (
       duration: adaptiveEvidence.second - start,
       endAuthority: "adaptive-evidence",
       selectedEvidenceKind: adaptiveEvidence.kind,
+      startReason,
+      endReason: "adaptive-evidence",
       ...(storyEvidence.units.length > 0
         ? {
             storyReason: "story-insufficient-fallback" as const,
@@ -217,6 +244,8 @@ export const decideCanonicalClipBoundary = (
       end,
       duration: end - start,
       endAuthority: "source-duration",
+      startReason,
+      endReason: "source-duration",
       ...(storyEvidence.units.length > 0
         ? {
             storyReason: "story-insufficient-fallback" as const,
@@ -233,6 +262,8 @@ export const decideCanonicalClipBoundary = (
     end,
     duration: end - start,
     endAuthority: "adaptive-target",
+    startReason,
+    endReason: "adaptive-target",
     ...(storyEvidence.units.length > 0
       ? {
           storyReason: "story-insufficient-fallback" as const,

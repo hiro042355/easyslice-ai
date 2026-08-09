@@ -5,6 +5,7 @@ import { access, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
+import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export const runtime = "nodejs";
 
@@ -81,7 +82,7 @@ export async function POST() {
         selected.push(item);
       }
 
-      if (selected.length >= 5) break;
+      if (selected.length >= CLIP_FINAL_SELECTION_POLICY_V1.candidatePoolLimit) break;
     }
 
     const clips = selected

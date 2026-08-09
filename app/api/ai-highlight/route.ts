@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,7 @@ function validateClips(clips: AiClip[], videoDuration: number | null) {
       };
     })
     .filter((clip) => Number(clip.end) > Number(clip.start))
-    .slice(0, 5);
+    .slice(0, CLIP_FINAL_SELECTION_POLICY_V1.candidatePoolLimit);
 }
 
 function createFallbackClip(

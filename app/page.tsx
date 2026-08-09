@@ -8,6 +8,11 @@ import SubtitleEditor from "../components/SubtitleEditor";
 import CreatorStylePanel from "../components/CreatorStylePanel";
 import { getCreatorStyleConfig } from "../lib/creatorStyleConfig";
 import { decideCanonicalClipBoundary } from "../lib/clipBoundary";
+import {
+  createUnifiedClipCandidate,
+  createUnifiedClipCandidatePool,
+  selectLegacyFinalClips,
+} from "../lib/clipCandidates";
 
 
 export default function Home() {
@@ -504,7 +509,7 @@ const handleSubtitle = async () => {
           second: subtitle.second,
         })
       );
-      const newClips = data.highlights.slice(0, 5).map(
+      const candidates = data.highlights.map(
         (highlight: { second: number; text: string; score: number }) => {
           const boundary = decideCanonicalClipBoundary({
             candidateKind: "subtitle-highlight",
@@ -518,18 +523,37 @@ const handleSubtitle = async () => {
               })
             ),
           });
-          return {
-            start: String(boundary.start),
-            end: String(boundary.end),
+          const includedSegments = (data.subtitles ?? [])
+            .map((subtitle: { second: number; text: string }, index: number) => ({
+              ...subtitle,
+              index,
+            }))
+            .filter(
+              (subtitle: { second: number }) =>
+                subtitle.second >= boundary.start && subtitle.second < boundary.end
+            );
+          return createUnifiedClipCandidate({
+            sourceType: "subtitle",
+            start: boundary.start,
+            end: boundary.end,
             reason: highlight.text + ` (score:${highlight.score})`,
             title: "字幕ハイライト候補",
-            score: highlight.score ?? 0,
-          };
+            sourceScore: highlight.score ?? 0,
+            transcriptText: includedSegments.map((segment: { text: string }) => segment.text).join(" "),
+            segmentIndexes: includedSegments.map((segment: { index: number }) => segment.index),
+            storyReason: boundary.storyReason,
+            storyEvidenceVersion: boundary.storyEvidenceVersion,
+            startReason: boundary.startReason,
+            endReason: boundary.endReason,
+          });
         }
       );
 
-      setClips(newClips);
-      setSuccessMessage(`📝 ${data.highlights.length}件のハイライトを検出`);
+      const newClips = selectLegacyFinalClips(
+        createUnifiedClipCandidatePool(candidates)
+      );
+      setClips([...newClips]);
+      setSuccessMessage(`📝 ${newClips.length}件のハイライトを検出`);
     } else if (data.subtitles && data.subtitles.length > 0) {
       setSuccessMessage("字幕を取得しました。AI候補生成を使えます");
     } else {
@@ -863,7 +887,7 @@ const handleSummary = async () => {
         kind: "subtitle-timing" as const,
         second: subtitle.second,
       }));
-      const newClips = highlights.map((item) => {
+      const candidates = highlights.map((item) => {
         const boundary = decideCanonicalClipBoundary({
           candidateKind: "summary-highlight",
           anchorSecond: item.second,
@@ -874,17 +898,33 @@ const handleSummary = async () => {
             text: subtitle.text,
           })),
         });
-        return {
-          start: String(boundary.start),
-          end: String(boundary.end),
+        const includedSegments = subtitles
+          .map((subtitle, index) => ({ ...subtitle, index }))
+          .filter(
+            (subtitle) =>
+              subtitle.second >= boundary.start && subtitle.second < boundary.end
+          );
+        return createUnifiedClipCandidate({
+          sourceType: "summary",
+          start: boundary.start,
+          end: boundary.end,
           reason: item.sentence,
           title: "AI要約候補",
-          score: item.score ?? 0,
-        };
+          sourceScore: item.score ?? 0,
+          transcriptText: includedSegments.map((segment) => segment.text).join(" "),
+          segmentIndexes: includedSegments.map((segment) => segment.index),
+          storyReason: boundary.storyReason,
+          storyEvidenceVersion: boundary.storyEvidenceVersion,
+          startReason: boundary.startReason,
+          endReason: boundary.endReason,
+        });
       });
 
-      setClips(newClips);
-      setSuccessMessage(`🤖 ${highlights.length}件のAI候補を生成`);
+      const newClips = selectLegacyFinalClips(
+        createUnifiedClipCandidatePool(candidates)
+      );
+      setClips([...newClips]);
+      setSuccessMessage(`🤖 ${newClips.length}件のAI候補を生成`);
     }
   } catch (err) {
     console.error(err);
@@ -926,26 +966,30 @@ const handleAiHighlight = async () => {
       (a, b) => Number(b.score || 0) - Number(a.score || 0)
     );
 
-    setClips(
-      sortedClips.map(
+    const candidates = sortedClips.map(
         (clip: {
           start: string;
           end: string;
           reason: string;
           title?: string;
           score?: number;
-        }) => ({
-          start: String(clip.start),
-          end: String(clip.end),
+        }) => createUnifiedClipCandidate({
+          sourceType: "ai-highlight",
+          start: Number(clip.start),
+          end: Number(clip.end),
           reason: clip.reason,
           title: clip.title ?? "",
-          score: clip.score ?? 0,
+          sourceScore: clip.score ?? 0,
+          transcriptText: clip.reason,
         })
-      )
     );
+    const finalClips = selectLegacyFinalClips(
+      createUnifiedClipCandidatePool(candidates)
+    );
+    setClips([...finalClips]);
 
     setSuccessMessage(
-      `${sortedClips.length}個のAIハイライト候補を生成しました`
+      `${finalClips.length}個のAIハイライト候補を生成しました`
     );
   } catch (err) {
     console.error(err);
@@ -980,26 +1024,29 @@ const handleAudioEnergy = async () => {
       throw new Error(data.error || "音声ハイライト生成に失敗しました");
     }
 
-    setClips(
-      data.clips.map(
+    const candidates = data.clips.map(
         (clip: {
           start: string;
           end: string;
           reason: string;
           title: string;
           score: number;
-        }) => ({
-          start: String(clip.start),
-          end: String(clip.end),
+        }) => createUnifiedClipCandidate({
+          sourceType: "audio-energy",
+          start: Number(clip.start),
+          end: Number(clip.end),
           reason: clip.reason,
           title: clip.title,
-          score: clip.score,
+          sourceScore: clip.score,
         })
-      )
     );
+    const finalClips = selectLegacyFinalClips(
+      createUnifiedClipCandidatePool(candidates)
+    );
+    setClips([...finalClips]);
 
     setSuccessMessage(
-      `🎧 ${data.clips.length}件の音声ハイライト候補を生成`
+      `🎧 ${finalClips.length}件の音声ハイライト候補を生成`
     );
   } catch (err) {
     console.error(err);
