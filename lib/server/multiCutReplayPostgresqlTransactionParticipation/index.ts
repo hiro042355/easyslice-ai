@@ -34,3 +34,5 @@ export type {
   MultiCutReplayCompleteQueryExecutionPortV2,
   MultiCutReplayCompleteTransactionParticipantV2,
 } from "./typesV2";
+export { createCompleteParticipationFailureEvidenceV3 } from "./completeEvidenceV3";
+export type { MultiCutReplayCompleteParticipationFailureEvidenceV3 } from "./completeEvidenceV3";

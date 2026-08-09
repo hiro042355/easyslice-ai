@@ -71,6 +71,17 @@ export type PostgreSQLQueryResult =
     }>
   | PostgreSQLQueryExecutionFailure;
 
+export type PostgreSQLQueryExecutionFailureV2 = Readonly<{
+  status: "failure"; resultVersion: "2.0"; issue: PostgreSQLDriverIssueCode;
+  constraintClass?: PostgreSQLConstraintClass; safeReason: PostgreSQLQueryFailureSafeReason;
+  diagnostic: Readonly<Omit<PostgreSQLSafeDiagnostic, "queryConnectionDisposition"> & {
+    queryConnectionDisposition: PostgreSQLQueryConnectionDisposition;
+  }>;
+}>;
+export type PostgreSQLQueryResultV2 =
+  | Exclude<PostgreSQLQueryResult, PostgreSQLQueryExecutionFailure>
+  | PostgreSQLQueryExecutionFailureV2;
+
 export type PostgreSQLPoolState = "created" | "starting" | "ready" | "draining" | "closed" | "failed";
 export type PostgreSQLConnectionState = "checked-out" | "transaction-active" | "released" | "discarded" | "unknown";
 export type PostgreSQLTransactionState = "idle" | "active" | "failed" | "committing" | "committed" | "rolling-back" | "rolled-back" | "unknown" | "released";
@@ -141,6 +152,10 @@ export type PostgreSQLTransactionConnectionV2 =
     lifecycleVersion: "2.0";
     discard(): PostgreSQLTransactionDiscardResult;
   }>;
+export type PostgreSQLTransactionConnectionV3 = PostgreSQLTransactionConnectionV2 & Readonly<{
+  queryContractVersion: "2.0";
+  queryV2(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResultV2>;
+}>;
 
 export type PostgreSQLConnectionPool = Readonly<{
   state(): PostgreSQLPoolState;

@@ -48,3 +48,5 @@ export type {
   MultiCutReplayLifecycleZeroRowProjectionV1,
 } from "./projectionTypesV1";
 export type * from "./typesV4";
+export { projectCompleteLifecycleFailureEvidenceV2 } from "./completeFailureEvidenceV2";
+export type { MultiCutReplayLifecycleCompleteFailureEvidenceV2 } from "./completeFailureEvidenceV2";

@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLRollbackResult, PostgreSQLTransactionConnectionV2, PostgreSQLTransactionDiscardResult, PostgreSQLTransactionState } from "./types";
+import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLQueryResultV2, PostgreSQLRollbackResult, PostgreSQLTransactionConnectionV3, PostgreSQLTransactionDiscardResult, PostgreSQLTransactionState } from "./types";
 import { classifyConnectionReuse, getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 
 type Execute = (
@@ -15,8 +15,9 @@ export function classifyCommitFailure(phase: "before-send" | "sent-or-unknown", 
   return { status: "unknown-outcome" };
 }
 
-export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransactionConnectionV2 {
+export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransactionConnectionV3 {
   readonly lifecycleVersion = "2.0" as const;
+  readonly queryContractVersion = "2.0" as const;
   private transactionState: PostgreSQLTransactionState = "active";
   private reuse: PostgreSQLConnectionReuse = "must-rollback-before-reuse";
   private discardInvoked = false;
@@ -42,6 +43,13 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
       this.reuse = classifyConnectionReuse(result.issue, "failed");
     }
     return result;
+  }
+  async queryV2(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResultV2> {
+    const result = await this.query(request);
+    if (result.status !== "failure") return result;
+    const disposition = result.diagnostic.queryConnectionDisposition;
+    if (disposition === undefined) throw new TypeError("missing-authoritative-query-connection-disposition");
+    return Object.freeze({ ...result, resultVersion: "2.0", diagnostic: Object.freeze({ ...result.diagnostic, queryConnectionDisposition: disposition }) });
   }
   async commit(): Promise<PostgreSQLCommitResult> {
     if (this.transactionState !== "active") return { status: "invalid-state" };
