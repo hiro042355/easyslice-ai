@@ -13,9 +13,9 @@ import {
   createUnifiedClipCandidatePool,
 } from "../lib/clipCandidates";
 import {
-  projectPortfolioToLegacyClipsV1,
   selectIntelligentClipPortfolioV1,
 } from "../lib/clipRanking";
+import { projectEditedPortfolioToLegacyClipsV1 } from "../lib/clipEditing";
 
 
 export default function Home() {
@@ -552,8 +552,9 @@ const handleSubtitle = async () => {
         }
       );
 
-      const newClips = projectPortfolioToLegacyClipsV1(
-        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
+      const newClips = projectEditedPortfolioToLegacyClipsV1(
+        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+        data.subtitles ?? []
       );
       setClips([...newClips]);
       setSuccessMessage(`📝 ${newClips.length}件のハイライトを検出`);
@@ -923,8 +924,9 @@ const handleSummary = async () => {
         });
       });
 
-      const newClips = projectPortfolioToLegacyClipsV1(
-        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
+      const newClips = projectEditedPortfolioToLegacyClipsV1(
+        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+        subtitles
       );
       setClips([...newClips]);
       setSuccessMessage(`🤖 ${newClips.length}件のAI候補を生成`);
@@ -986,8 +988,9 @@ const handleAiHighlight = async () => {
           transcriptText: clip.reason,
         })
     );
-    const finalClips = projectPortfolioToLegacyClipsV1(
-      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
+    const finalClips = projectEditedPortfolioToLegacyClipsV1(
+      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+      subtitles
     );
     setClips([...finalClips]);
 
@@ -1043,8 +1046,9 @@ const handleAudioEnergy = async () => {
           sourceScore: clip.score,
         })
     );
-    const finalClips = projectPortfolioToLegacyClipsV1(
-      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
+    const finalClips = projectEditedPortfolioToLegacyClipsV1(
+      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+      subtitles
     );
     setClips([...finalClips]);
 
