@@ -4,6 +4,7 @@ import { promisify } from "util";
 import { access, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
+import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 
 export const runtime = "nodejs";
 
@@ -86,16 +87,23 @@ export async function POST() {
     const clips = selected
       .sort((a, b) => a.second - b.second)
       .map((item, index) => {
-        const start = Math.max(0, item.second - 3);
-        const end = Math.min(duration, start + 30);
+        const boundary = decideCanonicalClipBoundary({
+          candidateKind: "audio-energy",
+          anchorSecond: item.second,
+          sourceDurationSeconds: duration,
+          evidence: energies.map((energy) => ({
+            kind: "audio-window" as const,
+            second: Math.min(duration, energy.second + windowSeconds),
+          })),
+        });
         const score = Math.max(
           1,
           Math.min(10, Math.round(10 + item.meanVolume / 4))
         );
 
         return {
-          start: String(start),
-          end: String(end),
+          start: String(boundary.start),
+          end: String(boundary.end),
           title: `音声ハイライト ${index + 1}`,
           reason: `音量が高い区間です。平均音量: ${item.meanVolume}dB`,
           score,

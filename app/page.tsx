@@ -7,6 +7,7 @@ import "rc-slider/assets/index.css";
 import SubtitleEditor from "../components/SubtitleEditor";
 import CreatorStylePanel from "../components/CreatorStylePanel";
 import { getCreatorStyleConfig } from "../lib/creatorStyleConfig";
+import { decideCanonicalClipBoundary } from "../lib/clipBoundary";
 
 
 export default function Home() {
@@ -497,14 +498,28 @@ const handleSubtitle = async () => {
     console.log(data.subtitles);
 
     if (data.highlights && data.highlights.length > 0) {
-      const newClips = data.highlights.slice(0, 5).map(
-        (highlight: { second: number; text: string; score: number }) => ({
-          start: String(highlight.second),
-          end: String(highlight.second + 30),
-          reason: highlight.text + ` (score:${highlight.score})`,
-          title: "字幕ハイライト候補",
-          score: highlight.score ?? 0,
+      const subtitleEvidence = (data.subtitles ?? []).map(
+        (subtitle: { second: number }) => ({
+          kind: "subtitle-timing" as const,
+          second: subtitle.second,
         })
+      );
+      const newClips = data.highlights.slice(0, 5).map(
+        (highlight: { second: number; text: string; score: number }) => {
+          const boundary = decideCanonicalClipBoundary({
+            candidateKind: "subtitle-highlight",
+            anchorSecond: highlight.second,
+            sourceDurationSeconds: videoDuration || undefined,
+            evidence: subtitleEvidence,
+          });
+          return {
+            start: String(boundary.start),
+            end: String(boundary.end),
+            reason: highlight.text + ` (score:${highlight.score})`,
+            title: "字幕ハイライト候補",
+            score: highlight.score ?? 0,
+          };
+        }
       );
 
       setClips(newClips);
@@ -827,24 +842,39 @@ const handleSummary = async () => {
     });
 
     const data = await res.json();
+    const highlights = (data.highlights ?? []) as Array<{
+      sentence: string;
+      second: number;
+      score?: number;
+    }>;
 
     setSummary(
-      data.highlights
-        ?.map((item: any) => item.sentence)
-        .join("\n\n") ?? ""
+      highlights.map((item) => item.sentence).join("\n\n")
     );
 
-    if (data.highlights && data.highlights.length > 0) {
-      const newClips = data.highlights.map((item: any) => ({
-        start: String(Math.max(0, item.second - 5)),
-        end: String(item.second + 25),
-        reason: item.sentence,
-        title: "AI要約候補",
-        score: item.score ?? 0,
+    if (highlights.length > 0) {
+      const subtitleEvidence = subtitles.map((subtitle) => ({
+        kind: "subtitle-timing" as const,
+        second: subtitle.second,
       }));
+      const newClips = highlights.map((item) => {
+        const boundary = decideCanonicalClipBoundary({
+          candidateKind: "summary-highlight",
+          anchorSecond: item.second,
+          sourceDurationSeconds: videoDuration || undefined,
+          evidence: subtitleEvidence,
+        });
+        return {
+          start: String(boundary.start),
+          end: String(boundary.end),
+          reason: item.sentence,
+          title: "AI要約候補",
+          score: item.score ?? 0,
+        };
+      });
 
       setClips(newClips);
-      setSuccessMessage(`🤖 ${data.highlights.length}件のAI候補を生成`);
+      setSuccessMessage(`🤖 ${highlights.length}件のAI候補を生成`);
     }
   } catch (err) {
     console.error(err);
@@ -3150,4 +3180,3 @@ body: JSON.stringify({
     </main>
   )
 }
-

@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import { promisify } from "util";
 import { NextResponse } from "next/server";
+import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 
 const execFileAsync = promisify(execFile);
 
@@ -181,9 +182,16 @@ export async function POST(req: Request) {
       console.log("Creator subtitle render config", renderConfig);
     }
 
-    const start = Math.max(0, Number(body.start ?? 0));
-    const end = Math.max(start + 1, Number(body.end ?? start + 30));
-    const duration = end - start;
+    const requestedEnd = Number(body.end);
+    const boundary = decideCanonicalClipBoundary({
+      candidateKind: "requested-range",
+      anchorSecond: Number(body.start ?? 0),
+      evidence: Number.isFinite(requestedEnd)
+        ? [{ kind: "requested-end", second: requestedEnd }]
+        : [],
+    });
+    const start = boundary.start;
+    const duration = boundary.duration;
 
     if (!transcript.trim()) {
       return NextResponse.json(
