@@ -1,4 +1,5 @@
 export {
+  DEFAULT_ADAPTIVE_CLIP_DURATION_POLICY_V1,
   CLIP_BOUNDARY_DECISION_VERSION,
   decideCanonicalClipBoundary,
 } from "./canonicalClipBoundaryAuthority";
@@ -6,6 +7,7 @@ export {
 export { buildClipStoryEvidenceV1 } from "./storyBoundaryDetector";
 
 export type {
+  AdaptiveClipDurationPolicyV1,
   CanonicalClipBoundaryInput,
   ClipBoundaryCandidateKind,
   ClipBoundaryDecision,

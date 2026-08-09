@@ -16,6 +16,7 @@ export type ClipBoundaryEvidence = Readonly<{
   kind: ClipBoundaryEvidenceKind;
   second: number;
 }>;
+export type AdaptiveClipDurationPolicyV1 = Readonly<{ minimumSeconds: number; preferredSeconds: number; maximumSeconds: number }>;
 
 export type CanonicalClipBoundaryInput = Readonly<{
   candidateKind: ClipBoundaryCandidateKind;
@@ -23,6 +24,7 @@ export type CanonicalClipBoundaryInput = Readonly<{
   sourceDurationSeconds?: number;
   evidence?: readonly ClipBoundaryEvidence[];
   storySegments?: readonly ClipStorySegmentV1[];
+  adaptiveDurationPolicy?: AdaptiveClipDurationPolicyV1;
 }>;
 
 export type ClipBoundaryDecision = Readonly<{
@@ -51,9 +53,7 @@ export type ClipBoundaryDecision = Readonly<{
   storyEvidenceVersion?: "1.0";
 }>;
 
-const MIN_ADAPTIVE_DURATION_SECONDS = 15;
-const TARGET_ADAPTIVE_DURATION_SECONDS = 30;
-const MAX_ADAPTIVE_DURATION_SECONDS = 60;
+export const DEFAULT_ADAPTIVE_CLIP_DURATION_POLICY_V1 = Object.freeze({ minimumSeconds: 15, preferredSeconds: 30, maximumSeconds: 60 });
 const MAX_START_REFINEMENT_SECONDS = 5;
 
 const START_LEAD_IN_SECONDS: Readonly<Record<ClipBoundaryCandidateKind, number>> = {
@@ -182,11 +182,12 @@ export const decideCanonicalClipBoundary = (
     });
   }
 
-  const targetEnd = start + TARGET_ADAPTIVE_DURATION_SECONDS;
+  const durationPolicy = input.adaptiveDurationPolicy ?? DEFAULT_ADAPTIVE_CLIP_DURATION_POLICY_V1;
+  const targetEnd = start + durationPolicy.preferredSeconds;
   const maximumEnd = sourceDuration === undefined
-    ? start + MAX_ADAPTIVE_DURATION_SECONDS
-    : Math.min(start + MAX_ADAPTIVE_DURATION_SECONDS, sourceDuration);
-  const minimumEnd = Math.min(start + MIN_ADAPTIVE_DURATION_SECONDS, maximumEnd);
+    ? start + durationPolicy.maximumSeconds
+    : Math.min(start + durationPolicy.maximumSeconds, sourceDuration);
+  const minimumEnd = Math.min(start + durationPolicy.minimumSeconds, maximumEnd);
   const storyCandidate = storyEvidence.boundaryCandidates
     .filter(
       (candidate) =>

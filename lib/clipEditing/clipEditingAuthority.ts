@@ -13,9 +13,10 @@ const relevant = (input: ClipEditInputV1) => input.subtitles
   .sort((a, b) => a.start - b.start || a.end - b.end);
 
 const decideHook = (input: ClipEditInputV1, subtitles: readonly ClipTimedTextV1[]): ClipHookDecisionV1 => {
+  const policy = input.policy ?? CLIP_EDIT_POLICY_V1;
   const original = subtitles[0];
   if (!original || !fillers.test(original.text.trim())) return Object.freeze({ action: "keep-original-start", originalStart: input.start, editedStart: input.start, shiftSeconds: 0, reason: "original-hook-strong" });
-  const candidate = subtitles.find((item, index) => index > 0 && item.start - input.start <= CLIP_EDIT_POLICY_V1.hookWindowSeconds && item.start - input.start <= CLIP_EDIT_POLICY_V1.maximumHookShiftSeconds && !fillers.test(item.text.trim()));
+  const candidate = subtitles.find((item, index) => index > 0 && item.start - input.start <= policy.hookWindowSeconds && item.start - input.start <= policy.maximumHookShiftSeconds && !fillers.test(item.text.trim()));
   if (!candidate || candidate.storyCritical || weakContext.test(candidate.text.trim())) return Object.freeze({ action: "keep-original-start", originalStart: input.start, editedStart: input.start, shiftSeconds: 0, reason: "hook-change-rejected-context-risk" });
   const action = strongHook.test(candidate.text.trim()) ? "start-at-stronger-utterance" : "trim-weak-lead-in";
   return Object.freeze({ action, originalStart: input.start, editedStart: candidate.start, shiftSeconds: round(candidate.start - input.start), reason: action === "start-at-stronger-utterance" ? "stronger-utterance-start" : "trimmed-weak-lead-in" });
@@ -24,17 +25,18 @@ const decideHook = (input: ClipEditInputV1, subtitles: readonly ClipTimedTextV1[
 export const createClipEditPlanV1 = (input: ClipEditInputV1): ClipEditPlanV1 => {
   if (!Number.isFinite(input.start) || !Number.isFinite(input.end) || input.end <= input.start) throw new Error("invalid-clip-boundary");
   const subtitles = relevant(input);
+  const policy = input.policy ?? CLIP_EDIT_POLICY_V1;
   const hookDecision = decideHook(input, subtitles);
   const removalDecisions: ClipRemovalDecisionV1[] = [];
   if (!input.contiguousOnly) for (let index = 1; index < subtitles.length; index += 1) {
     const previous = subtitles[index - 1]!; const current = subtitles[index]!;
     const gap = current.start - previous.end;
-    if (gap > CLIP_EDIT_POLICY_V1.removableGapSeconds) removalDecisions.push({ kind: "subtitle-gap", sourceStart: round(previous.end + CLIP_EDIT_POLICY_V1.preservedPauseSeconds), sourceEnd: current.start, removedDuration: round(gap - CLIP_EDIT_POLICY_V1.preservedPauseSeconds), applied: true, reason: "long-pause-compressed" });
+    if (gap > policy.removableGapSeconds) removalDecisions.push({ kind: "subtitle-gap", sourceStart: round(previous.end + policy.preservedPauseSeconds), sourceEnd: current.start, removedDuration: round(gap - policy.preservedPauseSeconds), applied: true, reason: "long-pause-compressed" });
     if (fillers.test(current.text.trim())) removalDecisions.push({ kind: "isolated-filler", sourceStart: current.start, sourceEnd: current.end, removedDuration: round(current.end - current.start), applied: !current.storyCritical, reason: current.storyCritical ? "removal-rejected-story-risk" : "isolated-filler-removed" });
   }
   const originalDuration = input.end - input.start;
   const proposed = hookDecision.shiftSeconds + removalDecisions.reduce((sum, item) => sum + item.removedDuration, 0);
-  const limit = Math.min(originalDuration * CLIP_EDIT_POLICY_V1.maximumRemovedRatio, Math.max(0, originalDuration - CLIP_EDIT_POLICY_V1.minimumFinalDurationSeconds));
+  const limit = Math.min(originalDuration * policy.maximumRemovedRatio, Math.max(0, originalDuration - policy.minimumFinalDurationSeconds));
   if (proposed > limit) for (const item of removalDecisions) Object.assign(item, { applied: false, reason: "removal-rejected-ratio-limit" as ClipEditReasonCodeV1 });
   const removedIntervals = removalDecisions.filter((item) => item.applied).sort((left, right) => left.sourceStart - right.sourceStart);
   const retained: Array<{ start: number; end: number }> = [];
