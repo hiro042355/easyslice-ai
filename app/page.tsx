@@ -11,8 +11,11 @@ import { decideCanonicalClipBoundary } from "../lib/clipBoundary";
 import {
   createUnifiedClipCandidate,
   createUnifiedClipCandidatePool,
-  selectLegacyFinalClips,
 } from "../lib/clipCandidates";
+import {
+  projectPortfolioToLegacyClipsV1,
+  selectIntelligentClipPortfolioV1,
+} from "../lib/clipRanking";
 
 
 export default function Home() {
@@ -549,8 +552,8 @@ const handleSubtitle = async () => {
         }
       );
 
-      const newClips = selectLegacyFinalClips(
-        createUnifiedClipCandidatePool(candidates)
+      const newClips = projectPortfolioToLegacyClipsV1(
+        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
       );
       setClips([...newClips]);
       setSuccessMessage(`📝 ${newClips.length}件のハイライトを検出`);
@@ -920,8 +923,8 @@ const handleSummary = async () => {
         });
       });
 
-      const newClips = selectLegacyFinalClips(
-        createUnifiedClipCandidatePool(candidates)
+      const newClips = projectPortfolioToLegacyClipsV1(
+        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
       );
       setClips([...newClips]);
       setSuccessMessage(`🤖 ${newClips.length}件のAI候補を生成`);
@@ -983,8 +986,8 @@ const handleAiHighlight = async () => {
           transcriptText: clip.reason,
         })
     );
-    const finalClips = selectLegacyFinalClips(
-      createUnifiedClipCandidatePool(candidates)
+    const finalClips = projectPortfolioToLegacyClipsV1(
+      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
     );
     setClips([...finalClips]);
 
@@ -1040,8 +1043,8 @@ const handleAudioEnergy = async () => {
           sourceScore: clip.score,
         })
     );
-    const finalClips = selectLegacyFinalClips(
-      createUnifiedClipCandidatePool(candidates)
+    const finalClips = projectPortfolioToLegacyClipsV1(
+      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates))
     );
     setClips([...finalClips]);
 
