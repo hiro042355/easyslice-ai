@@ -108,6 +108,24 @@ export type PostgreSQLRollbackResult =
   | Readonly<{ status: "connection-lost" }>
   | Readonly<{ status: "invalid-state" }>;
 
+export type PostgreSQLCommitResultV2 = PostgreSQLCommitResult extends infer Result
+  ? Result extends PostgreSQLCommitResult
+    ? Readonly<Result & {
+        resultVersion: "2.0";
+        connectionDisposition: PostgreSQLQueryConnectionDisposition;
+      }>
+    : never
+  : never;
+
+export type PostgreSQLRollbackResultV2 = PostgreSQLRollbackResult extends infer Result
+  ? Result extends PostgreSQLRollbackResult
+    ? Readonly<Result & {
+        resultVersion: "2.0";
+        connectionDisposition: PostgreSQLQueryConnectionDisposition;
+      }>
+    : never
+  : never;
+
 export type PostgreSQLTransactionDiscardResult =
   | Readonly<{ status: "discarded" }>
   | Readonly<{
@@ -134,7 +152,7 @@ export type PostgreSQLDriverDescriptor = Readonly<{
 export type PostgreSQLConnection = Readonly<{
   state(): PostgreSQLConnectionState;
   query(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResult>;
-  begin(): Promise<PostgreSQLTransactionConnectionV2 | PostgreSQLExecutionFailure>;
+  begin(): Promise<PostgreSQLTransactionConnectionV4 | PostgreSQLExecutionFailure>;
   release(): "released" | "already-released" | "transaction-active";
   discard(): "discarded" | "already-released";
 }>;
@@ -155,6 +173,11 @@ export type PostgreSQLTransactionConnectionV2 =
 export type PostgreSQLTransactionConnectionV3 = PostgreSQLTransactionConnectionV2 & Readonly<{
   queryContractVersion: "2.0";
   queryV2(request: PostgreSQLQueryRequest): Promise<PostgreSQLQueryResultV2>;
+}>;
+export type PostgreSQLTransactionConnectionV4 = PostgreSQLTransactionConnectionV3 & Readonly<{
+  lifecycleResultVersion: "2.0";
+  commitV2(): Promise<PostgreSQLCommitResultV2>;
+  rollbackV2(): Promise<PostgreSQLRollbackResultV2>;
 }>;
 
 export type PostgreSQLConnectionPool = Readonly<{

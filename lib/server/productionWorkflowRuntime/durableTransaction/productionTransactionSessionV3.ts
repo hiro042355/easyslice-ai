@@ -1,6 +1,9 @@
 import type {
   PostgreSQLCommitResult,
+  PostgreSQLCommitResultV2,
   PostgreSQLRollbackResult,
+  PostgreSQLRollbackResultV2,
+  PostgreSQLTransactionConnectionV4,
   PostgreSQLTransactionDiscardResult,
 } from "../postgresqlDriver/types";
 import type { WorkflowCompletionStateSameSessionParticipantV1 } from "../../workflowCompletionStatePersistence/participantV1";
@@ -30,6 +33,19 @@ export type DurableWorkflowTransactionSessionV3 = Readonly<{
   discard(): PostgreSQLTransactionDiscardResult;
 }>;
 export type DurableWorkflowTransactionSessionV3Complete = Readonly<DurableWorkflowTransactionSessionV3 & { completeContext: import("./sameSessionQueryTypes").DurableWorkflowTransactionContextV4 }>;
+export type ProductionSessionCompleteLifecycleInputV3 = Readonly<
+  Omit<ProductionSessionCompleteConstructionInputV2, "constructionVersion" | "transactionConnection"> & {
+    constructionVersion: "3.0";
+    transactionConnection: PostgreSQLTransactionConnectionV4;
+  }
+>;
+export type DurableWorkflowTransactionSessionV3CompleteLifecycle = Readonly<
+  DurableWorkflowTransactionSessionV3Complete & {
+    lifecycleResultVersion: "2.0";
+    commitV2(): Promise<PostgreSQLCommitResultV2>;
+    rollbackV2(): Promise<PostgreSQLRollbackResultV2>;
+  }
+>;
 
 export function createDurableWorkflowTransactionSessionV3(
   input: ProductionSessionConstructionInputV1,
@@ -67,3 +83,27 @@ export function createDurableWorkflowTransactionSessionV3(
   });
 }
 export function createDurableWorkflowTransactionSessionV3Complete(input: ProductionSessionCompleteConstructionInputV2): DurableWorkflowTransactionSessionV3Complete { const built = constructProductionTransactionSessionCompleteCapabilitiesV2(input); return Object.freeze({ ...createDurableWorkflowTransactionSessionV3(Object.freeze({ ...input, constructionVersion: "1.0" })), completeContext: built.completeContext }); }
+
+export function createDurableWorkflowTransactionSessionV3CompleteLifecycle(
+  input: ProductionSessionCompleteLifecycleInputV3,
+): DurableWorkflowTransactionSessionV3CompleteLifecycle {
+  const session = createDurableWorkflowTransactionSessionV3Complete(Object.freeze({
+    ...input,
+    constructionVersion: "2.0",
+  }));
+  const connection = input.transactionConnection;
+  let commitResult: Promise<PostgreSQLCommitResultV2> | undefined;
+  let rollbackResult: Promise<PostgreSQLRollbackResultV2> | undefined;
+  return Object.freeze({
+    ...session,
+    lifecycleResultVersion: "2.0",
+    commitV2() {
+      commitResult ??= connection.commitV2();
+      return commitResult;
+    },
+    rollbackV2() {
+      rollbackResult ??= connection.rollbackV2();
+      return rollbackResult;
+    },
+  });
+}

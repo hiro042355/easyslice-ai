@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import type { PostgreSQLCommitResult, PostgreSQLConnectionReuse, PostgreSQLExecutionFailure, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLQueryResultV2, PostgreSQLRollbackResult, PostgreSQLTransactionConnectionV3, PostgreSQLTransactionDiscardResult, PostgreSQLTransactionState } from "./types";
+import type { PostgreSQLCommitResult, PostgreSQLCommitResultV2, PostgreSQLConnectionReuse, PostgreSQLQueryRequest, PostgreSQLQueryResult, PostgreSQLQueryResultV2, PostgreSQLRollbackResult, PostgreSQLRollbackResultV2, PostgreSQLTransactionConnectionV4, PostgreSQLTransactionDiscardResult, PostgreSQLTransactionState } from "./types";
 import { classifyConnectionReuse, getPostgreSQLQueryFailureSafeReason, mapPostgreSQLError } from "./postgresqlErrorMapper";
 
 type Execute = (
@@ -15,9 +15,10 @@ export function classifyCommitFailure(phase: "before-send" | "sent-or-unknown", 
   return { status: "unknown-outcome" };
 }
 
-export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransactionConnectionV3 {
+export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransactionConnectionV4 {
   readonly lifecycleVersion = "2.0" as const;
   readonly queryContractVersion = "2.0" as const;
+  readonly lifecycleResultVersion = "2.0" as const;
   private transactionState: PostgreSQLTransactionState = "active";
   private reuse: PostgreSQLConnectionReuse = "must-rollback-before-reuse";
   private discardInvoked = false;
@@ -88,6 +89,22 @@ export class PostgreSQLTransactionConnectionAdapter implements PostgreSQLTransac
       this.discard();
       return mapped.issue === "connection-unavailable" ? { status: "connection-lost" } : { status: "rollback-failed" };
     }
+  }
+  async commitV2(): Promise<PostgreSQLCommitResultV2> {
+    const result = await this.commit();
+    return Object.freeze({
+      ...result,
+      resultVersion: "2.0",
+      connectionDisposition: this.reuse,
+    });
+  }
+  async rollbackV2(): Promise<PostgreSQLRollbackResultV2> {
+    const result = await this.rollback();
+    return Object.freeze({
+      ...result,
+      resultVersion: "2.0",
+      connectionDisposition: this.reuse,
+    });
   }
   release(): "released" | "already-released" | "transaction-active" {
     if (this.transactionState === "released") return "already-released";

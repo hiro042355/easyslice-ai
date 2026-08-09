@@ -3,10 +3,11 @@ import test from "node:test";
 import {
   createDurableWorkflowTransactionSessionV3,
   createDurableWorkflowTransactionSessionV3Complete,
+  createDurableWorkflowTransactionSessionV3CompleteLifecycle,
   type DurableWorkflowDatabaseCapability,
   type DurableWorkflowTransactionContext,
 } from "../../../lib/server/productionWorkflowRuntime/durableTransaction";
-import type { PostgreSQLTransactionConnectionV2, PostgreSQLTransactionConnectionV3 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
+import type { PostgreSQLTransactionConnectionV2, PostgreSQLTransactionConnectionV3, PostgreSQLTransactionConnectionV4 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 
 const context = (): DurableWorkflowTransactionContext => Object.freeze({
   contextVersion: "2.0",
@@ -86,4 +87,44 @@ test("complete Session V3 additively exposes Context V4 without changing lifecyc
   void session.commit();
   void session.commit();
   assert.equal(commits, 1);
+});
+
+test("complete lifecycle Session V3 delegates each V2 operation at most once", async () => {
+  const calls = { commitV2: 0, rollbackV2: 0, release: 0, discard: 0 };
+  const connection: PostgreSQLTransactionConnectionV4 = Object.freeze({
+    lifecycleVersion: "2.0",
+    queryContractVersion: "2.0",
+    lifecycleResultVersion: "2.0",
+    state: () => "active",
+    query: async () => Object.freeze({ status: "success", rows: Object.freeze([]), rowCount: 0, command: "SELECT" }),
+    queryV2: async () => Object.freeze({ status: "success", rows: Object.freeze([]), rowCount: 0, command: "SELECT" }),
+    commit: async () => Object.freeze({ status: "committed" }),
+    rollback: async () => Object.freeze({ status: "rolled-back" }),
+    commitV2: async () => {
+      calls.commitV2 += 1;
+      return Object.freeze({ status: "committed", resultVersion: "2.0", connectionDisposition: "safe-to-reuse" });
+    },
+    rollbackV2: async () => {
+      calls.rollbackV2 += 1;
+      return Object.freeze({ status: "rolled-back", resultVersion: "2.0", connectionDisposition: "safe-to-reuse" });
+    },
+    release: () => { calls.release += 1; return "released"; },
+    discard: () => { calls.discard += 1; return Object.freeze({ status: "discarded" }); },
+  });
+  const session = createDurableWorkflowTransactionSessionV3CompleteLifecycle(Object.freeze({
+    constructionVersion: "3.0",
+    transactionConnection: connection,
+    transactionContextV2: context(),
+    transactionOwnerEvidence: Object.freeze({ evidenceVersion: "1.0", transactionOwner: "workflow-owner", transactionState: "active" }),
+  }));
+  assert.deepEqual(await session.commitV2(), await session.commitV2());
+  assert.deepEqual(await session.rollbackV2(), await session.rollbackV2());
+  assert.equal(calls.commitV2, 1);
+  assert.equal(calls.rollbackV2, 1);
+  assert.equal(calls.release, 0);
+  assert.equal(calls.discard, 0);
+  assert.equal(session.release(), "released");
+  assert.deepEqual(session.discard(), { status: "discarded" });
+  assert.equal(calls.release, 1);
+  assert.equal(calls.discard, 1);
 });

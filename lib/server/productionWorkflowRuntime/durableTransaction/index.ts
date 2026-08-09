@@ -38,7 +38,11 @@ export {
 export type * from "./postgresqlDurableWorkflowDatabaseCapabilityV2";
 export { constructProductionTransactionSessionCapabilitiesV3, constructProductionTransactionSessionCompleteCapabilitiesV2 } from "./productionSessionConstructionAuthorityV3";
 export type * from "./productionSessionConstructionAuthorityV3";
-export { createDurableWorkflowTransactionSessionV3, createDurableWorkflowTransactionSessionV3Complete } from "./productionTransactionSessionV3";
+export {
+  createDurableWorkflowTransactionSessionV3,
+  createDurableWorkflowTransactionSessionV3Complete,
+  createDurableWorkflowTransactionSessionV3CompleteLifecycle,
+} from "./productionTransactionSessionV3";
 export type * from "./productionTransactionSessionV3";
 export type { DurableWorkflowDatabaseSafeFailureProjectionInputV2 } from "./safeDatabaseFailureV2";
 export { createDurableWorkflowTransactionManagerV2, DURABLE_WORKFLOW_TRANSACTION_DESCRIPTOR } from "./durableWorkflowTransactionManagerV2";

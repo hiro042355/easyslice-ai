@@ -10,6 +10,7 @@ import {
   parsePostgreSQLRevision, parsePostgreSQLSafeInteger,
 } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 import { PostgreSQLConnectionAdapter } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver/postgresqlConnectionPool";
+import { PostgreSQLTransactionConnectionAdapter } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver/postgresqlTransactionConnection";
 
 test("600,000+ driver codec, error, revision, and registry assertions", () => {
   const codes = ["23505", "23503", "23514", "40001", "40P01", "08006", "57014", "25006", "42501", "42P01", "42703"];
@@ -246,4 +247,71 @@ test("timeout authority and transaction-ended rejection retain formal safe reaso
     assert.equal(ended.safeReason, "postgresql-disposed");
     assert.equal(ended.issue, "disposed");
   }
+});
+
+const transaction = (query: () => Promise<unknown>) =>
+  new PostgreSQLTransactionConnectionAdapter(
+    { query } as never,
+    async () => Object.freeze({
+      status: "success",
+      rows: Object.freeze([]),
+      rowCount: 0,
+      command: "SELECT",
+    }),
+    () => {},
+    () => {},
+  );
+
+test("complete commit and rollback results preserve infrastructure disposition", async () => {
+  const committedConnection = transaction(async () => ({}));
+  const committed = await committedConnection.commitV2();
+  assert.deepEqual(committed, {
+    status: "committed",
+    resultVersion: "2.0",
+    connectionDisposition: "safe-to-reuse",
+  });
+  assert.deepEqual(await committedConnection.commitV2(), {
+    status: "invalid-state",
+    resultVersion: "2.0",
+    connectionDisposition: "safe-to-reuse",
+  });
+  assert.deepEqual(await committedConnection.rollbackV2(), {
+    status: "not-required",
+    resultVersion: "2.0",
+    connectionDisposition: "safe-to-reuse",
+  });
+
+  const rolledBack = await transaction(async () => ({})).rollbackV2();
+  assert.deepEqual(rolledBack, {
+    status: "rolled-back",
+    resultVersion: "2.0",
+    connectionDisposition: "safe-to-reuse",
+  });
+
+  const unknownCommit = await transaction(async () => {
+    throw Object.freeze({ code: "08006" });
+  }).commitV2();
+  assert.deepEqual(unknownCommit, {
+    status: "unknown-outcome",
+    resultVersion: "2.0",
+    connectionDisposition: "must-discard",
+  });
+
+  const lostRollback = await transaction(async () => {
+    throw Object.freeze({ code: "08006" });
+  }).rollbackV2();
+  assert.deepEqual(lostRollback, {
+    status: "connection-lost",
+    resultVersion: "2.0",
+    connectionDisposition: "must-discard",
+  });
+
+  const failedRollback = await transaction(async () => {
+    throw Object.freeze({ code: "XX000" });
+  }).rollbackV2();
+  assert.deepEqual(failedRollback, {
+    status: "rollback-failed",
+    resultVersion: "2.0",
+    connectionDisposition: "must-discard",
+  });
 });

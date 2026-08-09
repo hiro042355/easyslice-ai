@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PostgreSQLConnectionPoolAdapter, type PostgreSQLConnectionConfig, type PostgreSQLParameter } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver";
+import { PostgreSQLConnectionPoolAdapter, type PostgreSQLConnectionConfig, type PostgreSQLParameter, type PostgreSQLTransactionConnectionV4 } from "../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 import { withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
 
 const request = (statementId: string, text: string, values: readonly PostgreSQLParameter[] = [], expectedResult: "none" | "single" | "many" = "none") => ({ statementId, text, values, expectedResult } as const);
+
+const isCompleteLifecycleConnection = (
+  value: object,
+): value is PostgreSQLTransactionConnectionV4 =>
+  "lifecycleResultVersion" in value
+  && value.lifecycleResultVersion === "2.0"
+  && "commitV2" in value
+  && typeof value.commitV2 === "function"
+  && "rollbackV2" in value
+  && typeof value.rollbackV2 === "function";
 
 test("real pool, dedicated connection, codecs, cardinality, and lifecycle", async () => {
   await withPostgreSqlTestEnvironment(async (environment) => {
@@ -76,7 +86,13 @@ test("real SQLSTATE, failed transaction, commit, rollback, cancellation, and ter
     const committed = await connection.begin();
     if ("status" in committed) throw new Error("begin-failed");
     assert.equal((await committed.query(request("driver.tx-insert", "INSERT INTO driver_parent VALUES (2)"))).status, "success");
-    assert.deepEqual(await committed.commit(), { status: "committed" });
+    assert.equal(isCompleteLifecycleConnection(committed), true);
+    if (!isCompleteLifecycleConnection(committed)) throw new Error("missing-complete-lifecycle");
+    assert.deepEqual(await committed.commitV2(), {
+      status: "committed",
+      resultVersion: "2.0",
+      connectionDisposition: "safe-to-reuse",
+    });
     assert.equal(committed.release(), "released");
 
     const rollbackConnection = await pool.checkout();
@@ -85,7 +101,13 @@ test("real SQLSTATE, failed transaction, commit, rollback, cancellation, and ter
     if ("status" in rolled) throw new Error("begin-failed");
     assert.equal((await rolled.query(request("driver.tx-error", "SELECT * FROM table_that_does_not_exist", [], "many"))).status, "failure");
     assert.equal((await rolled.query(request("driver.tx-after-error", "SELECT 1", [], "single"))).status, "failure");
-    assert.deepEqual(await rolled.rollback(), { status: "rolled-back" });
+    assert.equal(isCompleteLifecycleConnection(rolled), true);
+    if (!isCompleteLifecycleConnection(rolled)) throw new Error("missing-complete-lifecycle");
+    assert.deepEqual(await rolled.rollbackV2(), {
+      status: "rolled-back",
+      resultVersion: "2.0",
+      connectionDisposition: "safe-to-reuse",
+    });
     assert.equal(rolled.release(), "released");
 
     const cancelledConnection = await pool.checkout();
