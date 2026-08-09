@@ -3,6 +3,7 @@ import test from "node:test";
 import { withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
 
 const EXPECTED_TABLES = [
+  "workflow_completion_states",
   "workflow_final_results",
   "workflow_outbox_events",
   "workflow_reconciliation_manual_repairs",
@@ -65,6 +66,7 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
       "SELECT table_name FROM information_schema.columns WHERE table_schema = 'workflow' AND column_name = 'revision' ORDER BY table_name",
     );
     assert.deepEqual(revisions.rows.map((row) => row.table_name), [
+      "workflow_completion_states",
       "workflow_final_results",
       "workflow_outbox_events",
       "workflow_reconciliation_manual_repairs",
@@ -96,6 +98,7 @@ test("replay is idempotent, validate succeeds, and migration version is unique",
       { version: "000002", success: true },
       { version: "000003", success: true },
       { version: "000004", success: true },
+      { version: "000005", success: true },
     ]);
   });
 });
