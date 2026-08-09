@@ -7,10 +7,42 @@ import {
   createMultiCutReplayPostgresqlPureAdapter,
   createMultiCutReplayPostgresqlQueryMappingCore,
   createMultiCutReplayPostgresqlQueryMappingCoreV2,
+  createMultiCutReplayPostgresqlQueryMappingCoreV3,
   createReferenceMultiCutReplayPostgresqlFakeClient,
   createReferenceMultiCutReplayPostgresqlFakeQueryOnlyClient,
   executeReplayPostgresqlQueryOnly,
 } from "../../../lib/server/multiCutReplayPostgresqlAdapter";
+
+test("V3 query-only core preserves complete failure evidence exactly once", async () => {
+  let calls = 0;
+  const core = createMultiCutReplayPostgresqlQueryMappingCoreV3(Object.freeze({
+    async execute() {
+      calls += 1;
+      return Object.freeze({
+        kind: "execution-failure",
+        failureVersion: "3.0",
+        classification: "execution-failure",
+        issue: "retryable-conflict",
+        safeReason: "postgresql-retryable-conflict",
+        retryable: true,
+        sqlStateClass: "40",
+        queryConnectionDisposition: "must-rollback-before-reuse",
+      });
+    },
+  }));
+  const result = await core.execute(input);
+  assert.equal(calls, 1);
+  assert.equal(result.status, "execution-failure");
+  if (result.status !== "execution-failure") return;
+  assert.equal(result.issue, "retryable-conflict");
+  assert.equal(result.safeReason, "postgresql-retryable-conflict");
+  assert.equal(result.retryable, true);
+  assert.equal(result.sqlStateClass, "40");
+  assert.equal(
+    result.queryConnectionDisposition,
+    "must-rollback-before-reuse",
+  );
+});
 
 const bindingsFor = (
   statementId: keyof typeof definitions.byStatementId,
@@ -216,7 +248,7 @@ test("query-only boundary owns no transaction, retry, infrastructure, or commit-
     queryOnlySource,
     /(?:process\.env|from\s+["']pg["']|ExecutionRuntime|Participation|Workflow|ProductionComposition)/,
   );
-  assert.equal((queryOnlySource.match(/client\.execute\(/g) ?? []).length, 2);
+  assert.equal((queryOnlySource.match(/client\.execute\(/g) ?? []).length, 3);
   assert.match(wrapperSource, /classification:\s*"commit-unknown"/);
   assert.match(indexSource, /executeReplayPostgresqlQueryOnly/);
   assert.match(indexSource, /createMultiCutReplayPostgresqlQueryMappingCore/);

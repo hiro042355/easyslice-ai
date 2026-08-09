@@ -4,6 +4,7 @@ import type {
   PostgreSQLQueryFailureSafeReason,
   PostgreSQLQueryRequest,
   PostgreSQLRow,
+  PostgreSQLQueryResultV2,
 } from "../postgresqlDriver/types";
 import type { DurableWorkflowTransactionContext } from "./types";
 
@@ -144,6 +145,8 @@ export type DurableWorkflowSameSessionQueryCapabilitySetV1 = Readonly<{
   general: DurableWorkflowGeneralSameSessionQueryCapabilityV1;
   manyOnly: DurableWorkflowSameSessionQueryCapability;
 }>;
+export type DurableWorkflowGeneralSameSessionQueryCapabilityV2 = Readonly<{ capabilityVersion: "2.0"; evidence: DurableWorkflowSameSessionEvidence; executeQuery(request: DurableWorkflowGeneralSameSessionQueryRequestV1): Promise<PostgreSQLQueryResultV2> }>;
+export type DurableWorkflowManyOnlySameSessionQueryCapabilityV3 = Readonly<{ capabilityVersion: "3.0"; evidence: DurableWorkflowSameSessionEvidence; executeQuery(request: DurableWorkflowSameSessionQueryRequestV1): Promise<Extract<PostgreSQLQueryResultV2, { status: "success" | "failure" }>> }>;
 
 export type DurableWorkflowTransactionContextV3 = Readonly<
   Omit<DurableWorkflowTransactionContext, "contextVersion"> & {
@@ -151,3 +154,4 @@ export type DurableWorkflowTransactionContextV3 = Readonly<
     sameSessionQuery: DurableWorkflowSameSessionQueryCapability;
   }
 >;
+export type DurableWorkflowTransactionContextV4 = Readonly<Omit<DurableWorkflowTransactionContext, "contextVersion"> & { contextVersion: "4.0"; sameSessionQuery: DurableWorkflowManyOnlySameSessionQueryCapabilityV3; generalSameSessionQuery: DurableWorkflowGeneralSameSessionQueryCapabilityV2; transactionOwnership: "workflow-owner"; sameSessionEvidence: DurableWorkflowSameSessionEvidence }>;

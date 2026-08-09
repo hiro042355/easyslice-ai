@@ -14,6 +14,8 @@ import type {
   MultiCutReplayPostgresqlQueryExecutionSuccess,
   MultiCutReplayPostgresqlQueryOnlyClient,
   MultiCutReplayPostgresqlQueryOnlyClientV2,
+  MultiCutReplayPostgresqlQueryOnlyClientV3,
+  MultiCutReplayPostgresqlPureQueryMappingCoreV3,
 } from "./pureTypes";
 
 export const getMultiCutReplayPostgresqlPureAdapterMetadata = (
@@ -205,3 +207,5 @@ export const executeReplayPostgresqlQueryOnly = (
   input: MultiCutReplayPostgresqlPureAdapterInput,
 ): Promise<MultiCutReplayPostgresqlPureQueryMappingResult> =>
   createMultiCutReplayPostgresqlQueryMappingCore(client).execute(input);
+
+export const createMultiCutReplayPostgresqlQueryMappingCoreV3 = (client: MultiCutReplayPostgresqlQueryOnlyClientV3): MultiCutReplayPostgresqlPureQueryMappingCoreV3 => Object.freeze({ coreVersion: "3.0", createExecutionRequest: createRequest, async execute(input) { const result = await client.execute(createRequest(input)); if (result.kind !== "execution-failure") return mapResult(input, result); return Object.freeze({ resultVersion: "3.0", status: "execution-failure", statementId: input.statementId, classification: "execution-failure", issue: result.issue, safeReason: result.safeReason, retryable: result.retryable, ...(result.sqlStateClass === undefined ? {} : { sqlStateClass: result.sqlStateClass }), queryConnectionDisposition: result.queryConnectionDisposition, metadata: getMultiCutReplayPostgresqlPureAdapterMetadata(input.statementId) }); } });

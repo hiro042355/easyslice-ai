@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createDurableWorkflowTransactionSessionV3,
+  createDurableWorkflowTransactionSessionV3Complete,
   type DurableWorkflowDatabaseCapability,
   type DurableWorkflowTransactionContext,
 } from "../../../lib/server/productionWorkflowRuntime/durableTransaction";
-import type { PostgreSQLTransactionConnectionV2 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
+import type { PostgreSQLTransactionConnectionV2, PostgreSQLTransactionConnectionV3 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 
 const context = (): DurableWorkflowTransactionContext => Object.freeze({
   contextVersion: "2.0",
@@ -57,4 +58,32 @@ test("Session V3 exposes constructed capabilities and delegates lifecycle at mos
   assert.deepEqual(session.discard(), { status: "discarded" });
   assert.deepEqual(session.discard(), { status: "discarded" });
   assert.equal(calls.discard, 1);
+});
+
+test("complete Session V3 additively exposes Context V4 without changing lifecycle", () => {
+  let commits = 0;
+  const connection: PostgreSQLTransactionConnectionV3 = Object.freeze({
+    lifecycleVersion: "2.0",
+    queryContractVersion: "2.0",
+    state: () => "active",
+    query: async () => Object.freeze({ status: "success", rows: Object.freeze([]), rowCount: 0, command: "SELECT" }),
+    queryV2: async () => Object.freeze({ status: "success", rows: Object.freeze([]), rowCount: 0, command: "SELECT" }),
+    commit: async () => { commits += 1; return Object.freeze({ status: "committed" }); },
+    rollback: async () => Object.freeze({ status: "rolled-back" }),
+    release: () => "released",
+    discard: () => Object.freeze({ status: "discarded" }),
+  });
+  const session = createDurableWorkflowTransactionSessionV3Complete(Object.freeze({
+    constructionVersion: "2.0",
+    transactionConnection: connection,
+    transactionContextV2: context(),
+    transactionOwnerEvidence: Object.freeze({ evidenceVersion: "1.0", transactionOwner: "workflow-owner", transactionState: "active" }),
+  }));
+  assert.equal(session.sessionVersion, "3.0");
+  assert.equal(session.contextV3.contextVersion, "3.0");
+  assert.equal(session.completeContext.contextVersion, "4.0");
+  assert.equal("transactionConnection" in session, false);
+  void session.commit();
+  void session.commit();
+  assert.equal(commits, 1);
 });

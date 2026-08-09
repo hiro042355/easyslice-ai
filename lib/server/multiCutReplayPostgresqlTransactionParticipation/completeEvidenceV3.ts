@@ -1,8 +1,8 @@
-import type { PostgreSQLDriverIssueCode, PostgreSQLQueryConnectionDisposition } from "../productionWorkflowRuntime/postgresqlDriver/types";
+import type { PostgreSQLDriverIssueCode, PostgreSQLQueryConnectionDisposition, PostgreSQLQueryFailureSafeReason } from "../productionWorkflowRuntime/postgresqlDriver/types";
 
 export type MultiCutReplayCompleteParticipationFailureEvidenceV3 = Readonly<{
   evidenceVersion: "3.0"; transactionPhase: "query"; issue: PostgreSQLDriverIssueCode;
-  safeReason: string; retryable: boolean;
+  safeReason: PostgreSQLQueryFailureSafeReason; retryable: boolean;
   sqlStateClass?: "08" | "23" | "25" | "40" | "42" | "57";
   queryConnectionDisposition: PostgreSQLQueryConnectionDisposition;
   ownerAction: "rollback-required"; commitUnknown: false;

@@ -1,10 +1,13 @@
 import type { PostgreSQLTransactionConnectionV2 } from "../postgresqlDriver/types";
+import type { PostgreSQLTransactionConnectionV3 } from "../postgresqlDriver/types";
 import {
   createWorkflowCompletionStateSameSessionParticipantV1,
   type WorkflowCompletionStateSameSessionParticipantV1,
 } from "../../workflowCompletionStatePersistence/participantV1";
 import {
   createDurableWorkflowPostgresqlSameSessionQueryCapabilitySetV1,
+  createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV2,
+  narrowDurableWorkflowGeneralSameSessionQueryCapabilityV3,
 } from "./postgresqlGeneralSameSessionQueryCapability";
 import {
   createDefaultPostgresqlDurableWorkflowDatabaseCapabilityV2,
@@ -12,7 +15,10 @@ import {
 import type {
   DurableWorkflowSameSessionQueryCapability,
   DurableWorkflowSameSessionQueryCapabilityV2,
+  DurableWorkflowGeneralSameSessionQueryCapabilityV2,
+  DurableWorkflowManyOnlySameSessionQueryCapabilityV3,
   DurableWorkflowTransactionContextV3,
+  DurableWorkflowTransactionContextV4,
 } from "./sameSessionQueryTypes";
 import type {
   DurableWorkflowDatabaseCapabilityV2,
@@ -62,6 +68,8 @@ export type ProductionSessionConstructionResultV1 = Readonly<{
   workflowCompletionStateParticipantDependency: WorkflowCompletionStateParticipantConstructionDependencyV1;
   sameSessionEvidence: ProductionSessionSameConnectionEvidenceV1;
 }>;
+export type ProductionSessionCompleteConstructionInputV2 = Readonly<Omit<ProductionSessionConstructionInputV1, "constructionVersion" | "transactionConnection"> & { constructionVersion: "2.0"; transactionConnection: PostgreSQLTransactionConnectionV3 }>;
+export type ProductionSessionCompleteConstructionResultV2 = Readonly<{ constructionVersion: "2.0"; completeContext: DurableWorkflowTransactionContextV4; generalSameSessionQueryComplete: DurableWorkflowGeneralSameSessionQueryCapabilityV2; manyOnlySameSessionQueryComplete: DurableWorkflowManyOnlySameSessionQueryCapabilityV3; legacy: ProductionSessionConstructionResultV1 }>;
 
 const SAME_CONNECTION_EVIDENCE: ProductionSessionSameConnectionEvidenceV1 =
   Object.freeze({
@@ -130,3 +138,4 @@ export function constructProductionTransactionSessionCapabilitiesV3(
     sameSessionEvidence: SAME_CONNECTION_EVIDENCE,
   });
 }
+export function constructProductionTransactionSessionCompleteCapabilitiesV2(input: ProductionSessionCompleteConstructionInputV2): ProductionSessionCompleteConstructionResultV2 { const legacy = constructProductionTransactionSessionCapabilitiesV3(Object.freeze({ ...input, constructionVersion: "1.0" })); const general = createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV2({ transactionConnection: input.transactionConnection }); const many = narrowDurableWorkflowGeneralSameSessionQueryCapabilityV3(general); const completeContext: DurableWorkflowTransactionContextV4 = Object.freeze({ ...input.transactionContextV2, contextVersion: "4.0", generalSameSessionQuery: general, sameSessionQuery: many, transactionOwnership: "workflow-owner", sameSessionEvidence: many.evidence }); return Object.freeze({ constructionVersion: "2.0", completeContext, generalSameSessionQueryComplete: general, manyOnlySameSessionQueryComplete: many, legacy }); }

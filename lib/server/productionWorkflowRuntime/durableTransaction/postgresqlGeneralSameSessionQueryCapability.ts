@@ -4,6 +4,7 @@ import type {
   PostgreSQLQueryResult,
   PostgreSQLRow,
   PostgreSQLTransactionConnection,
+  PostgreSQLTransactionConnectionV3,
   PostgreSQLValue,
 } from "../postgresqlDriver/types";
 import type {
@@ -13,6 +14,8 @@ import type {
   DurableWorkflowSameSessionQueryCapability,
   DurableWorkflowSameSessionQueryCapabilityV2,
   DurableWorkflowSameSessionQueryCapabilitySetV1,
+  DurableWorkflowGeneralSameSessionQueryCapabilityV2,
+  DurableWorkflowManyOnlySameSessionQueryCapabilityV3,
 } from "./sameSessionQueryTypes";
 
 const EVIDENCE = Object.freeze({
@@ -153,3 +156,5 @@ export function createDurableWorkflowPostgresqlSameSessionQueryCapabilitySetV1(
   const general = createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV1(input);
   return Object.freeze({ general, manyOnly: narrowDurableWorkflowGeneralSameSessionQueryCapabilityV1(general) });
 }
+export function createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV2(input: Readonly<{ transactionConnection: PostgreSQLTransactionConnectionV3 }>): DurableWorkflowGeneralSameSessionQueryCapabilityV2 { return Object.freeze({ capabilityVersion: "2.0", evidence: EVIDENCE, executeQuery(request) { return input.transactionConnection.queryV2(copyRequest(request)); } }); }
+export function narrowDurableWorkflowGeneralSameSessionQueryCapabilityV3(general: DurableWorkflowGeneralSameSessionQueryCapabilityV2): DurableWorkflowManyOnlySameSessionQueryCapabilityV3 { return Object.freeze({ capabilityVersion: "3.0", evidence: general.evidence, async executeQuery(request) { const result = await general.executeQuery(request); if (result.status === "success" || result.status === "failure") return result; throw new TypeError("many-only-query-cardinality-invariant"); } }); }

@@ -15,6 +15,7 @@ export {
 export {
   createMultiCutReplayPostgresqlQueryMappingCore,
   createMultiCutReplayPostgresqlQueryMappingCoreV2,
+  createMultiCutReplayPostgresqlQueryMappingCoreV3,
   executeReplayPostgresqlQueryOnly,
 } from "./queryMappingCore";
 export {
@@ -42,13 +43,18 @@ export type {
   MultiCutReplayPostgresqlPureExecutionRequest,
   MultiCutReplayPostgresqlPureQueryMappingCore,
   MultiCutReplayPostgresqlPureQueryMappingCoreV2,
+  MultiCutReplayPostgresqlPureQueryMappingCoreV3,
   MultiCutReplayPostgresqlPureQueryMappingResult,
   MultiCutReplayPostgresqlPureQueryMappingResultV2,
+  MultiCutReplayPostgresqlPureQueryMappingResultV3,
   MultiCutReplayPostgresqlQueryExecutionFailure,
   MultiCutReplayPostgresqlQueryExecutionFailureV2,
+  MultiCutReplayPostgresqlQueryExecutionFailureV3,
   MultiCutReplayPostgresqlQueryExecutionResult,
   MultiCutReplayPostgresqlQueryExecutionResultV2,
+  MultiCutReplayPostgresqlQueryExecutionResultV3,
   MultiCutReplayPostgresqlQueryExecutionSuccess,
   MultiCutReplayPostgresqlQueryOnlyClient,
   MultiCutReplayPostgresqlQueryOnlyClientV2,
+  MultiCutReplayPostgresqlQueryOnlyClientV3,
 } from "./pureTypes";

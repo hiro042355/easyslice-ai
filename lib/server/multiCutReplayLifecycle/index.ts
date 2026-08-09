@@ -49,4 +49,10 @@ export type {
 } from "./projectionTypesV1";
 export type * from "./typesV4";
 export { projectCompleteLifecycleFailureEvidenceV2 } from "./completeFailureEvidenceV2";
-export type { MultiCutReplayLifecycleCompleteFailureEvidenceV2 } from "./completeFailureEvidenceV2";
+export type {
+  MultiCutReplayLifecycleCompleteFailureEvidenceV2,
+  MultiCutReplayLifecycleCompleteProductionExecutionFailureOutputV2,
+  MultiCutReplayLifecycleCompleteResultV2,
+} from "./completeFailureEvidenceV2";
+export { createMultiCutReplayLifecycleCompleteProductionAdapterV2 } from "./completeProductionAdapterV2";
+export type * from "./completeProductionAdapterV2";

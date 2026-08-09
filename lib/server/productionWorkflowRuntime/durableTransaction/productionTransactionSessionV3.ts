@@ -12,6 +12,8 @@ import type { DurableWorkflowDatabaseCapabilityV2 } from "./types";
 import {
   constructProductionTransactionSessionCapabilitiesV3,
   type ProductionSessionConstructionInputV1,
+  constructProductionTransactionSessionCompleteCapabilitiesV2,
+  type ProductionSessionCompleteConstructionInputV2,
   type ProductionSessionSameConnectionEvidenceV1,
 } from "./productionSessionConstructionAuthorityV3";
 
@@ -27,6 +29,7 @@ export type DurableWorkflowTransactionSessionV3 = Readonly<{
   release(): "released" | "already-released" | "transaction-active";
   discard(): PostgreSQLTransactionDiscardResult;
 }>;
+export type DurableWorkflowTransactionSessionV3Complete = Readonly<DurableWorkflowTransactionSessionV3 & { completeContext: import("./sameSessionQueryTypes").DurableWorkflowTransactionContextV4 }>;
 
 export function createDurableWorkflowTransactionSessionV3(
   input: ProductionSessionConstructionInputV1,
@@ -63,3 +66,4 @@ export function createDurableWorkflowTransactionSessionV3(
     },
   });
 }
+export function createDurableWorkflowTransactionSessionV3Complete(input: ProductionSessionCompleteConstructionInputV2): DurableWorkflowTransactionSessionV3Complete { const built = constructProductionTransactionSessionCompleteCapabilitiesV2(input); return Object.freeze({ ...createDurableWorkflowTransactionSessionV3(Object.freeze({ ...input, constructionVersion: "1.0" })), completeContext: built.completeContext }); }

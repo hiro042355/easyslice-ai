@@ -36,3 +36,5 @@ export type {
 } from "./typesV2";
 export { createCompleteParticipationFailureEvidenceV3 } from "./completeEvidenceV3";
 export type { MultiCutReplayCompleteParticipationFailureEvidenceV3 } from "./completeEvidenceV3";
+export { createMultiCutReplayCompleteTransactionParticipantV3 } from "./participantV3";
+export type * from "./typesV3";

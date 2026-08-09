@@ -3,9 +3,11 @@ export { DurableWorkflowTransactionContextOwner } from "./durableWorkflowTransac
 export { createDurableWorkflowPostgresqlSameSessionQueryCapability } from "./postgresqlSameSessionQueryCapability";
 export {
   createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV1,
+  createDurableWorkflowGeneralPostgresqlSameSessionQueryCapabilityV2,
   createDurableWorkflowPostgresqlSameSessionQueryCapabilitySetV1,
   narrowDurableWorkflowGeneralSameSessionQueryCapabilityV1,
   narrowDurableWorkflowGeneralSameSessionQueryCapabilityV2,
+  narrowDurableWorkflowGeneralSameSessionQueryCapabilityV3,
 } from "./postgresqlGeneralSameSessionQueryCapability";
 export {
   isDurableWorkflowDatabaseSafeExecutionFailureV2,
@@ -34,9 +36,9 @@ export {
   createPostgresqlDurableWorkflowDatabaseCapabilityV2,
 } from "./postgresqlDurableWorkflowDatabaseCapabilityV2";
 export type * from "./postgresqlDurableWorkflowDatabaseCapabilityV2";
-export { constructProductionTransactionSessionCapabilitiesV3 } from "./productionSessionConstructionAuthorityV3";
+export { constructProductionTransactionSessionCapabilitiesV3, constructProductionTransactionSessionCompleteCapabilitiesV2 } from "./productionSessionConstructionAuthorityV3";
 export type * from "./productionSessionConstructionAuthorityV3";
-export { createDurableWorkflowTransactionSessionV3 } from "./productionTransactionSessionV3";
+export { createDurableWorkflowTransactionSessionV3, createDurableWorkflowTransactionSessionV3Complete } from "./productionTransactionSessionV3";
 export type * from "./productionTransactionSessionV3";
 export type { DurableWorkflowDatabaseSafeFailureProjectionInputV2 } from "./safeDatabaseFailureV2";
 export { createDurableWorkflowTransactionManagerV2, DURABLE_WORKFLOW_TRANSACTION_DESCRIPTOR } from "./durableWorkflowTransactionManagerV2";
