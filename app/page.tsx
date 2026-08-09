@@ -16,6 +16,8 @@ import {
   selectIntelligentClipPortfolioV1,
 } from "../lib/clipRanking";
 import { projectEditedPortfolioToLegacyClipsV1 } from "../lib/clipEditing";
+import { createVideoSourceContextV1, enrichClipCandidatesWithSourceContextV1, parseYouTubeVideoIdV1, type VideoSourceChapterV1 } from "../lib/sourceContext";
+import type { UnifiedClipCandidateV1 } from "../lib/clipCandidates";
 
 
 export default function Home() {
@@ -32,6 +34,11 @@ export default function Home() {
   }[]
 >([]);
   const [currentYoutubeUrl, setCurrentYoutubeUrl] = useState("");
+  const [youtubeSourceMetadata, setYoutubeSourceMetadata] = useState<{
+    sourceId: string;
+    description?: string;
+    chapters?: readonly VideoSourceChapterV1[];
+  } | null>(null);
   const [zipFileName, setZipFileName] = useState("");
 const [generatedClipCount, setGeneratedClipCount] = useState(0);
   const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
@@ -220,6 +227,22 @@ const [videoTitle, setVideoTitle] = useState("");
 const [videoDuration, setVideoDuration] = useState(0);
 const [thumbnail, setThumbnail] = useState("");
 const [videoSrc, setVideoSrc] = useState("");
+const contextualizeCandidates = (
+  candidates: readonly UnifiedClipCandidateV1[],
+  transcript: readonly { second: number; text: string }[]
+) => {
+  if (transcript.length === 0) return candidates;
+  const context = createVideoSourceContextV1({
+    sourceType: currentYoutubeUrl ? "youtube" : "upload",
+    sourceId: currentYoutubeUrl ? youtubeSourceMetadata?.sourceId ?? parseYouTubeVideoIdV1(currentYoutubeUrl) ?? "youtube-source-unidentified" : video?.name ?? "uploaded-video",
+    durationSeconds: videoDuration,
+    transcript: transcript.map((segment) => ({ startSeconds: segment.second, text: segment.text })),
+    ...(videoTitle ? { title: videoTitle } : {}),
+    ...(youtubeSourceMetadata?.description ? { description: youtubeSourceMetadata.description } : {}),
+    ...(youtubeSourceMetadata?.chapters ? { chapters: youtubeSourceMetadata.chapters } : {}),
+  });
+  return enrichClipCandidatesWithSourceContextV1(candidates, context);
+};
   // ✂️ 切り抜き
   const handleCut = async () => {
     if ((!video && !videoSrc) || !start || !end) {
@@ -300,6 +323,11 @@ setLoading(false);
     setVideoTitle(info.title || "");
     setVideoDuration(info.duration || 0);
     setThumbnail(info.thumbnail || "");
+    setYoutubeSourceMetadata(
+      typeof info.sourceId === "string" && info.sourceId
+        ? { sourceId: info.sourceId, ...(typeof info.description === "string" && info.description ? { description: info.description } : {}), ...(Array.isArray(info.chapters) ? { chapters: info.chapters } : {}) }
+        : null
+    );
 
     const downloadRes = await fetch("/api/youtube-download", {
   method: "POST",
@@ -553,7 +581,9 @@ const handleSubtitle = async () => {
       );
 
       const newClips = projectEditedPortfolioToLegacyClipsV1(
-        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+        selectIntelligentClipPortfolioV1(
+          createUnifiedClipCandidatePool(contextualizeCandidates(candidates, data.subtitles ?? []))
+        ),
         data.subtitles ?? []
       );
       setClips([...newClips]);
@@ -661,6 +691,7 @@ const handleUploadVideo = async (file: File | null) => {
     setVideo(file);
     setVideoSrc(`/api/video?t=${Date.now()}`);
     setCurrentYoutubeUrl("");
+    setYoutubeSourceMetadata(null);
 
     setClips([
       {
@@ -925,7 +956,9 @@ const handleSummary = async () => {
       });
 
       const newClips = projectEditedPortfolioToLegacyClipsV1(
-        selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+        selectIntelligentClipPortfolioV1(
+          createUnifiedClipCandidatePool(contextualizeCandidates(candidates, subtitles))
+        ),
         subtitles
       );
       setClips([...newClips]);
@@ -989,7 +1022,9 @@ const handleAiHighlight = async () => {
         })
     );
     const finalClips = projectEditedPortfolioToLegacyClipsV1(
-      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+      selectIntelligentClipPortfolioV1(
+        createUnifiedClipCandidatePool(contextualizeCandidates(candidates, subtitles))
+      ),
       subtitles
     );
     setClips([...finalClips]);
@@ -1047,7 +1082,9 @@ const handleAudioEnergy = async () => {
         })
     );
     const finalClips = projectEditedPortfolioToLegacyClipsV1(
-      selectIntelligentClipPortfolioV1(createUnifiedClipCandidatePool(candidates)),
+      selectIntelligentClipPortfolioV1(
+        createUnifiedClipCandidatePool(contextualizeCandidates(candidates, subtitles))
+      ),
       subtitles
     );
     setClips([...finalClips]);

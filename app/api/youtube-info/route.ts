@@ -32,8 +32,19 @@ export async function POST(req: Request) {
           const info = JSON.parse(stdout);
           resolve(NextResponse.json({
             success: true,
+            sourceId: typeof info.id === "string" ? info.id : undefined,
             title: info.title,
+            description: typeof info.description === "string" ? info.description : undefined,
             duration: info.duration,
+            chapters: Array.isArray(info.chapters)
+              ? info.chapters.flatMap((chapter: unknown) => {
+                  if (!chapter || typeof chapter !== "object") return [];
+                  const value = chapter as Record<string, unknown>;
+                  return typeof value.title === "string" && Number.isFinite(value.start_time)
+                    ? [{ title: value.title, startSeconds: Number(value.start_time), ...(Number.isFinite(value.end_time) ? { endSeconds: Number(value.end_time) } : {}) }]
+                    : [];
+                })
+              : undefined,
             thumbnail: info.thumbnail || (info.thumbnails?.length ? info.thumbnails[info.thumbnails.length - 1].url : null),
           }));
         } catch (e) {

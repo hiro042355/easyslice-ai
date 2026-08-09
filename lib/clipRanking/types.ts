@@ -3,6 +3,7 @@ import type { UnifiedClipCandidateV1 } from "../clipCandidates";
 export const CLIP_QUALITY_VERSION = "1.0" as const;
 export const CLIP_SIMILARITY_VERSION = "1.0" as const;
 export const CLIP_PORTFOLIO_VERSION = "1.0" as const;
+export const CLIP_QUALITY_CONTEXT_VERSION = "2.0" as const;
 
 export type ClipQualityReasonCodeV1 =
   | "strong-question-hook"
@@ -37,6 +38,13 @@ export type ClipQualityScoreV1 = Readonly<{
   reasonCodes: readonly ClipQualityReasonCodeV1[];
 }>;
 
+export type ClipQualityScoreV2 = Readonly<{
+  qualityVersion: typeof CLIP_QUALITY_CONTEXT_VERSION;
+  baseQuality: ClipQualityScoreV1;
+  sourceContextRelevance?: number;
+  overall: number;
+}>;
+
 export type ClipDuplicateClassificationV1 = "duplicate" | "similar" | "distinct";
 
 export type ClipSimilarityScoreV1 = Readonly<{
@@ -64,7 +72,8 @@ export type ClipPortfolioReasonV1 =
   | "low-similarity"
   | "strong-story-completeness"
   | "strong-payoff"
-  | "strong-hook";
+  | "strong-hook"
+  | "source-context-diversity";
 
 export type ClipRejectionReasonV1 =
   | "duplicate"

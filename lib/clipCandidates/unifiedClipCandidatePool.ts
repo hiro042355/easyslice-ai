@@ -64,6 +64,9 @@ export const createUnifiedClipCandidate = (
       : { storyEvidenceVersion: input.storyEvidenceVersion }),
     ...(input.startReason === undefined ? {} : { startReason: input.startReason }),
     ...(input.endReason === undefined ? {} : { endReason: input.endReason }),
+    ...(input.sourceContextEvidence === undefined
+      ? {}
+      : { sourceContextEvidence: Object.freeze({ ...input.sourceContextEvidence, primaryTerms: Object.freeze([...input.sourceContextEvidence.primaryTerms]), ...(input.sourceContextEvidence.chapter ? { chapter: Object.freeze({ ...input.sourceContextEvidence.chapter }) } : {}) }) }),
   });
 };
 

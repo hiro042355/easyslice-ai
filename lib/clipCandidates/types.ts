@@ -1,4 +1,5 @@
 import type { StoryBoundaryReasonV1 } from "../clipBoundary";
+import type { SourceContextEvidenceV1 } from "../sourceContext/types";
 
 export const UNIFIED_CLIP_CANDIDATE_VERSION = "1.0" as const;
 
@@ -32,6 +33,7 @@ export type ClipCandidateInputV1 = Readonly<{
   storyEvidenceVersion?: "1.0";
   startReason?: ClipCandidateBoundaryReason;
   endReason?: ClipCandidateBoundaryReason;
+  sourceContextEvidence?: SourceContextEvidenceV1;
 }>;
 
 export type UnifiedClipCandidateV1 = Readonly<{
@@ -50,6 +52,7 @@ export type UnifiedClipCandidateV1 = Readonly<{
   storyEvidenceVersion?: "1.0";
   startReason?: ClipCandidateBoundaryReason;
   endReason?: ClipCandidateBoundaryReason;
+  sourceContextEvidence?: SourceContextEvidenceV1;
 }>;
 
 export type LegacyClipCandidateV1 = Readonly<{

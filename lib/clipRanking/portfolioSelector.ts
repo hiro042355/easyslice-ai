@@ -44,7 +44,7 @@ const evaluatePortfolioContribution = (
   selected: readonly SelectedClipPortfolioItemV1[]
 ) => {
   if (selected.length === 0) {
-    return { score: quality.overall, reasons: ["highest-quality"] as ClipPortfolioReasonV1[] };
+    return { score: quality.overall + Math.round((candidate.sourceContextEvidence?.relevance ?? 0) * 0.05), reasons: ["highest-quality"] as ClipPortfolioReasonV1[] };
   }
   const category = categoryOf(candidate);
   const unseenCategory = selected.every((item) => item.category !== category);
@@ -56,6 +56,10 @@ const evaluatePortfolioContribution = (
     (unseenCategory ? 40 : 0) +
     (minimumTimeDistance >= 30 ? 30 : 0) +
     Math.round(30 * (1 - maximumSimilarity / 100));
+  const primaryTerm = candidate.sourceContextEvidence?.primaryTerms[0];
+  const sourceContextDiverse = primaryTerm !== undefined && selected.every(
+    (item) => item.candidate.sourceContextEvidence?.primaryTerms[0] !== primaryTerm
+  );
   const reasons: ClipPortfolioReasonV1[] = [];
   if (unseenCategory) reasons.push("category-diversity");
   if (minimumTimeDistance >= 30) reasons.push("temporal-diversity");
@@ -63,8 +67,13 @@ const evaluatePortfolioContribution = (
   if (quality.dimensions.storyCompleteness >= 90) reasons.push("strong-story-completeness");
   if (quality.dimensions.payoffStrength >= 90) reasons.push("strong-payoff");
   if (quality.dimensions.hookStrength >= 85) reasons.push("strong-hook");
+  if (sourceContextDiverse) reasons.push("source-context-diversity");
   return {
-    score: Math.round(quality.overall * 0.75 + diversity * 0.25),
+    score: Math.round(
+      quality.overall * 0.75 + diversity * 0.25 +
+      (candidate.sourceContextEvidence?.relevance ?? 0) * 0.05 +
+      (sourceContextDiverse ? 3 : 0)
+    ),
     reasons,
   };
 };
