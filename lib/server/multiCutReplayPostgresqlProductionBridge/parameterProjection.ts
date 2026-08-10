@@ -7,8 +7,8 @@ import type { PostgreSQLParameter } from "../productionWorkflowRuntime/postgresq
 
 const INT4_MIN = -2_147_483_648;
 const INT4_MAX = 2_147_483_647;
-const INT8_MIN = -9_223_372_036_854_775_808n;
-const INT8_MAX = 9_223_372_036_854_775_807n;
+const INT8_MIN = BigInt("-9223372036854775808");
+const INT8_MAX = BigInt("9223372036854775807");
 const CANONICAL_DECIMAL = /^(?:0|-[1-9][0-9]*|[1-9][0-9]*)$/;
 
 const invalid = (): never => {

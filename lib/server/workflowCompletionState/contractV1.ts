@@ -15,7 +15,7 @@ import type {
   WorkflowCompletionTransitionResultV1,
 } from "./types";
 
-const MAX_REVISION = 9_223_372_036_854_775_807n;
+const MAX_REVISION = BigInt("9223372036854775807");
 
 export const WORKFLOW_COMPLETION_LIFECYCLE_CONTRACT_V1:
   WorkflowCompletionLifecycleContractV1 = Object.freeze({
