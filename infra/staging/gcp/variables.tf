@@ -33,6 +33,17 @@ variable "active_crypto_key_version_name" {
   }
 }
 
+variable "rotation_impersonator_member" {
+  description = "Approved human bootstrap principal allowed to obtain short-lived credentials for only the staging rotator service account."
+  type        = string
+  sensitive   = false
+
+  validation {
+    condition     = can(regex("^user:[^@[:space:]]+@[^@[:space:]]+$", var.rotation_impersonator_member))
+    error_message = "The rotation impersonator must be one explicit Google user IAM member in user:email form."
+  }
+}
+
 locals {
   environment                   = "staging"
   runtime_service_account_id    = "nexcut-stg-runtime"

@@ -47,3 +47,9 @@ resource "google_kms_crypto_key_iam_member" "rotation_version_manager" {
   role          = google_project_iam_custom_role.kms_version_rotator.name
   member        = "serviceAccount:${google_service_account.rotation.email}"
 }
+
+resource "google_service_account_iam_member" "rotation_short_lived_impersonator" {
+  service_account_id = google_service_account.rotation.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = var.rotation_impersonator_member
+}
