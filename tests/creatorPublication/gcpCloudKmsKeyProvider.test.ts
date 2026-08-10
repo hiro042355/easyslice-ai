@@ -29,14 +29,11 @@ const input = (keyReference?: ProtectedIdentityKeyReferenceV1) => Object.freeze(
 });
 
 type FakeOverrides = Readonly<{
-  primary?: string | null;
-  purpose?: number | string | null;
   versionName?: string | null;
   state?: number | string | null;
   algorithm?: number | string | null;
   macName?: string | null;
   mac?: Uint8Array | string | null;
-  getKeyError?: unknown;
   getVersionError?: unknown;
   macError?: unknown;
 }>;
@@ -44,15 +41,6 @@ type FakeOverrides = Readonly<{
 const fakeClient = (overrides: FakeOverrides = Object.freeze({})) => {
   const calls: Array<Readonly<{ operation: string; name: string; data?: Uint8Array }>> = [];
   const client: GcpCloudKmsClientV1 = Object.freeze({
-    async getCryptoKey(name) {
-      calls.push({ operation: "get-key", name });
-      if (overrides.getKeyError !== undefined) throw overrides.getKeyError;
-      return {
-        name,
-        primary: overrides.primary === null ? null : { name: overrides.primary ?? versionName("8") },
-        purpose: overrides.purpose ?? "MAC",
-      };
-    },
     async getCryptoKeyVersion(name) {
       calls.push({ operation: "get-version", name });
       if (overrides.getVersionError !== undefined) throw overrides.getVersionError;
@@ -74,12 +62,16 @@ const fakeClient = (overrides: FakeOverrides = Object.freeze({})) => {
   return { client, calls };
 };
 
-const provider = (client: GcpCloudKmsClientV1, cryptoKeyName = keyName) => createGcpCloudKmsKeyProviderV1(
-  Object.freeze({ configurationVersion: "1.0", cryptoKeyName }),
+const provider = (
+  client: GcpCloudKmsClientV1,
+  cryptoKeyName = keyName,
+  activeCryptoKeyVersionName = versionName("8"),
+) => createGcpCloudKmsKeyProviderV1(
+  Object.freeze({ configurationVersion: "1.0", cryptoKeyName, activeCryptoKeyVersionName }),
   client,
 );
 
-test("active authority resolves the configured primary exact version and projects with it", async () => {
+test("active authority resolves the configured exact numeric version and projects with it", async () => {
   const fake = fakeClient();
   const resolved = await provider(fake.client).resolveActiveKeyReference();
   assert.deepEqual(resolved, reference("8"));
@@ -87,26 +79,47 @@ test("active authority resolves the configured primary exact version and project
   assert.equal(result.status, "success");
   if (result.status === "success") assert.deepEqual(result.identity.keyReference, reference("8"));
   assert.deepEqual(fake.calls.map(({ operation, name }) => ({ operation, name })), [
-    { operation: "get-key", name: keyName },
     { operation: "get-version", name: versionName("8") },
-    { operation: "get-key", name: keyName },
     { operation: "get-version", name: versionName("8") },
     { operation: "mac-sign", name: versionName("8") },
   ]);
 });
 
-test("active resolution fails closed for missing primary, incompatible purpose, algorithm, disabled state, and malformed metadata", async (t) => {
+test("active resolution validates exact metadata and fails closed", async (t) => {
   const cases: ReadonlyArray<readonly [string, FakeOverrides, string]> = [
-    ["missing primary", { primary: null }, "configuration-failure"],
-    ["wrong purpose", { purpose: "ENCRYPT_DECRYPT" }, "configuration-failure"],
+    ["missing", { getVersionError: { code: 5 } }, "key-not-found"],
     ["wrong algorithm", { algorithm: "HMAC_SHA512" }, "configuration-failure"],
     ["disabled", { state: "DISABLED" }, "key-version-unavailable"],
-    ["malformed key response", { versionName: "projects/other/invalid" }, "invalid-key-reference"],
+    ["destroy scheduled", { state: "DESTROY_SCHEDULED" }, "key-version-unavailable"],
+    ["destroyed", { state: "DESTROYED" }, "key-version-unavailable"],
+    ["mismatched metadata", { versionName: "projects/other/invalid" }, "configuration-failure"],
   ];
   for (const [name, overrides, expected] of cases) await t.test(name, async () => {
     const result = await provider(fakeClient(overrides).client).resolveActiveKeyReference();
     assert.equal("status" in result && result.status, "failure");
     if ("status" in result) assert.equal(result.code, expected);
+  });
+});
+
+test("active configuration rejects missing, aliases, malformed, and cross-key versions before provider invocation", async (t) => {
+  const otherKey = `${keyName}-other`;
+  const invalidVersions = [
+    "",
+    `${keyName}/cryptoKeyVersions/latest`,
+    `${keyName}/cryptoKeyVersions/primary`,
+    `${keyName}/cryptoKeyVersions/active`,
+    `${keyName}/cryptoKeyVersions/current`,
+    `${keyName}/cryptoKeyVersions/not-numeric`,
+    `${keyName}/cryptoKeyVersions/`,
+    `${otherKey}/cryptoKeyVersions/8`,
+    `${keyName}/cryptoKeyVersions/8/extra`,
+  ] as const;
+  for (const activeVersion of invalidVersions) await t.test(activeVersion || "missing", async () => {
+    const fake = fakeClient();
+    const result = await provider(fake.client, keyName, activeVersion).resolveActiveKeyReference();
+    assert.equal("status" in result && result.status, "failure");
+    if ("status" in result) assert.equal(result.code, "configuration-failure");
+    assert.deepEqual(fake.calls, []);
   });
 });
 
@@ -182,7 +195,7 @@ test("MAC signing receives exact version and domain-separated bytes without requ
     0,
     ...new TextEncoder().encode("canonical-principal"),
   ]));
-  assert.deepEqual(Object.keys(fake.client).sort(), ["getCryptoKey", "getCryptoKeyVersion", "macSign"]);
+  assert.deepEqual(Object.keys(fake.client).sort(), ["getCryptoKeyVersion", "macSign"]);
 });
 
 test("invalid MAC response and operation failure map to safe neutral crypto failure", async (t) => {
@@ -207,7 +220,7 @@ test("authentication, permission, availability, and invalid configuration use th
     ["unavailable", { code: 14 }, "provider-unavailable"],
   ];
   for (const [name, error, expected] of cases) await t.test(name, async () => {
-    const result = await provider(fakeClient({ getKeyError: error }).client).project(input());
+    const result = await provider(fakeClient({ getVersionError: error }).client).project(input());
     assert.equal(result.status, "failure");
     if (result.status === "failure") assert.equal(result.code, expected);
   });
@@ -219,7 +232,7 @@ test("authentication, permission, availability, and invalid configuration use th
 test("Production composition selects GCP provider and becomes ready only after authority validation", async () => {
   const fake = fakeClient();
   const result = await initializeGcpProtectedIdentityProductionCompositionV1(
-    Object.freeze({ configurationVersion: "1.0", cryptoKeyName: keyName }),
+    Object.freeze({ configurationVersion: "1.0", cryptoKeyName: keyName, activeCryptoKeyVersionName: versionName("8") }),
     Object.freeze({ client: fake.client }),
   );
   assert.equal(result.status, "ready");
@@ -233,15 +246,16 @@ test("Production composition selects GCP provider and becomes ready only after a
 });
 
 test("Production composition fails closed for missing config and provider or active-version failure", async (t) => {
-  const cases: ReadonlyArray<readonly [string, string, FakeOverrides, string]> = [
-    ["missing config", "", {}, "configuration-failure"],
-    ["provider failure", keyName, { getKeyError: { code: 14 } }, "provider-unavailable"],
-    ["active unavailable", keyName, { state: "DISABLED" }, "key-version-unavailable"],
-    ["MAC authority unavailable", keyName, { macError: { code: 14 } }, "provider-unavailable"],
+  const cases: ReadonlyArray<readonly [string, string, string, FakeOverrides, string]> = [
+    ["missing key config", "", versionName("8"), {}, "configuration-failure"],
+    ["missing active config", keyName, "", {}, "configuration-failure"],
+    ["provider failure", keyName, versionName("8"), { getVersionError: { code: 14 } }, "provider-unavailable"],
+    ["active unavailable", keyName, versionName("8"), { state: "DISABLED" }, "key-version-unavailable"],
+    ["MAC authority unavailable", keyName, versionName("8"), { macError: { code: 14 } }, "provider-unavailable"],
   ];
-  for (const [name, configuredKey, overrides, expected] of cases) await t.test(name, async () => {
+  for (const [name, configuredKey, activeVersion, overrides, expected] of cases) await t.test(name, async () => {
     const result = await initializeGcpProtectedIdentityProductionCompositionV1(
-      Object.freeze({ configurationVersion: "1.0", cryptoKeyName: configuredKey }),
+      Object.freeze({ configurationVersion: "1.0", cryptoKeyName: configuredKey, activeCryptoKeyVersionName: activeVersion }),
       Object.freeze({ client: fakeClient(overrides).client }),
     );
     assert.equal(result.status, "not-ready");
@@ -254,6 +268,7 @@ test("Production source uses ADC client and contains no secret, static credentia
   const adapterSource = await readFile(new URL("../../lib/server/creatorPublicationIdentity/gcpCloudKmsKeyProvider.ts", import.meta.url), "utf8");
   const compositionSource = await readFile(new URL("../../lib/server/creatorPublicationIdentity/gcpCloudKmsProductionComposition.ts", import.meta.url), "utf8");
   assert.match(compositionSource, /new KeyManagementServiceClient\(\)/);
+  assert.doesNotMatch(`${adapterSource}\n${compositionSource}`, /getCryptoKey\(|\.primary\??\.?name|listCryptoKeyVersions/);
   assert.doesNotMatch(`${adapterSource}\n${compositionSource}`, /process\.env|keyFilename|credentials\s*:|service-account.*json|createHmac|createDeterministicTestKeyProvider|secret fallback|latest enabled/i);
   assert.doesNotMatch(adapterSource, /\.getSecret|accessSecretVersion|keyBytes|rawKey/i);
 });

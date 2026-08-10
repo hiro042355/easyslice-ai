@@ -9,12 +9,7 @@ import type {
 } from "./types";
 
 export const GCP_CLOUD_KMS_PROVIDER_ID = "gcp-cloud-kms" as const;
-
-type CryptoKeyMetadata = Readonly<{
-  name?: string | null;
-  primary?: Readonly<{ name?: string | null }> | null;
-  purpose?: number | string | null;
-}>;
+export const GCP_CLOUD_KMS_ACTIVE_VERSION_CONFIGURATION = "PROTECTED_IDENTITY_KMS_ACTIVE_VERSION" as const;
 
 type CryptoKeyVersionMetadata = Readonly<{
   name?: string | null;
@@ -28,7 +23,6 @@ type MacSignResult = Readonly<{
 }>;
 
 export type GcpCloudKmsClientV1 = Readonly<{
-  getCryptoKey(name: string): Promise<CryptoKeyMetadata>;
   getCryptoKeyVersion(name: string): Promise<CryptoKeyVersionMetadata>;
   macSign(name: string, data: Uint8Array): Promise<MacSignResult>;
 }>;
@@ -36,6 +30,7 @@ export type GcpCloudKmsClientV1 = Readonly<{
 export type GcpCloudKmsKeyProviderConfigurationV1 = Readonly<{
   configurationVersion: "1.0";
   cryptoKeyName: string;
+  activeCryptoKeyVersionName: string;
 }>;
 
 export type GcpCloudKmsReadinessResultV1 =
@@ -55,7 +50,6 @@ export type GcpCloudKmsKeyProviderV1 = ProtectedIdentityKeyProviderV1 & Readonly
   checkReadiness(): Promise<GcpCloudKmsReadinessResultV1>;
 }>;
 
-const purpose = protos.google.cloud.kms.v1.CryptoKey.CryptoKeyPurpose;
 const state = protos.google.cloud.kms.v1.CryptoKeyVersion.CryptoKeyVersionState;
 const algorithm = protos.google.cloud.kms.v1.CryptoKeyVersion.CryptoKeyVersionAlgorithm;
 const cryptoKeyPattern = /^projects\/[^/]+\/locations\/[^/]+\/keyRings\/[^/]+\/cryptoKeys\/[^/]+$/;
@@ -131,37 +125,32 @@ export const createGcpCloudKmsKeyProviderV1 = (
   client: GcpCloudKmsClientV1,
 ): GcpCloudKmsKeyProviderV1 => {
   const configuredKey = configuration.cryptoKeyName;
-  const validConfiguration = configuration.configurationVersion === "1.0" && cryptoKeyPattern.test(configuredKey);
+  const configuredActiveVersion = configuration.activeCryptoKeyVersionName;
+  const validConfiguration = configuration.configurationVersion === "1.0" && cryptoKeyPattern.test(configuredKey) &&
+    versionPattern.test(configuredActiveVersion) && configuredActiveVersion.startsWith(`${configuredKey}/cryptoKeyVersions/`);
 
   const validateVersion = async (
     reference: ProtectedIdentityKeyReferenceV1,
+    operation: "active" | "historical",
   ): Promise<CryptoKeyVersionMetadata | Extract<ProtectedIdentityProjectionResultV1, { status: "failure" }>> => {
     try {
       const metadata = await client.getCryptoKeyVersion(reference.keyVersion);
-      if (metadata.name !== reference.keyVersion) return failure("invalid-key-reference", reference);
+      if (metadata.name !== reference.keyVersion) {
+        return failure(operation === "active" ? "configuration-failure" : "invalid-key-reference", reference);
+      }
       if (!exactEnum(metadata.state, "ENABLED", state.ENABLED)) return failure("key-version-unavailable", reference);
       if (!exactEnum(metadata.algorithm, "HMAC_SHA256", algorithm.HMAC_SHA256)) return failure("configuration-failure", reference);
       return metadata;
     } catch (error) {
-      return mapProviderFailure(error, "historical", reference);
+      return mapProviderFailure(error, operation, reference);
     }
   };
 
   const resolveActiveKeyReference = async (): Promise<ProtectedIdentityKeyReferenceV1 | Extract<ProtectedIdentityProjectionResultV1, { status: "failure" }>> => {
     if (!validConfiguration) return failure("configuration-failure");
-    try {
-      const key = await client.getCryptoKey(configuredKey);
-      if (key.name !== configuredKey || !exactEnum(key.purpose, "MAC", purpose.MAC)) return failure("configuration-failure");
-      const versionName = key.primary?.name;
-      if (typeof versionName !== "string" || !versionPattern.test(versionName) || !versionName.startsWith(`${configuredKey}/cryptoKeyVersions/`)) {
-        return failure("configuration-failure");
-      }
-      const reference = versionReference(configuredKey, versionName);
-      const validated = await validateVersion(reference);
-      return "status" in validated ? validated : reference;
-    } catch (error) {
-      return mapProviderFailure(error, "active");
-    }
+    const reference = versionReference(configuredKey, configuredActiveVersion);
+    const validated = await validateVersion(reference, "active");
+    return "status" in validated ? validated : reference;
   };
 
   const provider: GcpCloudKmsKeyProviderV1 = Object.freeze({
@@ -195,7 +184,7 @@ export const createGcpCloudKmsKeyProviderV1 = (
           !versionPattern.test(reference.keyVersion) || !reference.keyVersion.startsWith(`${configuredKey}/cryptoKeyVersions/`)) {
           return failure("invalid-key-reference", reference);
         }
-        const validated = await validateVersion(reference);
+        const validated = await validateVersion(reference, "historical");
         if ("status" in validated) return validated;
       }
       try {

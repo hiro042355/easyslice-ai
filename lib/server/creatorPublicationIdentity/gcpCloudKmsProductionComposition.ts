@@ -34,10 +34,6 @@ export type GcpProtectedIdentityProductionDependenciesV1 = Readonly<{
 const createOfficialClient = (): GcpCloudKmsClientV1 => {
   const client = new KeyManagementServiceClient();
   return Object.freeze({
-    async getCryptoKey(name) {
-      const [value] = await client.getCryptoKey({ name });
-      return value;
-    },
     async getCryptoKeyVersion(name) {
       const [value] = await client.getCryptoKeyVersion({ name });
       return value;

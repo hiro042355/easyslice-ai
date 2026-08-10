@@ -1,5 +1,6 @@
 export { createProtectedIdentityProjectorV1, copyCreatorPublicationProtectedIdentityV1, copyProtectedIdentityKeyReferenceV1, equalCreatorPublicationProtectedIdentityV1, isCreatorPublicationProtectedIdentityV1, isProtectedIdentityKeyReferenceV1 } from "./projector";
 export { createGcpCloudKmsKeyProviderV1, GCP_CLOUD_KMS_PROVIDER_ID } from "./gcpCloudKmsKeyProvider";
+export { GCP_CLOUD_KMS_ACTIVE_VERSION_CONFIGURATION } from "./gcpCloudKmsKeyProvider";
 export type { GcpCloudKmsClientV1, GcpCloudKmsKeyProviderConfigurationV1, GcpCloudKmsKeyProviderV1, GcpCloudKmsReadinessResultV1 } from "./gcpCloudKmsKeyProvider";
 export { initializeGcpProtectedIdentityProductionCompositionV1 } from "./gcpCloudKmsProductionComposition";
 export type { GcpProtectedIdentityProductionCompositionV1, GcpProtectedIdentityProductionDependenciesV1, GcpProtectedIdentityProductionStartupResultV1 } from "./gcpCloudKmsProductionComposition";

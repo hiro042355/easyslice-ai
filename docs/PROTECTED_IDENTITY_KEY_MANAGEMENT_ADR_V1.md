@@ -26,7 +26,7 @@ Cloud KMS and Google Secret Manager have distinct responsibilities. Secret Manag
 
 ## 6. Active Key Semantics
 
-The active authority is the approved primary `CryptoKeyVersion` of the configured MAC `CryptoKey`. New protected identities use that exact version and persist its fully qualified, non-secret reference. The adapter must not infer the active version from creation time, lexical order, latest-version lookup, or a fallback configuration.
+For GCP Cloud KMS MAC keys, `CryptoKey.primary` is not an active-version authority. The active authority is the NEXCUT environment configuration value containing the approved, fully qualified, numeric `CryptoKeyVersion` resource name under the configured MAC `CryptoKey`. New protected identities use that exact version and persist its non-secret reference. The adapter must not infer the active version from creation time, lexical order, version listing, latest-version lookup, provider-native primary state, or a fallback configuration.
 
 Missing, disabled, invalid, or inaccessible active authority fails closed. No key is generated locally and no previous, test, or default key is substituted.
 
@@ -46,9 +46,9 @@ Credential issuance, refresh, and revocation remain Google Cloud identity respon
 
 Four identities are separated:
 
-1. The runtime identity may perform the required MAC generation and verification operations and minimum key/version metadata reads on the environment-local key only. It cannot create versions, change the primary version, disable or destroy versions, or administer IAM.
+1. The runtime identity may perform the required MAC generation and verification operations and minimum key/version metadata reads on the environment-local key only. It cannot create versions, change active-version configuration, disable or destroy versions, or administer IAM.
 2. The deployment identity may deploy Cloud Run revisions and bind the approved runtime identity. It receives no KMS lifecycle or cryptographic-use authority unless a separate audited deployment requirement is approved.
-3. The rotation operator may create and validate key versions and change the primary version. It has no routine destruction authority.
+3. The rotation operator may create and validate key versions. The deployment authority controls the reviewed NEXCUT active-version configuration transition. Neither identity has routine destruction authority.
 4. The break-glass administrator owns audited emergency disable, recovery, exceptional rotation, and separately approved destruction actions. Strong authentication, explicit approval, and audit evidence are mandatory.
 
 Least privilege applies at project, key ring, key, and version boundaries supported by the provider. Production duties must not be collapsed into one identity.
@@ -61,7 +61,7 @@ Local and test environments never receive Production credentials or references. 
 
 ## 11. Startup Semantics
 
-A Production component that requires protected identities must validate provider configuration, the configured MAC key, the approved active version, algorithm compatibility, credential availability, and required MAC capability before accepting dependent work. Failure blocks startup of that dependent capability or leaves it unavailable; it never enables a degraded cryptographic mode.
+A Production component that requires protected identities must validate provider configuration, the configured MAC key, the explicitly configured exact active version, its ownership by that key, algorithm compatibility, credential availability, and required MAC capability before accepting dependent work. Failure blocks startup of that dependent capability or leaves it unavailable; it never enables a degraded cryptographic mode.
 
 Startup must not log secrets, raw provider responses, credentials, or key material. Safe reference metadata and fixed failure classifications are sufficient.
 
@@ -93,17 +93,17 @@ Routine rotation follows this sequence:
 1. The rotation operator creates a new `CryptoKeyVersion` under the approved MAC key.
 2. The new version state and `HMAC_SHA256` compatibility are validated.
 3. MAC operation, exact historical lookup, and readiness checks pass.
-4. The approved primary version changes to the new version.
+4. The reviewed NEXCUT active-version configuration changes to the exact fully qualified numeric name of the new version.
 5. New identities are verified to persist the new exact version reference.
 6. The old version remains enabled and readable.
 7. Enhanced monitoring continues for at least the rollback observation window.
 8. Historical inventory confirms that old-version operations remain available.
 
-Provider-native rotation is not assumed to satisfy this sequence automatically. The NEXCUT primary-version transition and evidence remain authoritative.
+Provider-native primary or automatic rotation is not used for the GCP MAC authority. The NEXCUT active-version configuration transition and its evidence remain authoritative.
 
 ## 15. Rollback Procedure
 
-The minimum rollback observation window is seven days. If validation or monitoring detects a problem, the rotation operator restores the prior enabled version as primary, reruns readiness, confirms new operations use the restored version, and records the incident and transition evidence.
+The minimum rollback observation window is seven days. If validation or monitoring detects a problem, the deployment authority restores the prior exact fully qualified numeric version in NEXCUT active-version configuration, redeploys or reloads that configuration, reruns readiness, confirms new operations use the restored version, and records the incident and transition evidence.
 
 The seven-day window does not authorize deletion afterward. The former version remains governed by the indefinite historical-retention decision. Rollback never rewrites existing identity references.
 
