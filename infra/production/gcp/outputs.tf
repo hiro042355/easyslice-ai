@@ -29,7 +29,7 @@ output "kms_active_version_configuration_name" {
 }
 
 output "kms_active_crypto_key_version_name" {
-  description = "Non-secret exact numeric CryptoKeyVersion selected by controlled Production bootstrap and supplied to runtime configuration."
+  description = "Non-secret exact numeric CryptoKeyVersion selected by controlled Production bootstrap; null means the pre-runtime foundation has not assigned active authority yet."
   value       = var.active_crypto_key_version_name
   sensitive   = false
 }

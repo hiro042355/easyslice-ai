@@ -32,12 +32,14 @@ variable "cloud_run_region" {
 }
 
 variable "active_crypto_key_version_name" {
-  description = "Exact fully qualified numeric Production CryptoKeyVersion selected by the controlled bootstrap authority."
+  description = "Exact fully qualified numeric Production CryptoKeyVersion selected by the controlled bootstrap authority; null is permitted only while creating the pre-runtime KMS foundation."
   type        = string
+  default     = null
+  nullable    = true
   sensitive   = false
 
   validation {
-    condition = can(regex(
+    condition = var.active_crypto_key_version_name == null || can(regex(
       "^projects/nexcut-prod-jp-2026/locations/asia1/keyRings/nexcut-prod-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/[1-9][0-9]*$",
       var.active_crypto_key_version_name,
     ))

@@ -35,12 +35,22 @@ Application Default Credentials or approved workload identity.
 
 The MAC CryptoKey creates an initial `HMAC_SHA256` version, but neither its
 number nor provider-native primary state is authoritative. Automatic rotation
-is disabled. A controlled bootstrap step must validate exactly one eligible
-initial version and record its exact fully qualified numeric resource name in
-`PROTECTED_IDENTITY_KMS_ACTIVE_VERSION`. The required
-`active_crypto_key_version_name` input has no default and rejects aliases,
-nonnumeric versions, and cross-key references. Runtime discovery and fallback
-are prohibited. Historical versions are not automatically destroyed.
+is disabled. Production bootstrap has two distinct authorities. Infrastructure
+creation authority may create the pre-runtime KMS foundation while
+`active_crypto_key_version_name` is null. After that apply, a controlled
+bootstrap step must inspect only this Production CryptoKey, require exactly one
+eligible `ENABLED` `HMAC_SHA256` initial version, and record its exact fully
+qualified numeric resource name in `PROTECTED_IDENTITY_KMS_ACTIVE_VERSION`.
+
+Runtime active authority is separate and mandatory: every future Cloud Run or
+runtime resource must require `active_crypto_key_version_name` to be non-null
+before deployment and must wire that exact value to
+`PROTECTED_IDENTITY_KMS_ACTIVE_VERSION`. When non-null, the input rejects
+aliases, nonnumeric versions, and cross-key references. The
+`kms_active_crypto_key_version_name` output is null only during pre-runtime
+foundation bootstrap and otherwise equals the explicitly configured version.
+This two-phase sequence is not fallback or runtime discovery. Historical
+versions are not automatically destroyed.
 
 ## Boundaries retained for later phases
 
