@@ -1,11 +1,11 @@
 variable "project_id" {
   description = "The Production-only Google Cloud project authority. The candidate must be externally validated before provisioning."
   type        = string
-  default     = "nexcut-production"
+  default     = "nexcut-prod-jp-2026"
 
   validation {
-    condition     = var.project_id == "nexcut-production"
-    error_message = "This Terraform root is Production-only and must target nexcut-production."
+    condition     = var.project_id == "nexcut-prod-jp-2026"
+    error_message = "This Terraform root is Production-only and must target nexcut-prod-jp-2026."
   }
 }
 
@@ -38,7 +38,7 @@ variable "active_crypto_key_version_name" {
 
   validation {
     condition = can(regex(
-      "^projects/nexcut-production/locations/asia1/keyRings/nexcut-prod-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/[1-9][0-9]*$",
+      "^projects/nexcut-prod-jp-2026/locations/asia1/keyRings/nexcut-prod-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/[1-9][0-9]*$",
       var.active_crypto_key_version_name,
     ))
     error_message = "The active version must be an exact numeric CryptoKeyVersion under the approved Production MAC CryptoKey; aliases and cross-key values are prohibited."

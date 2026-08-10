@@ -1,11 +1,11 @@
 variable "state_project_id" {
   description = "Production Terraform state project candidate; availability must be externally validated before provisioning."
   type        = string
-  default     = "nexcut-production"
+  default     = "nexcut-prod-jp-2026"
 
   validation {
-    condition     = var.state_project_id == "nexcut-production"
-    error_message = "Production state authority must remain nexcut-production."
+    condition     = var.state_project_id == "nexcut-prod-jp-2026"
+    error_message = "Production state authority must remain nexcut-prod-jp-2026."
   }
 }
 

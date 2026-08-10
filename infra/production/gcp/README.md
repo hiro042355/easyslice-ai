@@ -1,7 +1,7 @@
 # NEXCUT Production Google Cloud foundation
 
 This Terraform root promotes the validated staging KMS foundation into the
-Production-only `nexcut-production` authority. The project ID remains a
+Production-only `nexcut-prod-jp-2026` authority. The project ID remains a
 candidate until external global availability validation succeeds. This root
 does not create the project or link billing and must never silently rename it.
 The externally approved project name is `NEXCUT Production`, and the approved
