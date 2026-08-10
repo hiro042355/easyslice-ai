@@ -23,6 +23,12 @@ output "kms_active_version_configuration_name" {
   value       = "PROTECTED_IDENTITY_KMS_ACTIVE_VERSION"
 }
 
+output "kms_active_crypto_key_version_name" {
+  description = "Non-secret exact numeric CryptoKeyVersion selected by controlled staging bootstrap and supplied to runtime configuration."
+  value       = var.active_crypto_key_version_name
+  sensitive   = false
+}
+
 output "runtime_service_account_email" {
   description = "Staging runtime service account email."
   value       = google_service_account.runtime.email

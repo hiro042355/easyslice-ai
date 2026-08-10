@@ -19,6 +19,20 @@ variable "kms_location" {
   }
 }
 
+variable "active_crypto_key_version_name" {
+  description = "Exact fully qualified numeric staging CryptoKeyVersion selected by the controlled bootstrap authority."
+  type        = string
+  sensitive   = false
+
+  validation {
+    condition = can(regex(
+      "^projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/[1-9][0-9]*$",
+      var.active_crypto_key_version_name,
+    ))
+    error_message = "The active version must be an exact numeric CryptoKeyVersion under the approved nexcut-staging MAC CryptoKey; aliases and cross-key values are prohibited."
+  }
+}
+
 locals {
   environment                   = "staging"
   runtime_service_account_id    = "nexcut-stg-runtime"

@@ -33,6 +33,13 @@ qualified numeric CryptoKeyVersion resource name under that parent key.
 Aliases, provider-native primary state, and `latest` are not configuration
 authorities.
 
+The Google provider does not expose the initial MAC CryptoKeyVersion resource
+name from `google_kms_crypto_key`. The required, non-sensitive
+`active_crypto_key_version_name` variable therefore records the exact value
+validated by controlled bootstrap. The
+`kms_active_crypto_key_version_name` output exposes that same value without
+discovery, selection, fallback, or transformation. There is no default.
+
 ## Initial active-version bootstrap
 
 After the first separately authorized apply, a controlled deployment-time step
@@ -41,7 +48,17 @@ exactly one initial version, require a numeric fully qualified name, state
 `ENABLED`, and algorithm `HMAC_SHA256`. The verified name is then recorded as
 `PROTECTED_IDENTITY_KMS_ACTIVE_VERSION`. Zero matches, multiple matches, or any
 metadata mismatch stop bootstrap. Runtime application code never lists or
-selects versions.
+selects versions. A local `*.auto.tfvars` file may supply the reviewed staging
+value for Terraform operations; such files are Git-ignored and must contain no
+credentials. Environment-specific active-version values are not committed to
+application source.
+
+When Cloud Run is introduced, its Terraform-managed normal environment
+configuration will set `PROTECTED_IDENTITY_KMS_ACTIVE_VERSION` equal to
+`active_crypto_key_version_name`. This resource identifier is not a secret and
+must not be represented as a Secret Manager reference solely to hide it. The
+Cloud Run runtime service account remains the credential authority through
+Application Default Credentials.
 
 Rotation creates and validates a new exact version, validates MAC signing and
 readiness against it, then updates the reviewed NEXCUT configuration authority.
