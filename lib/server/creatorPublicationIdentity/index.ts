@@ -4,5 +4,7 @@ export { GCP_CLOUD_KMS_ACTIVE_VERSION_CONFIGURATION } from "./gcpCloudKmsKeyProv
 export type { GcpCloudKmsClientV1, GcpCloudKmsKeyProviderConfigurationV1, GcpCloudKmsKeyProviderV1, GcpCloudKmsReadinessResultV1 } from "./gcpCloudKmsKeyProvider";
 export { initializeGcpProtectedIdentityProductionCompositionV1 } from "./gcpCloudKmsProductionComposition";
 export type { GcpProtectedIdentityProductionCompositionV1, GcpProtectedIdentityProductionDependenciesV1, GcpProtectedIdentityProductionStartupResultV1 } from "./gcpCloudKmsProductionComposition";
+export { createProductionKmsReadinessGateV1, GCP_CLOUD_KMS_CRYPTO_KEY_CONFIGURATION, projectProductionKmsReadinessHttpResponseV1 } from "./productionKmsReadiness";
+export type { ProductionKmsReadinessGateV1, ProductionKmsReadinessResultV1 } from "./productionKmsReadiness";
 export { CREATOR_PUBLICATION_IDENTITY_DOMAINS, PROTECTED_IDENTITY_ALGORITHM_VERSION, PROTECTED_IDENTITY_ENCODING_VERSION, PROTECTED_IDENTITY_KEY_PROVIDER_VERSION, PROTECTED_IDENTITY_KEY_REFERENCE_VERSION } from "./types";
 export type { CreatorPublicationIdentityDomain, CreatorPublicationProtectedIdentityV1, ProtectedIdentityKeyProviderV1, ProtectedIdentityKeyReferenceV1, ProtectedIdentityProjectionInputV1, ProtectedIdentityProjectionResultV1, ProtectedIdentityProjectorV1, ProtectedIdentityProviderFailureCode, ProtectedIdentityProviderFailureV1 } from "./types";
