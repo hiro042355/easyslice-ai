@@ -6,6 +6,7 @@ import path from "path";
 import os from "os";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,9 @@ type EnergyItem = {
   meanVolume: number;
 };
 
-export async function POST() {
+export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   const inputPath = path.join(
     os.tmpdir(),
     `audio-energy-input-${Date.now()}.mp4`

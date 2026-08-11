@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import { promisify } from "util";
 import { NextResponse } from "next/server";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 
 const execFileAsync = promisify(execFile);
@@ -11,6 +12,8 @@ const execFileAsync = promisify(execFile);
 
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   try {
     const body = await req.json().catch(() => ({}));
     const start = Number(body.start ?? 0);

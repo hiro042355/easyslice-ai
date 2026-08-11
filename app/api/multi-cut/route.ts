@@ -5,12 +5,15 @@ import { access, readFile, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
 import AdmZip from "adm-zip";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 export const runtime = "nodejs";
 
 const execAsync = promisify(exec);
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   const body = await req.json();
   const clips = body.clips;
 const outputFormat = body.outputFormat === "shorts" ? "shorts" : "original";

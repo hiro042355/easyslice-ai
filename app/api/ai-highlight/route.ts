@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export const runtime = "nodejs";
@@ -106,6 +107,8 @@ function createFallbackClip(
 }
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 

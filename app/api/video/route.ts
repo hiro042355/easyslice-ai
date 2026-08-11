@@ -3,8 +3,11 @@ import { stat } from "fs/promises";
 import { createReadStream } from "fs";
 import path from "path";
 import os from "os";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 export async function GET(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   try {
     const { searchParams } = new URL(req.url);
 const type = searchParams.get("type");

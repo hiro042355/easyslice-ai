@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import path from "path";
 import os from "os";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   try {
     const formData = await req.formData();
     const file = formData.get("video") as File | null;

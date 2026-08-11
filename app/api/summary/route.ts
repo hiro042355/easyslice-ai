@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   const body = await req.json();
   const text = body.text || "";
   const subtitles = body.subtitles || [];

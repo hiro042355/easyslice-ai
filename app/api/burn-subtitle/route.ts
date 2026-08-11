@@ -5,6 +5,7 @@ import path from "path";
 import { promisify } from "util";
 import { NextResponse } from "next/server";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 const execFileAsync = promisify(execFile);
 
@@ -169,6 +170,8 @@ ${dialogues}
 };
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   try {
     const body = await req.json();
     const transcript = String(body.transcript ?? "");

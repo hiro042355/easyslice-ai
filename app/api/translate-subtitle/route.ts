@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 const cleanJsonText = (text: string) =>
   text
@@ -7,6 +8,8 @@ const cleanJsonText = (text: string) =>
     .trim();
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 

@@ -5,8 +5,11 @@ import os from "os";
 import fs from "fs";
 import { mkdir, readdir, readFile, rm } from "fs/promises";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   const body = await req.json();
   const url = body.url;
 

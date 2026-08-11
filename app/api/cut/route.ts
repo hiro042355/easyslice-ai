@@ -4,6 +4,7 @@ import { writeFile, unlink, readFile } from "fs/promises";
 import path from "path";
 import os from "os";
 import type { AiHookConfig, HookPreview } from "../../../lib/aiHook";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
 function parseJsonField<T>(value: FormDataEntryValue | null): T | null {
   if (typeof value !== "string" || !value.trim()) {
@@ -22,6 +23,8 @@ function toConcatPath(filePath: string) {
 }
 
 export async function POST(req: Request) {
+  const authentication = await requireAuthenticatedRequest(req);
+  if (!authentication.ok) return authentication.response;
   const formData = await req.formData();
   const file = formData.get("video") as File | null;
   const isYoutube = formData.get("youtube") === "true";

@@ -1,3 +1,5 @@
+import { GoogleIdentitySignInButton } from "@/components/GoogleIdentitySignInButton";
+
 export default function AuthPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
@@ -57,15 +59,7 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-4">
-                <a
-                  href="/workspace"
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-zinc-950"
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-zinc-200 text-sm font-black text-zinc-900">
-                    G
-                  </span>
-                  Googleで続ける
-                </a>
+                <GoogleIdentitySignInButton />
 
                 <div className="flex items-center gap-3 text-xs text-gray-500">
                   <div className="h-px flex-1 bg-white/10" />
@@ -73,19 +67,14 @@ export default function AuthPage() {
                   <div className="h-px flex-1 bg-white/10" />
                 </div>
 
-                <a
-                  href="/workspace"
-                  className="block w-full rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-center text-sm font-bold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-zinc-950"
-                >
-                  メールで続ける
-                </a>
+                <p className="block w-full rounded-xl border border-cyan-300/10 bg-cyan-300/5 px-5 py-3 text-center text-sm font-bold text-cyan-100/60">メールログインは準備中です</p>
               </div>
 
               <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-gray-400">
                 <p>
                   初めての方も、すでに利用中の方もそのまま続けられます。
                   <br />
-                  ※ 現在はOpen Betaのため、認証を簡略化しています。
+                  ※ Open Betaは承認済みGoogleアカウントで利用できます。
                 </p>
                 <p className="mt-3 text-gray-500">
                   困ったこと、分かりにくかったこと、良かったこと、改善してほしいことを送ってください。
