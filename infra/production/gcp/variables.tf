@@ -21,13 +21,35 @@ variable "kms_location" {
 }
 
 variable "cloud_run_region" {
-  description = "The approved future Cloud Run region; no Cloud Run resource is managed by this root."
+  description = "The approved Production Cloud Run region."
   type        = string
   default     = "asia-northeast1"
 
   validation {
     condition     = var.cloud_run_region == "asia-northeast1"
     error_message = "The approved future Production Cloud Run region is asia-northeast1."
+  }
+}
+
+variable "production_image" {
+  description = "Immutable Production container image authority containing the KMS-backed readiness gate."
+  type        = string
+  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-app@sha256:b0d5fb9fe0d3425e218077be389996325c6f730cad7c0c384ffc5fb2367f6b7e"
+
+  validation {
+    condition     = var.production_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-app@sha256:b0d5fb9fe0d3425e218077be389996325c6f730cad7c0c384ffc5fb2367f6b7e"
+    error_message = "Production Cloud Run must use the reviewed immutable KMS-readiness image digest."
+  }
+}
+
+variable "cloud_run_invoker_member" {
+  description = "One explicitly approved Google user IAM member for private Production Cloud Run validation."
+  type        = string
+  sensitive   = false
+
+  validation {
+    condition     = can(regex("^user:[^@[:space:]]+@[^@[:space:]]+$", var.cloud_run_invoker_member))
+    error_message = "The private Cloud Run invoker must be one explicit Google user IAM member in user:email form."
   }
 }
 

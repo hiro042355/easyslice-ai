@@ -9,8 +9,23 @@ output "kms_location" {
 }
 
 output "future_cloud_run_region" {
-  description = "Approved future Cloud Run region; this root creates no Cloud Run resource."
+  description = "Production Cloud Run region."
   value       = var.cloud_run_region
+}
+
+output "cloud_run_service_name" {
+  description = "Private Production Cloud Run service name."
+  value       = google_cloud_run_v2_service.production.name
+}
+
+output "cloud_run_service_uri" {
+  description = "Private Production Cloud Run service URI; IAM authentication remains mandatory."
+  value       = google_cloud_run_v2_service.production.uri
+}
+
+output "production_image_authority" {
+  description = "Reviewed immutable Production Cloud Run image digest."
+  value       = var.production_image
 }
 
 output "production_container_repository" {

@@ -4,6 +4,7 @@ locals {
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "run.googleapis.com",
     "serviceusage.googleapis.com",
   ])
 }

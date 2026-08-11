@@ -28,6 +28,12 @@ authorized operation. Do not initialize or migrate this backend before then.
 - Enable Artifact Registry and create the private `nexcut-production` Docker
   repository in `asia-northeast1`.
 - Grant repository-scoped image publication only to `nexcut-prod-deployer`.
+- Enable Cloud Run and define one private `nexcut-production` service in
+  `asia-northeast1` from the reviewed immutable image digest.
+- Run as `nexcut-prod-runtime`, with zero minimum and two maximum instances,
+  one CPU, 1 GiB memory, concurrency 20, and a 300-second request timeout.
+- Gate startup on `/api/health/ready`, which reuses the Production KMS provider
+  metadata and real MAC probe; keep `/api/health/live` independent of KMS.
 
 Production deployment authority is an immutable image digest in the form
 `asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-app@sha256:<digest>`.
@@ -63,13 +69,19 @@ foundation bootstrap and otherwise equals the explicitly configured version.
 This two-phase sequence is not fallback or runtime discovery. Historical
 versions are not automatically destroyed.
 
-## Boundaries retained for later phases
+## Private Cloud Run authority
 
-Cloud Run is not managed here. Its approved future region is
-`asia-northeast1`; future wiring must use `nexcut-prod-runtime`, ADC, the
-configured parent CryptoKey, the exact active-version configuration, and a
-fail-closed readiness gate. It must not receive raw MAC key material or static
-credentials.
+Cloud Run ingress accepts the managed service endpoint so an explicitly
+authorized human can perform authenticated validation. Invocation remains
+private: this root grants `roles/run.invoker` only to
+`cloud_run_invoker_member`, never to `allUsers` or `allAuthenticatedUsers`.
+The service uses ADC through `nexcut-prod-runtime`; it receives only the
+non-secret parent CryptoKey name and exact numeric active version. It receives
+no raw MAC key material, static credential, Gemini, OAuth, or YouTube secret.
+
+The deployment identity receives Cloud Run Developer and service-account-user
+authority only. It receives no KMS lifecycle authority. This commit defines
+the service and its IAM but does not authorize `terraform apply`.
 
 The approved initial Production monitoring budget is USD 20 equivalent with
 25%, 50%, 75%, 90%, and 100% alerts. A budget is monitoring, not a hard cap.
