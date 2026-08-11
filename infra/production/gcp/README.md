@@ -25,6 +25,17 @@ authorized operation. Do not initialize or migrate this backend before then.
 - Create the `asia1` protected-identity MAC key authority.
 - Grant runtime MAC signing and exact metadata-read access.
 - Grant rotation-only version creation and inspection.
+- Enable Artifact Registry and create the private `nexcut-production` Docker
+  repository in `asia-northeast1`.
+- Grant repository-scoped image publication only to `nexcut-prod-deployer`.
+
+Production deployment authority is an immutable image digest in the form
+`asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-app@sha256:<digest>`.
+Tags may aid operators but are never deployment authority. Automatic cleanup
+is intentionally deferred: the deployed digest and rollback-worthy images must
+not be deleted, and the initial retention target is the most recent ten tagged
+or referenced Production images. The repository is private; neither public
+principals nor the runtime service account receive writer access.
 
 The deployment identity is intentionally unprivileged here. Break-glass remains
 a human-controlled, MFA-protected, audited emergency authority and is not

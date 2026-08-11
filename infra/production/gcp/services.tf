@@ -1,5 +1,6 @@
 locals {
   required_services = toset([
+    "artifactregistry.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",

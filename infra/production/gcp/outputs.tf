@@ -13,6 +13,11 @@ output "future_cloud_run_region" {
   value       = var.cloud_run_region
 }
 
+output "production_container_repository" {
+  description = "Private Production Artifact Registry Docker repository. Deployments must use an immutable digest reference."
+  value       = "${var.cloud_run_region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.production_app.repository_id}/nexcut-app"
+}
+
 output "kms_key_ring_name" {
   description = "Fully qualified Production Cloud KMS KeyRing resource name."
   value       = google_kms_key_ring.protected_identity.id
