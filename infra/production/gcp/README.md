@@ -34,6 +34,20 @@ authorized operation. Do not initialize or migrate this backend before then.
   one CPU, 1 GiB memory, concurrency 20, and a 300-second request timeout.
 - Gate startup on `/api/health/ready`, which reuses the Production KMS provider
   metadata and real MAC probe; keep `/api/health/live` independent of KMS.
+- Create a zonal Cloud SQL Enterprise PostgreSQL 18 instance in
+  `asia-northeast1` using `db-custom-1-3840`, 10 GiB SSD with automatic growth,
+  automated backups, seven-day PITR logs, deletion protection, IAM database
+  authentication, and required Cloud SQL Connector enforcement. No authorized
+  network is configured.
+- Create separate keyless runtime and migration service accounts and IAM
+  database users. Google IAM permits connection and login; schema grants remain
+  an explicit migration-bootstrap responsibility and are not runtime authority.
+- Create one private regional Production media bucket with uniform bucket-level
+  access and public access prevention. The runtime receives bucket-scoped
+  `roles/storage.objectUser`, not project-wide storage administration.
+- Delete only intermediate objects carrying an explicit custom-time after seven
+  days. Input and durable output objects must omit custom-time and are therefore
+  outside the lifecycle deletion rule.
 
 Production deployment authority is an immutable image digest in the form
 `asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-app@sha256:<digest>`.
@@ -87,6 +101,15 @@ The approved initial Production monitoring budget is USD 20 equivalent with
 25%, 50%, 75%, 90%, and 100% alerts. A budget is monitoring, not a hard cap.
 Billing-budget permissions and mutation are outside this root; configure the
 budget only through a separately authorized billing authority.
+
+## Future durable-storage application composition
+
+The ownership application phase consumes only server-side configuration:
+`MEDIA_BUCKET_NAME`, `CLOUD_SQL_INSTANCE_CONNECTION_NAME`, `POSTGRES_DATABASE`,
+`POSTGRES_IAM_USER`, and dedicated media WIF/service-account configuration.
+None may use a `NEXT_PUBLIC_` name. The Cloud SQL Node.js Connector must provide
+the connection transport and short-lived IAM authentication; no runtime
+database password or service-account key is permitted.
 
 ## Validation workflow
 

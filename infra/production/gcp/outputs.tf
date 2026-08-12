@@ -78,3 +78,33 @@ output "vercel_wif_provider_resource" {
   description = "Non-secret provider resource consumed by the request-scoped Vercel credential adapter."
   value       = google_iam_workload_identity_pool_provider.vercel_production.name
 }
+
+output "cloud_sql_instance_connection_name" {
+  description = "Nonsensitive Cloud SQL Connector target for the Production PostgreSQL instance."
+  value       = google_sql_database_instance.production.connection_name
+}
+
+output "postgres_database" {
+  description = "Production application database name."
+  value       = google_sql_database.application.name
+}
+
+output "postgres_iam_user" {
+  description = "Passwordless IAM database username used by the Production media runtime."
+  value       = google_sql_user.media_runtime.name
+}
+
+output "database_migration_service_account_email" {
+  description = "Separate keyless Production database migration identity."
+  value       = google_service_account.database_migration.email
+}
+
+output "media_bucket_name" {
+  description = "Private Production media bucket name."
+  value       = google_storage_bucket.production_media.name
+}
+
+output "media_runtime_service_account_email" {
+  description = "Dedicated keyless Vercel-federated Production media runtime identity."
+  value       = google_service_account.media_runtime.email
+}

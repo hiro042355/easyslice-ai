@@ -33,3 +33,21 @@ resource "google_service_account" "web_auth" {
 
   depends_on = [google_project_service.required]
 }
+
+resource "google_service_account" "media_runtime" {
+  project      = var.project_id
+  account_id   = local.media_runtime_service_account_id
+  display_name = "NEXCUT Production media runtime"
+  description  = "Keyless Vercel-federated runtime identity for Production media storage and Cloud SQL access."
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account" "database_migration" {
+  project      = var.project_id
+  account_id   = local.database_migration_service_account_id
+  display_name = "NEXCUT Production database migrator"
+  description  = "Controlled keyless identity for Production database migrations; not used by application runtime."
+
+  depends_on = [google_project_service.required]
+}

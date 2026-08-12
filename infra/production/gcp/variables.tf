@@ -31,6 +31,28 @@ variable "cloud_run_region" {
   }
 }
 
+variable "cloud_sql_region" {
+  description = "The approved Production Cloud SQL region."
+  type        = string
+  default     = "asia-northeast1"
+
+  validation {
+    condition     = var.cloud_sql_region == "asia-northeast1"
+    error_message = "The approved Production Cloud SQL region is asia-northeast1."
+  }
+}
+
+variable "media_bucket_name" {
+  description = "Globally unique Production media bucket authority."
+  type        = string
+  default     = "nexcut-prod-jp-2026-media"
+
+  validation {
+    condition     = can(regex("^nexcut-prod-jp-2026-media(?:-[a-z0-9]+)?$", var.media_bucket_name))
+    error_message = "The Production media bucket must use the approved name or a minimal deterministic suffix."
+  }
+}
+
 variable "production_image" {
   description = "Immutable Production container image authority containing the KMS-backed readiness gate."
   type        = string
@@ -81,16 +103,18 @@ variable "rotation_impersonator_member" {
 }
 
 locals {
-  environment                          = "production"
-  runtime_service_account_id           = "nexcut-prod-runtime"
-  deployment_service_account_id        = "nexcut-prod-deployer"
-  rotation_service_account_id          = "nexcut-prod-kms-rotator"
-  web_auth_service_account_id          = "nexcut-prod-web-auth"
-  vercel_workload_identity_pool_id     = "nexcut-prod-vercel"
-  vercel_workload_identity_provider_id = "vercel-production"
-  vercel_team_slug                     = "hiro423"
-  vercel_owner_id                      = "team_DBeBBBY39xi5l6rkzBzAwQ4A"
-  vercel_project_id                    = "prj_sfZiLkSZAtz0Mr6v1fW58vNhCxfu"
-  key_ring_name                        = "nexcut-prod-identity"
-  crypto_key_name                      = "protected-identity-mac"
+  environment                           = "production"
+  runtime_service_account_id            = "nexcut-prod-runtime"
+  deployment_service_account_id         = "nexcut-prod-deployer"
+  rotation_service_account_id           = "nexcut-prod-kms-rotator"
+  web_auth_service_account_id           = "nexcut-prod-web-auth"
+  media_runtime_service_account_id      = "nexcut-prod-media-runtime"
+  database_migration_service_account_id = "nexcut-prod-db-migrator"
+  vercel_workload_identity_pool_id      = "nexcut-prod-vercel"
+  vercel_workload_identity_provider_id  = "vercel-production"
+  vercel_team_slug                      = "hiro423"
+  vercel_owner_id                       = "team_DBeBBBY39xi5l6rkzBzAwQ4A"
+  vercel_project_id                     = "prj_sfZiLkSZAtz0Mr6v1fW58vNhCxfu"
+  key_ring_name                         = "nexcut-prod-identity"
+  crypto_key_name                       = "protected-identity-mac"
 }
