@@ -22,6 +22,8 @@
   },
 ];
 
+import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
+
 export default function WorkspaceHomePage() {
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
@@ -29,6 +31,10 @@ export default function WorkspaceHomePage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent" />
 
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-5 py-10 sm:px-8 lg:px-10">
+        <div className="mb-8 flex justify-end">
+          <AuthenticatedAccountControl />
+        </div>
+
         <div className="mx-auto mb-8 w-full max-w-3xl text-center sm:mb-12">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
             NEXCUT

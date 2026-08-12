@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type DragEvent } from "react";
+import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
 import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
 import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
@@ -774,8 +775,11 @@ export default function WorkspaceFlowPage() {
             </h1>
           </div>
 
-          <div className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-            One Screen. One Goal.
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+              One Screen. One Goal.
+            </div>
+            <AuthenticatedAccountControl />
           </div>
         </header>
 
