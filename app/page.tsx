@@ -1419,6 +1419,9 @@ const downloadThumbnail = async (clipIndex: number) => {
     <a href="/workspace" className="text-cyan-300 hover:text-cyan-200">
       ← Workspace Home
     </a>
+    <a href="/auth" className="rounded-full border border-white/10 bg-white/10 px-2 py-1 text-white hover:bg-white/15">
+      Googleでログイン
+    </a>
     <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-cyan-200">
       Open Beta v1.0 RC
     </span>
