@@ -81,10 +81,16 @@ variable "rotation_impersonator_member" {
 }
 
 locals {
-  environment                   = "production"
-  runtime_service_account_id    = "nexcut-prod-runtime"
-  deployment_service_account_id = "nexcut-prod-deployer"
-  rotation_service_account_id   = "nexcut-prod-kms-rotator"
-  key_ring_name                 = "nexcut-prod-identity"
-  crypto_key_name               = "protected-identity-mac"
+  environment                          = "production"
+  runtime_service_account_id           = "nexcut-prod-runtime"
+  deployment_service_account_id        = "nexcut-prod-deployer"
+  rotation_service_account_id          = "nexcut-prod-kms-rotator"
+  web_auth_service_account_id          = "nexcut-prod-web-auth"
+  vercel_workload_identity_pool_id     = "nexcut-prod-vercel"
+  vercel_workload_identity_provider_id = "vercel-production"
+  vercel_team_slug                     = "hiro423"
+  vercel_owner_id                      = "team_DBeBBBY39xi5l6rkzBzAwQ4A"
+  vercel_project_id                    = "prj_sfZiLkSZAtz0Mr6v1fW58vNhCxfu"
+  key_ring_name                        = "nexcut-prod-identity"
+  crypto_key_name                      = "protected-identity-mac"
 }

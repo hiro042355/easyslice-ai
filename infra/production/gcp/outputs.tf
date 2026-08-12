@@ -68,3 +68,13 @@ output "rotation_service_account_email" {
   description = "Production KMS rotation service account email."
   value       = google_service_account.rotation.email
 }
+
+output "vercel_firebase_service_account_email" {
+  description = "Dedicated keyless Vercel-federated Firebase Authentication identity."
+  value       = google_service_account.web_auth.email
+}
+
+output "vercel_wif_provider_resource" {
+  description = "Non-secret provider resource consumed by the request-scoped Vercel credential adapter."
+  value       = google_iam_workload_identity_pool_provider.vercel_production.name
+}

@@ -4,8 +4,11 @@ locals {
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "identitytoolkit.googleapis.com",
     "run.googleapis.com",
     "serviceusage.googleapis.com",
+    "sts.googleapis.com",
   ])
 }
 

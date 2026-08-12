@@ -43,11 +43,13 @@
   },
   "dependencies": {
     "@google-cloud/kms": "^5.7.0",
+    "@vercel/oidc": "^3.8.1",
     "adm-zip": "^0.5.17",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.5.0",
+    "google-auth-library": "^10.5.0",
     "html-to-image": "^1.11.13",
     "next": "16.2.7",
     "pg": "8.22.0",
