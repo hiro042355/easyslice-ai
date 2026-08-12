@@ -42,7 +42,9 @@
     "test:postgresql-reconciliation-stores": "tsx --test --test-concurrency=1 tests/postgresqlReconciliationStores/*.test.ts"
   },
   "dependencies": {
+    "@google-cloud/cloud-sql-connector": "^1.11.3",
     "@google-cloud/kms": "^5.7.0",
+    "@google-cloud/storage": "^7.22.0",
     "@vercel/oidc": "^3.8.1",
     "adm-zip": "^0.5.17",
     "cors": "^2.8.6",
