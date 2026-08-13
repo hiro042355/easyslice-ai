@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
+import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
 import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
 import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
@@ -119,7 +120,7 @@ export default function WorkspaceFlowPage() {
   const [universalUrl, setUniversalUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [video, setVideo] = useState<File | null>(null);
-  const [durableMedia, setDurableMedia] = useState<Readonly<{ jobId: string; mediaId: string }> | null>(null);
+  const [durableMedia, setDurableMedia] = useState<DurableMediaReference | null>(null);
   const [videoSrc, setVideoSrc] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
   const [videoDuration, setVideoDuration] = useState(0);
@@ -285,30 +286,10 @@ export default function WorkspaceFlowPage() {
       setLoading(true);
       resetUploadResult();
 
-      const formData = new FormData();
-      formData.append("video", file);
-
-      const res = await fetch("/api/upload-video", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "動画アップロードに失敗しました");
-      }
-
-      const admissionForm = new FormData();
-      admissionForm.append("video", file);
-      const admissionResponse = await fetch("/api/media/admit", { method: "POST", body: admissionForm });
-      const admission = await admissionResponse.json();
-      if (!admissionResponse.ok || typeof admission.jobId !== "string" || typeof admission.mediaId !== "string") {
-        throw new Error("Durable media admission failed");
-      }
-      setDurableMedia({ jobId: admission.jobId, mediaId: admission.mediaId });
+      setDurableMedia(await admitDurableMedia(file));
 
       setVideo(file);
-      setVideoSrc(`/api/video?t=${Date.now()}`);
+      setVideoSrc(URL.createObjectURL(file));
       setCurrentYoutubeUrl("");
       setVideoTitle(file.name);
       setVideoDuration(0);

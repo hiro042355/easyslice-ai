@@ -44,8 +44,16 @@ test("ownership rejection precedes GCS, filesystem, and FFmpeg work", () => {
 test("admission compensates GCS when its DB transaction fails", () => {
   assert.match(admission, /query\("BEGIN"\)/);
   assert.match(admission, /query\("ROLLBACK"\)/);
-  assert.match(admission, /file\(storageKey\)\.delete\(\{ ignoreNotFound: true \}\)/);
-  assert.doesNotMatch(admission, /form\.get\(["'](?:userId|ownerUid|storageKey)["']\)/);
+  assert.match(admission, /object\.delete\(\{ ignoreNotFound: true \}\)/);
+  assert.doesNotMatch(admission, /(?:form|body)\.(?:get|storageKey|ownerUid|userId)/);
+});
+
+test("admission bypasses function payload limits without transferring storage-key authority", () => {
+  assert.match(admission, /createResumableUpload/);
+  assert.match(admission, /origin,/);
+  assert.match(admission, /nexcutOwnerUid: ownerUid/);
+  assert.match(admission, /createMediaStorageKey\(body\.jobId, body\.mediaId/);
+  assert.doesNotMatch(admission, /request\.formData\(\)|video\.arrayBuffer\(\)/);
 });
 
 test("export insert failure compensates only the newly generated output object", () => {

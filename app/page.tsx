@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
 import { toPng } from "html-to-image";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
@@ -192,7 +193,7 @@ const updateClip = (
   setClips(newClips);
 };
   const [video, setVideo] = useState<File | null>(null);
-  const [durableMedia, setDurableMedia] = useState<Readonly<{ jobId: string; mediaId: string }> | null>(null);
+  const [durableMedia, setDurableMedia] = useState<DurableMediaReference | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
  const setStartFromCurrent = () => {
@@ -674,31 +675,10 @@ const handleUploadVideo = async (file: File | null) => {
     setLoading(true);
     setSuccessMessage("");
 
-    const formData = new FormData();
-    formData.append("video", file);
-
-    const res = await fetch("/api/upload-video", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || "動画アップロードに失敗しました");
-    }
-
-    const admissionForm = new FormData();
-    admissionForm.append("video", file);
-    const admissionResponse = await fetch("/api/media/admit", { method: "POST", body: admissionForm });
-    const admission = await admissionResponse.json();
-    if (!admissionResponse.ok || typeof admission.jobId !== "string" || typeof admission.mediaId !== "string") {
-      throw new Error("Durable media admission failed");
-    }
-    setDurableMedia({ jobId: admission.jobId, mediaId: admission.mediaId });
+    setDurableMedia(await admitDurableMedia(file));
 
     setVideo(file);
-    setVideoSrc(`/api/video?t=${Date.now()}`);
+    setVideoSrc(URL.createObjectURL(file));
     setCurrentYoutubeUrl("");
     setYoutubeSourceMetadata(null);
 
@@ -1124,28 +1104,9 @@ const enableYoutube =
 
     setVideo(file);
 
-    const formData = new FormData();
-    formData.append("video", file);
+    setDurableMedia(await admitDurableMedia(file));
 
-    const res = await fetch("/api/upload-video", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      throw new Error("動画アップロードに失敗しました");
-    }
-
-    const admissionForm = new FormData();
-    admissionForm.append("video", file);
-    const admissionResponse = await fetch("/api/media/admit", { method: "POST", body: admissionForm });
-    const admission = await admissionResponse.json();
-    if (!admissionResponse.ok || typeof admission.jobId !== "string" || typeof admission.mediaId !== "string") {
-      throw new Error("Durable media admission failed");
-    }
-    setDurableMedia({ jobId: admission.jobId, mediaId: admission.mediaId });
-
-    setVideoSrc(`/api/video?t=${Date.now()}`);
+    setVideoSrc(URL.createObjectURL(file));
     setVideoDuration(0);
     setDownloadUrl("");
     setCutVideoUrl("");
