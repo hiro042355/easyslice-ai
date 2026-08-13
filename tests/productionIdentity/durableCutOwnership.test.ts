@@ -54,6 +54,7 @@ test("admission bypasses function payload limits without transferring storage-ke
   assert.match(admission, /nexcutOwnerUid: ownerUid/);
   assert.match(admission, /createMediaStorageKey\(body\.jobId, body\.mediaId/);
   assert.doesNotMatch(admission, /request\.formData\(\)|video\.arrayBuffer\(\)/);
+  assert.doesNotMatch(admission, /predefinedAcl|\bprivate\s*:|\bpublic\s*:|makePrivate|makePublic|\.acl\b/);
 });
 
 test("export insert failure compensates only the newly generated output object", () => {

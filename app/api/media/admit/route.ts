@@ -42,7 +42,6 @@ export async function POST(request: Request) {
         const storageKey = createMediaStorageKey(jobId, mediaId, "input", body.mime);
         const [uploadUrl] = await bucket.file(storageKey).createResumableUpload({
           origin,
-          private: true,
           metadata: {
             contentType: body.mime,
             metadata: {
