@@ -7,7 +7,7 @@ import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
 import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
-import { addReviewQueueItem, type ReviewQueueItem } from "../../lib/reviewQueue";
+import { addReviewQueueItem, isDurableExportId, type ReviewQueueItem } from "../../lib/reviewQueue";
 import { detectUrlSource, type UrlSource } from "../../lib/urlImport";
 
 const steps = [
@@ -594,12 +594,17 @@ export default function WorkspaceFlowPage() {
         throw new Error("MP4生成に失敗しました");
       }
 
+      const exportId = res.headers.get("X-Nexcut-Export-Id");
+      if (!isDurableExportId(exportId)) {
+        throw new Error("生成済み動画の永続参照を確認できませんでした");
+      }
+
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
       const exportedAt = new Date().toISOString();
       const reviewQueueItem: ReviewQueueItem = {
-        id: `review-${Date.now()}`,
+        id: `review-${exportId}`,
         videoTitle: primaryClip.title || videoTitle || video?.name || "NEXCUT Export",
         description:
           primaryClip.reason ||
@@ -612,7 +617,7 @@ export default function WorkspaceFlowPage() {
         aiHookEnabled: aiHookConfig.enabled,
         status: "ready-for-review",
         reviewStatus: "ready-for-review",
-        exportedVideoPath: url,
+        exportId,
         exportedAt,
         createdAt: exportedAt,
       };

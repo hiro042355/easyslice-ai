@@ -19,12 +19,25 @@ export type ReviewQueueItem = {
   aiHookEnabled: boolean;
   status: ReviewStatus;
   reviewStatus: ReviewStatus;
+  exportId?: string;
   exportedVideoPath?: string;
   exportedAt?: string;
   createdAt: string;
 };
 
 const reviewQueueStorageKey = "nexcut-review-queue";
+const durableExportIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const isDurableExportId = (value: string | null | undefined): value is string =>
+  typeof value === "string" && durableExportIdPattern.test(value);
+
+export const resolveReviewExportPath = (item: ReviewQueueItem): string | undefined =>
+  isDurableExportId(item.exportId) ? `/api/exports/${encodeURIComponent(item.exportId)}` : undefined;
+
+const withoutEphemeralBlobAuthority = (item: ReviewQueueItem): ReviewQueueItem =>
+  item.exportedVideoPath?.startsWith("blob:")
+    ? { ...item, exportedVideoPath: undefined }
+    : item;
 
 export const mockReviewQueueItems: ReviewQueueItem[] = [
   {
@@ -79,7 +92,7 @@ export function getStoredReviewQueueItems(): ReviewQueueItem[] {
 
     const items = JSON.parse(raw) as ReviewQueueItem[];
 
-    return Array.isArray(items) ? items : [];
+    return Array.isArray(items) ? items.map(withoutEphemeralBlobAuthority) : [];
   } catch {
     return [];
   }
@@ -90,7 +103,10 @@ export function saveReviewQueueItems(items: ReviewQueueItem[]) {
     return;
   }
 
-  window.localStorage.setItem(reviewQueueStorageKey, JSON.stringify(items));
+  window.localStorage.setItem(
+    reviewQueueStorageKey,
+    JSON.stringify(items.map(withoutEphemeralBlobAuthority)),
+  );
 }
 
 export function addReviewQueueItem(item: ReviewQueueItem) {

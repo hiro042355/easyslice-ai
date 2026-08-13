@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   getStoredReviewQueueItems,
+  resolveReviewExportPath,
   type ReviewPlatform,
   type ReviewQueueItem,
   type ReviewStatus,
@@ -275,6 +276,16 @@ export default function ReviewQueuePage() {
                       <p className="mt-2 text-xs text-gray-500">
                         Exported: {new Date(item.exportedAt).toLocaleString()}
                       </p>
+                    )}
+                    {resolveReviewExportPath(item) ? (
+                      <a
+                        href={resolveReviewExportPath(item)}
+                        className="mt-3 inline-flex rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/15"
+                      >
+                        Download Export
+                      </a>
+                    ) : (
+                      <p className="mt-3 text-xs text-gray-500">Legacy media preview is unavailable after reload.</p>
                     )}
                   </div>
 
