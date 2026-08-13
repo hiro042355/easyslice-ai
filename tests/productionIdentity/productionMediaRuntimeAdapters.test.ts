@@ -29,7 +29,10 @@ test("GCS compatibility adapter preserves the impersonated authorization header"
   const source = {
     async request(options: unknown) {
       requests.push(options);
-      return { data: { accepted: true } };
+      return {
+        data: { accepted: true },
+        headers: new Headers({ location: "https://storage.googleapis.test/upload/session" }),
+      };
     },
     async getRequestHeaders() {
       calls += 1;
@@ -50,7 +53,10 @@ test("GCS compatibility adapter preserves the impersonated authorization header"
   assert.equal(calls, 1);
 
   const request = { url: "https://storage.googleapis.com/upload", method: "POST" };
-  assert.deepEqual(await compatible.request(request), { data: { accepted: true } });
+  assert.deepEqual(await compatible.request(request), {
+    data: { accepted: true },
+    headers: { location: "https://storage.googleapis.test/upload/session" },
+  });
   assert.deepEqual(requests, [request]);
 });
 
