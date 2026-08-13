@@ -8,7 +8,7 @@ export const createStorageCompatibleAuthClient = (authClient: IdentityPoolClient
   async request(options: Parameters<IdentityPoolClient["request"]>[0]) {
     const response = await authClient.request(options);
     const headers = response.headers;
-    if (!(headers instanceof Headers)) return response;
+    if (typeof headers?.forEach !== "function") return response;
     const compatibleHeaders: Record<string, string> = {};
     headers.forEach((value, name) => { compatibleHeaders[name] = value; });
     return { ...response, headers: compatibleHeaders };

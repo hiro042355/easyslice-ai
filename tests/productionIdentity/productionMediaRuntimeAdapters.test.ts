@@ -26,12 +26,19 @@ test("media WIF authority is exact and independent from Firebase service account
 test("GCS compatibility adapter preserves the impersonated authorization header", async () => {
   let calls = 0;
   const requests: unknown[] = [];
+  class ForeignResponseHeaders {
+    forEach(callback: (value: string, name: string) => void) {
+      callback("https://storage.googleapis.test/upload/session", "location");
+    }
+  }
+  const responseHeaders = new ForeignResponseHeaders();
+  assert.equal(responseHeaders instanceof Headers, false);
   const source = {
     async request(options: unknown) {
       requests.push(options);
       return {
         data: { accepted: true },
-        headers: new Headers({ location: "https://storage.googleapis.test/upload/session" }),
+        headers: responseHeaders,
       };
     },
     async getRequestHeaders() {
