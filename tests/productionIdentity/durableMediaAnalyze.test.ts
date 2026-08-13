@@ -9,7 +9,9 @@ import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
 import {
   AudioInspectionFailure,
+  collectFfmpegBinaryDiagnostic,
   inspectAudioMedia,
+  projectFfmpegSpawnFailure,
 } from "../../lib/server/audioHighlightInspection";
 import { decideCanonicalClipBoundary } from "../../lib/clipBoundary";
 
@@ -138,9 +140,42 @@ test("audio inspection distinguishes no-audio and malformed media from executabl
     );
     await assert.rejects(
       inspectAudioMedia(path.join(root, "missing-ffmpeg"), malformed),
-      (error: unknown) => error instanceof AudioInspectionFailure && error.reason === "ffmpeg-execution-failed",
+      (error: unknown) => error instanceof AudioInspectionFailure &&
+        error.reason === "ffmpeg-binary-missing" &&
+        error.diagnostic?.spawn?.code === "ENOENT" &&
+        error.diagnostic.binary.exists === false,
     );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("FFmpeg binary diagnostics expose only safe packaged metadata", async () => {
+  assert.ok(ffmpegPath);
+  const diagnostic = await collectFfmpegBinaryDiagnostic(ffmpegPath);
+  const serialized = JSON.stringify(diagnostic);
+  assert.equal(diagnostic.pathClassification, "node_modules/ffmpeg-static");
+  assert.equal(diagnostic.exists, true);
+  assert.equal(diagnostic.statSucceeded, true);
+  assert.equal(diagnostic.fOk, true);
+  assert.equal(diagnostic.xOk, true);
+  assert.ok((diagnostic.fileSize ?? 0) > 0);
+  assert.doesNotMatch(serialized, /(?:Users|tmp|jobs|storageKey|ownerUid|token|cookie)/i);
+  assert.doesNotMatch(serialized, new RegExp(ffmpegPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+});
+
+test("spawn diagnostics preserve ENOENT and EACCES without leaking executable or media paths", () => {
+  const missing = projectFfmpegSpawnFailure(Object.assign(new Error("private path"), {
+    code: "ENOENT",
+    errno: -4058,
+    syscall: "spawn /private/node_modules/ffmpeg-static/ffmpeg",
+  }));
+  const denied = projectFfmpegSpawnFailure(Object.assign(new Error("private path"), {
+    code: "EACCES",
+    errno: -13,
+    syscall: "spawn /private/node_modules/ffmpeg-static/ffmpeg",
+  }));
+  assert.deepEqual(missing, { code: "ENOENT", errno: -4058, syscall: "spawn" });
+  assert.deepEqual(denied, { code: "EACCES", errno: -13, syscall: "spawn" });
+  assert.doesNotMatch(JSON.stringify({ missing, denied }), /private|ffmpeg-static\/ffmpeg|media|token|uid/i);
 });

@@ -135,7 +135,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof AudioInspectionFailure) {
-      console.error("audio-analysis-inspection-failed", { reason: error.reason });
+      console.error("audio-analysis-inspection-failed", {
+        reason: error.reason,
+        diagnostic: error.diagnostic,
+      });
       const status = error.reason === "audio-stream-not-found" ? 422 : 500;
       return NextResponse.json({ success: false, error: error.reason }, { status });
     }
