@@ -3,6 +3,9 @@ import test from "node:test";
 import { withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
 
 const EXPECTED_TABLES = [
+  "exports",
+  "jobs",
+  "media",
   "workflow_completion_states",
   "workflow_final_results",
   "workflow_outbox_events",
@@ -53,6 +56,8 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
     assert.deepEqual(
       constraints.rows.filter((row) => row.constraint_type === "FOREIGN KEY").map((row) => row.constraint_name),
       [
+        "fk_exports_job",
+        "fk_media_job",
         "workflow_outbox_events_result_fk",
         "workflow_reconciliation_manual_repairs_request_fk",
         "workflow_reconciliation_observations_request_fk",
@@ -99,6 +104,7 @@ test("replay is idempotent, validate succeeds, and migration version is unique",
       { version: "000003", success: true },
       { version: "000004", success: true },
       { version: "000005", success: true },
+      { version: "000006", success: true },
     ]);
   });
 });
