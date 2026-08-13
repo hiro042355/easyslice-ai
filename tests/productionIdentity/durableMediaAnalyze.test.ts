@@ -87,9 +87,10 @@ test("Analyze uses argument arrays and cleans the isolated durable temp root", (
   assert.match(analyze, /finally \{[\s\S]*cleanupJobTempRoot\(jobId\)/);
 });
 
-test("Production build materializes only the audio route FFmpeg runtime asset", () => {
+test("Production build materializes the canonical FFmpeg runtime asset for active processing routes", () => {
   assert.equal(packageJson.scripts.prebuild, "node scripts/materializeFfmpegBinary.mjs");
   assert.match(nextConfig, /"\/api\/audio-energy": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
+  assert.match(nextConfig, /"\/api\/cut": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
   assert.doesNotMatch(nextConfig, /"\/api\/ai-mv|"\/ai-mv|"\/api\/\*"|"\/\*"/);
 });
 

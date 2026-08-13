@@ -3,17 +3,30 @@ import { randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
+import { collectFfmpegBinaryDiagnostic } from "@/lib/server/audioHighlightInspection";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 import { cleanupJobTempRoot, createDurableMediaOwnershipRepository, createExportStorageKey, createJobTempDirectories, isUuid } from "@/lib/server/durableMediaOwnership";
+import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
 import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/composition";
 
 export const runtime = "nodejs";
 
-const runFfmpeg = (args: readonly string[]) => new Promise<void>((resolve, reject) => {
-  const child = spawn("ffmpeg", args, { shell: false, stdio: "ignore" });
-  child.once("error", reject);
-  child.once("exit", (code) => code === 0 ? resolve() : reject(new Error("ffmpeg-failed")));
-});
+const runFfmpeg = async (args: readonly string[]): Promise<void> => {
+  const executable = resolvePackagedFfmpeg();
+  const diagnostic = await collectFfmpegBinaryDiagnostic(executable);
+  if (!diagnostic.exists || !diagnostic.statSucceeded || !diagnostic.fOk) {
+    throw new Error("ffmpeg-binary-missing");
+  }
+  if (process.platform !== "win32" && (!diagnostic.executableBit || !diagnostic.xOk)) {
+    throw new Error("ffmpeg-not-executable");
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(executable, [...args], { shell: false, stdio: "ignore" });
+    child.once("error", reject);
+    child.once("exit", (code) => code === 0 ? resolve() : reject(new Error("ffmpeg-failed")));
+  });
+};
 
 export async function POST(request: Request) {
   const authentication = await requireAuthenticatedRequest(request);

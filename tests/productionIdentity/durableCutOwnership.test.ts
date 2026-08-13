@@ -4,6 +4,7 @@ import test from "node:test";
 
 const cut = readFileSync("app/api/cut/route.ts", "utf8");
 const admission = readFileSync("app/api/media/admit/route.ts", "utf8");
+const nextConfig = readFileSync("next.config.ts", "utf8");
 
 test("cut preserves authentication, ownership, materialization, process, upload, and export ordering", () => {
   const ordered = [
@@ -27,10 +28,27 @@ test("cut preserves authentication, ownership, materialization, process, upload,
 
 test("cut does not accept client ownership, storage, filename, or shell authority", () => {
   assert.doesNotMatch(cut, /form\.get\(["'](?:userId|ownerUid|storageKey|filename)["']\)/);
-  assert.match(cut, /spawn\("ffmpeg", args, \{ shell: false/);
+  assert.match(cut, /spawn\(executable, \[\.\.\.args\], \{ shell: false/);
+  assert.doesNotMatch(cut, /spawn\(["']ffmpeg["']/);
   assert.doesNotMatch(cut, /\bexec(?:Sync)?\s*\(/);
   assert.match(cut, /createExportStorageKey\(jobId, exportId/);
   assert.match(cut, /cleanupJobTempRoot\(jobId\)/);
+});
+
+test("cut uses the canonical packaged FFmpeg runtime with safe availability checks", () => {
+  const resolve = cut.indexOf("resolvePackagedFfmpeg()");
+  const inspect = cut.indexOf("collectFfmpegBinaryDiagnostic(executable)");
+  const spawn = cut.indexOf("spawn(executable, [...args]");
+  assert.ok(resolve > 0 && inspect > resolve && spawn > inspect);
+  assert.match(cut, /ffmpeg-binary-missing/);
+  assert.match(cut, /ffmpeg-not-executable/);
+  assert.doesNotMatch(cut, /console\.(?:log|error|warn)[\s\S]*executable/);
+});
+
+test("Production tracing packages FFmpeg only for the active audio and cut routes", () => {
+  assert.match(nextConfig, /"\/api\/audio-energy": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
+  assert.match(nextConfig, /"\/api\/cut": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
+  assert.doesNotMatch(nextConfig, /"\/api\/ai-mv|"\/api\/\*|"\/\*"/);
 });
 
 test("ownership rejection precedes GCS, filesystem, and FFmpeg work", () => {
