@@ -99,6 +99,11 @@ output "database_migration_service_account_email" {
   value       = google_service_account.database_migration.email
 }
 
+output "database_bootstrap_service_account_email" {
+  description = "Dedicated one-time keyless Production database bootstrap identity."
+  value       = google_service_account.database_bootstrap.email
+}
+
 output "media_bucket_name" {
   description = "Private Production media bucket name."
   value       = google_storage_bucket.production_media.name

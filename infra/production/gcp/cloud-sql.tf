@@ -65,6 +65,13 @@ resource "google_sql_user" "database_migration" {
   type     = "CLOUD_IAM_SERVICE_ACCOUNT"
 }
 
+resource "google_sql_user" "database_bootstrap" {
+  project  = var.project_id
+  instance = google_sql_database_instance.production.name
+  name     = trimsuffix(google_service_account.database_bootstrap.email, ".gserviceaccount.com")
+  type     = "CLOUD_IAM_SERVICE_ACCOUNT"
+}
+
 resource "google_project_iam_member" "media_runtime_cloud_sql_client" {
   project = var.project_id
   role    = "roles/cloudsql.client"
@@ -87,4 +94,16 @@ resource "google_project_iam_member" "database_migration_cloud_sql_instance_user
   project = var.project_id
   role    = "roles/cloudsql.instanceUser"
   member  = "serviceAccount:${google_service_account.database_migration.email}"
+}
+
+resource "google_project_iam_member" "database_bootstrap_cloud_sql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.database_bootstrap.email}"
+}
+
+resource "google_project_iam_member" "database_bootstrap_cloud_sql_instance_user" {
+  project = var.project_id
+  role    = "roles/cloudsql.instanceUser"
+  member  = "serviceAccount:${google_service_account.database_bootstrap.email}"
 }

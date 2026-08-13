@@ -113,6 +113,17 @@ variable "database_migration_impersonator_member" {
   }
 }
 
+variable "database_bootstrap_impersonator_member" {
+  description = "Approved human operator allowed to obtain short-lived credentials for only the one-time Production database bootstrap service account."
+  type        = string
+  sensitive   = false
+
+  validation {
+    condition     = can(regex("^user:[^@[:space:]]+@[^@[:space:]]+$", var.database_bootstrap_impersonator_member))
+    error_message = "The database bootstrap impersonator must be one explicit Google user IAM member in user:email form."
+  }
+}
+
 locals {
   environment                           = "production"
   runtime_service_account_id            = "nexcut-prod-runtime"
@@ -121,6 +132,7 @@ locals {
   web_auth_service_account_id           = "nexcut-prod-web-auth"
   media_runtime_service_account_id      = "nexcut-prod-media-runtime"
   database_migration_service_account_id = "nexcut-prod-db-migrator"
+  database_bootstrap_service_account_id = "nexcut-prod-db-bootstrap"
   vercel_workload_identity_pool_id      = "nexcut-prod-vercel"
   vercel_workload_identity_provider_id  = "vercel-production"
   vercel_team_slug                      = "hiro423"

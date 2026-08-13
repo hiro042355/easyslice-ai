@@ -57,3 +57,18 @@ resource "google_service_account_iam_member" "database_migration_short_lived_imp
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = var.database_migration_impersonator_member
 }
+
+resource "google_service_account" "database_bootstrap" {
+  project      = var.project_id
+  account_id   = local.database_bootstrap_service_account_id
+  display_name = "NEXCUT Production database bootstrap"
+  description  = "One-time keyless identity for Production workflow schema bootstrap; not used by migrations or application runtime."
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account_iam_member" "database_bootstrap_short_lived_impersonator" {
+  service_account_id = google_service_account.database_bootstrap.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = var.database_bootstrap_impersonator_member
+}
