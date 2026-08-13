@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { authorizeProductionMediaProbe, runProductionMediaRuntimeProbe } from "../../lib/server/productionMediaRuntime/probe";
+import {
+  authorizeProductionMediaProbe,
+  describeProductionMediaProbeFailure,
+  runProductionMediaRuntimeProbe,
+} from "../../lib/server/productionMediaRuntime/probe";
 import { readProductionMediaWifConfiguration } from "../../lib/server/productionMediaRuntime/mediaWifCredential";
 
 const environment = Object.freeze({
@@ -29,6 +33,31 @@ test("probe orchestration is deterministic and returns neutral readiness", async
   });
   assert.deepEqual(calls, ["gcs", "sql"]);
   assert.deepEqual(result, { status: "ready", gcs: "pass", cloudSql: "pass" });
+});
+
+test("probe exposes only a safe GCS failure classification", async () => {
+  const googleError = Object.assign(new Error("request contained secret material"), {
+    code: 403,
+    errors: [{ reason: "forbidden", message: "Permission storage.objects.create denied for opaque credential" }],
+  });
+  await assert.rejects(
+    runProductionMediaRuntimeProbe(environment, {
+      getOidcToken: async () => "opaque-test-token",
+      runGcs: async () => { throw googleError; },
+      runCloudSql: async () => ({ connector: true, iamAuth: true, selectOne: true }),
+    }),
+    error => {
+      assert.deepEqual(describeProductionMediaProbeFailure(error), {
+        stage: "gcs",
+        errorClass: "google-api-error",
+        code: 403,
+        reason: "forbidden",
+        permission: "storage.objects.create",
+      });
+      assert.doesNotMatch(JSON.stringify(describeProductionMediaProbeFailure(error)), /secret|credential/i);
+      return true;
+    },
+  );
 });
 
 test("probe authorization is Production-only and constant-time based", () => {

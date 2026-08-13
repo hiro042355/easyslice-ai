@@ -1,4 +1,8 @@
-import { authorizeProductionMediaProbe, runProductionMediaRuntimeProbe } from "../../../../lib/server/productionMediaRuntime";
+import {
+  authorizeProductionMediaProbe,
+  describeProductionMediaProbeFailure,
+  runProductionMediaRuntimeProbe,
+} from "../../../../lib/server/productionMediaRuntime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +16,10 @@ export async function POST(request: Request): Promise<Response> {
       status: 200,
       headers: { "Cache-Control": "no-store" },
     });
-  } catch {
-    return Response.json({ status: "unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return Response.json(
+      { status: "unavailable", ...describeProductionMediaProbeFailure(error) },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }
