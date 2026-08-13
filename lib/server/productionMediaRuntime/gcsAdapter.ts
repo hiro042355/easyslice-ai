@@ -5,6 +5,7 @@ type StorageAuthClient = NonNullable<ConstructorParameters<typeof Storage>[0]>["
 
 export const createStorageCompatibleAuthClient = (authClient: IdentityPoolClient): StorageAuthClient => ({
   projectId: "nexcut-prod-jp-2026",
+  request: authClient.request.bind(authClient),
   async getRequestHeaders() {
     const headers = await authClient.getRequestHeaders();
     const compatibleHeaders: Record<string, string> = {};

@@ -25,7 +25,12 @@ test("media WIF authority is exact and independent from Firebase service account
 
 test("GCS compatibility adapter preserves the impersonated authorization header", async () => {
   let calls = 0;
+  const requests: unknown[] = [];
   const source = {
+    async request(options: unknown) {
+      requests.push(options);
+      return { data: { accepted: true } };
+    },
     async getRequestHeaders() {
       calls += 1;
       return new Headers({ authorization: "Bearer opaque-test-token", "x-goog-user-project": "nexcut-prod-jp-2026" });
@@ -33,6 +38,7 @@ test("GCS compatibility adapter preserves the impersonated authorization header"
   } as unknown as IdentityPoolClient;
   const compatible = createStorageCompatibleAuthClient(source) as unknown as {
     projectId: string;
+    request(options: unknown): Promise<unknown>;
     getRequestHeaders(url?: string): Promise<Record<string, string>>;
   };
 
@@ -42,6 +48,10 @@ test("GCS compatibility adapter preserves the impersonated authorization header"
     "x-goog-user-project": "nexcut-prod-jp-2026",
   });
   assert.equal(calls, 1);
+
+  const request = { url: "https://storage.googleapis.com/upload", method: "POST" };
+  assert.deepEqual(await compatible.request(request), { data: { accepted: true } });
+  assert.deepEqual(requests, [request]);
 });
 
 test("GCS composition retains the exact Production bucket authority", () => {
