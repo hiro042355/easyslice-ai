@@ -2,12 +2,17 @@ import { AuthTypes, Connector, IpAddressTypes } from "@google-cloud/cloud-sql-co
 import type { IdentityPoolClient } from "google-auth-library";
 import { Pool } from "pg";
 
-export type CloudSqlProbeResult = Readonly<{ connector: true; iamAuth: true; selectOne: true }>;
+export type ProductionMediaCloudSqlConfiguration = Readonly<{
+  instanceConnectionName: string;
+  database: string;
+  iamUser: string;
+}>;
 
-export const runProductionCloudSqlProbe = async (
+export const withProductionMediaCloudSqlPool = async <T>(
   authClient: IdentityPoolClient,
-  configuration: Readonly<{ instanceConnectionName: string; database: string; iamUser: string }>,
-): Promise<CloudSqlProbeResult> => {
+  configuration: ProductionMediaCloudSqlConfiguration,
+  operation: (pool: Pool) => Promise<T>,
+): Promise<T> => {
   if (configuration.instanceConnectionName !== "nexcut-prod-jp-2026:asia-northeast1:nexcut-prod-postgresql") throw new Error("Invalid Production Cloud SQL authority");
   if (configuration.database !== "nexcut") throw new Error("Invalid Production database authority");
   if (configuration.iamUser !== "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam") throw new Error("Invalid Production IAM database user authority");
@@ -29,9 +34,7 @@ export const runProductionCloudSqlProbe = async (
       idleTimeoutMillis: 1_000,
       query_timeout: 10_000,
     });
-    const result = await pool.query<{ proof: number }>("SELECT 1 AS proof");
-    if (result.rowCount !== 1 || result.rows[0]?.proof !== 1) throw new Error("Production Cloud SQL readiness query failed");
-    return Object.freeze({ connector: true, iamAuth: true, selectOne: true });
+    return await operation(pool);
   } finally {
     if (pool) await pool.end();
     connector.close();
