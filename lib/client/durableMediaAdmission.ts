@@ -8,6 +8,24 @@ const readJson = async <T>(response: Response): Promise<T> => {
   return response.json() as Promise<T>;
 };
 
+const classifyUploadFailure = async (response: Response): Promise<string> => {
+  const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.toLowerCase() ?? "unknown";
+  const body = await response.text().catch(() => "");
+  const code = body.match(/<Code>([A-Za-z][A-Za-z0-9_-]{0,63})<\/Code>/)?.[1]
+    ?? body.match(/"code"\s*:\s*"([A-Za-z][A-Za-z0-9_-]{0,63})"/)?.[1]
+    ?? "unknown";
+  const normalized = body.toLowerCase();
+  const reason = normalized.includes("content-length") ? "content-length"
+    : normalized.includes("content-range") ? "content-range"
+      : normalized.includes("content-type") ? "content-type"
+        : normalized.includes("upload id") || normalized.includes("upload session") ? "upload-session"
+          : normalized.includes("origin") ? "origin"
+            : normalized.includes("size") || normalized.includes("bytes") ? "body-size"
+              : normalized.includes("invalid") ? "invalid-argument"
+                : "unknown";
+  return `Media upload failed (${response.status}; gcsCode=${code}; reason=${reason}; response=${contentType})`;
+};
+
 export const admitDurableMedia = async (file: File, request: typeof fetch = fetch): Promise<DurableMediaReference> => {
   if (file.type !== "video/mp4" || file.size <= 0) throw new Error("Only a non-empty MP4 can be admitted");
   const initiateResponse = await request("/api/media/admit", {
@@ -19,7 +37,7 @@ export const admitDurableMedia = async (file: File, request: typeof fetch = fetc
   if (!initiateResponse.ok || !initiated.jobId || !initiated.mediaId || !initiated.uploadUrl) throw new Error(initiated.error ?? "Media admission initiation failed");
 
   const uploadResponse = await request(initiated.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-  if (!uploadResponse.ok) throw new Error(`Media upload failed (${uploadResponse.status})`);
+  if (!uploadResponse.ok) throw new Error(await classifyUploadFailure(uploadResponse));
 
   const finalizeResponse = await request("/api/media/admit", {
     method: "POST",

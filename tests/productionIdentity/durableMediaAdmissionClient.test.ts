@@ -31,3 +31,22 @@ test("non-JSON platform failures are reported without a JSON parse exception", a
   const file = new File([new Uint8Array([0])], "owner.mp4", { type: "video/mp4" });
   await assert.rejects(admitDurableMedia(file, request), /Media admission failed \(413\)/);
 });
+
+test("GCS upload failures expose only safe protocol diagnostics", async () => {
+  const sensitiveSession = "https://storage.googleapis.test/upload/session-secret";
+  let calls = 0;
+  const request = async (): Promise<Response> => {
+    calls += 1;
+    if (calls === 1) return Response.json({ jobId: JOB, mediaId: MEDIA, uploadUrl: sensitiveSession });
+    return new Response(
+      `<Error><Code>InvalidArgument</Code><Message>Invalid Content-Length for ${sensitiveSession}</Message></Error>`,
+      { status: 400, headers: { "Content-Type": "application/xml; charset=UTF-8" } },
+    );
+  };
+  const file = new File([new Uint8Array([0, 1, 2])], "owner.mp4", { type: "video/mp4" });
+  await assert.rejects(admitDurableMedia(file, request), error => {
+    assert.match(String(error), /Media upload failed \(400; gcsCode=InvalidArgument; reason=content-length; response=application\/xml\)/);
+    assert.doesNotMatch(String(error), /session-secret/);
+    return true;
+  });
+});
