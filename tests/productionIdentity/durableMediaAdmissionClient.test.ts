@@ -45,8 +45,37 @@ test("GCS upload failures expose only safe protocol diagnostics", async () => {
   };
   const file = new File([new Uint8Array([0, 1, 2])], "owner.mp4", { type: "video/mp4" });
   await assert.rejects(admitDurableMedia(file, request), error => {
-    assert.match(String(error), /Media upload failed \(400; gcsCode=InvalidArgument; reason=content-length; response=application\/xml\)/);
+    assert.match(String(error), /Media upload failed \(400; gcsCode=InvalidArgument; reason=content-length; response=application\/xml; message=Invalid Content-Length for \[redacted-url\]; errors=none\)/);
     assert.doesNotMatch(String(error), /session-secret/);
+    return true;
+  });
+});
+
+test("GCS JSON diagnostics preserve safe nested error fields and redact authority", async () => {
+  const sensitiveSession = "https://storage.googleapis.test/upload?upload_id=secret-session-authority";
+  let calls = 0;
+  const request = async (): Promise<Response> => {
+    calls += 1;
+    if (calls === 1) return Response.json({ jobId: JOB, mediaId: MEDIA, uploadUrl: sensitiveSession });
+    return Response.json({
+      error: {
+        code: 400,
+        message: `Invalid request for ${sensitiveSession}`,
+        errors: [{
+          domain: "global",
+          reason: "invalidArgument",
+          message: "Authorization: Bearer sensitive-token-value-12345678901234567890",
+        }],
+      },
+    }, { status: 400 });
+  };
+  const file = new File([new Uint8Array([0, 1, 2])], "owner.mp4", { type: "video/mp4" });
+  await assert.rejects(admitDurableMedia(file, request), error => {
+    const diagnostic = String(error);
+    assert.match(diagnostic, /gcsCode=400/);
+    assert.match(diagnostic, /domain=global,reason=invalidArgument/);
+    assert.match(diagnostic, /message=Invalid request for \[redacted-url\]/);
+    assert.doesNotMatch(diagnostic, /secret-session|sensitive-token|storage\.googleapis\.test/);
     return true;
   });
 });
