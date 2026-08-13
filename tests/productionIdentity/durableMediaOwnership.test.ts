@@ -55,6 +55,28 @@ test("owned media and exports are inserted only through an owner-scoped job sele
   assert.equal(calls[0]!.values.includes("client-storage-key"), false);
 });
 
+test("server-selected resource IDs remain exact across durable inserts", async () => {
+  const calls: Array<{ text: string; values: readonly unknown[] }> = [];
+  const client: OwnershipQueryClient = { async query(text, values) {
+    calls.push({ text, values });
+    const rows = text.includes("workflow.media")
+      ? [{ id: values[0], job_id: values[3], storage_key: values[1], kind: values[2] }]
+      : text.includes("workflow.exports")
+        ? [{ id: values[0], job_id: values[2], storage_key: values[1] }]
+        : [{ id: values[0], owner_uid: values[1], status: "created" }];
+    return { rows, rowCount: 1 };
+  } };
+  const repository = createDurableMediaOwnershipRepository(client);
+  await repository.createJobWithId(JOB_A, "owner-a");
+  await repository.createMediaWithId(MEDIA_A, JOB_A, "owner-a", "input", "video/mp4");
+  await repository.createExportWithId(EXPORT_A, JOB_A, "owner-a", "video/mp4");
+  assert.equal(calls[0]!.values[0], JOB_A);
+  assert.equal(calls[1]!.values[0], MEDIA_A);
+  assert.equal(calls[2]!.values[0], EXPORT_A);
+  assert.equal(calls[1]!.values[1], createMediaStorageKey(JOB_A, MEDIA_A, "input", "video/mp4"));
+  assert.equal(calls[2]!.values[1], createExportStorageKey(JOB_A, EXPORT_A, "video/mp4"));
+});
+
 test("job temp roots isolate collisions and cleanup only the selected job", async () => {
   const authorityRoot = resolve(".ownership-temp-test");
   const a = await createJobTempDirectories(JOB_A, authorityRoot);

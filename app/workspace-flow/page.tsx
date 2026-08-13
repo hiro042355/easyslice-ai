@@ -119,6 +119,7 @@ export default function WorkspaceFlowPage() {
   const [universalUrl, setUniversalUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [video, setVideo] = useState<File | null>(null);
+  const [durableMedia, setDurableMedia] = useState<Readonly<{ jobId: string; mediaId: string }> | null>(null);
   const [videoSrc, setVideoSrc] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
   const [videoDuration, setVideoDuration] = useState(0);
@@ -297,6 +298,15 @@ export default function WorkspaceFlowPage() {
         throw new Error(data.error || "動画アップロードに失敗しました");
       }
 
+      const admissionForm = new FormData();
+      admissionForm.append("video", file);
+      const admissionResponse = await fetch("/api/media/admit", { method: "POST", body: admissionForm });
+      const admission = await admissionResponse.json();
+      if (!admissionResponse.ok || typeof admission.jobId !== "string" || typeof admission.mediaId !== "string") {
+        throw new Error("Durable media admission failed");
+      }
+      setDurableMedia({ jobId: admission.jobId, mediaId: admission.mediaId });
+
       setVideo(file);
       setVideoSrc(`/api/video?t=${Date.now()}`);
       setCurrentYoutubeUrl("");
@@ -371,6 +381,7 @@ export default function WorkspaceFlowPage() {
       }
 
       setVideo(null);
+      setDurableMedia(null);
       setVideoSrc(`/api/video?t=${Date.now()}`);
       setCurrentYoutubeUrl(trimmedUrl);
       setProgress(100);
@@ -565,7 +576,7 @@ export default function WorkspaceFlowPage() {
   };
 
   const handleExportMp4 = async () => {
-    if (!hasVideo) {
+    if (!hasVideo || !durableMedia) {
       setExportError("先にSTEP1で動画を追加してください。");
       return;
     }
@@ -575,11 +586,8 @@ export default function WorkspaceFlowPage() {
       resetExportResult();
 
       const formData = new FormData();
-      if (video) {
-        formData.append("video", video);
-      } else {
-        formData.append("youtube", "true");
-      }
+      formData.append("jobId", durableMedia.jobId);
+      formData.append("mediaId", durableMedia.mediaId);
       formData.append("start", primaryClip.start || "0");
       formData.append("end", primaryClip.end || "30");
       formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));

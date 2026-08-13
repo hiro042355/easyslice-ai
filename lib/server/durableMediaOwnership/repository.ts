@@ -26,6 +26,11 @@ const exported = (row: ExportRow): OwnedExport => Object.freeze({ id: row.id, jo
 export const createDurableMediaOwnershipRepository = (client: OwnershipQueryClient) => Object.freeze({
   async createJob(canonicalOwnerUid: string): Promise<OwnedJob> {
     const id = randomUUID();
+    return this.createJobWithId(id, canonicalOwnerUid);
+  },
+
+  async createJobWithId(id: string, canonicalOwnerUid: string): Promise<OwnedJob> {
+    if (!validId(id)) throw new Error("Invalid job ID");
     const result = await client.query<JobRow>(
       "INSERT INTO workflow.jobs (id, owner_uid, status) VALUES ($1, $2, 'created') RETURNING id, owner_uid, status",
       [id, owner(canonicalOwnerUid)],
@@ -45,6 +50,11 @@ export const createDurableMediaOwnershipRepository = (client: OwnershipQueryClie
   async createMedia(jobId: string, canonicalOwnerUid: string, kind: MediaStorageKind, mime: string): Promise<OwnedMedia | undefined> {
     if (!validId(jobId)) return undefined;
     const id = randomUUID();
+    return this.createMediaWithId(id, jobId, canonicalOwnerUid, kind, mime);
+  },
+
+  async createMediaWithId(id: string, jobId: string, canonicalOwnerUid: string, kind: MediaStorageKind, mime: string): Promise<OwnedMedia | undefined> {
+    if (!validId(id) || !validId(jobId)) return undefined;
     const storageKey = createMediaStorageKey(jobId, id, kind, mime);
     const result = await client.query<MediaRow>(
       "INSERT INTO workflow.media (id, job_id, storage_key, kind) SELECT $1, j.id, $2, $3 FROM workflow.jobs j WHERE j.id = $4 AND j.owner_uid = $5 RETURNING id, job_id, storage_key, kind",
@@ -65,6 +75,11 @@ export const createDurableMediaOwnershipRepository = (client: OwnershipQueryClie
   async createExport(jobId: string, canonicalOwnerUid: string, mime: string): Promise<OwnedExport | undefined> {
     if (!validId(jobId)) return undefined;
     const id = randomUUID();
+    return this.createExportWithId(id, jobId, canonicalOwnerUid, mime);
+  },
+
+  async createExportWithId(id: string, jobId: string, canonicalOwnerUid: string, mime: string): Promise<OwnedExport | undefined> {
+    if (!validId(id) || !validId(jobId)) return undefined;
     const storageKey = createExportStorageKey(jobId, id, mime);
     const result = await client.query<ExportRow>(
       "INSERT INTO workflow.exports (id, job_id, storage_key) SELECT $1, j.id, $2 FROM workflow.jobs j WHERE j.id = $3 AND j.owner_uid = $4 RETURNING id, job_id, storage_key",

@@ -1,159 +1,56 @@
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { NextResponse } from "next/server";
-import { exec } from "child_process";
-import { writeFile, unlink, readFile } from "fs/promises";
-import path from "path";
-import os from "os";
-import type { AiHookConfig, HookPreview } from "../../../lib/aiHook";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
+import { cleanupJobTempRoot, createDurableMediaOwnershipRepository, createExportStorageKey, createJobTempDirectories, isUuid } from "@/lib/server/durableMediaOwnership";
+import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/composition";
 
-function parseJsonField<T>(value: FormDataEntryValue | null): T | null {
-  if (typeof value !== "string" || !value.trim()) {
-    return null;
-  }
+export const runtime = "nodejs";
 
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
-}
+const runFfmpeg = (args: readonly string[]) => new Promise<void>((resolve, reject) => {
+  const child = spawn("ffmpeg", args, { shell: false, stdio: "ignore" });
+  child.once("error", reject);
+  child.once("exit", (code) => code === 0 ? resolve() : reject(new Error("ffmpeg-failed")));
+});
 
-function toConcatPath(filePath: string) {
-  return filePath.replace(/\\/g, "/").replace(/'/g, "'\\''");
-}
-
-export async function POST(req: Request) {
-  const authentication = await requireAuthenticatedRequest(req);
+export async function POST(request: Request) {
+  const authentication = await requireAuthenticatedRequest(request);
   if (!authentication.ok) return authentication.response;
-  const formData = await req.formData();
-  const file = formData.get("video") as File | null;
-  const isYoutube = formData.get("youtube") === "true";
-  const start = formData.get("start") as string;
-  const end = formData.get("end") as string;
-  const creatorStyleConfigRaw = formData.get("creatorStyleConfig");
-  const aiHookConfig = parseJsonField<AiHookConfig>(formData.get("aiHookConfig"));
-  const hookPreview = parseJsonField<HookPreview>(formData.get("hookPreview"));
-
-  if (typeof creatorStyleConfigRaw === "string" && creatorStyleConfigRaw.trim()) {
-    try {
-      console.log("CreatorStyleConfig received /api/cut", JSON.parse(creatorStyleConfigRaw));
-    } catch {
-      console.log("CreatorStyleConfig received /api/cut", creatorStyleConfigRaw);
-    }
-  }
-  if (aiHookConfig?.enabled && hookPreview) {
-    console.log("AIHookConfig received /api/cut", aiHookConfig, hookPreview);
-  }
-
-  if ((!file && !isYoutube) || !start || !end) {
-    return NextResponse.json({ error: "Missing data" }, { status: 400 });
-  }
-
-  const tmpDir = os.tmpdir();
-
-  let inputPath = "";
-  let shouldDeleteInput = false;
-
-  if (isYoutube) {
-  inputPath = path.join(tmpDir, "downloaded.mp4");
-} else {
-  if (!file) {
-    return NextResponse.json(
-      { error: "動画ファイルがありません" },
-      { status: 400 }
-    );
-  }
-
-  const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    inputPath = path.join(tmpDir, `input-${Date.now()}.mp4`);
-
-    await writeFile(inputPath, buffer);
-    shouldDeleteInput = true;
-  }
-
-  const timestamp = Date.now();
-  const outputPath = path.join(tmpDir, `output-${timestamp}.mp4`);
-  const hookClipPath = path.join(tmpDir, `hook-${timestamp}.mp4`);
-  const mainClipPath = path.join(tmpDir, `main-${timestamp}.mp4`);
-  const concatListPath = path.join(tmpDir, `concat-${timestamp}.txt`);
-
-  const shouldRenderAiHook =
-    aiHookConfig?.enabled === true &&
-    hookPreview !== null &&
-    Number.isFinite(hookPreview.start) &&
-    Number.isFinite(hookPreview.end) &&
-    hookPreview.end > hookPreview.start;
-
-  const cmd = `ffmpeg -i "${inputPath}" -ss ${start} -to ${end} -c:v libx264 -c:a aac "${outputPath}"`;
-
+  const form = await request.formData();
+  const jobId = String(form.get("jobId") ?? "");
+  const mediaId = String(form.get("mediaId") ?? "");
+  if (!isUuid(jobId) || !isUuid(mediaId)) return NextResponse.json({ error: "invalid-resource" }, { status: 400 });
+  const ownerUid = authentication.context.identity.userId;
   try {
-    if (shouldRenderAiHook) {
-      const hookDuration = hookPreview.end - hookPreview.start;
-      const fadeStart = Math.max(hookDuration - 0.2, 0).toFixed(2);
-      const hookCmd = `ffmpeg -y -ss ${hookPreview.start} -to ${hookPreview.end} -i "${inputPath}" -vf "fade=t=out:st=${fadeStart}:d=0.2" -c:v libx264 -c:a aac "${hookClipPath}"`;
-      const mainCmd = `ffmpeg -y -ss ${start} -to ${end} -i "${inputPath}" -c:v libx264 -c:a aac "${mainClipPath}"`;
-
-      await new Promise((resolve, reject) => {
-        exec(hookCmd, (err) => {
-          if (err) reject(err);
-          else resolve(true);
-        });
-      });
-
-      await new Promise((resolve, reject) => {
-        exec(mainCmd, (err) => {
-          if (err) reject(err);
-          else resolve(true);
-        });
-      });
-
-      await writeFile(
-        concatListPath,
-        `file '${toConcatPath(hookClipPath)}'\nfile '${toConcatPath(mainClipPath)}'\n`
-      );
-
-      const concatCmd = `ffmpeg -y -f concat -safe 0 -i "${concatListPath}" -c copy "${outputPath}"`;
-
-      await new Promise((resolve, reject) => {
-        exec(concatCmd, (err) => {
-          if (err) reject(err);
-          else resolve(true);
-        });
-      });
-    } else {
-      await new Promise((resolve, reject) => {
-        exec(cmd, (err) => {
-          if (err) reject(err);
-          else resolve(true);
-        });
-      });
-    }
-
-    const outputFile = await readFile(outputPath);
-
-    return new Response(outputFile, {
-      headers: {
-        "Content-Type": "video/mp4",
-        "Content-Disposition": "attachment; filename=cut.mp4",
-      },
+    return await withProductionMediaRuntime(async ({ pool, bucket }) => {
+      const repository = createDurableMediaOwnershipRepository(pool);
+      if (!await repository.resolveOwnedJob(jobId, ownerUid)) return NextResponse.json({ error: "resource-not-found" }, { status: 404 });
+      const media = await repository.resolveOwnedMedia(mediaId, ownerUid);
+      if (!media || media.jobId !== jobId) return NextResponse.json({ error: "resource-not-found" }, { status: 404 });
+      const start = Number(form.get("start"));
+      const end = Number(form.get("end"));
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) return NextResponse.json({ error: "invalid-boundary" }, { status: 400 });
+      const paths = await createJobTempDirectories(jobId);
+      const input = join(paths.input, "source.mp4");
+      const output = join(paths.output, "cut.mp4");
+      let uploadedKey: string | undefined;
+      try {
+        const [bytes] = await bucket.file(media.storageKey).download();
+        await writeFile(input, bytes);
+        await runFfmpeg(["-y", "-i", input, "-ss", String(start), "-to", String(end), "-c:v", "libx264", "-c:a", "aac", output]);
+        const rendered = await readFile(output);
+        const exportId = randomUUID();
+        uploadedKey = createExportStorageKey(jobId, exportId, "video/mp4");
+        await bucket.file(uploadedKey).save(rendered, { resumable: false, contentType: "video/mp4" });
+        const exported = await repository.createExportWithId(exportId, jobId, ownerUid, "video/mp4");
+        if (!exported) throw new Error("export-authority-failed");
+        return new Response(rendered, { headers: { "Content-Type": "video/mp4", "Content-Disposition": "attachment; filename=cut.mp4", "X-Nexcut-Export-Id": exported.id } });
+      } catch (error) {
+        if (uploadedKey) await bucket.file(uploadedKey).delete({ ignoreNotFound: true }).catch(() => undefined);
+        throw error;
+      } finally { await cleanupJobTempRoot(jobId); }
     });
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to cut video" },
-      { status: 500 }
-    );
-  } finally {
-    if (shouldDeleteInput && inputPath) {
-      await unlink(inputPath).catch(() => {});
-    }
-
-    await unlink(outputPath).catch(() => {});
-    await unlink(hookClipPath).catch(() => {});
-    await unlink(mainClipPath).catch(() => {});
-    await unlink(concatListPath).catch(() => {});
-  }
+  } catch { return NextResponse.json({ error: "cut-failed" }, { status: 500 }); }
 }

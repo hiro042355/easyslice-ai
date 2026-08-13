@@ -192,6 +192,7 @@ const updateClip = (
   setClips(newClips);
 };
   const [video, setVideo] = useState<File | null>(null);
+  const [durableMedia, setDurableMedia] = useState<Readonly<{ jobId: string; mediaId: string }> | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
  const setStartFromCurrent = () => {
@@ -245,7 +246,7 @@ const contextualizeCandidates = (
 };
   // ✂️ 切り抜き
   const handleCut = async () => {
-    if ((!video && !videoSrc) || !start || !end) {
+    if ((!video && !videoSrc) || !durableMedia || !start || !end) {
       alert("動画・開始・終了を入力してね");
       return;
     }
@@ -263,11 +264,8 @@ const interval = setInterval(() => {
 
     const formData = new FormData();
 
-if (video) {
-  formData.append("video", video);
-} else {
-  formData.append("youtube", "true");
-}
+formData.append("jobId", durableMedia.jobId);
+formData.append("mediaId", durableMedia.mediaId);
 
 formData.append("start", start);
 formData.append("end", end);
@@ -347,6 +345,8 @@ if (!downloadRes.ok || !result.success) {
   throw new Error(result.error || "動画ダウンロードに失敗しました");
 }
 
+setVideo(null);
+setDurableMedia(null);
 setVideoSrc(`/api/video?t=${Date.now()}`);
 setCurrentYoutubeUrl(youtubeUrl);
 setClips([
@@ -687,6 +687,15 @@ const handleUploadVideo = async (file: File | null) => {
     if (!res.ok || !data.success) {
       throw new Error(data.error || "動画アップロードに失敗しました");
     }
+
+    const admissionForm = new FormData();
+    admissionForm.append("video", file);
+    const admissionResponse = await fetch("/api/media/admit", { method: "POST", body: admissionForm });
+    const admission = await admissionResponse.json();
+    if (!admissionResponse.ok || typeof admission.jobId !== "string" || typeof admission.mediaId !== "string") {
+      throw new Error("Durable media admission failed");
+    }
+    setDurableMedia({ jobId: admission.jobId, mediaId: admission.mediaId });
 
     setVideo(file);
     setVideoSrc(`/api/video?t=${Date.now()}`);
@@ -1126,6 +1135,15 @@ const enableYoutube =
     if (!res.ok) {
       throw new Error("動画アップロードに失敗しました");
     }
+
+    const admissionForm = new FormData();
+    admissionForm.append("video", file);
+    const admissionResponse = await fetch("/api/media/admit", { method: "POST", body: admissionForm });
+    const admission = await admissionResponse.json();
+    if (!admissionResponse.ok || typeof admission.jobId !== "string" || typeof admission.mediaId !== "string") {
+      throw new Error("Durable media admission failed");
+    }
+    setDurableMedia({ jobId: admission.jobId, mediaId: admission.mediaId });
 
     setVideoSrc(`/api/video?t=${Date.now()}`);
     setVideoDuration(0);
