@@ -6,6 +6,10 @@ import { NextResponse } from "next/server";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 import {
+  AudioInspectionFailure,
+  inspectAudioMedia,
+} from "@/lib/server/audioHighlightInspection";
+import {
   cleanupJobTempRoot,
   createDurableMediaOwnershipRepository,
   createJobTempDirectories,
@@ -30,23 +34,14 @@ type EnergyItem = {
 type DurableAnalyzeRequest = Readonly<{ jobId: string; mediaId: string }>;
 
 const analyzeVideo = async (inputPath: string) => {
-  const inspection = await execFileAsync(ffmpegExecutable(), [
-    "-hide_banner", "-i", inputPath, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
-  ]).catch((error: { stderr?: string }) => error);
-  const inspectionText = inspection.stderr || "";
-  const durationMatch = inspectionText.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
-  const audioMatch = inspectionText.match(/Stream #[^\r\n]*Audio:\s*([^,\s]+)/);
-  if (!audioMatch) throw new Error("audio-stream-not-found");
-  const duration = durationMatch
-    ? Math.floor(Number(durationMatch[1]) * 3600 + Number(durationMatch[2]) * 60 + Number(durationMatch[3]))
-    : Number.NaN;
-
-  if (!Number.isFinite(duration) || duration <= 0) {
-    return NextResponse.json(
-      { success: false, error: "動画の長さを取得できませんでした" },
-      { status: 500 },
-    );
-  }
+  const inspection = await inspectAudioMedia(ffmpegExecutable(), inputPath);
+  const duration = inspection.durationSeconds;
+  console.info("audio-analysis-inspection", {
+    durationSeconds: duration,
+    codec: inspection.codec,
+    sampleRateHz: inspection.sampleRateHz,
+    channels: inspection.channels,
+  });
 
   const windowSeconds = 10;
   const energies: EnergyItem[] = [];
@@ -139,6 +134,11 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
+    if (error instanceof AudioInspectionFailure) {
+      console.error("audio-analysis-inspection-failed", { reason: error.reason });
+      const status = error.reason === "audio-stream-not-found" ? 422 : 500;
+      return NextResponse.json({ success: false, error: error.reason }, { status });
+    }
     console.error(error);
     return NextResponse.json(
       { success: false, error: "音声ハイライト生成に失敗しました" },

@@ -7,6 +7,11 @@ import path from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
+import {
+  AudioInspectionFailure,
+  inspectAudioMedia,
+} from "../../lib/server/audioHighlightInspection";
+import { decideCanonicalClipBoundary } from "../../lib/clipBoundary";
 
 const execFileAsync = promisify(execFile);
 
@@ -72,35 +77,69 @@ test("Analyze uses argument arrays and cleans the isolated durable temp root", (
 });
 
 test("Analyze detects an audio stream and duration before calculating energy", () => {
-  const inspection = analyze.indexOf("const inspection = await execFileAsync");
-  const audioDetection = analyze.indexOf("if (!audioMatch)");
-  const durationValidation = analyze.indexOf("if (!Number.isFinite(duration)");
+  const inspection = analyze.indexOf("inspectAudioMedia(ffmpegExecutable(), inputPath)");
   const energyLoop = analyze.indexOf("for (let second = 0; second < duration");
-  assert.ok(inspection > 0 && audioDetection > inspection);
-  assert.ok(durationValidation > audioDetection && energyLoop > durationValidation);
-  assert.match(analyze, /Audio:\\s\*\(\[\^,\\s\]\+\)/);
+  assert.ok(inspection > 0 && energyLoop > inspection);
+  assert.match(analyze, /duration = inspection\.durationSeconds/);
+  assert.match(analyze, /error instanceof AudioInspectionFailure/);
 });
 
-test("the packaged FFmpeg detects AAC music and produces audio-energy evidence", async () => {
+test("the packaged FFmpeg detects a 10-second AAC source and returns a bounded whole-media highlight", async () => {
   assert.ok(ffmpegPath);
   const root = await mkdtemp(path.join(os.tmpdir(), "nexcut-audio-analysis-"));
   const input = path.join(root, "music.mp4");
   try {
     await execFileAsync(ffmpegPath, [
-      "-f", "lavfi", "-i", "color=c=black:s=160x90:d=2",
-      "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+      "-f", "lavfi", "-i", "color=c=black:s=160x90:d=10",
+      "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=10",
       "-c:v", "libx264", "-c:a", "aac", "-shortest", "-y", input,
     ]);
-    const inspection = await execFileAsync(ffmpegPath, [
-      "-hide_banner", "-i", input, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
-    ]);
-    assert.match(inspection.stderr, /Duration:\s*00:00:02/);
-    assert.match(inspection.stderr, /Audio:\s*aac/);
+    const inspection = await inspectAudioMedia(ffmpegPath, input);
+    assert.equal(inspection.durationSeconds, 10);
+    assert.equal(inspection.codec, "aac");
+    assert.equal(inspection.sampleRateHz, 48000);
+
+    const boundary = decideCanonicalClipBoundary({
+      candidateKind: "audio-energy",
+      anchorSecond: 0,
+      sourceDurationSeconds: inspection.durationSeconds,
+      evidence: [{ kind: "audio-window", second: inspection.durationSeconds }],
+    });
+    assert.deepEqual({ start: boundary.start, end: boundary.end }, { start: 0, end: 10 });
 
     const energy = await execFileAsync(ffmpegPath, [
-      "-hide_banner", "-t", "2", "-i", input, "-af", "volumedetect", "-f", "null", "-",
+      "-hide_banner", "-t", "10", "-i", input, "-af", "volumedetect", "-f", "null", "-",
     ]);
     assert.match(energy.stderr, /mean_volume:\s*-?\d+(?:\.\d+)? dB/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("audio inspection distinguishes no-audio and malformed media from executable failure", async () => {
+  assert.ok(ffmpegPath);
+  const root = await mkdtemp(path.join(os.tmpdir(), "nexcut-audio-inspection-"));
+  const silentVideo = path.join(root, "silent.mp4");
+  const malformed = path.join(root, "malformed.mp4");
+  try {
+    await execFileAsync(ffmpegPath, [
+      "-f", "lavfi", "-i", "color=c=black:s=160x90:d=1",
+      "-c:v", "libx264", "-an", "-y", silentVideo,
+    ]);
+    await import("node:fs/promises").then(({ writeFile }) => writeFile(malformed, "not-media"));
+
+    await assert.rejects(
+      inspectAudioMedia(ffmpegPath, silentVideo),
+      (error: unknown) => error instanceof AudioInspectionFailure && error.reason === "audio-stream-not-found",
+    );
+    await assert.rejects(
+      inspectAudioMedia(ffmpegPath, malformed),
+      (error: unknown) => error instanceof AudioInspectionFailure && error.reason === "media-inspection-failed",
+    );
+    await assert.rejects(
+      inspectAudioMedia(path.join(root, "missing-ffmpeg"), malformed),
+      (error: unknown) => error instanceof AudioInspectionFailure && error.reason === "ffmpeg-execution-failed",
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
