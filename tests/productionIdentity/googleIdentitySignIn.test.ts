@@ -50,6 +50,21 @@ test("a popup that never settles is recovered as a retryable UI timeout", async 
   assert.equal(sessionCalls, 0);
 });
 
+test("a popup resolving after the watchdog cannot perform a stale session exchange", async () => {
+  let resolvePopup!: (value: ReturnType<typeof credential>) => void;
+  const popup = new Promise<ReturnType<typeof credential>>((resolve) => { resolvePopup = resolve; });
+  let sessionCalls = 0;
+  const result = await establishGoogleIdentitySession({
+    openPopup: () => popup,
+    async createSession() { sessionCalls += 1; return { ok: true }; },
+    popupTimeoutMs: 5,
+  });
+  resolvePopup(credential());
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(result, { status: "failed", reason: "popup-timeout" });
+  assert.equal(sessionCalls, 0);
+});
+
 test("session rejection remains distinct from popup failure", async () => {
   const result = await establishGoogleIdentitySession({
     async openPopup() { return credential(); },

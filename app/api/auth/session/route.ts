@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { withFirebaseAdminAuth } from "@/lib/server/productionIdentity/firebaseAdmin";
-import { SESSION_COOKIE_NAME } from "@/lib/server/productionIdentity/routeGuard";
+import { requireAuthenticatedRequest, SESSION_COOKIE_NAME } from "@/lib/server/productionIdentity/routeGuard";
 import { SESSION_MAX_AGE_SECONDS, validateSameOriginMutation } from "@/lib/server/productionIdentity/sessionSecurity";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  const authentication = await requireAuthenticatedRequest(request);
+  if (!authentication.ok) return authentication.response;
+  return NextResponse.json({ success: true });
+}
 
 export async function POST(request: Request) {
   if (!validateSameOriginMutation(request)) return NextResponse.json({ success: false, error: "origin-rejected" }, { status: 403 });
