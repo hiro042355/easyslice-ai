@@ -11,11 +11,19 @@ import ffmpegPath from "ffmpeg-static";
 const execFileAsync = promisify(execFile);
 
 const page = readFileSync("app/workspace-flow/page.tsx", "utf8");
+const rootPage = readFileSync("app/page.tsx", "utf8");
 const analyze = readFileSync("app/api/audio-energy/route.ts", "utf8");
 
 test("Creator Flow sends only server-issued durable media references to Analyze", () => {
-  assert.match(page, /fetch\("\/api\/audio-energy", durableMedia \? \{[\s\S]*JSON\.stringify\(\{ jobId: durableMedia\.jobId, mediaId: durableMedia\.mediaId \}\)/);
+  assert.match(page, /if \(!durableMedia\)[\s\S]*fetch\("\/api\/audio-energy", \{[\s\S]*JSON\.stringify\(\{ jobId: durableMedia\.jobId, mediaId: durableMedia\.mediaId \}\)/);
   assert.doesNotMatch(page, /audio-energy[\s\S]{0,300}(?:ownerUid|userId|storageKey)/);
+});
+
+test("root Creator Flow uses the same durable Analyze DTO", () => {
+  const durableDto = /fetch\("\/api\/audio-energy", \{[\s\S]{0,250}headers: \{ "Content-Type": "application\/json" \}[\s\S]{0,250}JSON\.stringify\(\{ jobId: durableMedia\.jobId, mediaId: durableMedia\.mediaId \}\)/;
+  assert.match(page, durableDto);
+  assert.match(rootPage, durableDto);
+  assert.match(rootPage, /if \(!durableMedia\)[\s\S]{0,200}Durable media registration is required before audio analysis/);
 });
 
 test("durable Analyze resolves owner-scoped Job and Media before GCS or filesystem access", () => {
@@ -42,11 +50,17 @@ test("Analyze keeps privacy-safe rejection and rejects client ownership or stora
   assert.match(analyze, /bucket\.file\(media\.storageKey\)\.download\(\{ destination: inputPath \}\)/);
 });
 
-test("legacy YouTube/import input remains available only when no durable request is supplied", () => {
-  const durableBranch = analyze.indexOf("if (durableRequest)");
-  const legacyBranch = analyze.indexOf('path.join(os.tmpdir(), "downloaded.mp4")');
-  assert.ok(durableBranch > 0 && legacyBranch > durableBranch);
-  assert.match(analyze, /if \(!request\.headers\.get\("content-type"\).*return undefined/);
+test("missing durable references fail closed without legacy filesystem access", () => {
+  assert.match(analyze, /if \(!durableRequest\)[\s\S]*durable-media-required[\s\S]*status: 400/);
+  assert.doesNotMatch(analyze, /downloaded\.mp4|os\.tmpdir|node:os|\baccess\(/);
+  assert.doesNotMatch(page, /audio-energy", durableMedia \?/);
+});
+
+test("malformed IDs fail before runtime, ownership, GCS, temp, or FFmpeg", () => {
+  const validation = analyze.indexOf("!isUuid(jobId) || !isUuid(mediaId)");
+  const runtime = analyze.indexOf("withProductionMediaRuntime", validation);
+  assert.ok(validation > 0 && runtime > validation);
+  assert.match(analyze.slice(validation, runtime), /invalid-resource[\s\S]*status: 400/);
 });
 
 test("Analyze uses argument arrays and cleans the isolated durable temp root", () => {

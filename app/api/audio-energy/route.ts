@@ -1,6 +1,4 @@
 import { execFile } from "node:child_process";
-import { access } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
@@ -113,43 +111,33 @@ export async function POST(request: Request) {
 
   try {
     const durableRequest = await readDurableRequest(request);
-    if (durableRequest) {
-      const { jobId, mediaId } = durableRequest;
-      if (!isUuid(jobId) || !isUuid(mediaId)) {
-        return NextResponse.json({ success: false, error: "invalid-resource" }, { status: 400 });
+    if (!durableRequest) {
+      return NextResponse.json({ success: false, error: "durable-media-required" }, { status: 400 });
+    }
+    const { jobId, mediaId } = durableRequest;
+    if (!isUuid(jobId) || !isUuid(mediaId)) {
+      return NextResponse.json({ success: false, error: "invalid-resource" }, { status: 400 });
+    }
+    const ownerUid = authentication.context.identity.userId;
+    return await withProductionMediaRuntime(async ({ pool, bucket }) => {
+      const repository = createDurableMediaOwnershipRepository(pool);
+      if (!await repository.resolveOwnedJob(jobId, ownerUid)) {
+        return NextResponse.json({ success: false, error: "resource-not-found" }, { status: 404 });
       }
-      const ownerUid = authentication.context.identity.userId;
-      return await withProductionMediaRuntime(async ({ pool, bucket }) => {
-        const repository = createDurableMediaOwnershipRepository(pool);
-        if (!await repository.resolveOwnedJob(jobId, ownerUid)) {
-          return NextResponse.json({ success: false, error: "resource-not-found" }, { status: 404 });
-        }
-        const media = await repository.resolveOwnedMedia(mediaId, ownerUid);
-        if (!media || media.jobId !== jobId) {
-          return NextResponse.json({ success: false, error: "resource-not-found" }, { status: 404 });
-        }
+      const media = await repository.resolveOwnedMedia(mediaId, ownerUid);
+      if (!media || media.jobId !== jobId) {
+        return NextResponse.json({ success: false, error: "resource-not-found" }, { status: 404 });
+      }
 
-        const paths = await createJobTempDirectories(jobId);
-        const inputPath = path.join(paths.input, "source.mp4");
-        try {
-          await bucket.file(media.storageKey).download({ destination: inputPath });
-          return await analyzeVideo(inputPath);
-        } finally {
-          await cleanupJobTempRoot(jobId);
-        }
-      });
-    }
-
-    const legacyInputPath = path.join(os.tmpdir(), "downloaded.mp4");
-    try {
-      await access(legacyInputPath);
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "ダウンロード済み動画が見つかりません" },
-        { status: 404 },
-      );
-    }
-    return await analyzeVideo(legacyInputPath);
+      const paths = await createJobTempDirectories(jobId);
+      const inputPath = path.join(paths.input, "source.mp4");
+      try {
+        await bucket.file(media.storageKey).download({ destination: inputPath });
+        return await analyzeVideo(inputPath);
+      } finally {
+        await cleanupJobTempRoot(jobId);
+      }
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

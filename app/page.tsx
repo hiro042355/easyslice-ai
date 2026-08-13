@@ -1044,8 +1044,14 @@ const handleAudioEnergy = async () => {
     setLoading(true);
     setSuccessMessage("");
 
+    if (!durableMedia) {
+      throw new Error("Durable media registration is required before audio analysis");
+    }
+
     const res = await fetch("/api/audio-energy", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId: durableMedia.jobId, mediaId: durableMedia.mediaId }),
     });
 
     const data = await res.json();
