@@ -3,6 +3,7 @@ import { access } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import ffmpegPath from "ffmpeg-static";
 import { NextResponse } from "next/server";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
@@ -18,6 +19,10 @@ import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/
 export const runtime = "nodejs";
 
 const execFileAsync = promisify(execFile);
+const ffmpegExecutable = (): string => {
+  if (!ffmpegPath) throw new Error("ffmpeg-unavailable");
+  return ffmpegPath;
+};
 
 type EnergyItem = {
   second: number;
@@ -27,11 +32,16 @@ type EnergyItem = {
 type DurableAnalyzeRequest = Readonly<{ jobId: string; mediaId: string }>;
 
 const analyzeVideo = async (inputPath: string) => {
-  const durationResult = await execFileAsync("ffprobe", [
-    "-v", "error", "-show_entries", "format=duration",
-    "-of", "default=nokey=1:noprint_wrappers=1", inputPath,
-  ]);
-  const duration = Math.floor(Number(durationResult.stdout.trim()));
+  const inspection = await execFileAsync(ffmpegExecutable(), [
+    "-hide_banner", "-i", inputPath, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
+  ]).catch((error: { stderr?: string }) => error);
+  const inspectionText = inspection.stderr || "";
+  const durationMatch = inspectionText.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  const audioMatch = inspectionText.match(/Stream #[^\r\n]*Audio:\s*([^,\s]+)/);
+  if (!audioMatch) throw new Error("audio-stream-not-found");
+  const duration = durationMatch
+    ? Math.floor(Number(durationMatch[1]) * 3600 + Number(durationMatch[2]) * 60 + Number(durationMatch[3]))
+    : Number.NaN;
 
   if (!Number.isFinite(duration) || duration <= 0) {
     return NextResponse.json(
@@ -43,7 +53,7 @@ const analyzeVideo = async (inputPath: string) => {
   const windowSeconds = 10;
   const energies: EnergyItem[] = [];
   for (let second = 0; second < duration; second += windowSeconds) {
-    const result = await execFileAsync("ffmpeg", [
+    const result = await execFileAsync(ffmpegExecutable(), [
       "-hide_banner", "-ss", String(second), "-t", String(windowSeconds),
       "-i", inputPath, "-af", "volumedetect", "-f", "null", "-",
     ]).catch((error: { stderr?: string }) => error);
