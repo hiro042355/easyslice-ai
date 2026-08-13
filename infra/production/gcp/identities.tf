@@ -51,3 +51,9 @@ resource "google_service_account" "database_migration" {
 
   depends_on = [google_project_service.required]
 }
+
+resource "google_service_account_iam_member" "database_migration_short_lived_impersonator" {
+  service_account_id = google_service_account.database_migration.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = var.database_migration_impersonator_member
+}

@@ -111,6 +111,19 @@ None may use a `NEXT_PUBLIC_` name. The Cloud SQL Node.js Connector must provide
 the connection transport and short-lived IAM authentication; no runtime
 database password or service-account key is permitted.
 
+## Database migration authority
+
+The approved human operator may obtain short-lived credentials for only
+`nexcut-prod-db-migrator`. That service account has Cloud SQL connector and IAM
+database login authority; it is separate from the media runtime identity and
+has no static key.
+
+Database and schema ownership are not granted through project IAM. Before the
+first Production Flyway run, the existing database owner must grant the
+migrator only the database/schema privileges required to create and migrate the
+`workflow` schema. The media runtime must remain DML-only and must never receive
+schema ownership, migration authority, `CREATE ROLE`, or `CREATE DATABASE`.
+
 ## Validation workflow
 
 Before any separately authorized provisioning:
