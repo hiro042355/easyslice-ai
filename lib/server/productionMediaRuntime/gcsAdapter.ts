@@ -4,15 +4,26 @@ import type { IdentityPoolClient } from "google-auth-library";
 
 export type GcsProbeResult = Readonly<{ create: true; read: true; delete: true; residue: 0 }>;
 
+type StorageAuthClient = NonNullable<ConstructorParameters<typeof Storage>[0]>["authClient"];
+
+export const createStorageCompatibleAuthClient = (authClient: IdentityPoolClient): StorageAuthClient => ({
+  projectId: "nexcut-prod-jp-2026",
+  async getRequestHeaders() {
+    const headers = await authClient.getRequestHeaders();
+    const compatibleHeaders: Record<string, string> = {};
+    headers.forEach((value, name) => { compatibleHeaders[name] = value; });
+    return compatibleHeaders;
+  },
+} as unknown as StorageAuthClient);
+
 export const runProductionGcsProbe = async (
   authClient: IdentityPoolClient,
   bucketName: string,
 ): Promise<GcsProbeResult> => {
   if (bucketName !== "nexcut-prod-jp-2026-media") throw new Error("Invalid Production media bucket authority");
-  type StorageAuthClient = NonNullable<ConstructorParameters<typeof Storage>[0]>["authClient"];
   const storage = new Storage({
     projectId: "nexcut-prod-jp-2026",
-    authClient: authClient as unknown as StorageAuthClient,
+    authClient: createStorageCompatibleAuthClient(authClient),
   });
   const payload = Buffer.from("nexcut-media-runtime-readiness-v1", "utf8");
   const file = storage.bucket(bucketName).file(`authority-probes/${randomUUID()}`);

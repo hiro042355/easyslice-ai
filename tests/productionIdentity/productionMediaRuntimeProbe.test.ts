@@ -6,7 +6,9 @@ import {
   describeProductionMediaProbeFailure,
   runProductionMediaRuntimeProbe,
 } from "../../lib/server/productionMediaRuntime/probe";
+import { createStorageCompatibleAuthClient } from "../../lib/server/productionMediaRuntime/gcsAdapter";
 import { readProductionMediaWifConfiguration } from "../../lib/server/productionMediaRuntime/mediaWifCredential";
+import type { IdentityPoolClient } from "google-auth-library";
 
 const environment = Object.freeze({
   GCP_PROJECT_ID: "nexcut-prod-jp-2026",
@@ -58,6 +60,27 @@ test("probe exposes only a safe GCS failure classification", async () => {
       return true;
     },
   );
+});
+
+test("GCS compatibility adapter preserves the impersonated authorization header", async () => {
+  let calls = 0;
+  const source = {
+    async getRequestHeaders() {
+      calls += 1;
+      return new Headers({ authorization: "Bearer opaque-test-token", "x-goog-user-project": "nexcut-prod-jp-2026" });
+    },
+  } as unknown as IdentityPoolClient;
+  const compatible = createStorageCompatibleAuthClient(source) as unknown as {
+    projectId: string;
+    getRequestHeaders(url?: string): Promise<Record<string, string>>;
+  };
+
+  assert.equal(compatible.projectId, "nexcut-prod-jp-2026");
+  assert.deepEqual(await compatible.getRequestHeaders("https://storage.googleapis.com"), {
+    authorization: "Bearer opaque-test-token",
+    "x-goog-user-project": "nexcut-prod-jp-2026",
+  });
+  assert.equal(calls, 1);
 });
 
 test("probe authorization is Production-only and constant-time based", () => {
