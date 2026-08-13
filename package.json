@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/materializeFfmpegBinary.mjs",
     "dev": "next dev --webpack",
     "build": "next build",
     "lint": "eslint .",

@@ -1,7 +1,6 @@
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import ffmpegPath from "ffmpeg-static";
 import { NextResponse } from "next/server";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
@@ -17,13 +16,13 @@ import {
 } from "@/lib/server/durableMediaOwnership";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/composition";
+import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
 
 export const runtime = "nodejs";
 
 const execFileAsync = promisify(execFile);
 const ffmpegExecutable = (): string => {
-  if (!ffmpegPath) throw new Error("ffmpeg-unavailable");
-  return ffmpegPath;
+  return resolvePackagedFfmpeg();
 };
 
 type EnergyItem = {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { constants, readFileSync } from "node:fs";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -14,12 +14,21 @@ import {
   projectFfmpegSpawnFailure,
 } from "../../lib/server/audioHighlightInspection";
 import { decideCanonicalClipBoundary } from "../../lib/clipBoundary";
+import { resolvePackagedFfmpeg } from "../../lib/server/packagedFfmpeg";
+import {
+  materializeFfmpegBinary,
+  packagedFfmpegFilename,
+} from "../../scripts/materializeFfmpegBinary.mjs";
 
 const execFileAsync = promisify(execFile);
 
 const page = readFileSync("app/workspace-flow/page.tsx", "utf8");
 const rootPage = readFileSync("app/page.tsx", "utf8");
 const analyze = readFileSync("app/api/audio-energy/route.ts", "utf8");
+const nextConfig = readFileSync("next.config.ts", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  scripts: Record<string, string>;
+};
 
 test("Creator Flow sends only server-issued durable media references to Analyze", () => {
   assert.match(page, /if \(!durableMedia\)[\s\S]*fetch\("\/api\/audio-energy", \{[\s\S]*JSON\.stringify\(\{ jobId: durableMedia\.jobId, mediaId: durableMedia\.mediaId \}\)/);
@@ -71,11 +80,44 @@ test("malformed IDs fail before runtime, ownership, GCS, temp, or FFmpeg", () =>
 });
 
 test("Analyze uses argument arrays and cleans the isolated durable temp root", () => {
-  assert.match(analyze, /import ffmpegPath from "ffmpeg-static"/);
+  assert.match(analyze, /resolvePackagedFfmpeg/);
   assert.match(analyze, /execFileAsync\(ffmpegExecutable\(\), \[/);
   assert.doesNotMatch(analyze, /spawn ffprobe|execFileAsync\("ffprobe"/);
   assert.doesNotMatch(analyze, /\bexec\s*\(/);
   assert.match(analyze, /finally \{[\s\S]*cleanupJobTempRoot\(jobId\)/);
+});
+
+test("Production build materializes only the audio route FFmpeg runtime asset", () => {
+  assert.equal(packageJson.scripts.prebuild, "node scripts/materializeFfmpegBinary.mjs");
+  assert.match(nextConfig, /"\/api\/audio-energy": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
+  assert.doesNotMatch(nextConfig, /"\/api\/ai-mv|"\/ai-mv|"\/api\/\*"|"\/\*"/);
+});
+
+test("packaged FFmpeg resolver is deterministic and platform-specific", () => {
+  const linux = resolvePackagedFfmpeg("/srv/app", "linux");
+  const windows = resolvePackagedFfmpeg("C:\\app", "win32");
+  assert.equal(linux.replaceAll("\\", "/"), "/srv/app/node_modules/.nexcut-runtime/ffmpeg/ffmpeg");
+  assert.equal(windows.replaceAll("\\", "/"), "C:/app/node_modules/.nexcut-runtime/ffmpeg/ffmpeg.exe");
+  assert.doesNotMatch(linux, /jobs|media|storage|uid|token/i);
+});
+
+test("build materialization copies the platform binary with executable mode", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "nexcut-ffmpeg-package-"));
+  const source = path.join(root, "source-ffmpeg");
+  try {
+    await writeFile(source, "fixture-binary");
+    const target = await materializeFfmpegBinary({ sourcePath: source, projectRoot: root, platform: "linux" });
+    assert.equal(path.basename(target), packagedFfmpegFilename("linux"));
+    assert.equal(target, resolvePackagedFfmpeg(root, "linux"));
+    await access(target, constants.F_OK | constants.X_OK);
+    const diagnostic = await collectFfmpegBinaryDiagnostic(target);
+    assert.equal(diagnostic.exists, true);
+    assert.equal(diagnostic.xOk, true);
+    if (process.platform !== "win32") assert.equal(diagnostic.executableBit, true);
+    assert.match(readFileSync("scripts/materializeFfmpegBinary.mjs", "utf8"), /chmod\(targetPath, 0o755\)/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("Analyze detects an audio stream and duration before calculating energy", () => {
