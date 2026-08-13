@@ -14,6 +14,7 @@ const required = (name: string, value: string | undefined): string => {
 };
 
 export const runProductionOwnershipRuntimeReadiness = async (): Promise<void> => {
+  let stage = "configuration";
   const wif = readProductionMediaWifConfiguration();
   const auth = createProductionMediaWifClient(wif, () => getVercelOidcToken());
   const instanceConnectionName = required("CLOUD_SQL_INSTANCE_CONNECTION_NAME", process.env.CLOUD_SQL_INSTANCE_CONNECTION_NAME);
@@ -23,18 +24,26 @@ export const runProductionOwnershipRuntimeReadiness = async (): Promise<void> =>
   const ownerA = `${SYNTHETIC_OWNER_PREFIX}${proofId}:owner-a`;
   const ownerB = `${SYNTHETIC_OWNER_PREFIX}${proofId}:owner-b`;
 
-  await withProductionMediaCloudSqlPool(auth, { instanceConnectionName, database, iamUser }, async (pool) => {
-    const repository = createDurableMediaOwnershipRepository(pool);
-    const job = await repository.createJob(ownerA);
-    if (!await repository.resolveOwnedJob(job.id, ownerA)) throw new Error("ownership-runtime-job-proof-failed");
-    if (await repository.resolveOwnedJob(job.id, ownerB)) throw new Error("ownership-runtime-job-isolation-failed");
+  try {
+    await withProductionMediaCloudSqlPool(auth, { instanceConnectionName, database, iamUser }, async (pool) => {
+      const repository = createDurableMediaOwnershipRepository(pool);
+      stage = "job";
+      const job = await repository.createJob(ownerA);
+      if (!await repository.resolveOwnedJob(job.id, ownerA)) throw new Error("ownership-runtime-job-proof-failed");
+      if (await repository.resolveOwnedJob(job.id, ownerB)) throw new Error("ownership-runtime-job-isolation-failed");
 
-    const media = await repository.createMedia(job.id, ownerA, "input", "video/mp4");
-    if (!media || !await repository.resolveOwnedMedia(media.id, ownerA)) throw new Error("ownership-runtime-media-proof-failed");
-    if (await repository.resolveOwnedMedia(media.id, ownerB)) throw new Error("ownership-runtime-media-isolation-failed");
+      stage = "media";
+      const media = await repository.createMedia(job.id, ownerA, "input", "video/mp4");
+      if (!media || !await repository.resolveOwnedMedia(media.id, ownerA)) throw new Error("ownership-runtime-media-proof-failed");
+      if (await repository.resolveOwnedMedia(media.id, ownerB)) throw new Error("ownership-runtime-media-isolation-failed");
 
-    const exported = await repository.createExport(job.id, ownerA, "application/zip");
-    if (!exported || !await repository.resolveOwnedExport(exported.id, ownerA)) throw new Error("ownership-runtime-export-proof-failed");
-    if (await repository.resolveOwnedExport(exported.id, ownerB)) throw new Error("ownership-runtime-export-isolation-failed");
-  });
+      stage = "export";
+      const exported = await repository.createExport(job.id, ownerA, "application/zip");
+      if (!exported || !await repository.resolveOwnedExport(exported.id, ownerA)) throw new Error("ownership-runtime-export-proof-failed");
+      if (await repository.resolveOwnedExport(exported.id, ownerB)) throw new Error("ownership-runtime-export-isolation-failed");
+    });
+  } catch {
+    console.error(`ownership-runtime-readiness:${stage}:failed`);
+    throw new Error("ownership-runtime-readiness-failed");
+  }
 };
