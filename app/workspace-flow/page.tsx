@@ -140,6 +140,7 @@ export default function WorkspaceFlowPage() {
   const [exportMessage, setExportMessage] = useState("");
   const [exportError, setExportError] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [reviewExportReady, setReviewExportReady] = useState(false);
   const [zipDownloadUrl, setZipDownloadUrl] = useState("");
   const [zipFileName, setZipFileName] = useState("");
   const [generatedClipCount, setGeneratedClipCount] = useState(0);
@@ -559,6 +560,7 @@ export default function WorkspaceFlowPage() {
   const resetExportResult = () => {
     setExportMessage("");
     setExportError("");
+    setReviewExportReady(false);
     setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
   };
 
@@ -622,6 +624,7 @@ export default function WorkspaceFlowPage() {
         createdAt: exportedAt,
       };
       addReviewQueueItem(reviewQueueItem);
+      setReviewExportReady(true);
       setExportMessage("MP4を生成しました。");
       trackEvent("export_mp4", {
         workspace: "creator_flow",
@@ -1551,6 +1554,15 @@ export default function WorkspaceFlowPage() {
                           className="rounded-2xl border border-cyan-300/25 bg-cyan-300/10 p-4 text-center text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/15"
                         >
                           MP4を保存
+                        </a>
+                      )}
+
+                      {reviewExportReady && (
+                        <a
+                          href="/review"
+                          className="rounded-2xl border border-purple-300/25 bg-purple-300/10 p-4 text-center text-sm font-bold text-purple-100 transition hover:bg-purple-300/15"
+                        >
+                          Review Queueへ
                         </a>
                       )}
 

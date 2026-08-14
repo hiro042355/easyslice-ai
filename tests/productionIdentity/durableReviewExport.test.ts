@@ -39,6 +39,17 @@ test("successful Cut preserves only the server-issued durable Export ID", () => 
   assert.doesNotMatch(workspace, /exportedVideoPath:\s*url/);
 });
 
+test("Review handoff appears only after durable queue persistence", () => {
+  assert.match(workspace, /reviewExportReady, setReviewExportReady\] = useState\(false\)/);
+  assert.match(workspace, /setReviewExportReady\(false\)/);
+  const persistence = workspace.indexOf("addReviewQueueItem(reviewQueueItem)");
+  const enable = workspace.indexOf("setReviewExportReady(true)");
+  const action = workspace.indexOf("{reviewExportReady && (");
+  assert.ok(persistence > 0 && enable > persistence && action > enable);
+  assert.match(workspace.slice(action), /href="\/review"[\s\S]*Review Queueへ/);
+  assert.match(workspace, /href=\{downloadUrl\}[\s\S]*download="creator-flow-cut\.mp4"[\s\S]*MP4を保存/);
+});
+
 test("missing or malformed Export ID fails before a legacy Review item is created", () => {
   assert.match(workspace, /if \(!isDurableExportId\(exportId\)\)[\s\S]*throw new Error/);
   assert.equal(resolveReviewExportPath(item()), undefined);
