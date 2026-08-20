@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
 import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
+import { parseSubtitleText, projectTimedTextForHighlight } from "@/lib/client/subtitleState";
+import type { ClipTimedTextV1 } from "@/lib/clipEditing";
 import CreatorStylePanel from "../../components/CreatorStylePanel";
 import { trackEvent } from "../../lib/analytics";
 import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
@@ -126,7 +128,9 @@ export default function WorkspaceFlowPage() {
   const [videoDuration, setVideoDuration] = useState(0);
   const [thumbnail, setThumbnail] = useState("");
   const [currentYoutubeUrl, setCurrentYoutubeUrl] = useState("");
-  const [subtitles, setSubtitles] = useState<{ second: number; text: string }[]>([]);
+  const [subtitles, setSubtitles] = useState<readonly ClipTimedTextV1[]>([]);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [transcriptError, setTranscriptError] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -209,70 +213,6 @@ export default function WorkspaceFlowPage() {
     setUploadMessage("");
     setErrorMessage("");
     setProgress(0);
-  };
-
-  const parseTimeToSeconds = (timeText: string) => {
-    const normalized = timeText.replace(",", ".");
-    const parts = normalized.split(":");
-
-    if (parts.length === 1) return Number(parts[0]);
-
-    if (parts.length === 2) {
-      const minutes = Number(parts[0]);
-      const seconds = Number(parts[1]);
-      return minutes * 60 + seconds;
-    }
-
-    const hours = Number(parts[0]);
-    const minutes = Number(parts[1]);
-    const seconds = Number(parts[2]);
-    return hours * 3600 + minutes * 60 + seconds;
-  };
-
-  const parseSubtitleText = (text: string) => {
-    const normalized = text.replace(/\r/g, "");
-    const blocks = normalized.split(/\n\s*\n/);
-
-    const parsedFromBlocks = blocks
-      .map((block) => {
-        const lines = block
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean);
-
-        const timeLine = lines.find((line) => line.includes("-->"));
-        if (!timeLine) return null;
-
-        const [startText] = timeLine.split("-->");
-        const second = Math.floor(parseTimeToSeconds(startText.trim()));
-        const textLines = lines.filter(
-          (line) =>
-            !line.includes("-->") &&
-            !/^\d+$/.test(line) &&
-            line.toUpperCase() !== "WEBVTT"
-        );
-        const subtitleText = textLines.join(" ").trim();
-
-        if (!Number.isFinite(second) || subtitleText === "") return null;
-
-        return { second, text: subtitleText };
-      })
-      .filter((item) => item !== null) as { second: number; text: string }[];
-
-    if (parsedFromBlocks.length > 0) return parsedFromBlocks;
-
-    return normalized
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [secondText, ...words] = line.split(/\s+/);
-        return {
-          second: Number(secondText),
-          text: words.join(" "),
-        };
-      })
-      .filter((item) => Number.isFinite(item.second) && item.text !== "");
   };
 
   const handleVideoUpload = async (file: File | null) => {
@@ -424,7 +364,7 @@ export default function WorkspaceFlowPage() {
 
       const safeSubtitles = parsedSubtitles.filter((item) => {
         if (!videoDuration || videoDuration <= 0) return true;
-        return item.second >= 0 && item.second <= videoDuration;
+        return item.start >= 0 && item.end <= videoDuration;
       });
 
       if (safeSubtitles.length === 0) {
@@ -440,6 +380,34 @@ export default function WorkspaceFlowPage() {
     } catch (err) {
       console.error(err);
       setErrorMessage("字幕ファイルの読み込みに失敗しました。");
+    }
+  };
+
+  const handleGenerateSubtitles = async () => {
+    if (!durableMedia) {
+      setTranscriptError("先にSTEP1で動画をアップロードしてください。");
+      return;
+    }
+    try {
+      setTranscriptLoading(true);
+      setTranscriptError("");
+      const response = await fetch("/api/transcript/durable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: durableMedia.jobId, mediaId: durableMedia.mediaId }),
+      });
+      const result = await response.json() as {
+        success?: boolean; subtitles?: ClipTimedTextV1[]; error?: string;
+      };
+      if (!response.ok || !result.success || !result.subtitles?.length) {
+        throw new Error(result.error || "字幕生成に失敗しました");
+      }
+      setSubtitles(result.subtitles);
+      setUploadMessage(`音声から字幕を生成しました: ${result.subtitles.length}行`);
+    } catch (error) {
+      setTranscriptError(error instanceof Error ? error.message : "字幕生成に失敗しました");
+    } finally {
+      setTranscriptLoading(false);
     }
   };
 
@@ -471,7 +439,7 @@ export default function WorkspaceFlowPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            subtitles,
+            subtitles: projectTimedTextForHighlight(subtitles),
             videoDuration,
           }),
         });
@@ -1363,6 +1331,17 @@ export default function WorkspaceFlowPage() {
                         <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm text-gray-500">
                           字幕はまだ生成または読み込みされていません。
                         </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleGenerateSubtitles}
+                        disabled={!durableMedia || transcriptLoading}
+                        className="mt-4 w-full rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {transcriptLoading ? "字幕を生成中..." : "音声から字幕を生成"}
+                      </button>
+                      {transcriptError && (
+                        <p className="mt-3 text-sm font-semibold text-red-300">{transcriptError}</p>
                       )}
                     </section>
 
