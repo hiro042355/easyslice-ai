@@ -14,12 +14,17 @@ export type MultiCutRouteOutputFormat = "original" | "shorts" | "normal";
 
 export type MultiCutRouteRequest = Readonly<{
   requestVersion: MultiCutRouteRequestVersion;
+  jobId: string;
+  mediaId: string;
   clips: readonly MultiCutRouteClip[];
   outputFormat?: MultiCutRouteOutputFormat;
   creatorStyleConfig?: Readonly<CreatorStyleConfig> | null;
 }>;
 
 export type MultiCutRouteErrorCode =
+  | "durable-media-required"
+  | "invalid-resource"
+  | "resource-not-found"
   | "clips-required"
   | "clip-range-invalid"
   | "source-not-found";

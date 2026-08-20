@@ -11,6 +11,9 @@ const clip = () =>
     title: "Reference clip",
   });
 
+const jobId = "11111111-1111-4111-8111-111111111111";
+const mediaId = "22222222-2222-4222-8222-222222222222";
+
 const creatorStyleConfig = () =>
   Object.freeze({
     style: "creator" as const,
@@ -28,6 +31,8 @@ export const createReferenceMultiCutRouteRequest =
   (): MultiCutRouteRequest =>
     Object.freeze({
       requestVersion: "1.0",
+      jobId,
+      mediaId,
       clips: Object.freeze([clip()]),
       outputFormat: "original",
     });
@@ -36,6 +41,8 @@ export const createReferenceMultiCutRouteOptionalRequest =
   (): MultiCutRouteRequest =>
     Object.freeze({
       requestVersion: "1.0",
+      jobId,
+      mediaId,
       clips: Object.freeze([clip()]),
     });
 
@@ -43,6 +50,8 @@ export const createReferenceMultiCutRouteCreatorStyleRequest =
   (): MultiCutRouteRequest =>
     Object.freeze({
       requestVersion: "1.0",
+      jobId,
+      mediaId,
       clips: Object.freeze([clip()]),
       outputFormat: "shorts",
       creatorStyleConfig: creatorStyleConfig(),

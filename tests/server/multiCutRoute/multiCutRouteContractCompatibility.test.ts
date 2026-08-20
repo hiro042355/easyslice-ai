@@ -9,6 +9,8 @@ import type {
 test("public types accept the observed legacy payload and response shapes", () => {
   const request: MultiCutRouteRequest = {
     requestVersion: "1.0",
+    jobId: "11111111-1111-4111-8111-111111111111",
+    mediaId: "22222222-2222-4222-8222-222222222222",
     clips: [{ start: "1", end: 2, title: "clip" }],
     outputFormat: "normal",
     creatorStyleConfig: null,

@@ -22,6 +22,8 @@ test("request fixtures preserve current required and optional public fields", ()
   const creator = createReferenceMultiCutRouteCreatorStyleRequest();
 
   assert.equal(request.requestVersion, "1.0");
+  assert.equal(request.jobId, "11111111-1111-4111-8111-111111111111");
+  assert.equal(request.mediaId, "22222222-2222-4222-8222-222222222222");
   assert.deepEqual(request.clips, [
     { start: "10", end: "20", title: "Reference clip" },
   ]);

@@ -25,6 +25,8 @@ const createInput = (): MultiCutRequestAdmissionInput => ({
     fingerprintInputVersion: "1.0",
     request: {
       requestVersion: "1.0",
+      jobId: "11111111-1111-4111-8111-111111111111",
+      mediaId: "22222222-2222-4222-8222-222222222222",
       clips: [{ start: 0, end: 1, title: "clip" }],
       outputFormat: "original",
     },
@@ -142,10 +144,10 @@ test("projection is deterministic, immutable, and private", async () => {
     /^multi-cut-request-fingerprint:v1:[0-9a-f]{16}$/,
   );
 
-  const module = await import(
+  const runtimeModule = await import(
     "../../../lib/server/multiCutRequestAdmission/referenceMultiCutRequestAdmission"
   );
-  assert.deepEqual(Object.keys(module), ["runReferenceMultiCutRequestAdmission"]);
+  assert.deepEqual(Object.keys(runtimeModule), ["runReferenceMultiCutRequestAdmission"]);
 });
 
 test("new preserves authoritative identity and reservation evidence", async () => {

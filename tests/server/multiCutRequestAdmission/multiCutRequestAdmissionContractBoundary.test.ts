@@ -87,6 +87,8 @@ test("contract reuses the existing identity and exposes immutable unions", () =>
       fingerprintInputVersion: "1.0",
       request: {
         requestVersion: "1.0",
+        jobId: "11111111-1111-4111-8111-111111111111",
+        mediaId: "22222222-2222-4222-8222-222222222222",
         clips: [{ start: 0, end: 1 }],
       },
       authenticatedRequest: {

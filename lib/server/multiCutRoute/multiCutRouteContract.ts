@@ -11,6 +11,8 @@ export const isMultiCutRouteRequest = (
 ): value is MultiCutRouteRequest =>
   isRecord(value) &&
   value.requestVersion === "1.0" &&
+  typeof value.jobId === "string" &&
+  typeof value.mediaId === "string" &&
   Object.hasOwn(value, "clips") &&
   Array.isArray(value.clips);
 

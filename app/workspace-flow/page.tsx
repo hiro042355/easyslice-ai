@@ -665,6 +665,11 @@ export default function WorkspaceFlowPage() {
       return;
     }
 
+    if (!durableMedia) {
+      setExportError("ZIP生成にはdurable mediaが必要です。STEP1で動画を追加してください。");
+      return;
+    }
+
     try {
       setExportLoading(true);
       resetExportResult();
@@ -674,6 +679,9 @@ export default function WorkspaceFlowPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestVersion: "1.0",
+          jobId: durableMedia.jobId,
+          mediaId: durableMedia.mediaId,
           clips: validClips,
           outputFormat: "normal",
           creatorStyleConfig,
