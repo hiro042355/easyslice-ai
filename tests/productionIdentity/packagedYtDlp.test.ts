@@ -23,6 +23,7 @@ import {
   materializeYtDlpBinary,
   packagedYtDlpPath,
   sha256,
+  YT_DLP_ASSET,
   YT_DLP_SHA256,
   YT_DLP_SOURCE,
   YT_DLP_VERSION,
@@ -60,10 +61,20 @@ const fakeSpawn = (run: (child: EventEmitter & { stdout: PassThrough; stderr: Pa
 test("pinned yt-dlp authority is exact and build wiring has no runtime download", () => {
   assert.equal(YT_DLP_VERSION, "2026.03.13");
   assert.equal(PACKAGED_YT_DLP_VERSION, YT_DLP_VERSION);
-  assert.equal(YT_DLP_SHA256, "52699d7b103803ef37442a52b429f02d4a41b8821fb6ac9c564f7a16056258d3");
-  assert.equal(YT_DLP_SOURCE, `https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}/yt-dlp`);
+  assert.equal(YT_DLP_ASSET, "yt-dlp_linux");
+  assert.equal(YT_DLP_SHA256, "b15210c7791b8d473f8373f150a014194dbd7702ec4dd507e565411096a3284c");
+  assert.equal(YT_DLP_SOURCE, `https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}/yt-dlp_linux`);
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
   assert.equal(packageJson.scripts.prebuild, "node scripts/materializeFfmpegBinary.mjs && node scripts/materializeYtDlpBinary.mjs");
+});
+
+test("selected production artifact is standalone ELF and has no Python shebang", async () => {
+  const artifactPath = process.env.NEXCUT_TEST_YT_DLP_LINUX;
+  if (!artifactPath) return;
+  const bytes = await readFile(artifactPath);
+  assert.deepEqual([...bytes.subarray(0, 4)], [0x7f, 0x45, 0x4c, 0x46]);
+  assert.notEqual(bytes.subarray(0, 64).toString("utf8").startsWith("#!/usr/bin/env python3"), true);
+  assert.equal(sha256(bytes), YT_DLP_SHA256);
 });
 
 const captureFailure = async (promise: Promise<unknown>): Promise<YtDlpProcessFailure> => {

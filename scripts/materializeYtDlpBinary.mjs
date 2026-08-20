@@ -5,9 +5,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const YT_DLP_VERSION = "2026.03.13";
-export const YT_DLP_SHA256 = "52699d7b103803ef37442a52b429f02d4a41b8821fb6ac9c564f7a16056258d3";
-export const YT_DLP_SOURCE = `https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}/yt-dlp`;
-const MAX_ARTIFACT_BYTES = 32 * 1024 * 1024;
+export const YT_DLP_ASSET = "yt-dlp_linux";
+export const YT_DLP_SHA256 = "b15210c7791b8d473f8373f150a014194dbd7702ec4dd507e565411096a3284c";
+export const YT_DLP_SOURCE = `https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}/${YT_DLP_ASSET}`;
+const MAX_ARTIFACT_BYTES = 64 * 1024 * 1024;
 const PACKAGED_SEGMENTS = ["node_modules", ".nexcut-runtime", "yt-dlp", "yt-dlp"];
 
 export const packagedYtDlpPath = (projectRoot = process.cwd()) => path.join(projectRoot, ...PACKAGED_SEGMENTS);
