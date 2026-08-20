@@ -10,7 +10,12 @@ import {
   createMediaStorageKey,
 } from "@/lib/server/durableMediaOwnership";
 import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
-import { runPackagedYtDlp, YtDlpProcessFailure } from "@/lib/server/packagedYtDlp";
+import {
+  PACKAGED_YT_DLP_VERSION,
+  probePackagedYtDlpVersion,
+  runPackagedYtDlp,
+  YtDlpProcessFailure,
+} from "@/lib/server/packagedYtDlp";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/composition";
 import {
@@ -55,8 +60,10 @@ export async function POST(request: Request) {
   const storageKey = createMediaStorageKey(jobId, mediaId, "input", VIDEO_MIME);
   let uploaded = false;
   let completed = false;
+  let runtimeVersionVerified = false;
 
   try {
+    runtimeVersionVerified = await probePackagedYtDlpVersion() === PACKAGED_YT_DLP_VERSION;
     await runPackagedYtDlp(createYouTubeAcquisitionArguments(validated.canonicalUrl, inputPath), {
       timeoutMs: YOUTUBE_ACQUISITION_TIMEOUT_MS,
       signal: request.signal,
@@ -104,6 +111,8 @@ export async function POST(request: Request) {
         error: error.reason,
         exitCode: error.diagnostic.exitCode,
         signal: error.diagnostic.signal,
+        runtimeVersionVerified,
+        stderrSignature: error.diagnostic.stderrSignature,
       }, { status });
     }
     return NextResponse.json({ error: "youtube-ingestion-failed" }, { status: 500 });

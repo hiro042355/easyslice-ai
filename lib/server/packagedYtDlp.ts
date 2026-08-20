@@ -40,7 +40,72 @@ export type YtDlpFailureDiagnostic = Readonly<{
   aborted: boolean;
   stdoutLimitExceeded: boolean;
   stderrLimitExceeded: boolean;
+  stderrSignature: YtDlpStderrSignature;
 }>;
+
+export type YtDlpStderrKeywordFlags = Readonly<{
+  error: boolean;
+  warning: boolean;
+  httpError: boolean;
+  unable: boolean;
+  failed: boolean;
+  requestedFormat: boolean;
+  extractor: boolean;
+  signature: boolean;
+  javascript: boolean;
+  nsig: boolean;
+  player: boolean;
+  remoteComponents: boolean;
+  ffmpeg: boolean;
+  merge: boolean;
+  write: boolean;
+  permission: boolean;
+  network: boolean;
+  http403: boolean;
+  http429: boolean;
+  http5xx: boolean;
+}>;
+
+export type YtDlpStderrSignature = Readonly<{
+  lineCount: number;
+  prefix: "empty" | "error" | "warning" | "other";
+  beginsWithYtDlpError: boolean;
+  multipleErrorLines: boolean;
+  warningBeforeError: boolean;
+  keywords: YtDlpStderrKeywordFlags;
+}>;
+
+const EMPTY_STDERR_KEYWORDS: YtDlpStderrKeywordFlags = Object.freeze({
+  error: false,
+  warning: false,
+  httpError: false,
+  unable: false,
+  failed: false,
+  requestedFormat: false,
+  extractor: false,
+  signature: false,
+  javascript: false,
+  nsig: false,
+  player: false,
+  remoteComponents: false,
+  ffmpeg: false,
+  merge: false,
+  write: false,
+  permission: false,
+  network: false,
+  http403: false,
+  http429: false,
+  http5xx: false,
+});
+
+const EMPTY_STDERR_SIGNATURE: YtDlpStderrSignature = Object.freeze({
+  lineCount: 0,
+  prefix: "empty",
+  beginsWithYtDlpError: false,
+  multipleErrorLines: false,
+  warningBeforeError: false,
+  keywords: EMPTY_STDERR_KEYWORDS,
+});
 
 const EMPTY_FAILURE_DIAGNOSTIC: YtDlpFailureDiagnostic = Object.freeze({
   exitCode: null,
@@ -49,6 +114,7 @@ const EMPTY_FAILURE_DIAGNOSTIC: YtDlpFailureDiagnostic = Object.freeze({
   aborted: false,
   stdoutLimitExceeded: false,
   stderrLimitExceeded: false,
+  stderrSignature: EMPTY_STDERR_SIGNATURE,
 });
 
 export class YtDlpProcessFailure extends Error {
@@ -100,6 +166,52 @@ export const classifyYtDlpStderr = (stderr: string): YtDlpClassifiedExitReason =
     if (classifier.patterns.some((pattern) => pattern.test(stderr))) return classifier.reason;
   }
   return "unknown-yt-dlp-failure";
+};
+
+export const extractSafeYtDlpStderrSignature = (stderr: string): YtDlpStderrSignature => {
+  const normalized = stderr.replace(/\x1B\[[0-?]*[ -\/]*[@-~]/g, "").trim();
+  if (!normalized) return EMPTY_STDERR_SIGNATURE;
+  const lines = normalized.split(/\r?\n/);
+  const first = lines[0] ?? "";
+  const errorLineIndexes = lines.flatMap((line, index) => /^\s*(?:yt-dlp\s+)?error\s*:/i.test(line) ? [index] : []);
+  const warningLineIndexes = lines.flatMap((line, index) => /^\s*(?:yt-dlp\s+)?warning\s*:/i.test(line) ? [index] : []);
+  const has = (pattern: RegExp) => pattern.test(normalized);
+  const keywords: YtDlpStderrKeywordFlags = Object.freeze({
+    error: has(/\berror\b/i),
+    warning: has(/\bwarning\b/i),
+    httpError: has(/http error/i),
+    unable: has(/\bunable\b/i),
+    failed: has(/\bfailed\b/i),
+    requestedFormat: has(/requested format/i),
+    extractor: has(/\bextractor\b/i),
+    signature: has(/\bsignature\b/i),
+    javascript: has(/\bjavascript\b/i),
+    nsig: has(/\bnsig\b/i),
+    player: has(/\bplayer\b/i),
+    remoteComponents: has(/remote components?/i),
+    ffmpeg: has(/\bffmpeg\b/i),
+    merge: has(/\bmerg(?:e|ing)\b/i),
+    write: has(/\bwrit(?:e|ing)\b/i),
+    permission: has(/\bpermission\b/i),
+    network: has(/\bnetwork\b/i),
+    http403: has(/\b403\b/),
+    http429: has(/\b429\b/),
+    http5xx: has(/\b5\d{2}\b/),
+  });
+  const prefix = /^\s*(?:yt-dlp\s+)?error\s*:/i.test(first)
+    ? "error"
+    : /^\s*(?:yt-dlp\s+)?warning\s*:/i.test(first)
+      ? "warning"
+      : "other";
+  return Object.freeze({
+    lineCount: lines.length,
+    prefix,
+    beginsWithYtDlpError: /^\s*(?:yt-dlp\s+)?error\s*:/i.test(first),
+    multipleErrorLines: errorLineIndexes.length > 1,
+    warningBeforeError: warningLineIndexes.some((warningIndex) =>
+      errorLineIndexes.some((errorIndex) => warningIndex < errorIndex)),
+    keywords,
+  });
 };
 
 export const packagedYtDlpTarget = (projectRoot = process.cwd()): string => path.join(
@@ -179,6 +291,7 @@ export const runPackagedYtDlp = async (
       aborted: terminationReason === "yt-dlp-cancelled",
       stdoutLimitExceeded,
       stderrLimitExceeded,
+      stderrSignature: extractSafeYtDlpStderrSignature(stderr.toString("utf8")),
     });
     const append = (current: Buffer, chunk: Buffer, stream: "stdout" | "stderr") => {
       const next = Buffer.concat([current, chunk]);

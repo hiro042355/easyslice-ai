@@ -75,6 +75,7 @@ test("route preserves auth, validation, server IDs, acquisition, validation, GCS
     "const jobId = randomUUID()",
     "const mediaId = randomUUID()",
     "createJobTempDirectories(jobId)",
+    "probePackagedYtDlpVersion()",
     "runPackagedYtDlp(",
     "inspectIngestedVideo(resolvePackagedFfmpeg(), inputPath)",
     "createReadStream(inputPath)",
@@ -114,6 +115,8 @@ test("route projects only classified yt-dlp failure metadata and never raw stder
   assert.match(route, /error: error\.reason/);
   assert.match(route, /exitCode: error\.diagnostic\.exitCode/);
   assert.match(route, /signal: error\.diagnostic\.signal/);
+  assert.match(route, /runtimeVersionVerified/);
+  assert.match(route, /stderrSignature: error\.diagnostic\.stderrSignature/);
   assert.doesNotMatch(route, /error\.stderr|console\.(?:log|error|warn).*stderr|canonicalUrl.*NextResponse/);
 });
 

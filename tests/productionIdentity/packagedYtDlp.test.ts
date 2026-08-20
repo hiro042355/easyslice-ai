@@ -9,6 +9,7 @@ import test from "node:test";
 import {
   PACKAGED_YT_DLP_VERSION,
   classifyYtDlpStderr,
+  extractSafeYtDlpStderrSignature,
   packagedYtDlpTarget,
   probePackagedYtDlpVersion,
   resolvePackagedYtDlp,
@@ -210,6 +211,7 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
       aborted: false,
       stdoutLimitExceeded: false,
       stderrLimitExceeded: false,
+      stderrSignature: extractSafeYtDlpStderrSignature(`ERROR: Sign in to confirm you're not a bot ${remoteId} ${token} ${tempPath}`),
     });
     const projected = JSON.stringify(error);
     assert.doesNotMatch(projected, new RegExp(remoteId));
@@ -218,6 +220,71 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("safe stderr signature projects allowlisted structure only", () => {
+  const remoteId = "privateVideoId";
+  const secret = "credential-secret-value";
+  const pathValue = "/tmp/nexcut/jobs/private-job/input/identity.mp4";
+  const signature = extractSafeYtDlpStderrSignature([
+    `WARNING: JavaScript remote components failed for player ${remoteId}`,
+    `ERROR: HTTP Error 403: signature nsig extractor unable to write ${pathValue} ${secret}`,
+    "ERROR: ffmpeg merge failed with network status 503",
+  ].join("\n"));
+  assert.deepEqual(signature, {
+    lineCount: 3,
+    prefix: "warning",
+    beginsWithYtDlpError: false,
+    multipleErrorLines: true,
+    warningBeforeError: true,
+    keywords: {
+      error: true,
+      warning: true,
+      httpError: true,
+      unable: true,
+      failed: true,
+      requestedFormat: false,
+      extractor: true,
+      signature: true,
+      javascript: true,
+      nsig: true,
+      player: true,
+      remoteComponents: true,
+      ffmpeg: true,
+      merge: true,
+      write: true,
+      permission: false,
+      network: true,
+      http403: true,
+      http429: false,
+      http5xx: true,
+    },
+  });
+  const projected = JSON.stringify(signature);
+  assert.doesNotMatch(projected, new RegExp(remoteId));
+  assert.doesNotMatch(projected, new RegExp(secret));
+  assert.doesNotMatch(projected, /private-job|identity\.mp4/);
+});
+
+test("safe stderr signature preserves empty and unknown fallback without arbitrary text", () => {
+  assert.deepEqual(extractSafeYtDlpStderrSignature(""), {
+    lineCount: 0,
+    prefix: "empty",
+    beginsWithYtDlpError: false,
+    multipleErrorLines: false,
+    warningBeforeError: false,
+    keywords: Object.fromEntries([
+      "error", "warning", "httpError", "unable", "failed", "requestedFormat", "extractor", "signature",
+      "javascript", "nsig", "player", "remoteComponents", "ffmpeg", "merge", "write", "permission",
+      "network", "http403", "http429", "http5xx",
+    ].map((key) => [key, false])),
+  });
+  const arbitrary = "opaque remote text with private identifiers";
+  const signature = extractSafeYtDlpStderrSignature(arbitrary);
+  assert.equal(signature.prefix, "other");
+  assert.equal(signature.lineCount, 1);
+  assert.doesNotMatch(JSON.stringify(signature), /opaque|private identifiers/);
+  assert.equal(classifyYtDlpStderr(arbitrary), "unknown-yt-dlp-failure");
 });
 
 test("classifier maps only deterministic safe stderr categories", () => {
