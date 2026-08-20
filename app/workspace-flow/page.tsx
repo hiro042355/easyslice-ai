@@ -720,7 +720,7 @@ export default function WorkspaceFlowPage() {
   };
 
   const handleBurnSubtitle = async () => {
-    if (!hasVideo) {
+    if (!hasVideo || !durableMedia) {
       setExportError("先にSTEP1で動画を追加してください。");
       return;
     }
@@ -739,22 +739,24 @@ export default function WorkspaceFlowPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestVersion: "1.0",
+          jobId: durableMedia.jobId,
+          mediaId: durableMedia.mediaId,
           transcript: subtitleText,
           start: primaryClip.start || "0",
           end: primaryClip.end || "30",
           creatorStyleConfig,
         }),
       });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "字幕付き動画の作成に失敗しました");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "字幕付き動画の作成に失敗しました");
       }
-
-      if (data.url) {
-        setBurnedVideoUrl(data.url);
+      if (!res.headers.get("content-type")?.toLowerCase().startsWith("video/mp4")) {
+        throw new Error("字幕付き動画の応答形式が不正です");
       }
-      setExportMessage(data.message || "字幕付き動画を作成しました。");
+      setBurnedVideoUrl(URL.createObjectURL(await res.blob()));
+      setExportMessage("字幕付き動画を作成しました。");
       trackEvent("export_burn_subtitle", {
         workspace: "creator_flow",
         creatorStyle: creatorStyleConfig.style,

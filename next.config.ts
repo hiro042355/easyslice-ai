@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "/api/audio-energy": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/cut": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/multi-cut": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
+    "/api/burn-subtitle": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
   },
 };
 
