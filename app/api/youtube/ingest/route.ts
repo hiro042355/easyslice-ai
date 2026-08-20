@@ -100,7 +100,11 @@ export async function POST(request: Request) {
     }
     if (error instanceof YtDlpProcessFailure) {
       const status = error.reason === "yt-dlp-timeout" ? 504 : error.reason === "yt-dlp-cancelled" ? 499 : 422;
-      return NextResponse.json({ error: error.reason }, { status });
+      return NextResponse.json({
+        error: error.reason,
+        exitCode: error.diagnostic.exitCode,
+        signal: error.diagnostic.signal,
+      }, { status });
     }
     return NextResponse.json({ error: "youtube-ingestion-failed" }, { status: 500 });
   } finally {

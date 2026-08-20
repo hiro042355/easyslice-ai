@@ -110,6 +110,13 @@ test("route uses packaged binaries, safe runner, and route-scoped tracing only",
   assert.doesNotMatch(nextConfig, /"\/api\/ai-mv"[\s\S]*yt-dlp|"\/api\/\*"[\s\S]*yt-dlp|"\/\*"[\s\S]*yt-dlp/);
 });
 
+test("route projects only classified yt-dlp failure metadata and never raw stderr", () => {
+  assert.match(route, /error: error\.reason/);
+  assert.match(route, /exitCode: error\.diagnostic\.exitCode/);
+  assert.match(route, /signal: error\.diagnostic\.signal/);
+  assert.doesNotMatch(route, /error\.stderr|console\.(?:log|error|warn).*stderr|canonicalUrl.*NextResponse/);
+});
+
 test("GCS and DB failures compensate object and transaction without partial authority", () => {
   assert.match(route, /uploaded = true[\s\S]*pipeline\(/);
   assert.match(route, /query\("ROLLBACK"\)\.catch/);

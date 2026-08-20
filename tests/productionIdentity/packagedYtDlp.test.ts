@@ -8,6 +8,7 @@ import { PassThrough } from "node:stream";
 import test from "node:test";
 import {
   PACKAGED_YT_DLP_VERSION,
+  classifyYtDlpStderr,
   packagedYtDlpTarget,
   probePackagedYtDlpVersion,
   resolvePackagedYtDlp,
@@ -62,6 +63,16 @@ test("pinned yt-dlp authority is exact and build wiring has no runtime download"
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
   assert.equal(packageJson.scripts.prebuild, "node scripts/materializeFfmpegBinary.mjs && node scripts/materializeYtDlpBinary.mjs");
 });
+
+const captureFailure = async (promise: Promise<unknown>): Promise<YtDlpProcessFailure> => {
+  try {
+    await promise;
+  } catch (error) {
+    assert.ok(error instanceof YtDlpProcessFailure);
+    return error;
+  }
+  assert.fail("expected yt-dlp failure");
+};
 
 test("materializer verifies integrity, writes the deterministic target, and applies executable mode", async () => {
   const root = await createRoot();
@@ -170,6 +181,91 @@ test("runner exposes only closed safe failure reasons", async () => {
         error.message === "yt-dlp-spawn-failed" &&
         !JSON.stringify(error).includes("private-media-value"),
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("runner preserves safe exit metadata and classifies bounded stderr without retaining it", async () => {
+  const root = await createRoot();
+  try {
+    await materializeFixture(root);
+    const remoteId = "sensitiveVideoId";
+    const token = "credential-secret-value";
+    const tempPath = "/tmp/nexcut/jobs/private-job/input/youtube-source.mp4";
+    const failed = fakeSpawn((child) => {
+      child.stderr.end(`ERROR: Sign in to confirm you're not a bot ${remoteId} ${token} ${tempPath}`);
+      child.emit("close", 7, "SIGTERM");
+    });
+    const error = await captureFailure(runPackagedYtDlp([], {
+      projectRoot: root,
+      timeoutMs: 100,
+      spawnImpl: failed.spawnImpl,
+    }));
+    assert.equal(error.reason, "youtube-bot-check");
+    assert.deepEqual(error.diagnostic, {
+      exitCode: 7,
+      signal: "SIGTERM",
+      timedOut: false,
+      aborted: false,
+      stdoutLimitExceeded: false,
+      stderrLimitExceeded: false,
+    });
+    const projected = JSON.stringify(error);
+    assert.doesNotMatch(projected, new RegExp(remoteId));
+    assert.doesNotMatch(projected, new RegExp(token));
+    assert.doesNotMatch(projected, /private-job|youtube-source/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("classifier maps only deterministic safe stderr categories", () => {
+  const cases: ReadonlyArray<readonly [string, string]> = [
+    ["Sign in to confirm you're not a bot", "youtube-bot-check"],
+    ["Sign in to view this video", "youtube-sign-in-required"],
+    ["Video unavailable", "video-unavailable"],
+    ["This is a private video", "private-video"],
+    ["This video is age-restricted", "age-restricted"],
+    ["This video is not available in your country", "region-restricted"],
+    ["This upcoming live event will begin soon", "live-stream-unsupported"],
+    ["Unable to download playlist data", "playlist-unsupported"],
+    ["Requested format is not available", "format-unavailable"],
+    ["ffmpeg is not found", "ffmpeg-unavailable"],
+    ["Connection reset by peer", "network-failure"],
+    ["Unable to extract signature", "extractor-failure"],
+    ["Permission denied", "permission-failure"],
+    ["Unable to open output for writing", "output-path-failure"],
+    ["unrecognized future failure", "unknown-yt-dlp-failure"],
+  ];
+  for (const [stderr, expected] of cases) assert.equal(classifyYtDlpStderr(stderr), expected);
+});
+
+test("runner distinguishes timeout, abort, stdout limit, and stderr limit diagnostics", async () => {
+  const root = await createRoot();
+  try {
+    await materializeFixture(root);
+    const timeout = fakeSpawn(() => undefined);
+    const timedOut = await captureFailure(runPackagedYtDlp([], { projectRoot: root, timeoutMs: 1, spawnImpl: timeout.spawnImpl }));
+    assert.equal(timedOut.reason, "yt-dlp-timeout");
+    assert.equal(timedOut.diagnostic.timedOut, true);
+
+    const controller = new AbortController();
+    controller.abort();
+    const abort = fakeSpawn(() => undefined);
+    const aborted = await captureFailure(runPackagedYtDlp([], { projectRoot: root, timeoutMs: 100, signal: controller.signal, spawnImpl: abort.spawnImpl }));
+    assert.equal(aborted.reason, "yt-dlp-cancelled");
+    assert.equal(aborted.diagnostic.aborted, true);
+
+    const stdout = fakeSpawn((child) => child.stdout.write(Buffer.alloc(9)));
+    const stdoutLimited = await captureFailure(runPackagedYtDlp([], { projectRoot: root, timeoutMs: 100, outputLimitBytes: 8, spawnImpl: stdout.spawnImpl }));
+    assert.equal(stdoutLimited.diagnostic.stdoutLimitExceeded, true);
+    assert.equal(stdoutLimited.diagnostic.stderrLimitExceeded, false);
+
+    const stderr = fakeSpawn((child) => child.stderr.write(Buffer.alloc(9)));
+    const stderrLimited = await captureFailure(runPackagedYtDlp([], { projectRoot: root, timeoutMs: 100, outputLimitBytes: 8, spawnImpl: stderr.spawnImpl }));
+    assert.equal(stderrLimited.diagnostic.stdoutLimitExceeded, false);
+    assert.equal(stderrLimited.diagnostic.stderrLimitExceeded, true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
