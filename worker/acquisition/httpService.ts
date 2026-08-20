@@ -15,7 +15,6 @@ export type WorkerReadiness = Readonly<{
 export type WorkerHttpDependencies = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
   readiness(signal?: AbortSignal): Promise<WorkerReadiness>;
-  controlStoreProof?(): Promise<Readonly<Record<string, boolean | number>>>;
   log(event: Readonly<Record<string, string | number | boolean>>): void;
 }>;
 
@@ -54,15 +53,6 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
     if (request.method === "GET" && request.url === "/readyz") {
       const readiness = await dependencies.readiness(abort.signal);
       return sendJson(response, readiness.ready ? 200 : 503, readiness);
-    }
-    if (request.method === "POST" && request.url === "/internal/control-store-proof") {
-      if (!dependencies.controlStoreProof || request.headers["transfer-encoding"]
-        || Number(request.headers["content-length"] ?? 0) !== 0) {
-        return sendJson(response, 400, { status: "failed", errorCode: "invalid-acquisition-request" });
-      }
-      const evidence = await dependencies.controlStoreProof();
-      dependencies.log({ event: "control-store-proof-completed", success: true });
-      return sendJson(response, 200, { success: true, evidence });
     }
     if (request.method === "POST" && request.url === "/v1/acquisitions") {
       if (request.headers["content-type"]?.split(";", 1)[0]?.trim() !== "application/json") {

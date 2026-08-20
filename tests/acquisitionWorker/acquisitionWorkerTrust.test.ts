@@ -56,26 +56,6 @@ test("correct, wrong, and unauthenticated proof uses fixed destinations and retu
   assert.doesNotMatch(publicEvidence, /opaque-|authorization|oidc|access.token|id.token/i);
 });
 
-test("control-store proof uses one fixed private POST and validates only safe evidence", async () => {
-  const configuration = readAcquisitionWorkerTrustConfiguration(environment);
-  const evidence = { workerIdentityMatch: true, controlCreate: true, concurrentClaim: true, controlRead: true,
-    sameFingerprintReplay: true, differentFingerprintRejected: true, casUpdate: true, staleCasRejected: true,
-    heartbeat: true, staleTakeover: true, oldOwnerFenced: true, leaseAbort: true, mediaPrefixDenied: true,
-    listingCallCount: 0, cleanup: true, testControlResidue: 0 } as const;
-  const requests: Array<{ input: string; method?: string; authorization?: string }> = [];
-  const client = createAcquisitionWorkerTrustClient(configuration, {
-    getIdToken: async () => "opaque-proof-token",
-    async fetch(input, init) {
-      requests.push({ input, method: init?.method, authorization: new Headers(init?.headers).get("authorization") ?? undefined });
-      return Response.json({ success: true, evidence });
-    }, log() {}, now: () => 0,
-  });
-  assert.deepEqual(await client.proveControlStore(), evidence);
-  assert.deepEqual(requests, [{ input: `${configuration.workerUrl}/internal/control-store-proof`,
-    method: "POST", authorization: "Bearer opaque-proof-token" }]);
-  assert.doesNotMatch(JSON.stringify(evidence), /token|authorization|bucket|uid|credential|cookie/i);
-});
-
 test("safe failures distinguish rejection, unavailability, and timeout without raw errors", async () => {
   const configuration = readAcquisitionWorkerTrustConfiguration(environment);
   const base = { getIdToken: async () => "opaque", log() {}, now: () => 0 } as const;
@@ -104,20 +84,6 @@ test("reusable trust client remains server-only and disconnected after temporary
   assert.match(client, /\/readyz/);
   assert.doesNotMatch(`${client}\n${composition}`, /NEXT_PUBLIC_|sourceUrl|storageKey|ownerUid|DATABASE_URL|console\.(?:error|warn)/);
   assert.doesNotMatch(`${ingestion}\n${workspace}\n${aiMv}`, /acquisitionWorkerTrust|verifyProductionAcquisitionWorkerTrust/);
-});
-
-test("temporary control-store trigger is Owner/Beta guarded, bodyless, fixed, and disconnected", () => {
-  const route = readFileSync("app/api/internal/acquisition-control-proof/route.ts", "utf8");
-  const worker = readFileSync("worker/acquisition/controlStoreProof.ts", "utf8");
-  const ingestion = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
-  assert.match(route, /requireAuthenticatedRequest\(request\)/);
-  assert.match(route, /runProductionAcquisitionControlStoreProof\(\)/);
-  assert.doesNotMatch(route, /request\.(?:json|text|formData)|new URL\(request\.url\)|authorization/);
-  assert.match(worker, /nexcut-prod-jp-2026-media/);
-  assert.match(worker, /acquisitionControlObjectName/);
-  assert.match(worker, /listingCallCount: 0/);
-  assert.doesNotMatch(worker, /sourceUrl|youtube\.com|youtu\.be|cookie|PO.?Token|console\./i);
-  assert.doesNotMatch(ingestion, /control-store-proof|ControlStoreProof/);
 });
 
 test("Terraform trust remains Production-only and least privilege", () => {
