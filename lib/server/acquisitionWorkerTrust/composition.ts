@@ -72,3 +72,11 @@ export const verifyProductionAcquisitionWorkerTrust = async (): Promise<Acquisit
     now: Date.now,
   }).verify();
 };
+
+export const runProductionAcquisitionControlStoreProof = async () => {
+  const configuration = readAcquisitionWorkerTrustConfiguration();
+  return createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: createProductionIdTokenAuthority(configuration), fetch,
+    log: (entry) => console.info(JSON.stringify(entry)), now: Date.now,
+  }).proveControlStore();
+};

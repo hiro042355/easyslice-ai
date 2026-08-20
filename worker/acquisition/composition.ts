@@ -10,9 +10,13 @@ import type { AcquisitionResult } from "../../lib/server/acquisitionWorker/types
 import { YouTubeSourceAdapter, type AcquisitionProcessRunner } from "../../lib/server/acquisitionWorker/youtubeAdapter";
 import { runPackagedYtDlp } from "../../lib/server/packagedYtDlp";
 import { probeBgutilProviderHealth } from "./runtimeReadiness";
+import { runProductionControlStoreProof } from "./controlStoreProof";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
-export type AcquisitionWorkerExecution = Readonly<{ execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult> }>;
+export type AcquisitionWorkerExecution = Readonly<{
+  execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
+  controlStoreProof(): Promise<Readonly<Record<string, boolean | number>>>;
+}>;
 export type AcquisitionWorkerCompositionOptions = Readonly<{
   authorityRoot?: string;
   resolveRuntime?: () => Promise<AcquisitionRuntime>;
@@ -43,5 +47,5 @@ export const createAcquisitionWorkerComposition = async (
     consumeArtifact: options.consumeArtifact ?? ephemeralResult,
     provider: options.provider ?? new BgutilHttpPoTokenProvider(probeBgutilProviderHealth),
   });
-  return Object.freeze({ execute: (input, signal) => core.execute(input, signal) });
+  return Object.freeze({ execute: (input, signal) => core.execute(input, signal), controlStoreProof: runProductionControlStoreProof });
 };

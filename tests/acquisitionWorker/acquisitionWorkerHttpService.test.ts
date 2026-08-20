@@ -17,9 +17,11 @@ const withService = async (
   readiness: WorkerReadiness,
   execute: (input: unknown, signal?: AbortSignal) => Promise<AcquisitionResult>,
   operation: (origin: string, logs: readonly Readonly<Record<string, string | number | boolean>>[]) => Promise<void>,
+  controlStoreProof?: () => Promise<Readonly<Record<string, boolean | number>>>,
 ) => {
   const logs: Readonly<Record<string, string | number | boolean>>[] = [];
-  const service = createAcquisitionWorkerHttpService({ readiness: async () => readiness, execute, log: (event) => logs.push(event) });
+  const service = createAcquisitionWorkerHttpService({ readiness: async () => readiness, execute, controlStoreProof,
+    log: (event) => logs.push(event) });
   service.listen(0, "127.0.0.1");
   await once(service, "listening");
   const address = service.address();
@@ -31,6 +33,21 @@ const withService = async (
     await once(service, "close");
   }
 };
+
+test("private control proof accepts only fixed empty POST and returns safe evidence", async () => {
+  const readiness = Object.freeze({ ready: true, ytDlpVersionMatch: true, ffmpegAvailable: true, nodeSupported: true, providerHealthy: true });
+  const evidence = Object.freeze({ workerIdentityMatch: true, controlCreate: true, listingCallCount: 0, testControlResidue: 0 });
+  let calls = 0;
+  await withService(readiness, async () => { throw new Error("unused"); }, async (origin, logs) => {
+    const proof = await fetch(`${origin}/internal/control-store-proof`, { method: "POST" });
+    assert.equal(proof.status, 200);
+    assert.deepEqual(await proof.json(), { success: true, evidence });
+    assert.equal(calls, 1);
+    assert.equal((await fetch(`${origin}/internal/control-store-proof`, { method: "POST", body: "arbitrary" })).status, 400);
+    assert.equal((await fetch(`${origin}/internal/control-store-proof?bucket=other`, { method: "POST" })).status, 404);
+    assert.deepEqual(logs, [{ event: "control-store-proof-completed", success: true }]);
+  }, async () => { calls += 1; return evidence; });
+});
 
 test("health and readiness expose only fixed safe runtime booleans", async () => {
   const readiness = Object.freeze({ ready: true, ytDlpVersionMatch: true, ffmpegAvailable: true, nodeSupported: true, providerHealthy: true });

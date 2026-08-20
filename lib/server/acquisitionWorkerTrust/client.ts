@@ -45,6 +45,14 @@ export type AcquisitionWorkerTrustEvidence = Readonly<{
   }>;
 }>;
 
+export type AcquisitionControlStoreProofEvidence = Readonly<{
+  workerIdentityMatch: boolean; controlCreate: boolean; concurrentClaim: boolean; controlRead: boolean;
+  sameFingerprintReplay: boolean; differentFingerprintRejected: boolean; casUpdate: boolean;
+  staleCasRejected: boolean; heartbeat: boolean; staleTakeover: boolean; oldOwnerFenced: boolean;
+  leaseAbort: boolean; mediaPrefixDenied: boolean; listingCallCount: 0; cleanup: boolean;
+  testControlResidue: number;
+}>;
+
 type SafeLog = Readonly<{
   event: "acquisition-worker-trust";
   trustStage: "correct-audience" | "wrong-audience" | "unauthenticated";
@@ -112,6 +120,35 @@ export const createAcquisitionWorkerTrustClient = (
   configuration: AcquisitionWorkerTrustConfiguration,
   dependencies: AcquisitionWorkerTrustDependencies,
 ) => Object.freeze({
+  async proveControlStore(): Promise<AcquisitionControlStoreProofEvidence> {
+    const token = await dependencies.getIdToken(configuration.workerUrl);
+    if (!token) throw new AcquisitionWorkerTrustFailure("worker-id-token-failed");
+    let response: Response;
+    try {
+      response = await dependencies.fetch(`${configuration.workerUrl}/internal/control-store-proof`, {
+        method: "POST", headers: { authorization: `Bearer ${token}` }, cache: "no-store",
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    }
+    if (response.status !== 200) throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
+    const body = await response.json().catch(() => null) as { success?: unknown; evidence?: unknown } | null;
+    const evidence = body?.evidence;
+    const keys = ["workerIdentityMatch", "controlCreate", "concurrentClaim", "controlRead", "sameFingerprintReplay",
+      "differentFingerprintRejected", "casUpdate", "staleCasRejected", "heartbeat", "staleTakeover",
+      "oldOwnerFenced", "leaseAbort", "mediaPrefixDenied", "listingCallCount", "cleanup", "testControlResidue"] as const;
+    if (body?.success !== true || !evidence || typeof evidence !== "object" || Array.isArray(evidence)
+      || Object.keys(evidence).length !== keys.length || Object.keys(evidence).some((key) => !keys.includes(key as typeof keys[number]))) {
+      throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    }
+    const value = evidence as Record<string, unknown>;
+    if (keys.slice(0, 13).some((key) => typeof value[key] !== "boolean") || value.listingCallCount !== 0
+      || typeof value.cleanup !== "boolean" || !Number.isSafeInteger(value.testControlResidue) || (value.testControlResidue as number) < 0) {
+      throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    }
+    return Object.freeze({ ...value }) as AcquisitionControlStoreProofEvidence;
+  },
   async verify(): Promise<AcquisitionWorkerTrustEvidence> {
     const correctStarted = dependencies.now();
     const correctToken = await dependencies.getIdToken(configuration.workerUrl);
