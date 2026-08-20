@@ -269,49 +269,32 @@ export default function WorkspaceFlowPage() {
       return;
     }
 
-    if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(trimmedUrl)) {
-      setErrorMessage("YouTubeのURLを入力してください。");
-      return;
-    }
-
     try {
       setLoading(true);
       resetUploadResult();
       setProgress(20);
 
-      const infoRes = await fetch("/api/youtube-info", {
+      const ingestRes = await fetch("/api/youtube/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: trimmedUrl }),
       });
-      const info = await infoRes.json();
-
-      setProgress(55);
-      setVideoTitle(info.title || "");
-      setVideoDuration(info.duration || 0);
-      setThumbnail(info.thumbnail || "");
-
-      const downloadRes = await fetch("/api/youtube-download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedUrl }),
-      });
-      const result = await downloadRes.json();
-
-      if (!downloadRes.ok || !result.success) {
-        throw new Error(result.error || "動画ダウンロードに失敗しました");
-      }
+      const result = await ingestRes.json() as { jobId?: string; mediaId?: string; durationSeconds?: number; error?: string };
+      if (!ingestRes.ok || !result.jobId || !result.mediaId) throw new Error(result.error || "動画取得に失敗しました");
 
       setVideo(null);
-      setDurableMedia(null);
-      setVideoSrc(`/api/video?t=${Date.now()}`);
+      setDurableMedia({ jobId: result.jobId, mediaId: result.mediaId });
+      setVideoSrc(`/api/media/${result.jobId}/${result.mediaId}`);
+      setVideoTitle("YouTube動画");
+      setVideoDuration(result.durationSeconds || 0);
+      setThumbnail("");
       setCurrentYoutubeUrl(trimmedUrl);
       setProgress(100);
       setUploadMessage("YouTubeから動画を取得しました。");
       trackEvent("upload_youtube", {
         workspace: "creator_flow",
-        hasTitle: Boolean(info.title),
-        duration: info.duration || 0,
+        hasTitle: false,
+        duration: result.durationSeconds || 0,
       });
       setClips([]);
       setAnalyzeMessage("");
@@ -846,7 +829,7 @@ export default function WorkspaceFlowPage() {
                       </div>
 
                       <p className="mt-2 text-xs leading-5 text-gray-400">
-                        ローカル環境向けの実験導線です。公開版では動画アップロードを推奨します。
+                        公開YouTube動画を安全なサーバー処理で取り込みます。再生リストやログインが必要な動画には対応していません。
                       </p>
 
                       <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
