@@ -1,0 +1,9 @@
+.git
+.next
+.terraform
+node_modules
+tests
+infra
+*.log
+*.tfstate*
+*.tfplan

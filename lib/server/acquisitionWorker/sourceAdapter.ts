@@ -13,6 +13,7 @@ export type PoTokenProviderStatus = "not-configured" | "available" | "unavailabl
 export interface PoTokenProvider {
   readonly authority: string;
   status(signal?: AbortSignal): Promise<PoTokenProviderStatus>;
+  ytDlpArguments(): readonly string[];
 }
 
 export type SourceAcquisitionContext = Readonly<{

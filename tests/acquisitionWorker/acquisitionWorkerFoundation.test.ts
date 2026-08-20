@@ -141,6 +141,14 @@ test("provider boundary supports absent, available, and unavailable states with 
   assert.equal(await available.status(), "available");
   assert.equal(await unavailable.status(), "unavailable");
   assert.equal(await new BgutilHttpPoTokenProvider(async () => { throw new Error("safe"); }).status(), "failed");
+  assert.deepEqual(available.ytDlpArguments(), [
+    "--extractor-args",
+    "youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416",
+  ]);
+  assert.throws(
+    () => new BgutilHttpPoTokenProvider(async () => true, "https://provider.example.com").ytDlpArguments(),
+    /invalid-bgutil-provider-base-url/,
+  );
 });
 
 test("adapter classifies provider, timeout, cancellation, bot, and network failures without raw diagnostics", async () => {
@@ -274,4 +282,24 @@ test("production route and protected workflows remain disconnected and unchanged
   assert.doesNotMatch(route, /acquisitionWorker|AcquisitionWorkerCore/);
   assert.doesNotMatch(workspace, /acquisitionWorker|AcquisitionWorkerCore/);
   assert.doesNotMatch(aiMv, /acquisitionWorker|AcquisitionWorkerCore/);
+});
+
+test("Production Terraform grants only private invocation and no Worker storage, database, or public authority", () => {
+  const service = readFileSync("infra/production/gcp/acquisition-worker.tf", "utf8");
+  const identities = readFileSync("infra/production/gcp/identities.tf", "utf8");
+  const wif = readFileSync("infra/production/gcp/vercel-wif.tf", "utf8");
+  const variables = readFileSync("infra/production/gcp/variables.tf", "utf8");
+  const infrastructure = `${service}\n${identities}\n${wif}\n${variables}`;
+
+  assert.match(service, /max_instance_request_concurrency\s*=\s*1/);
+  assert.match(service, /timeout\s*=\s*"300s"/);
+  assert.match(service, /min_instance_count\s*=\s*0/);
+  assert.match(service, /max_instance_count\s*=\s*2/);
+  assert.match(service, /size_limit\s*=\s*"4Gi"/);
+  assert.match(service, /member\s*=\s*"serviceAccount:\$\{google_service_account\.acquisition_invoker\.email\}"/);
+  assert.match(wif, /vercel_acquisition_invoker_impersonator[\s\S]*roles\/iam\.workloadIdentityUser/);
+  assert.match(wif, /attribute\.project_id\/\$\{local\.vercel_project_id\}/);
+  assert.doesNotMatch(infrastructure, /allUsers|allAuthenticatedUsers/);
+  assert.doesNotMatch(service, /roles\/(?:storage|cloudsql|firebase|editor|owner)/i);
+  assert.doesNotMatch(infrastructure, /google_service_account_key|private_key|credentials\s*=/i);
 });

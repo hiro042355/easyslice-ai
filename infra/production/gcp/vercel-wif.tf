@@ -41,6 +41,12 @@ resource "google_service_account_iam_member" "vercel_media_runtime_impersonator"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.vercel_production.name}/attribute.project_id/${local.vercel_project_id}"
 }
 
+resource "google_service_account_iam_member" "vercel_acquisition_invoker_impersonator" {
+  service_account_id = google_service_account.acquisition_invoker.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.vercel_production.name}/attribute.project_id/${local.vercel_project_id}"
+}
+
 resource "google_project_iam_custom_role" "firebase_session_runtime" {
   project     = var.project_id
   role_id     = "nexcutProdFirebaseSessionRuntime"

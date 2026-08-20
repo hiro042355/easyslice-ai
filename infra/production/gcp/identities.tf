@@ -72,3 +72,21 @@ resource "google_service_account_iam_member" "database_bootstrap_short_lived_imp
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = var.database_bootstrap_impersonator_member
 }
+
+resource "google_service_account" "acquisition_worker" {
+  project      = var.project_id
+  account_id   = local.acquisition_worker_service_account_id
+  display_name = "NEXCUT Production acquisition worker"
+  description  = "Private acquisition runtime identity without database, Firebase, or broad storage authority."
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account" "acquisition_invoker" {
+  project      = var.project_id
+  account_id   = local.acquisition_invoker_service_account_id
+  display_name = "NEXCUT Production acquisition invoker"
+  description  = "Dedicated keyless Vercel-federated identity allowed only to invoke the private acquisition worker."
+
+  depends_on = [google_project_service.required]
+}

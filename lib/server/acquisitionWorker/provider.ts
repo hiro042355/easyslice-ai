@@ -14,7 +14,19 @@ export class BgutilHttpPoTokenProvider implements PoTokenProvider {
 
   constructor(
     private readonly health: (signal?: AbortSignal) => Promise<boolean>,
+    private readonly baseUrl = "http://127.0.0.1:4416",
   ) {}
+
+  ytDlpArguments(): readonly string[] {
+    const url = new URL(this.baseUrl);
+    if (url.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(url.hostname) || url.username || url.password) {
+      throw new TypeError("invalid-bgutil-provider-base-url");
+    }
+    return Object.freeze([
+      "--extractor-args",
+      `youtubepot-bgutilhttp:base_url=${url.origin}`,
+    ]);
+  }
 
   async status(signal?: AbortSignal): Promise<PoTokenProviderStatus> {
     try {

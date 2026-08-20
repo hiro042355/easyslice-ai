@@ -64,6 +64,28 @@ variable "production_image" {
   }
 }
 
+variable "acquisition_worker_image" {
+  description = "Immutable Production Acquisition Worker container image authority."
+  type        = string
+  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:9c2d09b731cc24a5cf9934567f040bde252362e1fedddec35a491f68af677119"
+
+  validation {
+    condition     = var.acquisition_worker_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:9c2d09b731cc24a5cf9934567f040bde252362e1fedddec35a491f68af677119"
+    error_message = "The Acquisition Worker must use an immutable digest from the approved Production Artifact Registry."
+  }
+}
+
+variable "acquisition_provider_image" {
+  description = "Immutable bgutil PO Token provider sidecar image authority."
+  type        = string
+  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-bgutil-provider@sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2"
+
+  validation {
+    condition     = var.acquisition_provider_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-bgutil-provider@sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2"
+    error_message = "The bgutil provider must use an immutable digest from the approved Production Artifact Registry."
+  }
+}
+
 variable "cloud_run_invoker_member" {
   description = "One explicitly approved Google user IAM member for private Production Cloud Run validation."
   type        = string
@@ -125,19 +147,21 @@ variable "database_bootstrap_impersonator_member" {
 }
 
 locals {
-  environment                           = "production"
-  runtime_service_account_id            = "nexcut-prod-runtime"
-  deployment_service_account_id         = "nexcut-prod-deployer"
-  rotation_service_account_id           = "nexcut-prod-kms-rotator"
-  web_auth_service_account_id           = "nexcut-prod-web-auth"
-  media_runtime_service_account_id      = "nexcut-prod-media-runtime"
-  database_migration_service_account_id = "nexcut-prod-db-migrator"
-  database_bootstrap_service_account_id = "nexcut-prod-db-bootstrap"
-  vercel_workload_identity_pool_id      = "nexcut-prod-vercel"
-  vercel_workload_identity_provider_id  = "vercel-production"
-  vercel_team_slug                      = "hiro423"
-  vercel_owner_id                       = "team_DBeBBBY39xi5l6rkzBzAwQ4A"
-  vercel_project_id                     = "prj_sfZiLkSZAtz0Mr6v1fW58vNhCxfu"
-  key_ring_name                         = "nexcut-prod-identity"
-  crypto_key_name                       = "protected-identity-mac"
+  environment                            = "production"
+  runtime_service_account_id             = "nexcut-prod-runtime"
+  deployment_service_account_id          = "nexcut-prod-deployer"
+  rotation_service_account_id            = "nexcut-prod-kms-rotator"
+  web_auth_service_account_id            = "nexcut-prod-web-auth"
+  media_runtime_service_account_id       = "nexcut-prod-media-runtime"
+  database_migration_service_account_id  = "nexcut-prod-db-migrator"
+  database_bootstrap_service_account_id  = "nexcut-prod-db-bootstrap"
+  acquisition_worker_service_account_id  = "nexcut-prod-acq-worker"
+  acquisition_invoker_service_account_id = "nexcut-prod-acq-invoker"
+  vercel_workload_identity_pool_id       = "nexcut-prod-vercel"
+  vercel_workload_identity_provider_id   = "vercel-production"
+  vercel_team_slug                       = "hiro423"
+  vercel_owner_id                        = "team_DBeBBBY39xi5l6rkzBzAwQ4A"
+  vercel_project_id                      = "prj_sfZiLkSZAtz0Mr6v1fW58vNhCxfu"
+  key_ring_name                          = "nexcut-prod-identity"
+  crypto_key_name                        = "protected-identity-mac"
 }

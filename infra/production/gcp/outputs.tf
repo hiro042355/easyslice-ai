@@ -113,3 +113,23 @@ output "media_runtime_service_account_email" {
   description = "Dedicated keyless Vercel-federated Production media runtime identity."
   value       = google_service_account.media_runtime.email
 }
+
+output "acquisition_worker_service_name" {
+  description = "Private Production Acquisition Worker Cloud Run service name."
+  value       = google_cloud_run_v2_service.acquisition_worker.name
+}
+
+output "acquisition_worker_service_uri" {
+  description = "Private Acquisition Worker URI; IAM authentication remains mandatory."
+  value       = google_cloud_run_v2_service.acquisition_worker.uri
+}
+
+output "acquisition_worker_service_account_email" {
+  description = "Dedicated Production Acquisition Worker runtime identity."
+  value       = google_service_account.acquisition_worker.email
+}
+
+output "acquisition_invoker_service_account_email" {
+  description = "Dedicated keyless Vercel-federated Acquisition Worker invoker identity."
+  value       = google_service_account.acquisition_invoker.email
+}
