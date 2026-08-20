@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import {
   ACQUISITION_WORKER_AUTH_FAILURES,
@@ -73,18 +73,16 @@ test("safe failures distinguish rejection, unavailability, and timeout without r
   ]);
 });
 
-test("temporary probe is authenticated, Beta-authorized, fixed, server-only, and disconnected from ingestion", () => {
+test("reusable trust client remains server-only and disconnected after temporary probe removal", () => {
   const client = readFileSync("lib/server/acquisitionWorkerTrust/client.ts", "utf8");
   const composition = readFileSync("lib/server/acquisitionWorkerTrust/composition.ts", "utf8");
-  const probe = readFileSync("app/api/internal/acquisition-worker-trust/route.ts", "utf8");
   const ingestion = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
   const workspace = readFileSync("app/workspace-flow/page.tsx", "utf8");
   const aiMv = readFileSync("app/api/ai-mv/route.ts", "utf8");
   assert.match(composition, /^import "server-only";/);
-  assert.match(probe, /requireAuthenticatedRequest\(request\)/);
+  assert.equal(existsSync("app/api/internal/acquisition-worker-trust/route.ts"), false);
   assert.match(client, /\/readyz/);
   assert.doesNotMatch(`${client}\n${composition}`, /NEXT_PUBLIC_|sourceUrl|storageKey|ownerUid|DATABASE_URL|console\.(?:error|warn)/);
-  assert.doesNotMatch(probe, /request\.(?:json|text|formData)|new URL\(request\.url\)|authorization/);
   assert.doesNotMatch(`${ingestion}\n${workspace}\n${aiMv}`, /acquisitionWorkerTrust|verifyProductionAcquisitionWorkerTrust/);
 });
 
