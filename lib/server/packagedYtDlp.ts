@@ -75,6 +75,41 @@ export type YtDlpStderrSignature = Readonly<{
   keywords: YtDlpStderrKeywordFlags;
 }>;
 
+export type SafeYtDlpFailureLog = Readonly<{
+  event: "youtube-ingest-yt-dlp-failure";
+  errorCode: YtDlpProcessFailureReason;
+  runtimeVersionMatch: boolean;
+  exitCode: number | null;
+  signal: string | null;
+  stderrLineCount: number;
+  errorPrefixPresent: boolean;
+  warningPrefixPresent: boolean;
+  timedOut: boolean;
+  aborted: boolean;
+  stdoutLimitExceeded: boolean;
+  stderrLimitExceeded: boolean;
+  hasError: boolean;
+  hasWarning: boolean;
+  hasHttpError: boolean;
+  hasUnable: boolean;
+  hasFailed: boolean;
+  hasRequestedFormat: boolean;
+  hasExtractor: boolean;
+  hasSignature: boolean;
+  hasJavascript: boolean;
+  hasNsig: boolean;
+  hasPlayer: boolean;
+  hasRemoteComponents: boolean;
+  hasFfmpeg: boolean;
+  hasMerge: boolean;
+  hasWrite: boolean;
+  hasPermission: boolean;
+  hasNetwork: boolean;
+  has403: boolean;
+  has429: boolean;
+  has5xx: boolean;
+}>;
+
 const EMPTY_STDERR_KEYWORDS: YtDlpStderrKeywordFlags = Object.freeze({
   error: false,
   warning: false,
@@ -129,6 +164,48 @@ export class YtDlpProcessFailure extends Error {
     this.diagnostic = Object.freeze({ ...diagnostic });
   }
 }
+
+export const createSafeYtDlpFailureLog = (
+  error: YtDlpProcessFailure,
+  runtimeVersionMatch: boolean,
+): SafeYtDlpFailureLog => {
+  const { stderrSignature } = error.diagnostic;
+  const { keywords } = stderrSignature;
+  return Object.freeze({
+    event: "youtube-ingest-yt-dlp-failure",
+    errorCode: error.reason,
+    runtimeVersionMatch,
+    exitCode: error.diagnostic.exitCode,
+    signal: error.diagnostic.signal,
+    stderrLineCount: stderrSignature.lineCount,
+    errorPrefixPresent: stderrSignature.prefix === "error",
+    warningPrefixPresent: stderrSignature.prefix === "warning",
+    timedOut: error.diagnostic.timedOut,
+    aborted: error.diagnostic.aborted,
+    stdoutLimitExceeded: error.diagnostic.stdoutLimitExceeded,
+    stderrLimitExceeded: error.diagnostic.stderrLimitExceeded,
+    hasError: keywords.error,
+    hasWarning: keywords.warning,
+    hasHttpError: keywords.httpError,
+    hasUnable: keywords.unable,
+    hasFailed: keywords.failed,
+    hasRequestedFormat: keywords.requestedFormat,
+    hasExtractor: keywords.extractor,
+    hasSignature: keywords.signature,
+    hasJavascript: keywords.javascript,
+    hasNsig: keywords.nsig,
+    hasPlayer: keywords.player,
+    hasRemoteComponents: keywords.remoteComponents,
+    hasFfmpeg: keywords.ffmpeg,
+    hasMerge: keywords.merge,
+    hasWrite: keywords.write,
+    hasPermission: keywords.permission,
+    hasNetwork: keywords.network,
+    has403: keywords.http403,
+    has429: keywords.http429,
+    has5xx: keywords.http5xx,
+  });
+};
 
 type YtDlpClassifiedExitReason = Exclude<YtDlpProcessFailureReason,
   | "yt-dlp-missing"

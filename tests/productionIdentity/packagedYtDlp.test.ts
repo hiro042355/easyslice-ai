@@ -7,6 +7,7 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import {
+  createSafeYtDlpFailureLog,
   PACKAGED_YT_DLP_VERSION,
   classifyYtDlpStderr,
   extractSafeYtDlpStderrSignature,
@@ -264,6 +265,77 @@ test("safe stderr signature projects allowlisted structure only", () => {
   assert.doesNotMatch(projected, new RegExp(remoteId));
   assert.doesNotMatch(projected, new RegExp(secret));
   assert.doesNotMatch(projected, /private-job|identity\.mp4/);
+});
+
+test("safe failure log retains every approved field and no arbitrary failure text", () => {
+  const videoId = "privateVideoId";
+  const uid = "privateOwnerUid";
+  const token = "credential-secret-value";
+  const storageKey = "jobs/private-job/input/private-media.mp4";
+  const tempPath = "/tmp/nexcut/jobs/private-job/input/youtube-source.mp4";
+  const rawStderr = [
+    `WARNING: JavaScript remote components player nsig ${videoId}`,
+    `ERROR: HTTP Error 403 429 503: signature extractor unable failed requested format`,
+    `ffmpeg merge write permission network ${uid} ${token} ${storageKey} ${tempPath}`,
+  ].join("\n");
+  const error = new YtDlpProcessFailure("unknown-yt-dlp-failure", {
+    exitCode: 7,
+    signal: "SIGTERM",
+    timedOut: false,
+    aborted: false,
+    stdoutLimitExceeded: true,
+    stderrLimitExceeded: false,
+    stderrSignature: extractSafeYtDlpStderrSignature(rawStderr),
+  });
+  const entry = createSafeYtDlpFailureLog(error, true);
+
+  assert.deepEqual(entry, {
+    event: "youtube-ingest-yt-dlp-failure",
+    errorCode: "unknown-yt-dlp-failure",
+    runtimeVersionMatch: true,
+    exitCode: 7,
+    signal: "SIGTERM",
+    stderrLineCount: 3,
+    errorPrefixPresent: false,
+    warningPrefixPresent: true,
+    timedOut: false,
+    aborted: false,
+    stdoutLimitExceeded: true,
+    stderrLimitExceeded: false,
+    hasError: true,
+    hasWarning: true,
+    hasHttpError: true,
+    hasUnable: true,
+    hasFailed: true,
+    hasRequestedFormat: true,
+    hasExtractor: true,
+    hasSignature: true,
+    hasJavascript: true,
+    hasNsig: true,
+    hasPlayer: true,
+    hasRemoteComponents: true,
+    hasFfmpeg: true,
+    hasMerge: true,
+    hasWrite: true,
+    hasPermission: true,
+    hasNetwork: true,
+    has403: true,
+    has429: true,
+    has5xx: true,
+  });
+  assert.deepEqual(Object.keys(entry), [
+    "event", "errorCode", "runtimeVersionMatch", "exitCode", "signal", "stderrLineCount",
+    "errorPrefixPresent", "warningPrefixPresent", "timedOut", "aborted", "stdoutLimitExceeded",
+    "stderrLimitExceeded", "hasError", "hasWarning", "hasHttpError", "hasUnable", "hasFailed",
+    "hasRequestedFormat", "hasExtractor", "hasSignature", "hasJavascript", "hasNsig", "hasPlayer",
+    "hasRemoteComponents", "hasFfmpeg", "hasMerge", "hasWrite", "hasPermission", "hasNetwork",
+    "has403", "has429", "has5xx",
+  ]);
+  const serialized = JSON.stringify(entry);
+  for (const prohibited of [videoId, uid, token, storageKey, tempPath, "youtube-source.mp4"]) {
+    assert.doesNotMatch(serialized, new RegExp(prohibited.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.doesNotMatch(serialized, /message|command|arguments|canonicalUrl/i);
 });
 
 test("safe stderr signature preserves empty and unknown fallback without arbitrary text", () => {

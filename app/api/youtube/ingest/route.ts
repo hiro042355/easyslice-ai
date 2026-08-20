@@ -11,6 +11,7 @@ import {
 } from "@/lib/server/durableMediaOwnership";
 import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
 import {
+  createSafeYtDlpFailureLog,
   PACKAGED_YT_DLP_VERSION,
   probePackagedYtDlpVersion,
   runPackagedYtDlp,
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.reason }, { status: 422 });
     }
     if (error instanceof YtDlpProcessFailure) {
+      console.error(createSafeYtDlpFailureLog(error, runtimeVersionVerified));
       const status = error.reason === "yt-dlp-timeout" ? 504 : error.reason === "yt-dlp-cancelled" ? 499 : 422;
       return NextResponse.json({
         error: error.reason,

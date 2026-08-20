@@ -120,6 +120,13 @@ test("route projects only classified yt-dlp failure metadata and never raw stder
   assert.doesNotMatch(route, /error\.stderr|console\.(?:log|error|warn).*stderr|canonicalUrl.*NextResponse/);
 });
 
+test("route emits one allowlisted failure event only for a yt-dlp process failure", () => {
+  assert.equal(route.match(/console\.error\(/g)?.length, 1);
+  assert.match(route, /if \(error instanceof YtDlpProcessFailure\) \{\s*console\.error\(createSafeYtDlpFailureLog\(error, runtimeVersionVerified\)\)/);
+  assert.doesNotMatch(route, /console\.(?:log|info|warn|error)\([^\n]*(?:validated|canonicalUrl|ownerUid|jobId|mediaId|storageKey|inputPath|request)/);
+  assert.match(route, /return NextResponse\.json\(\{\s*error: error\.reason,\s*exitCode: error\.diagnostic\.exitCode,\s*signal: error\.diagnostic\.signal,\s*runtimeVersionVerified,\s*stderrSignature: error\.diagnostic\.stderrSignature,/);
+});
+
 test("GCS and DB failures compensate object and transaction without partial authority", () => {
   assert.match(route, /uploaded = true[\s\S]*pipeline\(/);
   assert.match(route, /query\("ROLLBACK"\)\.catch/);
