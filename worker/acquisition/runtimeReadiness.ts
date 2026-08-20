@@ -9,6 +9,13 @@ import type { WorkerReadiness } from "./httpService";
 const execFileAsync = promisify(execFile);
 const PROVIDER_VERSION = "1.3.1";
 
+export const probeBgutilProviderHealth = async (signal?: AbortSignal): Promise<boolean> => {
+  const response = await fetch("http://127.0.0.1:4416/ping", { signal });
+  if (!response.ok) return false;
+  const body = await response.json() as Readonly<{ version?: unknown }>;
+  return body.version === PROVIDER_VERSION;
+};
+
 export const probeWorkerReadiness = async (signal?: AbortSignal): Promise<WorkerReadiness> => {
   let ytDlpVersionMatch = false;
   let ffmpegAvailable = false;
@@ -21,11 +28,7 @@ export const probeWorkerReadiness = async (signal?: AbortSignal): Promise<Worker
     await execFileAsync(runtime.ffmpegExecutable, ["-version"], { timeout: 5_000, maxBuffer: 16 * 1024 });
     ffmpegAvailable = true;
     ytDlpVersionMatch = await probePackagedYtDlpVersion() === PACKAGED_YT_DLP_VERSION;
-    const response = await fetch("http://127.0.0.1:4416/ping", { signal });
-    if (response.ok) {
-      const body = await response.json() as Readonly<{ version?: unknown }>;
-      providerHealthy = body.version === PROVIDER_VERSION;
-    }
+    providerHealthy = await probeBgutilProviderHealth(signal);
   } catch {
     // Readiness is represented only by fixed booleans.
   }

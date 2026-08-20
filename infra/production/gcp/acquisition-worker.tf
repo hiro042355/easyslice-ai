@@ -52,6 +52,11 @@ resource "google_cloud_run_v2_service" "acquisition_worker" {
         value = "240000"
       }
 
+      env {
+        name  = "MEDIA_BUCKET_NAME"
+        value = google_storage_bucket.production_media.name
+      }
+
       volume_mounts {
         name       = "acquisition-workspace"
         mount_path = "/workspace/acquisitions"

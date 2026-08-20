@@ -268,8 +268,8 @@ test("media validation accepts a finite MP4 with video and optional audio, and r
 
 test("foundation source contains no cookie, account, shell, PATH, GCS, DB, Next Request, or shared filename authority", () => {
   const files = [
-    "contracts.ts", "core.ts", "idempotency.ts", "mediaValidation.ts", "provider.ts", "runtime.ts",
-    "sourceAdapter.ts", "types.ts", "workspace.ts", "youtubeAdapter.ts",
+    "contracts.ts", "core.ts", "gcsControlStore.ts", "idempotency.ts", "mediaValidation.ts",
+    "persistentIdempotency.ts", "provider.ts", "runtime.ts", "sourceAdapter.ts", "types.ts", "workspace.ts", "youtubeAdapter.ts",
   ].map((file) => readFileSync(path.join("lib/server/acquisitionWorker", file), "utf8")).join("\n");
   assert.doesNotMatch(files, /cookies\.txt|--cookies|cookies-from-browser|youtube account|ownerUid|storageKey|shell:\s*true|exec\(|process\.env\.PATH|downloaded\.mp4/);
   assert.doesNotMatch(files, /NextRequest|NextResponse|@google-cloud|\bpg\b|postgres/i);
@@ -284,12 +284,13 @@ test("production route and protected workflows remain disconnected and unchanged
   assert.doesNotMatch(aiMv, /acquisitionWorker|AcquisitionWorkerCore/);
 });
 
-test("Production Terraform grants only private invocation and no Worker storage, database, or public authority", () => {
+test("Production Terraform grants only private invocation and prefix-scoped control-object authority", () => {
   const service = readFileSync("infra/production/gcp/acquisition-worker.tf", "utf8");
   const identities = readFileSync("infra/production/gcp/identities.tf", "utf8");
   const wif = readFileSync("infra/production/gcp/vercel-wif.tf", "utf8");
   const variables = readFileSync("infra/production/gcp/variables.tf", "utf8");
-  const infrastructure = `${service}\n${identities}\n${wif}\n${variables}`;
+  const storage = readFileSync("infra/production/gcp/media-storage.tf", "utf8");
+  const infrastructure = `${service}\n${identities}\n${wif}\n${variables}\n${storage}`;
 
   assert.match(service, /max_instance_request_concurrency\s*=\s*1/);
   assert.match(service, /timeout\s*=\s*"300s"/);
@@ -299,6 +300,10 @@ test("Production Terraform grants only private invocation and no Worker storage,
   assert.match(service, /member\s*=\s*"serviceAccount:\$\{google_service_account\.acquisition_invoker\.email\}"/);
   assert.match(wif, /vercel_acquisition_invoker_impersonator[\s\S]*roles\/iam\.workloadIdentityUser/);
   assert.match(wif, /attribute\.project_id\/\$\{local\.vercel_project_id\}/);
+  assert.match(storage, /acquisition_worker_control_object_user[\s\S]*roles\/storage\.objectUser/);
+  assert.match(storage, /resource\.type == 'storage\.googleapis\.com\/Object'/);
+  assert.match(storage, /objects\/acquisition-control\/v1\//);
+  assert.doesNotMatch(storage, /acquisition_worker[\s\S]*roles\/storage\.(?:admin|objectAdmin)/i);
   assert.doesNotMatch(infrastructure, /allUsers|allAuthenticatedUsers/);
   assert.doesNotMatch(service, /roles\/(?:storage|cloudsql|firebase|editor|owner)/i);
   assert.doesNotMatch(infrastructure, /google_service_account_key|private_key|credentials\s*=/i);

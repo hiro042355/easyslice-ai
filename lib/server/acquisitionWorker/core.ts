@@ -38,13 +38,14 @@ export class AcquisitionWorkerCore {
     return this.dependencies.idempotency.execute(
       request.acquisitionId,
       acquisitionRequestFingerprint(request),
-      async () => {
+      async (leaseSignal) => {
         let workspace: Awaited<ReturnType<typeof createAcquisitionWorkspace>> | undefined;
         try {
-          if (signal?.aborted) throw new AcquisitionWorkerFailure("acquisition-cancelled", true);
+          const executionSignal = signal ? AbortSignal.any([signal, leaseSignal]) : leaseSignal;
+          if (executionSignal.aborted) throw new AcquisitionWorkerFailure("acquisition-cancelled", true);
           workspace = await createAcquisitionWorkspace(request.acquisitionId, this.dependencies.authorityRoot);
           const adapter = this.dependencies.adapters.resolve(request);
-          await adapter.acquire({ request, workspace, runtime: this.dependencies.runtime, provider: this.dependencies.provider, signal });
+          await adapter.acquire({ request, workspace, runtime: this.dependencies.runtime, provider: this.dependencies.provider, signal: executionSignal });
           const media = await this.dependencies.inspectMedia(workspace.mediaPath, this.dependencies.runtime, request.maxBytes);
           const artifactReference = await this.dependencies.consumeArtifact({ acquisitionId: request.acquisitionId, path: workspace.mediaPath, media });
           return Object.freeze({ acquisitionId: request.acquisitionId, status: "succeeded", artifactReference, media });
@@ -55,6 +56,7 @@ export class AcquisitionWorkerCore {
           if (workspace) await cleanupAcquisitionWorkspace(request.acquisitionId, this.dependencies.authorityRoot);
         }
       },
+      signal,
     ).catch((error: unknown) => {
       const failure = error instanceof AcquisitionWorkerFailure ? error : new AcquisitionWorkerFailure("unknown-acquisition-failure");
       return Object.freeze({ acquisitionId: request.acquisitionId, status: "failed", errorCode: failure.code, retryable: failure.retryable });

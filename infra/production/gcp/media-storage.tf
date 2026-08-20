@@ -30,3 +30,15 @@ resource "google_storage_bucket_iam_member" "media_runtime_object_user" {
   role   = "roles/storage.objectUser"
   member = "serviceAccount:${google_service_account.media_runtime.email}"
 }
+
+resource "google_storage_bucket_iam_member" "acquisition_worker_control_object_user" {
+  bucket = google_storage_bucket.production_media.name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${google_service_account.acquisition_worker.email}"
+
+  condition {
+    title       = "acquisition-control-v1-only"
+    description = "Restrict the Acquisition Worker to exact idempotency control objects; media objects remain denied."
+    expression  = "resource.type == 'storage.googleapis.com/Object' && resource.name.startsWith('projects/_/buckets/${google_storage_bucket.production_media.name}/objects/acquisition-control/v1/')"
+  }
+}
