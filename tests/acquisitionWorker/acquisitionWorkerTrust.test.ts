@@ -69,11 +69,11 @@ test("safe failures distinguish rejection, unavailability, and timeout without r
   }).verify(), (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-unavailable" && !error.message.includes("private-details"));
   assert.deepEqual(ACQUISITION_WORKER_AUTH_FAILURES, [
     "worker-auth-config-invalid", "worker-federation-failed", "worker-token-exchange-failed", "worker-impersonation-failed",
-    "worker-id-token-failed", "worker-auth-rejected", "worker-unavailable", "worker-timeout",
+    "worker-id-token-failed", "worker-auth-rejected", "worker-unavailable", "worker-timeout", "worker-invalid-response",
   ]);
 });
 
-test("reusable trust client remains server-only and disconnected after temporary probe removal", () => {
+test("reusable trust client remains server-only and normal Production flows stay disconnected", () => {
   const client = readFileSync("lib/server/acquisitionWorkerTrust/client.ts", "utf8");
   const composition = readFileSync("lib/server/acquisitionWorkerTrust/composition.ts", "utf8");
   const ingestion = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
@@ -82,7 +82,7 @@ test("reusable trust client remains server-only and disconnected after temporary
   assert.match(composition, /^import "server-only";/);
   assert.equal(existsSync("app/api/internal/acquisition-worker-trust/route.ts"), false);
   assert.match(client, /\/readyz/);
-  assert.doesNotMatch(`${client}\n${composition}`, /NEXT_PUBLIC_|sourceUrl|storageKey|ownerUid|DATABASE_URL|console\.(?:error|warn)/);
+  assert.doesNotMatch(`${client}\n${composition}`, /NEXT_PUBLIC_|storageKey|ownerUid|DATABASE_URL|console\.(?:error|warn)/);
   assert.doesNotMatch(`${ingestion}\n${workspace}\n${aiMv}`, /acquisitionWorkerTrust|verifyProductionAcquisitionWorkerTrust/);
 });
 

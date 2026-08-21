@@ -4,6 +4,8 @@ const INVOKER = "nexcut-prod-acq-invoker@nexcut-prod-jp-2026.iam.gserviceaccount
 const WORKER_URL = "https://nexcut-prod-acquisition-worker-bfqspeoqrq-an.a.run.app" as const;
 const WRONG_AUDIENCE = "https://invalid-audience.nexcut.invalid";
 const REQUEST_TIMEOUT_MS = 15_000;
+const ACQUISITION_REQUEST_TIMEOUT_MS = 270_000;
+const ACQUISITION_PATH = "/v1/acquisitions" as const;
 
 export const ACQUISITION_WORKER_AUTH_FAILURES = Object.freeze([
   "worker-auth-config-invalid",
@@ -14,6 +16,7 @@ export const ACQUISITION_WORKER_AUTH_FAILURES = Object.freeze([
   "worker-auth-rejected",
   "worker-unavailable",
   "worker-timeout",
+  "worker-invalid-response",
 ] as const);
 
 export type AcquisitionWorkerAuthFailureCode = (typeof ACQUISITION_WORKER_AUTH_FAILURES)[number];
@@ -112,6 +115,42 @@ export const createAcquisitionWorkerTrustClient = (
   configuration: AcquisitionWorkerTrustConfiguration,
   dependencies: AcquisitionWorkerTrustDependencies,
 ) => Object.freeze({
+  async invoke(input: AcquisitionRequest, options: Readonly<{ signal?: AbortSignal }> = {}): Promise<AcquisitionResult> {
+    const request = validateAcquisitionRequest(input);
+    const token = await dependencies.getIdToken(configuration.workerUrl);
+    if (!token) throw new AcquisitionWorkerTrustFailure("worker-id-token-failed");
+    const timeout = AbortSignal.timeout(ACQUISITION_REQUEST_TIMEOUT_MS);
+    const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+    let response: Response;
+    try {
+      response = await dependencies.fetch(`${configuration.workerUrl}${ACQUISITION_PATH}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify(request),
+        cache: "no-store",
+        signal,
+      });
+    } catch (error) {
+      if ((error instanceof DOMException && error.name === "TimeoutError")
+        || (timeout.aborted && !options.signal?.aborted)) throw new AcquisitionWorkerTrustFailure("worker-timeout");
+      if (options.signal?.aborted) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+      throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    }
+    if ([401, 403, 404].includes(response.status)) throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
+    if (![200, 422].includes(response.status)) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    const body: unknown = await response.json().catch(() => undefined);
+    try {
+      const result = validateAcquisitionResult(body);
+      if (result.acquisitionId !== request.acquisitionId
+        || (response.status === 200) !== (result.status === "succeeded")
+        || (result.status === "succeeded" && result.artifactReference !== `acquisition:${request.acquisitionId}`)) {
+        throw new TypeError("invalid-acquisition-result");
+      }
+      return result;
+    } catch {
+      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
+    }
+  },
   async verify(): Promise<AcquisitionWorkerTrustEvidence> {
     const correctStarted = dependencies.now();
     const correctToken = await dependencies.getIdToken(configuration.workerUrl);
@@ -159,3 +198,5 @@ export const createAcquisitionWorkerTrustClient = (
     });
   },
 });
+import { validateAcquisitionRequest, validateAcquisitionResult } from "../acquisitionWorker/contracts";
+import type { AcquisitionRequest, AcquisitionResult } from "../acquisitionWorker/types";
