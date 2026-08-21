@@ -27,6 +27,7 @@ const PROCESS_FAILURE_MAP: Readonly<Partial<Record<YtDlpProcessFailureReason, Ac
 export const createYouTubeWorkerArguments = (context: SourceAcquisitionContext): readonly string[] => Object.freeze([
   "--no-js-runtimes",
   "--js-runtimes", nodeJsRuntimeArgument(context.runtime.nodeExecutable),
+  "--extractor-args", "youtube:player_client=mweb",
   ...(context.provider?.ytDlpArguments() ?? []),
   ...createYouTubeAcquisitionArguments(context.request.sourceUrl, context.workspace.mediaPath),
 ]);

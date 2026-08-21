@@ -16,7 +16,7 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
     providerHealthy: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
     acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
-    ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "DEFAULT", observedPlayerClient: "UNKNOWN",
+    ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
     jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
     mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
   });

@@ -111,7 +111,7 @@ test("source registry selects exactly the YouTube adapter and has no generic fet
   assert.doesNotMatch(implementation, /fetch\(|axios|http\.request|https\.request/);
 });
 
-test("YouTube arguments explicitly bind Node EJS, preserve canonical profile, and contain no cookies or shell commands", () => {
+test("YouTube arguments explicitly bind Node EJS and mweb, preserve canonical profile, and contain no cookies or shell commands", () => {
   const context = {
     request: validateAcquisitionRequest(request()),
     workspace: resolveAcquisitionWorkspace(ID, "/tmp/nexcut-acquisition-tests"),
@@ -119,6 +119,8 @@ test("YouTube arguments explicitly bind Node EJS, preserve canonical profile, an
   } satisfies SourceAcquisitionContext;
   const args = createYouTubeWorkerArguments(context);
   assert.deepEqual(args.slice(0, 3), ["--no-js-runtimes", "--js-runtimes", "node:/runtime/node"]);
+  assert.deepEqual(args.slice(3, 5), ["--extractor-args", "youtube:player_client=mweb"]);
+  assert.equal(args.filter((value) => value === "youtube:player_client=mweb").length, 1);
   assert.ok(args.includes("--no-playlist"));
   assert.ok(args.includes("--merge-output-format"));
   assert.ok(args.includes(context.workspace.mediaPath));

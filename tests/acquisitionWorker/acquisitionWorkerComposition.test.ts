@@ -40,7 +40,7 @@ test("composition reaches Core, fixed YouTube adapter, runtime, provider, valida
     } });
   assert.deepEqual(await composition.execute(request), { acquisitionId: ID, status: "succeeded",
     artifactReference: `acquisition:${ID}`, media });
-  assert.equal(composition.telemetry(ID)?.configuredPlayerClient, "DEFAULT");
+  assert.equal(composition.telemetry(ID)?.configuredPlayerClient, "MWEB");
   assert.equal(composition.telemetry(ID), undefined);
   assert.equal(inspected, true);
   await assert.rejects(stat(path.join(authorityRoot, ID)), { code: "ENOENT" });

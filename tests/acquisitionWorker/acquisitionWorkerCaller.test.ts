@@ -35,7 +35,7 @@ const diagnostic = Object.freeze({
   expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
   providerHealthy: "YES", acquisitionProviderRequest: "YES", acquisitionProviderSuccess: "YES",
   acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
-  ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "DEFAULT", observedPlayerClient: "UNKNOWN",
+  ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
   jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
   mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN",
 } as const);
