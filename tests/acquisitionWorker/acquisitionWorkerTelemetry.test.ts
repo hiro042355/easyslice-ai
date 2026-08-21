@@ -1,0 +1,83 @@
+import assert from "node:assert/strict";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import test from "node:test";
+import {
+  AcquisitionTelemetryCollector,
+  validateAcquisitionSafeTelemetry,
+} from "../../lib/server/acquisitionWorker/telemetry";
+import { ProviderTelemetryProxy, PROVIDER_PROXY_BODY_LIMIT } from "../../worker/acquisition/providerTelemetryProxy";
+
+const runtime = Object.freeze({ pluginArtifact: true, nodeConfigured: true, nodeExecutable: true,
+  nodeVersionMatch: true, ejsAvailable: true });
+
+test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () => {
+  const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
+  assert.deepEqual(diagnostic, {
+    expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
+    providerHealthy: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
+    acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
+    ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "DEFAULT", observedPlayerClient: "UNKNOWN",
+    jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
+    mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
+  });
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
+  const serialized = JSON.stringify(diagnostic);
+  assert.doesNotMatch(serialized, /https?:|youtu|video.?id|uid|ip.?address|token|hash|cookie|credential|authorization|stdout|stderr|command|filesystem|path/i);
+});
+
+test("health is separate while token request success/failure is observable", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.providerHealth(true);
+  assert.equal(collector.snapshot().providerHealthy, "YES");
+  assert.equal(collector.snapshot().acquisitionProviderRequest, "NO");
+  collector.providerRequest();
+  collector.providerResult(true);
+  assert.equal(collector.snapshot().acquisitionProviderRequest, "YES");
+  assert.equal(collector.snapshot().acquisitionProviderSuccess, "YES");
+  assert.equal(collector.snapshot().acquisitionProviderFailure, "NO");
+  const failed = new AcquisitionTelemetryCollector(runtime);
+  failed.providerRequest(); failed.providerResult(false);
+  assert.equal(failed.snapshot().acquisitionProviderFailure, "YES");
+  assert.equal(failed.snapshot().failureStage, "PROVIDER_REQUEST");
+});
+
+const listen = async (handler: (request: IncomingMessage, response: ServerResponse) => void) => {
+  const server = createServer(handler);
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("missing-test-port");
+  return { server, port: address.port };
+};
+
+test("proxy is localhost-only, fixed-contract, bounded, and preserves provider response", async () => {
+  const upstream = await listen((request, response) => {
+    if (request.method === "GET" && request.url === "/ping") return response.writeHead(200, { "content-type": "application/json" }).end('{"version":"1.3.1"}');
+    if (request.method === "POST" && request.url === "/get_pot") return response.writeHead(201, { "content-type": "application/json" }).end('{"opaque":"unchanged"}');
+    response.writeHead(404).end();
+  });
+  const reserved = await listen((_request, response) => response.end());
+  const proxyPort = reserved.port;
+  await new Promise<void>((resolve) => reserved.server.close(() => resolve()));
+  const proxy = new ProviderTelemetryProxy(upstream.port, proxyPort);
+  await proxy.start();
+  try {
+    const collector = new AcquisitionTelemetryCollector(runtime);
+    const health = await fetch(`http://127.0.0.1:${proxyPort}/ping`);
+    assert.equal(health.status, 200);
+    assert.equal(collector.snapshot().acquisitionProviderRequest, "NO");
+    await proxy.observe(collector, async () => {
+      const response = await fetch(`http://127.0.0.1:${proxyPort}/get_pot`, { method: "POST", body: "{}",
+        headers: { "content-type": "application/json" } });
+      assert.equal(response.status, 201);
+      assert.equal(await response.text(), '{"opaque":"unchanged"}');
+    });
+    assert.equal(collector.snapshot().acquisitionProviderSuccess, "YES");
+    assert.equal((await fetch(`http://127.0.0.1:${proxyPort}/anything`)).status, 404);
+    const oversized = await fetch(`http://127.0.0.1:${proxyPort}/get_pot`, { method: "POST",
+      body: "x".repeat(PROVIDER_PROXY_BODY_LIMIT + 1) });
+    assert.equal(oversized.status, 413);
+  } finally {
+    await proxy.close();
+    await new Promise<void>((resolve) => upstream.server.close(() => resolve()));
+  }
+});

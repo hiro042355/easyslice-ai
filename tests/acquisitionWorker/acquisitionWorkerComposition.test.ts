@@ -17,7 +17,7 @@ const runtime: AcquisitionRuntime = Object.freeze({ ytDlpExecutable: "/app/node_
 const media: AcquisitionMediaMetadata = Object.freeze({ contentType: "video/mp4", byteSize: 4,
   durationSeconds: 10, hasVideo: true, hasAudio: true });
 const provider: PoTokenProvider = Object.freeze({ authority: "bgutil-ytdlp-pot-provider@1.3.1",
-  status: async () => "available", ytDlpArguments: () => ["--extractor-args", "youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416"] });
+  status: async () => "available" as const, ytDlpArguments: () => ["--extractor-args", "youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416"] });
 
 test("composition reaches Core, fixed YouTube adapter, runtime, provider, validation, and cleanup", async () => {
   const authorityRoot = await mkdtemp(path.join(os.tmpdir(), "nexcut-acquisition-composition-"));
@@ -40,6 +40,8 @@ test("composition reaches Core, fixed YouTube adapter, runtime, provider, valida
     } });
   assert.deepEqual(await composition.execute(request), { acquisitionId: ID, status: "succeeded",
     artifactReference: `acquisition:${ID}`, media });
+  assert.equal(composition.telemetry(ID)?.configuredPlayerClient, "DEFAULT");
+  assert.equal(composition.telemetry(ID), undefined);
   assert.equal(inspected, true);
   await assert.rejects(stat(path.join(authorityRoot, ID)), { code: "ENOENT" });
 });

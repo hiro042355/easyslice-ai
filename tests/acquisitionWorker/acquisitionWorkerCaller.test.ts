@@ -31,6 +31,14 @@ const request: AcquisitionRequest = Object.freeze({
   maxBytes: ACQUISITION_MAX_BYTES,
   timeoutMs: ACQUISITION_DEFAULT_TIMEOUT_MS,
 });
+const diagnostic = Object.freeze({
+  expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
+  providerHealthy: "YES", acquisitionProviderRequest: "YES", acquisitionProviderSuccess: "YES",
+  acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
+  ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "DEFAULT", observedPlayerClient: "UNKNOWN",
+  jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
+  mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN",
+} as const);
 
 test("caller uses one short-lived token, fixed Worker path, exact request, and no retry", async () => {
   const calls: Array<{ input: string; init?: RequestInit }> = [];
@@ -45,7 +53,7 @@ test("caller uses one short-lived token, fixed Worker path, exact request, and n
     log() { throw new Error("invoke-must-not-log"); }, now: () => 0,
   });
   const result = await client.invoke(request);
-  assert.equal(result.status, "succeeded");
+  assert.equal(result.result.status, "succeeded");
   assert.equal(tokenCalls, 1);
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.input, `${configuration.workerUrl}/v1/acquisitions`);
@@ -61,7 +69,7 @@ test("caller accepts exact safe failure and rejects malformed, mismatched, and a
     getIdToken: async () => "opaque", fetch: async () => response, log() {}, now: () => 0,
   });
   assert.deepEqual(await make(Response.json({ acquisitionId, status: "failed", errorCode: "youtube-bot-check", retryable: false }, { status: 422 })).invoke(request),
-    { acquisitionId, status: "failed", errorCode: "youtube-bot-check", retryable: false });
+    { result: { acquisitionId, status: "failed", errorCode: "youtube-bot-check", retryable: false } });
   await assert.rejects(make(Response.json({ status: "succeeded", raw: "private" })).invoke(request),
     (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-invalid-response");
   await assert.rejects(make(Response.json({ acquisitionId, status: "succeeded", artifactReference: "file:///private/path",
@@ -73,6 +81,23 @@ test("caller accepts exact safe failure and rejects malformed, mismatched, and a
     (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-invalid-response");
   await assert.rejects(make(new Response(null, { status: 403 })).invoke(request),
     (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-auth-rejected");
+});
+
+test("caller accepts only the closed safe telemetry projection", async () => {
+  const client = createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: async () => "opaque", log() {}, now: () => 0,
+    fetch: async () => Response.json({ acquisitionId, status: "failed", errorCode: "youtube-bot-check",
+      retryable: false, diagnostic }, { status: 422 }),
+  });
+  assert.deepEqual(await client.invoke(request), { result: { acquisitionId, status: "failed",
+    errorCode: "youtube-bot-check", retryable: false }, diagnostic });
+  const unsafe = createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: async () => "opaque", log() {}, now: () => 0,
+    fetch: async () => Response.json({ acquisitionId, status: "failed", errorCode: "youtube-bot-check",
+      retryable: false, diagnostic: { ...diagnostic, raw: "private" } }, { status: 422 }),
+  });
+  await assert.rejects(unsafe.invoke(request), (error: unknown) => error instanceof AcquisitionWorkerTrustFailure
+    && error.code === "worker-invalid-response");
 });
 
 test("caller preserves AbortSignal and safely classifies timeout without exposing raw failure", async () => {
@@ -102,6 +127,8 @@ test("Owner E2E surface is fixed, server-issued, strict, and disconnected from n
   assert.match(route, /randomUUID\(\)/);
   assert.match(route, /maxDuration = 300/);
   assert.match(route, /Object\.keys\(value\)\.length !== 1/);
+  assert.match(route, /diagnostic:\s*invocation\.diagnostic/);
+  assert.doesNotMatch(route, /result\.acquisitionId|result\.artifactReference/);
   assert.doesNotMatch(route, /acquisitionId.*(?:request|value)|workerUrl|audience|cookie|storageKey|userId/i);
   assert.match(client, /ACQUISITION_PATH = "\/v1\/acquisitions"/);
   assert.match(client, /ACQUISITION_REQUEST_TIMEOUT_MS = 270_000/);

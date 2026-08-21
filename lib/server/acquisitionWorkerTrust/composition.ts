@@ -9,7 +9,8 @@ import {
   type AcquisitionWorkerTrustConfiguration,
   type AcquisitionWorkerTrustEvidence,
 } from "./client";
-import type { AcquisitionRequest, AcquisitionResult } from "../acquisitionWorker/types";
+import type { AcquisitionRequest } from "../acquisitionWorker/types";
+import type { AcquisitionWorkerInvocationResult } from "./client";
 
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token";
@@ -77,7 +78,7 @@ export const verifyProductionAcquisitionWorkerTrust = async (): Promise<Acquisit
 export const invokeProductionAcquisitionWorker = async (
   request: AcquisitionRequest,
   signal?: AbortSignal,
-): Promise<AcquisitionResult> => {
+): Promise<AcquisitionWorkerInvocationResult> => {
   const configuration = readAcquisitionWorkerTrustConfiguration();
   return createAcquisitionWorkerTrustClient(configuration, {
     getIdToken: createProductionIdTokenAuthority(configuration),

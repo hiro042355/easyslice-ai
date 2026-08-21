@@ -63,6 +63,11 @@ export type AcquisitionWorkerTrustDependencies = Readonly<{
   now(): number;
 }>;
 
+export type AcquisitionWorkerInvocationResult = Readonly<{
+  result: AcquisitionResult;
+  diagnostic?: AcquisitionSafeTelemetry;
+}>;
+
 export class AcquisitionWorkerTrustFailure extends Error {
   constructor(readonly code: AcquisitionWorkerAuthFailureCode) {
     super(code);
@@ -115,7 +120,7 @@ export const createAcquisitionWorkerTrustClient = (
   configuration: AcquisitionWorkerTrustConfiguration,
   dependencies: AcquisitionWorkerTrustDependencies,
 ) => Object.freeze({
-  async invoke(input: AcquisitionRequest, options: Readonly<{ signal?: AbortSignal }> = {}): Promise<AcquisitionResult> {
+  async invoke(input: AcquisitionRequest, options: Readonly<{ signal?: AbortSignal }> = {}): Promise<AcquisitionWorkerInvocationResult> {
     const request = validateAcquisitionRequest(input);
     const token = await dependencies.getIdToken(configuration.workerUrl);
     if (!token) throw new AcquisitionWorkerTrustFailure("worker-id-token-failed");
@@ -140,13 +145,18 @@ export const createAcquisitionWorkerTrustClient = (
     if (![200, 422].includes(response.status)) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
     const body: unknown = await response.json().catch(() => undefined);
     try {
-      const result = validateAcquisitionResult(body);
+      if (!body || typeof body !== "object" || Array.isArray(body)) throw new TypeError("invalid-acquisition-result");
+      const candidate = body as Record<string, unknown>;
+      const diagnostic = candidate.diagnostic === undefined ? undefined : validateAcquisitionSafeTelemetry(candidate.diagnostic);
+      const resultBody = { ...candidate };
+      delete resultBody.diagnostic;
+      const result = validateAcquisitionResult(resultBody);
       if (result.acquisitionId !== request.acquisitionId
         || (response.status === 200) !== (result.status === "succeeded")
         || (result.status === "succeeded" && result.artifactReference !== `acquisition:${request.acquisitionId}`)) {
         throw new TypeError("invalid-acquisition-result");
       }
-      return result;
+      return Object.freeze({ result, ...(diagnostic ? { diagnostic } : {}) });
     } catch {
       throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
     }
@@ -200,3 +210,4 @@ export const createAcquisitionWorkerTrustClient = (
 });
 import { validateAcquisitionRequest, validateAcquisitionResult } from "../acquisitionWorker/contracts";
 import type { AcquisitionRequest, AcquisitionResult } from "../acquisitionWorker/types";
+import { validateAcquisitionSafeTelemetry, type AcquisitionSafeTelemetry } from "../acquisitionWorker/telemetry";

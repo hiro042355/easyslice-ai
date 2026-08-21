@@ -1,4 +1,5 @@
 import type { PoTokenProvider, PoTokenProviderStatus } from "./sourceAdapter";
+import type { AcquisitionTelemetryCollector } from "./telemetry";
 
 export const BGUTIL_PROVIDER_AUTHORITY = Object.freeze({
   name: "bgutil-ytdlp-pot-provider",
@@ -15,6 +16,7 @@ export class BgutilHttpPoTokenProvider implements PoTokenProvider {
   constructor(
     private readonly health: (signal?: AbortSignal) => Promise<boolean>,
     private readonly baseUrl = "http://127.0.0.1:4416",
+    private readonly observeOperation?: <T>(collector: AcquisitionTelemetryCollector, operation: () => Promise<T>) => Promise<T>,
   ) {}
 
   ytDlpArguments(): readonly string[] {
@@ -26,6 +28,10 @@ export class BgutilHttpPoTokenProvider implements PoTokenProvider {
       "--extractor-args",
       `youtubepot-bgutilhttp:base_url=${url.origin}`,
     ]);
+  }
+
+  observe<T>(collector: AcquisitionTelemetryCollector, operation: () => Promise<T>): Promise<T> {
+    return this.observeOperation ? this.observeOperation(collector, operation) : operation();
   }
 
   async status(signal?: AbortSignal): Promise<PoTokenProviderStatus> {

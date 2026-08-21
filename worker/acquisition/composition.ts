@@ -10,9 +10,14 @@ import type { AcquisitionResult } from "../../lib/server/acquisitionWorker/types
 import { YouTubeSourceAdapter, type AcquisitionProcessRunner } from "../../lib/server/acquisitionWorker/youtubeAdapter";
 import { runPackagedYtDlp } from "../../lib/server/packagedYtDlp";
 import { probeBgutilProviderHealth } from "./runtimeReadiness";
+import { ProviderTelemetryProxy } from "./providerTelemetryProxy";
+import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
-export type AcquisitionWorkerExecution = Readonly<{ execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult> }>;
+export type AcquisitionWorkerExecution = Readonly<{
+  execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
+  telemetry(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
+}>;
 export type AcquisitionWorkerCompositionOptions = Readonly<{
   authorityRoot?: string;
   resolveRuntime?: () => Promise<AcquisitionRuntime>;
@@ -21,6 +26,7 @@ export type AcquisitionWorkerCompositionOptions = Readonly<{
   consumeArtifact?: AcquisitionArtifactConsumer;
   idempotency?: AcquisitionIdempotencyStore;
   provider?: PoTokenProvider;
+  telemetryProxy?: ProviderTelemetryProxy;
 }>;
 
 const productionRunner: AcquisitionProcessRunner = async (args, options) => { await runPackagedYtDlp(args, options); };
@@ -34,6 +40,11 @@ export const createAcquisitionWorkerComposition = async (
   const idempotency = options.idempotency ?? new PersistentAcquisitionIdempotencyStore(
     new GcsAcquisitionControlObjectStore(configuration!.bucket, createMetadataAccessTokenSupplier()),
   );
+  const retained = new Map<string, AcquisitionSafeTelemetry>();
+  const proxy = options.provider ? undefined : (options.telemetryProxy ?? new ProviderTelemetryProxy());
+  if (proxy) await proxy.start();
+  const provider = options.provider ?? new BgutilHttpPoTokenProvider(probeBgutilProviderHealth,
+    "http://127.0.0.1:4417", (collector, operation) => proxy!.observe(collector, operation));
   const core = new AcquisitionWorkerCore({
     adapters: new SourceAdapterRegistry([new YouTubeSourceAdapter(options.run ?? productionRunner)]),
     idempotency,
@@ -41,7 +52,15 @@ export const createAcquisitionWorkerComposition = async (
     authorityRoot: options.authorityRoot ?? process.env.ACQUISITION_WORKSPACE_ROOT ?? DEFAULT_AUTHORITY_ROOT,
     inspectMedia: options.inspectMedia ?? inspectCanonicalMp4,
     consumeArtifact: options.consumeArtifact ?? ephemeralResult,
-    provider: options.provider ?? new BgutilHttpPoTokenProvider(probeBgutilProviderHealth),
+    provider,
+    telemetryRuntime: { pluginArtifact: true, nodeConfigured: true, nodeExecutable: true,
+      nodeVersionMatch: runtime.nodeMajorVersion === 24, ejsAvailable: true },
+    retainTelemetry(acquisitionId, telemetry) { retained.set(acquisitionId, telemetry); },
   });
-  return Object.freeze({ execute: (input, signal) => core.execute(input, signal) });
+  return Object.freeze({ execute: (input, signal) => core.execute(input, signal),
+    telemetry: (acquisitionId) => {
+      const telemetry = retained.get(acquisitionId);
+      retained.delete(acquisitionId);
+      return telemetry;
+    } });
 };

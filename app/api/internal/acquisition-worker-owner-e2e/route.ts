@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid-youtube-url" }, { status: 400 });
   }
   try {
-    const result = await invokeProductionAcquisitionWorker({
+    const invocation = await invokeProductionAcquisitionWorker({
       requestVersion: ACQUISITION_REQUEST_VERSION,
       acquisitionId: randomUUID(),
       source: "youtube",
@@ -44,7 +44,14 @@ export async function POST(request: Request) {
       maxBytes: ACQUISITION_MAX_BYTES,
       timeoutMs: ACQUISITION_DEFAULT_TIMEOUT_MS,
     }, request.signal);
-    return NextResponse.json(result, { status: result.status === "succeeded" ? 200 : 422 });
+    const result = invocation.result;
+    return NextResponse.json({
+      status: result.status,
+      ...(result.status === "failed"
+        ? { errorCode: result.errorCode, retryable: result.retryable }
+        : { media: result.media }),
+      ...(invocation.diagnostic ? { diagnostic: invocation.diagnostic } : {}),
+    }, { status: result.status === "succeeded" ? 200 : 422 });
   } catch (error) {
     const code = error instanceof AcquisitionWorkerTrustFailure ? error.code : "worker-unavailable";
     const status = code === "worker-timeout" ? 504 : code === "worker-auth-rejected" ? 403 : 502;

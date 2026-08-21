@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { validateAcquisitionRequest, validateAcquisitionResult } from "../../lib/server/acquisitionWorker/contracts";
 import type { AcquisitionResult } from "../../lib/server/acquisitionWorker/types";
+import { validateAcquisitionSafeTelemetry, type AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
 
@@ -16,6 +17,7 @@ export type WorkerHttpDependencies = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
   readiness(signal?: AbortSignal): Promise<WorkerReadiness>;
   log(event: Readonly<Record<string, string | number | boolean>>): void;
+  telemetry?(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
 }>;
 
 const sendJson = (response: ServerResponse, status: number, value: unknown): void => {
@@ -60,6 +62,7 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
       }
       const input = validateAcquisitionRequest(await readJson(request));
       const result = validateAcquisitionResult(await dependencies.execute(input, abort.signal));
+      const diagnostic = dependencies.telemetry?.(input.acquisitionId);
       dependencies.log({
         event: "acquisition-completed",
         source: input.source,
@@ -67,7 +70,8 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
         elapsedBucket: Math.ceil((Date.now() - startedAt) / 10_000) * 10,
         ...(result.status === "failed" ? { failureCode: result.errorCode } : {}),
       });
-      return sendJson(response, result.status === "succeeded" ? 200 : 422, result);
+      return sendJson(response, result.status === "succeeded" ? 200 : 422,
+        diagnostic ? { ...result, diagnostic: validateAcquisitionSafeTelemetry(diagnostic) } : result);
     }
     return sendJson(response, 404, { status: "not-found" });
   } catch {

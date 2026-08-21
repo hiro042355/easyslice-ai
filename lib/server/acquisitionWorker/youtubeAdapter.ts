@@ -43,11 +43,15 @@ export class YouTubeSourceAdapter implements SourceAdapter {
   async acquire(context: SourceAcquisitionContext): Promise<void> {
     if (context.provider) {
       const providerStatus = await context.provider.status(context.signal);
+      context.telemetry?.providerHealth(providerStatus === "available");
       if (providerStatus === "unavailable") throw new AcquisitionWorkerFailure("po-token-provider-unavailable", true);
       if (providerStatus === "failed") throw new AcquisitionWorkerFailure("po-token-provider-failed", true);
     }
     try {
-      await this.run(createYouTubeWorkerArguments(context), { timeoutMs: context.request.timeoutMs, signal: context.signal });
+      const execute = () => this.run(createYouTubeWorkerArguments(context), { timeoutMs: context.request.timeoutMs, signal: context.signal });
+      await (context.provider?.observe && context.telemetry
+        ? context.provider.observe(context.telemetry, execute)
+        : execute());
     } catch (error) {
       if (error instanceof AcquisitionWorkerFailure) throw error;
       if (error instanceof YtDlpProcessFailure) {

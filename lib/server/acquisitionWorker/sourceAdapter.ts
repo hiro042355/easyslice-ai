@@ -1,5 +1,6 @@
 import type { ValidatedAcquisitionRequest } from "./contracts";
 import type { AcquisitionWorkspace } from "./workspace";
+import type { AcquisitionTelemetryCollector } from "./telemetry";
 
 export type AcquisitionRuntime = Readonly<{
   ytDlpExecutable: string;
@@ -14,6 +15,7 @@ export interface PoTokenProvider {
   readonly authority: string;
   status(signal?: AbortSignal): Promise<PoTokenProviderStatus>;
   ytDlpArguments(): readonly string[];
+  observe?<T>(collector: AcquisitionTelemetryCollector, operation: () => Promise<T>): Promise<T>;
 }
 
 export type SourceAcquisitionContext = Readonly<{
@@ -22,6 +24,7 @@ export type SourceAcquisitionContext = Readonly<{
   runtime: AcquisitionRuntime;
   provider?: PoTokenProvider;
   signal?: AbortSignal;
+  telemetry?: AcquisitionTelemetryCollector;
 }>;
 
 export interface SourceAdapter {
