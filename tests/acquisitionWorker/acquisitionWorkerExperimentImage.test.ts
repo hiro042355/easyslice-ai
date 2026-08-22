@@ -11,3 +11,11 @@ test("the worker image projects one pinned yt-dlp build argument into binary and
   assert.match(dockerfile, /sed -i "s\/2026\\\\\.03\\\\\.13\/\$\{YT_DLP_VERSION\}\/g" worker\/acquisition\/dist\/lib\/server\/packagedYtDlp\.js/);
   assert.doesNotMatch(dockerfile, /(?:which|where)\s+yt-dlp|spawn\(["']yt-dlp|shell:\s*true|yt-dlp\s+-U/);
 });
+
+test("the worker image can isolate one explicit player client without changing the default", () => {
+  assert.match(dockerfile, /ARG YOUTUBE_PLAYER_CLIENT=mweb/);
+  assert.match(dockerfile, /ARG YOUTUBE_PLAYER_CLIENT_TELEMETRY=MWEB/);
+  assert.match(dockerfile, /youtube:player_client=\$\{YOUTUBE_PLAYER_CLIENT\}/);
+  assert.match(dockerfile, /YOUTUBE_PLAYER_CLIENT_TELEMETRY/);
+  assert.doesNotMatch(dockerfile, /player_client=default|player_client=mweb,/);
+});

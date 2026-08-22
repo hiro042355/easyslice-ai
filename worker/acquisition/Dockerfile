@@ -1,6 +1,8 @@
 FROM node:24.16.0-bookworm-slim AS build
 
 ARG YT_DLP_VERSION=2026.03.13
+ARG YOUTUBE_PLAYER_CLIENT=mweb
+ARG YOUTUBE_PLAYER_CLIENT_TELEMETRY=MWEB
 
 WORKDIR /src
 COPY package.json package-lock.json ./
@@ -10,7 +12,11 @@ COPY lib/server ./lib/server
 COPY worker/acquisition ./worker/acquisition
 RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
  && sed -i "s/2026\\.03\\.13/${YT_DLP_VERSION}/g" worker/acquisition/dist/lib/server/packagedYtDlp.js \
- && grep -F "${YT_DLP_VERSION}" worker/acquisition/dist/lib/server/packagedYtDlp.js
+ && sed -i "s/youtube:player_client=mweb/youtube:player_client=${YOUTUBE_PLAYER_CLIENT}/g" worker/acquisition/dist/lib/server/acquisitionWorker/youtubeAdapter.js \
+ && sed -i "s/\"MWEB\"/\"${YOUTUBE_PLAYER_CLIENT_TELEMETRY}\"/g" worker/acquisition/dist/lib/server/acquisitionWorker/telemetry.js \
+ && grep -F "${YT_DLP_VERSION}" worker/acquisition/dist/lib/server/packagedYtDlp.js \
+ && grep -F "youtube:player_client=${YOUTUBE_PLAYER_CLIENT}" worker/acquisition/dist/lib/server/acquisitionWorker/youtubeAdapter.js \
+ && grep -F "\"${YOUTUBE_PLAYER_CLIENT_TELEMETRY}\"" worker/acquisition/dist/lib/server/acquisitionWorker/telemetry.js
 
 FROM node:24.16.0-bookworm-slim AS runtime
 
