@@ -1,12 +1,16 @@
 FROM node:24.16.0-bookworm-slim AS build
 
+ARG YT_DLP_VERSION=2026.03.13
+
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json ./tsconfig.json
 COPY lib/server ./lib/server
 COPY worker/acquisition ./worker/acquisition
-RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json
+RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
+ && sed -i "s/2026\\.03\\.13/${YT_DLP_VERSION}/g" worker/acquisition/dist/lib/server/packagedYtDlp.js \
+ && grep -F "${YT_DLP_VERSION}" worker/acquisition/dist/lib/server/packagedYtDlp.js
 
 FROM node:24.16.0-bookworm-slim AS runtime
 
