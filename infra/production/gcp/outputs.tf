@@ -133,3 +133,18 @@ output "acquisition_invoker_service_account_email" {
   description = "Dedicated keyless Vercel-federated Acquisition Worker invoker identity."
   value       = google_service_account.acquisition_invoker.email
 }
+
+output "acquisition_worker_egress_experiment_service_name" {
+  description = "Private Environment B Acquisition Worker service name."
+  value       = google_cloud_run_v2_service.acquisition_worker_egress_experiment.name
+}
+
+output "acquisition_worker_egress_experiment_service_uri" {
+  description = "Private Environment B URI; IAM authentication remains mandatory."
+  value       = google_cloud_run_v2_service.acquisition_worker_egress_experiment.uri
+}
+
+output "acquisition_worker_egress_experiment_static_ip" {
+  description = "Environment B controlled outbound IP; this is network metadata, not credential material."
+  value       = google_compute_address.acquisition_worker_egress_experiment.address
+}
