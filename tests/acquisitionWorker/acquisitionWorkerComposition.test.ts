@@ -6,7 +6,9 @@ import test from "node:test";
 import { InMemoryAcquisitionIdempotencyStore } from "../../lib/server/acquisitionWorker/idempotency";
 import type { AcquisitionRuntime, PoTokenProvider } from "../../lib/server/acquisitionWorker/sourceAdapter";
 import type { AcquisitionMediaMetadata } from "../../lib/server/acquisitionWorker/types";
-import { createAcquisitionWorkerComposition } from "../../worker/acquisition/composition";
+import { AcquisitionTelemetryCollector } from "../../lib/server/acquisitionWorker/telemetry";
+import { extractSafeYtDlpStderrSignature, YtDlpProcessFailure } from "../../lib/server/packagedYtDlp";
+import { createAcquisitionWorkerComposition, createProductionAcquisitionRunner } from "../../worker/acquisition/composition";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const URL = "https://www.youtube.com/watch?v=DaxWpqigjrs";
@@ -55,4 +57,32 @@ test("Production composition uses persistent GCS store and contains no stub, coo
   assert.match(main, /execute:\s*execution\.execute/);
   assert.doesNotMatch(main, /errorCode:\s*"unknown-acquisition-failure"/);
   assert.doesNotMatch(composition, /process\.env\.(?:PATH|PROVIDER_URL)|cookies?|credentials?|Generic/i);
+});
+
+test("production runner merges in-process provider and closed stage evidence into one failure event", async () => {
+  const collector = new AcquisitionTelemetryCollector({ pluginArtifact: true, nodeConfigured: true,
+    nodeExecutable: true, nodeVersionMatch: true, ejsAvailable: true });
+  collector.providerRequest();
+  collector.providerResult(true);
+  collector.providerTokenResponse(true, true);
+  const entries: unknown[] = [];
+  const runner = createProductionAcquisitionRunner((entry) => entries.push(entry), async () => {
+    throw new YtDlpProcessFailure("unknown-yt-dlp-failure", {
+      exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
+      stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
+      closedStageTelemetry: { tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
+        mediaRequestReached: "NO", http403Stage: "GVS" },
+    });
+  });
+  await assert.rejects(runner([], { timeoutMs: 1_000, telemetry: collector }), YtDlpProcessFailure);
+  assert.equal(entries.length, 1);
+  assert.deepEqual(entries[0], {
+    severity: "ERROR", event: "acquisition-process-failure", exitCode: 1, signal: null,
+    safeFailureFamily: "unknown-yt-dlp-failure", has403: true, has429: false, has5xx: false,
+    requestedFormatFailure: false, ffmpegFailure: false, writeFailure: false, permissionFailure: false,
+    networkFailure: false, providerTokenResponseObserved: "YES", providerTokenSchemaValid: "YES",
+    tokenContext: "GVS", tokenConsumedByYtDlp: "YES", playerClient: "MWEB", gvsRequestReached: "YES",
+    mediaRequestReached: "NO", http403Stage: "GVS", retryCount: 0,
+    safeFailureCode: "unknown-acquisition-failure", failureStage: "UNKNOWN",
+  });
 });

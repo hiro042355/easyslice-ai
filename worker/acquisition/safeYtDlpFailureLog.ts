@@ -3,6 +3,7 @@ import {
   type YtDlpProcessFailure,
   type YtDlpProcessFailureReason,
 } from "../../lib/server/packagedYtDlp";
+import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 
 export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
   severity: "ERROR";
@@ -18,6 +19,17 @@ export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
   writeFailure: boolean;
   permissionFailure: boolean;
   networkFailure: boolean;
+  providerTokenResponseObserved: AcquisitionSafeTelemetry["providerTokenResponseObserved"];
+  providerTokenSchemaValid: AcquisitionSafeTelemetry["providerTokenSchemaValid"];
+  tokenContext: AcquisitionSafeTelemetry["tokenContext"];
+  tokenConsumedByYtDlp: AcquisitionSafeTelemetry["tokenConsumedByYtDlp"];
+  playerClient: AcquisitionSafeTelemetry["playerClient"];
+  gvsRequestReached: AcquisitionSafeTelemetry["gvsRequestReached"];
+  mediaRequestReached: AcquisitionSafeTelemetry["mediaRequestReached"];
+  http403Stage: AcquisitionSafeTelemetry["http403Stage"];
+  retryCount: AcquisitionSafeTelemetry["retryCount"];
+  safeFailureCode: AcquisitionSafeTelemetry["safeFailureCode"];
+  failureStage: AcquisitionSafeTelemetry["failureStage"];
 }>;
 
 const ALLOWED_SIGNALS = new Set<NodeJS.Signals>([
@@ -41,6 +53,7 @@ const projectSignal = (value: string | null): NodeJS.Signals | null => {
 
 export const projectAcquisitionWorkerYtDlpFailure = (
   error: YtDlpProcessFailure,
+  telemetry: AcquisitionSafeTelemetry,
 ): AcquisitionWorkerSafeYtDlpFailureLog => {
   const safe = createSafeYtDlpFailureLog(error, true);
   return Object.freeze({
@@ -57,6 +70,17 @@ export const projectAcquisitionWorkerYtDlpFailure = (
     writeFailure: safe.hasWrite,
     permissionFailure: safe.hasPermission,
     networkFailure: safe.hasNetwork,
+    providerTokenResponseObserved: telemetry.providerTokenResponseObserved,
+    providerTokenSchemaValid: telemetry.providerTokenSchemaValid,
+    tokenContext: telemetry.tokenContext,
+    tokenConsumedByYtDlp: telemetry.tokenConsumedByYtDlp,
+    playerClient: telemetry.playerClient,
+    gvsRequestReached: telemetry.gvsRequestReached,
+    mediaRequestReached: telemetry.mediaRequestReached,
+    http403Stage: telemetry.http403Stage,
+    retryCount: telemetry.retryCount,
+    safeFailureCode: telemetry.safeFailureCode,
+    failureStage: telemetry.failureStage,
   });
 };
 

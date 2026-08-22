@@ -25,6 +25,14 @@ const PROCESS_FAILURE_MAP: Readonly<Partial<Record<YtDlpProcessFailureReason, Ac
   "yt-dlp-cancelled": "acquisition-cancelled",
 });
 
+export const classifyYouTubeProcessFailure = (reason: YtDlpProcessFailureReason): Readonly<{
+  code: AcquisitionFailureCode;
+  retryable: boolean;
+}> => Object.freeze({
+  code: PROCESS_FAILURE_MAP[reason] ?? "unknown-acquisition-failure",
+  retryable: ["network-failure", "yt-dlp-timeout"].includes(reason),
+});
+
 export const createYouTubeWorkerArguments = (context: SourceAcquisitionContext): readonly string[] => Object.freeze([
   "--no-js-runtimes",
   "--js-runtimes", nodeJsRuntimeArgument(context.runtime.nodeExecutable),
@@ -62,8 +70,8 @@ export class YouTubeSourceAdapter implements SourceAdapter {
         if (error.diagnostic.closedStageTelemetry) {
           context.telemetry?.processEvidence(error.diagnostic.closedStageTelemetry);
         }
-        throw new AcquisitionWorkerFailure(PROCESS_FAILURE_MAP[error.reason] ?? "unknown-acquisition-failure",
-          ["network-failure", "yt-dlp-timeout"].includes(error.reason));
+        const failure = classifyYouTubeProcessFailure(error.reason);
+        throw new AcquisitionWorkerFailure(failure.code, failure.retryable);
       }
       throw new AcquisitionWorkerFailure("unknown-acquisition-failure");
     }
