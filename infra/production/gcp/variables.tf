@@ -67,10 +67,10 @@ variable "production_image" {
 variable "acquisition_worker_image" {
   description = "Immutable Production Acquisition Worker container image authority."
   type        = string
-  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:2b5c485c5e6b45f8e832fb9ced765511350f64d8fcc40a74540a5afec397ff49"
+  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:d5340596d545d0a0af26448da0540ba9e6ff2bbe375bfebee95adbfca4adc664"
 
   validation {
-    condition     = var.acquisition_worker_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:2b5c485c5e6b45f8e832fb9ced765511350f64d8fcc40a74540a5afec397ff49"
+    condition     = var.acquisition_worker_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:d5340596d545d0a0af26448da0540ba9e6ff2bbe375bfebee95adbfca4adc664"
     error_message = "The Acquisition Worker must use an immutable digest from the approved Production Artifact Registry."
   }
 }
