@@ -3,10 +3,11 @@ import { YtDlpProcessFailure, type YtDlpProcessFailureReason } from "../packaged
 import { nodeJsRuntimeArgument } from "./runtime";
 import { AcquisitionWorkerFailure, type AcquisitionFailureCode } from "./types";
 import type { SourceAdapter, SourceAcquisitionContext } from "./sourceAdapter";
+import type { AcquisitionTelemetryCollector } from "./telemetry";
 
 export type AcquisitionProcessRunner = (
   args: readonly string[],
-  options: Readonly<{ timeoutMs: number; signal?: AbortSignal }>,
+  options: Readonly<{ timeoutMs: number; signal?: AbortSignal; telemetry?: AcquisitionTelemetryCollector }>,
 ) => Promise<void>;
 
 const PROCESS_FAILURE_MAP: Readonly<Partial<Record<YtDlpProcessFailureReason, AcquisitionFailureCode>>> = Object.freeze({
@@ -49,13 +50,18 @@ export class YouTubeSourceAdapter implements SourceAdapter {
       if (providerStatus === "failed") throw new AcquisitionWorkerFailure("po-token-provider-failed", true);
     }
     try {
-      const execute = () => this.run(createYouTubeWorkerArguments(context), { timeoutMs: context.request.timeoutMs, signal: context.signal });
+      const execute = () => this.run(createYouTubeWorkerArguments(context), {
+        timeoutMs: context.request.timeoutMs, signal: context.signal, telemetry: context.telemetry,
+      });
       await (context.provider?.observe && context.telemetry
         ? context.provider.observe(context.telemetry, execute)
         : execute());
     } catch (error) {
       if (error instanceof AcquisitionWorkerFailure) throw error;
       if (error instanceof YtDlpProcessFailure) {
+        if (error.diagnostic.closedStageTelemetry) {
+          context.telemetry?.processEvidence(error.diagnostic.closedStageTelemetry);
+        }
         throw new AcquisitionWorkerFailure(PROCESS_FAILURE_MAP[error.reason] ?? "unknown-acquisition-failure",
           ["network-failure", "yt-dlp-timeout"].includes(error.reason));
       }

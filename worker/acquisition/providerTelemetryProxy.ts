@@ -6,6 +6,16 @@ export const PROVIDER_DESTINATION_PORT = 4416;
 export const PROVIDER_PROXY_PORT = 4417;
 export const PROVIDER_PROXY_BODY_LIMIT = 256 * 1024;
 
+export const validateProviderTokenResponseSchema = (body: Buffer): boolean => {
+  try {
+    const value = JSON.parse(body.toString("utf8")) as Record<string, unknown>;
+    return !!value && !Array.isArray(value)
+      && typeof value.poToken === "string" && value.poToken.length > 0
+      && typeof value.contentBinding === "string" && value.contentBinding.length > 0
+      && typeof value.expiresAt === "string" && Number.isFinite(Date.parse(value.expiresAt));
+  } catch { return false; }
+};
+
 export class ProviderTelemetryProxy {
   #active?: AcquisitionTelemetryCollector;
   #server?: Server;
@@ -40,7 +50,11 @@ export class ProviderTelemetryProxy {
             if (responseBytes > PROVIDER_PROXY_BODY_LIMIT) { if (tokenRequest) this.#active?.providerResult(false); outgoing.writeHead(502).end(); return; }
             const responseBody = Buffer.concat(responseChunks);
             const status = response.statusCode ?? 502;
-            if (tokenRequest) this.#active?.providerResult(status >= 200 && status < 300);
+            if (tokenRequest) {
+              const success = status >= 200 && status < 300;
+              this.#active?.providerResult(success);
+              this.#active?.providerTokenResponse(true, success && validateProviderTokenResponseSchema(responseBody));
+            }
             outgoing.writeHead(status, { "content-type": response.headers["content-type"] ?? "application/json",
               "content-length": String(responseBody.length) });
             outgoing.end(responseBody);

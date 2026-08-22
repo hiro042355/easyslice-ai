@@ -33,6 +33,19 @@ export type YtDlpProcessFailureReason =
   | "unknown-yt-dlp-failure"
   | "yt-dlp-version-mismatch";
 
+export type YtDlpClosedStageTelemetry = Readonly<{
+  tokenContext: "GVS" | "PLAYER" | "SUBS" | "UNKNOWN";
+  tokenConsumedByYtDlp: "YES" | "NO" | "UNKNOWN";
+  gvsRequestReached: "YES" | "NO" | "UNKNOWN";
+  mediaRequestReached: "YES" | "NO" | "UNKNOWN";
+  http403Stage: "PLAYER" | "GVS" | "MEDIA" | "UNKNOWN";
+}>;
+
+const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
+  tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
+  mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN",
+});
+
 export type YtDlpFailureDiagnostic = Readonly<{
   exitCode: number | null;
   signal: string | null;
@@ -41,6 +54,7 @@ export type YtDlpFailureDiagnostic = Readonly<{
   stdoutLimitExceeded: boolean;
   stderrLimitExceeded: boolean;
   stderrSignature: YtDlpStderrSignature;
+  closedStageTelemetry?: YtDlpClosedStageTelemetry;
 }>;
 
 export type YtDlpStderrKeywordFlags = Readonly<{
@@ -150,7 +164,26 @@ const EMPTY_FAILURE_DIAGNOSTIC: YtDlpFailureDiagnostic = Object.freeze({
   stdoutLimitExceeded: false,
   stderrLimitExceeded: false,
   stderrSignature: EMPTY_STDERR_SIGNATURE,
+  closedStageTelemetry: EMPTY_CLOSED_STAGE_TELEMETRY,
 });
+
+export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedStageTelemetry => {
+  const contextMatch = stderr.match(/(?:generating|retrieved)\s+(?:a\s+)?(gvs|player|subs)\s+po token/i);
+  const context = contextMatch?.[1]?.toUpperCase() as YtDlpClosedStageTelemetry["tokenContext"] | undefined;
+  const consumed = /retrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token/i.test(stderr) ? "YES" : "UNKNOWN";
+  const player403 = /player[^\r\n]*http error 403|http error 403[^\r\n]*player/i.test(stderr);
+  const gvs403 = /gvs[^\r\n]*http error 403|http error 403[^\r\n]*gvs/i.test(stderr);
+  const media403 = /(?:unable to download video data|download[^\r\n]*fragment)[^\r\n]*403|403[^\r\n]*(?:video data|fragment)/i.test(stderr);
+  const mediaReached = media403 || /\[download\]\s+destination:|downloading\s+video\s+format/i.test(stderr);
+  const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : media403 ? "MEDIA" : "UNKNOWN";
+  return Object.freeze({
+    tokenContext: context ?? "UNKNOWN",
+    tokenConsumedByYtDlp: consumed,
+    gvsRequestReached: gvs403 || mediaReached ? "YES" : "UNKNOWN",
+    mediaRequestReached: mediaReached ? "YES" : "UNKNOWN",
+    http403Stage,
+  });
+};
 
 export class YtDlpProcessFailure extends Error {
   readonly diagnostic: YtDlpFailureDiagnostic;
@@ -369,6 +402,7 @@ export const runPackagedYtDlp = async (
       stdoutLimitExceeded,
       stderrLimitExceeded,
       stderrSignature: extractSafeYtDlpStderrSignature(stderr.toString("utf8")),
+      closedStageTelemetry: extractClosedYtDlpStageTelemetry(stderr.toString("utf8")),
     });
     const append = (current: Buffer, chunk: Buffer, stream: "stdout" | "stderr") => {
       const next = Buffer.concat([current, chunk]);

@@ -10,6 +10,7 @@ import {
   createSafeYtDlpFailureLog,
   PACKAGED_YT_DLP_VERSION,
   classifyYtDlpStderr,
+  extractClosedYtDlpStageTelemetry,
   extractSafeYtDlpStderrSignature,
   packagedYtDlpTarget,
   probePackagedYtDlpVersion,
@@ -224,6 +225,10 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
       stdoutLimitExceeded: false,
       stderrLimitExceeded: false,
       stderrSignature: extractSafeYtDlpStderrSignature(`ERROR: Sign in to confirm you're not a bot ${remoteId} ${token} ${tempPath}`),
+      closedStageTelemetry: {
+        tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
+        mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN",
+      },
     });
     const projected = JSON.stringify(error);
     assert.doesNotMatch(projected, new RegExp(remoteId));
@@ -389,6 +394,24 @@ test("classifier maps only deterministic safe stderr categories", () => {
     ["unrecognized future failure", "unknown-yt-dlp-failure"],
   ];
   for (const [stderr, expected] of cases) assert.equal(classifyYtDlpStderr(stderr), expected);
+});
+
+test("closed stage telemetry projects only directly evidenced provider and 403 stages", () => {
+  assert.deepEqual(extractClosedYtDlpStageTelemetry("Retrieved a gvs PO Token for mweb client\nERROR: unable to download video data: HTTP Error 403"), {
+    tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
+    mediaRequestReached: "YES", http403Stage: "MEDIA",
+  });
+  assert.equal(extractClosedYtDlpStageTelemetry("ERROR: gvs request: HTTP Error 403").http403Stage, "GVS");
+  assert.equal(extractClosedYtDlpStageTelemetry("ERROR: player request: HTTP Error 403").http403Stage, "PLAYER");
+  assert.deepEqual(extractClosedYtDlpStageTelemetry("ERROR: HTTP Error 403"), {
+    tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
+    mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN",
+  });
+  const serialized = JSON.stringify(extractClosedYtDlpStageTelemetry(
+    "Retrieved a subs PO Token for mweb client\nprivate URL credential filesystem path",
+  ));
+  assert.equal(JSON.parse(serialized).tokenContext, "SUBS");
+  assert.doesNotMatch(serialized, /private|URL|credential|filesystem|path/);
 });
 
 test("runner distinguishes timeout, abort, stdout limit, and stderr limit diagnostics", async () => {
