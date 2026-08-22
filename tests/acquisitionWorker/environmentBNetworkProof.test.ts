@@ -19,6 +19,7 @@ test("Environment B proof accepts correct audience, rejects wrong audience, and 
       requests.push({ url: input, authorization });
       if (authorization === "Bearer opaque-wrong") return new Response(null, { status: 403 });
       if (input.endsWith("/readyz")) return Response.json({ ready: true });
+      if (input.endsWith("/internal/structured-log-proof")) return Response.json({ success: true, youtubeAttemptCount: 0 });
       return Response.json({
         staticEgressAuthorityConfigured: true,
         observedEgressMatchesReservedAuthority: true,
@@ -31,6 +32,7 @@ test("Environment B proof accepts correct audience, rejects wrong audience, and 
     `${ENVIRONMENT_B_PROOF_DESTINATIONS.worker}/readyz`,
     `${ENVIRONMENT_B_PROOF_DESTINATIONS.worker}/readyz`,
     `${ENVIRONMENT_B_PROOF_DESTINATIONS.worker}/internal/network-readiness`,
+    `${ENVIRONMENT_B_PROOF_DESTINATIONS.worker}/internal/structured-log-proof`,
   ]);
   assert.deepEqual(result, {
     success: true,
@@ -40,6 +42,7 @@ test("Environment B proof accepts correct audience, rejects wrong audience, and 
       wrongAudienceRejected: true,
       staticEgressAuthorityConfigured: true,
       observedEgressMatchesReservedAuthority: true,
+      structuredLogProof: true,
       youtubeAttemptCount: 0,
     },
   });

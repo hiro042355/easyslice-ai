@@ -12,7 +12,7 @@ import { runPackagedYtDlp, YtDlpProcessFailure } from "../../lib/server/packaged
 import { probeBgutilProviderHealth } from "./runtimeReadiness";
 import { ProviderTelemetryProxy } from "./providerTelemetryProxy";
 import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
-import { projectAcquisitionWorkerYtDlpFailure, type AcquisitionWorkerSafeYtDlpFailureLog } from "./safeYtDlpFailureLog";
+import { emitAcquisitionWorkerSafeYtDlpFailureLog, projectAcquisitionWorkerYtDlpFailure, type AcquisitionWorkerSafeYtDlpFailureLog } from "./safeYtDlpFailureLog";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
 export type AcquisitionWorkerExecution = Readonly<{
@@ -56,7 +56,7 @@ export const createAcquisitionWorkerComposition = async (
   if (proxy) await proxy.start();
   const provider = options.provider ?? new BgutilHttpPoTokenProvider(probeBgutilProviderHealth,
     "http://127.0.0.1:4417", (collector, operation) => proxy!.observe(collector, operation));
-  const runner = options.run ?? productionRunner(options.logYtDlpFailure ?? ((entry) => console.error(entry)));
+  const runner = options.run ?? productionRunner(options.logYtDlpFailure ?? emitAcquisitionWorkerSafeYtDlpFailureLog);
   const core = new AcquisitionWorkerCore({
     adapters: new SourceAdapterRegistry([new YouTubeSourceAdapter(runner)]),
     idempotency,
