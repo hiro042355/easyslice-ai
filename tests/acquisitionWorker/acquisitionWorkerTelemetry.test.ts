@@ -18,7 +18,8 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
     providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
-    mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
+    mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
     ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
     jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
     mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
@@ -102,6 +103,25 @@ test("closed token contexts and process stages reject arbitrary values", () => {
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, tokenContext: "ARBITRARY" }));
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, http403Stage: "ARBITRARY" }));
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, retryCount: 1 }));
+  for (const selectedTransport of ["HLS", "DIRECT", "DASH", "UNKNOWN"] as const) {
+    assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, selectedTransport }).selectedTransport, selectedTransport);
+  }
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, selectedTransport: "ARBITRARY" }));
+  for (const http403Stage of ["HLS_MANIFEST", "HLS_FRAGMENT"] as const) {
+    assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, http403Stage }).http403Stage, http403Stage);
+  }
+});
+
+test("HLS manifest and fragment evidence remain closed tri-state fields", () => {
+  const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
+  for (const state of ["YES", "NO", "UNKNOWN"] as const) {
+    const projected = validateAcquisitionSafeTelemetry({ ...diagnostic,
+      hlsManifestReached: state, hlsFragmentReached: state });
+    assert.equal(projected.hlsManifestReached, state);
+    assert.equal(projected.hlsFragmentReached, state);
+  }
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, hlsManifestReached: "ARBITRARY" }));
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, hlsFragmentReached: "ARBITRARY" }));
 });
 
 test("player client uses the existing closed authority without weakening exact keys", () => {

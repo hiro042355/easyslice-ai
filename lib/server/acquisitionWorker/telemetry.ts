@@ -7,7 +7,9 @@ export const PLAYER_CLIENTS = ["DEFAULT", "WEB", "MWEB", "OTHER", "UNKNOWN"] as 
 export type TelemetryPlayerClient = (typeof PLAYER_CLIENTS)[number];
 export const TOKEN_CONTEXTS = ["GVS", "PLAYER", "SUBS", "UNKNOWN"] as const;
 export type TelemetryTokenContext = (typeof TOKEN_CONTEXTS)[number];
-export const HTTP_403_STAGES = ["PLAYER", "GVS", "MEDIA", "UNKNOWN"] as const;
+export const ACQUISITION_TRANSPORTS = ["HLS", "DIRECT", "DASH", "UNKNOWN"] as const;
+export type AcquisitionTransport = (typeof ACQUISITION_TRANSPORTS)[number];
+export const HTTP_403_STAGES = ["PLAYER", "GVS", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN"] as const;
 export type TelemetryHttp403Stage = (typeof HTTP_403_STAGES)[number];
 
 export const FAILURE_STAGES = [
@@ -31,6 +33,9 @@ export type AcquisitionSafeTelemetry = Readonly<{
   playerClient: TelemetryPlayerClient;
   gvsRequestReached: TelemetryTriState;
   mediaRequestReached: TelemetryTriState;
+  selectedTransport: AcquisitionTransport;
+  hlsManifestReached: TelemetryTriState;
+  hlsFragmentReached: TelemetryTriState;
   http403Stage: TelemetryHttp403Stage;
   retryCount: 0;
   nodeConfigured: TelemetryTriState;
@@ -52,13 +57,15 @@ const tri = new Set<string>(TELEMETRY_TRI_STATES);
 const players = new Set<string>(PLAYER_CLIENTS);
 const stages = new Set<string>(FAILURE_STAGES);
 const tokenContexts = new Set<string>(TOKEN_CONTEXTS);
+const transports = new Set<string>(ACQUISITION_TRANSPORTS);
 const http403Stages = new Set<string>(HTTP_403_STAGES);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
   "expectedPluginArtifactPresent", "runtimePluginDetection", "providerConfigured", "providerHealthy",
   "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure", "nodeConfigured",
   "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
-  "playerClient", "gvsRequestReached", "mediaRequestReached", "http403Stage", "retryCount",
+  "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
+  "hlsFragmentReached", "http403Stage", "retryCount",
   "nodeExecutable", "nodeVersionMatch", "ejsAvailable", "ejsActualUse", "configuredPlayerClient",
   "observedPlayerClient", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
   "mediaBytesObserved", "safeFailureCode", "failureStage",
@@ -76,6 +83,8 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !players.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "tokenContext") {
       if (typeof item !== "string" || !tokenContexts.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "selectedTransport") {
+      if (typeof item !== "string" || !transports.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "http403Stage") {
       if (typeof item !== "string" || !http403Stages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "retryCount") {
@@ -98,7 +107,8 @@ export class AcquisitionTelemetryCollector {
       acquisitionProviderSuccess: "NO", acquisitionProviderFailure: "NO", nodeConfigured: runtime.nodeConfigured ? "YES" : "NO",
       providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
       tokenConsumedByYtDlp: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
-      mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
+      mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+      hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
       nodeExecutable: runtime.nodeExecutable ? "YES" : "NO", nodeVersionMatch: runtime.nodeVersionMatch ? "YES" : "NO",
       ejsAvailable: runtime.ejsAvailable ? "YES" : "NO", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB",
       observedPlayerClient: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
@@ -122,12 +132,18 @@ export class AcquisitionTelemetryCollector {
     tokenConsumedByYtDlp: TelemetryTriState;
     gvsRequestReached: TelemetryTriState;
     mediaRequestReached: TelemetryTriState;
+    selectedTransport: AcquisitionTransport;
+    hlsManifestReached: TelemetryTriState;
+    hlsFragmentReached: TelemetryTriState;
     http403Stage: TelemetryHttp403Stage;
   }>): void {
     this.#state.tokenContext = evidence.tokenContext;
     this.#state.tokenConsumedByYtDlp = evidence.tokenConsumedByYtDlp;
     this.#state.gvsRequestReached = evidence.gvsRequestReached;
     this.#state.mediaRequestReached = evidence.mediaRequestReached;
+    this.#state.selectedTransport = evidence.selectedTransport;
+    this.#state.hlsManifestReached = evidence.hlsManifestReached;
+    this.#state.hlsFragmentReached = evidence.hlsFragmentReached;
     this.#state.http403Stage = evidence.http403Stage;
   }
   failure(code: AcquisitionFailureCode): void { this.#state.safeFailureCode = code; }

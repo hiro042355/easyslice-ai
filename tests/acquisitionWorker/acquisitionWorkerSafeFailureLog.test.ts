@@ -13,12 +13,15 @@ import {
 
 const runtime = Object.freeze({ pluginArtifact: true, nodeConfigured: true, nodeExecutable: true,
   nodeVersionMatch: true, ejsAvailable: true });
-const telemetry = (stage: "PLAYER" | "GVS" | "MEDIA" | "UNKNOWN" = "UNKNOWN") => {
+const telemetry = (stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRAGMENT" | "UNKNOWN" = "UNKNOWN") => {
   const collector = new AcquisitionTelemetryCollector(runtime);
   collector.providerTokenResponse(true, true, stage === "PLAYER" ? "PLAYER" : stage === "GVS" ? "GVS" : "UNKNOWN");
   collector.processEvidence({ tokenContext: stage === "GVS" ? "GVS" : stage === "PLAYER" ? "PLAYER" : "UNKNOWN",
     tokenConsumedByYtDlp: stage === "UNKNOWN" ? "UNKNOWN" : "YES", gvsRequestReached: stage === "GVS" || stage === "MEDIA" ? "YES" : "UNKNOWN",
-    mediaRequestReached: stage === "MEDIA" ? "YES" : "UNKNOWN", http403Stage: stage });
+    mediaRequestReached: stage === "MEDIA" || stage === "HLS_FRAGMENT" ? "YES" : "UNKNOWN",
+    selectedTransport: stage === "MEDIA" ? "DIRECT" : stage.startsWith("HLS_") ? "HLS" : "UNKNOWN",
+    hlsManifestReached: stage.startsWith("HLS_") ? "YES" : "UNKNOWN",
+    hlsFragmentReached: stage === "HLS_FRAGMENT" ? "YES" : "UNKNOWN", http403Stage: stage });
   collector.failure("unknown-acquisition-failure");
   return collector.snapshot();
 };
@@ -56,6 +59,9 @@ test("Worker projects only the closed safe post-provider process failure evidenc
     playerClient: "MWEB",
     gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN",
+    selectedTransport: "UNKNOWN",
+    hlsManifestReached: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN",
     http403Stage: "UNKNOWN",
     retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure",
@@ -71,7 +77,8 @@ test("Worker safe failure evidence contains no raw output or acquisition authori
     "event", "exitCode", "ffmpegFailure", "has403", "has429", "has5xx", "networkFailure",
     "permissionFailure", "requestedFormatFailure", "safeFailureFamily", "severity", "signal", "writeFailure",
     "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
-    "playerClient", "gvsRequestReached", "mediaRequestReached", "http403Stage", "retryCount",
+    "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
+    "hlsFragmentReached", "http403Stage", "retryCount",
     "safeFailureCode", "failureStage",
   ].sort());
 });
@@ -95,11 +102,11 @@ test("Worker emits one single-line JSON event whose allowlisted fields are indep
   assert.equal(jsonPayload.retryCount, 0);
 });
 
-test("Worker preserves closed PLAYER, GVS, MEDIA, and UNKNOWN stage evidence in the same event", () => {
-  for (const stage of ["PLAYER", "GVS", "MEDIA", "UNKNOWN"] as const) {
+test("Worker preserves closed direct and HLS 403 stage evidence in the same event", () => {
+  for (const stage of ["PLAYER", "GVS", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN"] as const) {
     const entry = projectAcquisitionWorkerYtDlpFailure(new YtDlpProcessFailure("unknown-yt-dlp-failure"), telemetry(stage));
     assert.equal(entry.http403Stage, stage);
-    assert.equal(entry.tokenContext, stage === "MEDIA" ? "UNKNOWN" : stage);
+    assert.equal(entry.tokenContext, stage === "PLAYER" || stage === "GVS" ? stage : "UNKNOWN");
     assert.equal(entry.retryCount, 0);
   }
 });

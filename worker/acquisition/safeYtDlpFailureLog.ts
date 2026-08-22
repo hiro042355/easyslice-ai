@@ -26,6 +26,9 @@ export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
   playerClient: AcquisitionSafeTelemetry["playerClient"];
   gvsRequestReached: AcquisitionSafeTelemetry["gvsRequestReached"];
   mediaRequestReached: AcquisitionSafeTelemetry["mediaRequestReached"];
+  selectedTransport: AcquisitionSafeTelemetry["selectedTransport"];
+  hlsManifestReached: AcquisitionSafeTelemetry["hlsManifestReached"];
+  hlsFragmentReached: AcquisitionSafeTelemetry["hlsFragmentReached"];
   http403Stage: AcquisitionSafeTelemetry["http403Stage"];
   retryCount: AcquisitionSafeTelemetry["retryCount"];
   safeFailureCode: AcquisitionSafeTelemetry["safeFailureCode"];
@@ -77,6 +80,9 @@ export const projectAcquisitionWorkerYtDlpFailure = (
     playerClient: telemetry.playerClient,
     gvsRequestReached: telemetry.gvsRequestReached,
     mediaRequestReached: telemetry.mediaRequestReached,
+    selectedTransport: telemetry.selectedTransport,
+    hlsManifestReached: telemetry.hlsManifestReached,
+    hlsFragmentReached: telemetry.hlsFragmentReached,
     http403Stage: telemetry.http403Stage,
     retryCount: telemetry.retryCount,
     safeFailureCode: telemetry.safeFailureCode,

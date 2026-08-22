@@ -38,12 +38,16 @@ export type YtDlpClosedStageTelemetry = Readonly<{
   tokenConsumedByYtDlp: "YES" | "NO" | "UNKNOWN";
   gvsRequestReached: "YES" | "NO" | "UNKNOWN";
   mediaRequestReached: "YES" | "NO" | "UNKNOWN";
-  http403Stage: "PLAYER" | "GVS" | "MEDIA" | "UNKNOWN";
+  selectedTransport: "HLS" | "DIRECT" | "DASH" | "UNKNOWN";
+  hlsManifestReached: "YES" | "NO" | "UNKNOWN";
+  hlsFragmentReached: "YES" | "NO" | "UNKNOWN";
+  http403Stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRAGMENT" | "UNKNOWN";
 }>;
 
 const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
-  mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN",
+  mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+  hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
 });
 
 export type YtDlpFailureDiagnostic = Readonly<{
@@ -173,14 +177,26 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
   const consumed = /retrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token/i.test(stderr) ? "YES" : "UNKNOWN";
   const player403 = /player[^\r\n]*http error 403|http error 403[^\r\n]*player/i.test(stderr);
   const gvs403 = /gvs[^\r\n]*http error 403|http error 403[^\r\n]*gvs/i.test(stderr);
-  const media403 = /(?:unable to download video data|download[^\r\n]*fragment)[^\r\n]*403|403[^\r\n]*(?:video data|fragment)/i.test(stderr);
-  const mediaReached = media403 || /\[download\]\s+destination:|downloading\s+video\s+format/i.test(stderr);
-  const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : media403 ? "MEDIA" : "UNKNOWN";
+  const hlsManifestMarker = /(?:downloading|downloaded|extracting)[^\r\n]*(?:m3u8|hls)[^\r\n]*(?:manifest|information)|(?:m3u8|hls)[^\r\n]*(?:manifest|information)/i.test(stderr);
+  const hlsFragmentMarker = /\[hlsnative\]|(?:downloading|downloaded)[^\r\n]*hls[^\r\n]*fragment|fragment\s+\d+/i.test(stderr);
+  const hlsManifest403 = /(?:m3u8|hls)[^\r\n]*(?:manifest|information)[^\r\n]*403|403[^\r\n]*(?:m3u8|hls)[^\r\n]*(?:manifest|information)/i.test(stderr);
+  const hlsFragment403 = /(?:hls[^\r\n]*)?fragment[^\r\n]*403|403[^\r\n]*(?:hls[^\r\n]*)?fragment/i.test(stderr);
+  const dashMarker = /\[dashsegments\]|downloading[^\r\n]*(?:mpd|dash)[^\r\n]*manifest|http_dash_segments/i.test(stderr);
+  const directMarker = /invoking\s+http\s+downloader|unable to download video data|downloading\s+video\s+format/i.test(stderr);
+  const selectedTransport = hlsManifestMarker || hlsFragmentMarker || hlsManifest403 || hlsFragment403
+    ? "HLS" : dashMarker ? "DASH" : directMarker ? "DIRECT" : "UNKNOWN";
+  const media403 = !hlsFragment403 && /unable to download video data[^\r\n]*403|403[^\r\n]*video data/i.test(stderr);
+  const mediaReached = media403 || hlsFragmentMarker || hlsFragment403 || /\[download\]\s+destination:|downloading\s+video\s+format/i.test(stderr);
+  const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : hlsManifest403 ? "HLS_MANIFEST"
+    : hlsFragment403 ? "HLS_FRAGMENT" : media403 ? "MEDIA" : "UNKNOWN";
   return Object.freeze({
     tokenContext: context ?? "UNKNOWN",
     tokenConsumedByYtDlp: consumed,
     gvsRequestReached: gvs403 || mediaReached ? "YES" : "UNKNOWN",
     mediaRequestReached: mediaReached ? "YES" : "UNKNOWN",
+    selectedTransport,
+    hlsManifestReached: hlsManifestMarker || hlsFragmentMarker || hlsFragment403 ? "YES" : "UNKNOWN",
+    hlsFragmentReached: hlsFragmentMarker || hlsFragment403 ? "YES" : "UNKNOWN",
     http403Stage,
   });
 };

@@ -227,7 +227,8 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
       stderrSignature: extractSafeYtDlpStderrSignature(`ERROR: Sign in to confirm you're not a bot ${remoteId} ${token} ${tempPath}`),
       closedStageTelemetry: {
         tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
-        mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN",
+        mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+        hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
       },
     });
     const projected = JSON.stringify(error);
@@ -399,19 +400,35 @@ test("classifier maps only deterministic safe stderr categories", () => {
 test("closed stage telemetry projects only directly evidenced provider and 403 stages", () => {
   assert.deepEqual(extractClosedYtDlpStageTelemetry("Retrieved a gvs PO Token for mweb client\nERROR: unable to download video data: HTTP Error 403"), {
     tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
-    mediaRequestReached: "YES", http403Stage: "MEDIA",
+    mediaRequestReached: "YES", selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA",
   });
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: gvs request: HTTP Error 403").http403Stage, "GVS");
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: player request: HTTP Error 403").http403Stage, "PLAYER");
   assert.deepEqual(extractClosedYtDlpStageTelemetry("ERROR: HTTP Error 403"), {
     tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
-    mediaRequestReached: "UNKNOWN", http403Stage: "UNKNOWN",
+    mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
   });
   const serialized = JSON.stringify(extractClosedYtDlpStageTelemetry(
     "Retrieved a subs PO Token for mweb client\nprivate URL credential filesystem path",
   ));
   assert.equal(JSON.parse(serialized).tokenContext, "SUBS");
   assert.doesNotMatch(serialized, /private|URL|credential|filesystem|path/);
+});
+
+test("closed HLS telemetry distinguishes manifest and fragment 403 without retaining authority", () => {
+  const manifest = extractClosedYtDlpStageTelemetry("Downloading m3u8 information\nERROR: HLS manifest HTTP Error 403");
+  assert.deepEqual(manifest, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "HLS",
+    hlsManifestReached: "YES", hlsFragmentReached: "UNKNOWN", http403Stage: "HLS_MANIFEST" });
+  const fragment = extractClosedYtDlpStageTelemetry("[hlsnative] Downloading m3u8 manifest\nfragment 1 HTTP Error 403");
+  assert.deepEqual(fragment, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    gvsRequestReached: "YES", mediaRequestReached: "YES", selectedTransport: "HLS",
+    hlsManifestReached: "YES", hlsFragmentReached: "YES", http403Stage: "HLS_FRAGMENT" });
+  assert.equal(extractClosedYtDlpStageTelemetry("[dashsegments] Downloading MPD manifest").selectedTransport, "DASH");
+  const serialized = JSON.stringify(fragment);
+  assert.doesNotMatch(serialized, /https?:|m3u8\.example|video.?id|poToken|tokenHash|accessToken|cookie|credential|header|path|stdout|stderr/i);
 });
 
 test("runner distinguishes timeout, abort, stdout limit, and stderr limit diagnostics", async () => {

@@ -71,7 +71,8 @@ test("production runner merges in-process provider and closed stage evidence int
       exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
       closedStageTelemetry: { tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
-        mediaRequestReached: "NO", http403Stage: "GVS" },
+        mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+        hlsFragmentReached: "UNKNOWN", http403Stage: "GVS" },
     });
   });
   await assert.rejects(runner([], { timeoutMs: 1_000, telemetry: collector }), YtDlpProcessFailure);
@@ -82,7 +83,8 @@ test("production runner merges in-process provider and closed stage evidence int
     requestedFormatFailure: false, ffmpegFailure: false, writeFailure: false, permissionFailure: false,
     networkFailure: false, providerTokenResponseObserved: "YES", providerTokenSchemaValid: "YES",
     tokenContext: "GVS", tokenConsumedByYtDlp: "YES", playerClient: "MWEB", gvsRequestReached: "YES",
-    mediaRequestReached: "NO", http403Stage: "GVS", retryCount: 0,
+    mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure", failureStage: "UNKNOWN",
   });
 });
