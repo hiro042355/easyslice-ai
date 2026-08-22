@@ -103,6 +103,18 @@ test("caller accepts only the closed safe telemetry projection", async () => {
     && error.code === "worker-invalid-response");
 });
 
+test("caller accepts a failed result with the closed OTHER player-client projection", async () => {
+  const otherDiagnostic = Object.freeze({ ...diagnostic, playerClient: "OTHER" as const,
+    configuredPlayerClient: "OTHER" as const, observedPlayerClient: "OTHER" as const });
+  const client = createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: async () => "opaque", log() {}, now: () => 0,
+    fetch: async () => Response.json({ acquisitionId, status: "failed", errorCode: "unknown-acquisition-failure",
+      retryable: false, diagnostic: otherDiagnostic }, { status: 422 }),
+  });
+  assert.deepEqual(await client.invoke(request), { result: { acquisitionId, status: "failed",
+    errorCode: "unknown-acquisition-failure", retryable: false }, diagnostic: otherDiagnostic });
+});
+
 test("caller preserves AbortSignal and safely classifies timeout without exposing raw failure", async () => {
   const abort = new AbortController();
   const seen: AbortSignal[] = [];

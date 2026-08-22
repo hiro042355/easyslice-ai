@@ -28,7 +28,7 @@ export type AcquisitionSafeTelemetry = Readonly<{
   providerTokenSchemaValid: TelemetryTriState;
   tokenContext: TelemetryTokenContext;
   tokenConsumedByYtDlp: TelemetryTriState;
-  playerClient: "MWEB";
+  playerClient: TelemetryPlayerClient;
   gvsRequestReached: TelemetryTriState;
   mediaRequestReached: TelemetryTriState;
   http403Stage: TelemetryHttp403Stage;
@@ -72,14 +72,12 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
   }
   for (const key of keys) {
     const item = value[key];
-    if (key === "configuredPlayerClient" || key === "observedPlayerClient") {
+    if (key === "playerClient" || key === "configuredPlayerClient" || key === "observedPlayerClient") {
       if (typeof item !== "string" || !players.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "tokenContext") {
       if (typeof item !== "string" || !tokenContexts.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "http403Stage") {
       if (typeof item !== "string" || !http403Stages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
-    } else if (key === "playerClient") {
-      if (item !== "MWEB") throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "retryCount") {
       if (item !== 0) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "safeFailureCode") {

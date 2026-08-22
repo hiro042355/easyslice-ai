@@ -104,6 +104,17 @@ test("closed token contexts and process stages reject arbitrary values", () => {
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, retryCount: 1 }));
 });
 
+test("player client uses the existing closed authority without weakening exact keys", () => {
+  const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
+  assert.equal(validateAcquisitionSafeTelemetry(diagnostic).playerClient, "MWEB");
+  assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, playerClient: "OTHER" }).playerClient, "OTHER");
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, playerClient: "WEB_EMBEDDED" }));
+  const missingPlayerClient: Record<string, unknown> = { ...diagnostic };
+  delete missingPlayerClient.playerClient;
+  assert.throws(() => validateAcquisitionSafeTelemetry(missingPlayerClient));
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, extra: "UNKNOWN" }));
+});
+
 test("provider schema validation is exact without projecting response material", () => {
   const valid = Buffer.from(JSON.stringify({ poToken: String.fromCharCode(97), contentBinding: String.fromCharCode(98),
     expiresAt: "2030-01-01T00:00:00.000Z" }));
