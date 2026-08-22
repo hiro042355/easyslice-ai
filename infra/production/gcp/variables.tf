@@ -86,17 +86,6 @@ variable "acquisition_provider_image" {
   }
 }
 
-variable "acquisition_worker_egress_experiment_image" {
-  description = "Temporary immutable Environment B network-readiness proof image authority."
-  type        = string
-  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:bca691a4f9b99c38093db0db2e417a70276ba583255a967ec0ab86bef9b33a6b"
-
-  validation {
-    condition     = var.acquisition_worker_egress_experiment_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:bca691a4f9b99c38093db0db2e417a70276ba583255a967ec0ab86bef9b33a6b"
-    error_message = "Environment B proof must use the reviewed immutable network-readiness image digest."
-  }
-}
-
 variable "cloud_run_invoker_member" {
   description = "One explicitly approved Google user IAM member for private Production Cloud Run validation."
   type        = string
