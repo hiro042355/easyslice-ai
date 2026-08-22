@@ -19,3 +19,12 @@ test("the worker image can isolate one explicit player client without changing t
   assert.match(dockerfile, /YOUTUBE_PLAYER_CLIENT_TELEMETRY/);
   assert.doesNotMatch(dockerfile, /player_client=default|player_client=mweb,/);
 });
+
+test("the worker image can isolate an exact HLS-only selector and native downloader without changing defaults", () => {
+  assert.match(dockerfile, /ARG YOUTUBE_FORMAT_SELECTOR=bv\*\+ba\/b/);
+  assert.match(dockerfile, /ARG YOUTUBE_DOWNLOADER=/);
+  assert.match(dockerfile, /\$\{YOUTUBE_FORMAT_SELECTOR\}/);
+  assert.match(dockerfile, /\$\{YOUTUBE_DOWNLOADER\}/);
+  assert.match(dockerfile, /! grep -F "\\\"--downloader\\\""/);
+  assert.doesNotMatch(dockerfile, /best\[protocol\^=m3u8\]|m3u8:native|web_safari/);
+});

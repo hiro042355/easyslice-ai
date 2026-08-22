@@ -78,10 +78,10 @@ variable "acquisition_worker_image" {
 variable "acquisition_worker_egress_experiment_image" {
   description = "Immutable Environment B Acquisition Worker experiment image authority."
   type        = string
-  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:725edc591e0f12faf7a7c256258e36cbb53f5be53af43a2c7b9e9da4682aaba8"
+  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:0f72cbf004253e280f8a6a0d720d168188b1e3b6de57df84c9402f801a0362d9"
 
   validation {
-    condition     = var.acquisition_worker_egress_experiment_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:725edc591e0f12faf7a7c256258e36cbb53f5be53af43a2c7b9e9da4682aaba8"
+    condition     = var.acquisition_worker_egress_experiment_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:0f72cbf004253e280f8a6a0d720d168188b1e3b6de57df84c9402f801a0362d9"
     error_message = "Environment B must use the reviewed immutable web_embedded experiment image digest."
   }
 }

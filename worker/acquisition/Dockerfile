@@ -3,6 +3,8 @@ FROM node:24.16.0-bookworm-slim AS build
 ARG YT_DLP_VERSION=2026.03.13
 ARG YOUTUBE_PLAYER_CLIENT=mweb
 ARG YOUTUBE_PLAYER_CLIENT_TELEMETRY=MWEB
+ARG YOUTUBE_FORMAT_SELECTOR=bv*+ba/b
+ARG YOUTUBE_DOWNLOADER=
 
 WORKDIR /src
 COPY package.json package-lock.json ./
@@ -14,9 +16,19 @@ RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
  && sed -i "s/2026\\.03\\.13/${YT_DLP_VERSION}/g" worker/acquisition/dist/lib/server/packagedYtDlp.js \
  && sed -i "s/youtube:player_client=mweb/youtube:player_client=${YOUTUBE_PLAYER_CLIENT}/g" worker/acquisition/dist/lib/server/acquisitionWorker/youtubeAdapter.js \
  && sed -i "s/\"MWEB\"/\"${YOUTUBE_PLAYER_CLIENT_TELEMETRY}\"/g" worker/acquisition/dist/lib/server/acquisitionWorker/telemetry.js \
+ && sed -i "s#\"bv\\*+ba/b\"#\"${YOUTUBE_FORMAT_SELECTOR}\"#g" worker/acquisition/dist/lib/server/youtubeIngestion.js \
+ && if [ -n "${YOUTUBE_DOWNLOADER}" ]; then \
+      sed -i "s#\"--merge-output-format\"#\"--downloader\", \"${YOUTUBE_DOWNLOADER}\", \"--merge-output-format\"#" worker/acquisition/dist/lib/server/youtubeIngestion.js; \
+    fi \
  && grep -F "${YT_DLP_VERSION}" worker/acquisition/dist/lib/server/packagedYtDlp.js \
  && grep -F "youtube:player_client=${YOUTUBE_PLAYER_CLIENT}" worker/acquisition/dist/lib/server/acquisitionWorker/youtubeAdapter.js \
- && grep -F "\"${YOUTUBE_PLAYER_CLIENT_TELEMETRY}\"" worker/acquisition/dist/lib/server/acquisitionWorker/telemetry.js
+ && grep -F "\"${YOUTUBE_PLAYER_CLIENT_TELEMETRY}\"" worker/acquisition/dist/lib/server/acquisitionWorker/telemetry.js \
+ && grep -F "\"${YOUTUBE_FORMAT_SELECTOR}\"" worker/acquisition/dist/lib/server/youtubeIngestion.js \
+ && if [ -n "${YOUTUBE_DOWNLOADER}" ]; then \
+      grep -F "\"--downloader\", \"${YOUTUBE_DOWNLOADER}\"" worker/acquisition/dist/lib/server/youtubeIngestion.js; \
+    else \
+      ! grep -F "\"--downloader\"" worker/acquisition/dist/lib/server/youtubeIngestion.js; \
+    fi
 
 FROM node:24.16.0-bookworm-slim AS runtime
 
