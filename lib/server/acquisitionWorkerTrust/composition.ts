@@ -90,3 +90,18 @@ export const invokeProductionAcquisitionWorker = async (
     now: Date.now,
   }).invoke(request, { signal });
 };
+
+export const invokeProductionAcquisitionWorkerAt = async (
+  workerUrl: string,
+  request: AcquisitionRequest,
+  signal?: AbortSignal,
+): Promise<AcquisitionWorkerInvocationResult> => {
+  const base = readAcquisitionWorkerTrustConfiguration();
+  const configuration = Object.freeze({ ...base, workerUrl });
+  return createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: createProductionIdTokenAuthority(configuration),
+    fetch,
+    log: (entry) => console.info(JSON.stringify(entry)),
+    now: Date.now,
+  }).invoke(request, { signal });
+};

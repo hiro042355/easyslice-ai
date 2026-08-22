@@ -25,7 +25,7 @@ export type AcquisitionWorkerTrustConfiguration = Readonly<{
   projectId: typeof PROJECT_ID;
   providerResource: typeof PROVIDER;
   invokerServiceAccount: typeof INVOKER;
-  workerUrl: typeof WORKER_URL;
+  workerUrl: string;
 }>;
 
 export type AcquisitionWorkerTrustEvidence = Readonly<{
