@@ -96,7 +96,7 @@ resource "google_cloud_run_v2_service" "acquisition_worker_egress_experiment" {
 
     containers {
       name       = "acquisition-worker"
-      image      = var.acquisition_worker_image
+      image      = var.acquisition_worker_egress_experiment_image
       depends_on = ["bgutil-provider"]
 
       ports {
@@ -121,6 +121,11 @@ resource "google_cloud_run_v2_service" "acquisition_worker_egress_experiment" {
       env {
         name  = "MEDIA_BUCKET_NAME"
         value = google_storage_bucket.production_media.name
+      }
+
+      env {
+        name  = "EXPECTED_EGRESS_IP"
+        value = google_compute_address.acquisition_worker_egress_experiment.address
       }
 
       volume_mounts {

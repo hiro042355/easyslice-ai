@@ -13,9 +13,16 @@ export type WorkerReadiness = Readonly<{
   providerHealthy: boolean;
 }>;
 
+export type WorkerNetworkReadiness = Readonly<{
+  staticEgressAuthorityConfigured: boolean;
+  observedEgressMatchesReservedAuthority: boolean;
+  youtubeAttemptCount: 0;
+}>;
+
 export type WorkerHttpDependencies = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
   readiness(signal?: AbortSignal): Promise<WorkerReadiness>;
+  networkReadiness?(signal?: AbortSignal): Promise<WorkerNetworkReadiness>;
   log(event: Readonly<Record<string, string | number | boolean>>): void;
   telemetry?(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
 }>;
@@ -55,6 +62,11 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
     if (request.method === "GET" && request.url === "/readyz") {
       const readiness = await dependencies.readiness(abort.signal);
       return sendJson(response, readiness.ready ? 200 : 503, readiness);
+    }
+    if (request.method === "GET" && request.url === "/internal/network-readiness" && dependencies.networkReadiness) {
+      const evidence = await dependencies.networkReadiness(abort.signal);
+      const success = evidence.staticEgressAuthorityConfigured && evidence.observedEgressMatchesReservedAuthority;
+      return sendJson(response, success ? 200 : 503, evidence);
     }
     if (request.method === "POST" && request.url === "/v1/acquisitions") {
       if (request.headers["content-type"]?.split(";", 1)[0]?.trim() !== "application/json") {

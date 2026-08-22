@@ -21,7 +21,10 @@ const safeStatus = (error: unknown): number | undefined => {
   return typeof response?.status === "number" ? response.status : undefined;
 };
 
-const createProductionIdTokenAuthority = (configuration: AcquisitionWorkerTrustConfiguration) => {
+export const createProductionIdTokenAuthority = (configuration: Pick<
+  AcquisitionWorkerTrustConfiguration,
+  "providerResource" | "invokerServiceAccount"
+>) => {
   const supplier: SubjectTokenSupplier = {
     async getSubjectToken() {
       try {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import { createAcquisitionWorkerHttpService, type WorkerReadiness } from "../../worker/acquisition/httpService";
+import { CONTROLLED_EGRESS_DIAGNOSTIC_DESTINATION, probeControlledEgress } from "../../worker/acquisition/networkReadiness";
 import type { AcquisitionResult } from "../../lib/server/acquisitionWorker/types";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
@@ -108,4 +109,51 @@ test("transport rejects unsafe shape, media bodies, and non-JSON requests", asyn
     assert.doesNotMatch(body, /private|uid|storageKey|cookie/i);
     assert.equal((await fetch(`${origin}/v1/acquisitions`, { method: "POST", body: "video" })).status, 415);
   });
+});
+
+test("network readiness uses one fixed benign destination and returns booleans without IP authority", async () => {
+  const calls: string[] = [];
+  const evidence = await probeControlledEgress("203.0.113.7", undefined, async (input) => {
+    calls.push(String(input));
+    return Response.json({ ip: "203.0.113.7" });
+  });
+  assert.deepEqual(calls, [CONTROLLED_EGRESS_DIAGNOSTIC_DESTINATION]);
+  assert.deepEqual(evidence, {
+    staticEgressAuthorityConfigured: true,
+    observedEgressMatchesReservedAuthority: true,
+    youtubeAttemptCount: 0,
+  });
+  assert.doesNotMatch(JSON.stringify(evidence), /203\.0\.113\.7|youtube\.com|youtu\.be|token|credential/i);
+});
+
+test("network readiness endpoint never invokes acquisition execution", async () => {
+  const readiness = Object.freeze({ ready: true, ytDlpVersionMatch: true, ffmpegAvailable: true, nodeSupported: true, providerHealthy: true });
+  let acquisitionCalls = 0;
+  const service = createAcquisitionWorkerHttpService({
+    readiness: async () => readiness,
+    execute: async () => { acquisitionCalls += 1; throw new Error("must-not-run"); },
+    networkReadiness: async () => Object.freeze({
+      staticEgressAuthorityConfigured: true,
+      observedEgressMatchesReservedAuthority: true,
+      youtubeAttemptCount: 0,
+    }),
+    log() {},
+  });
+  service.listen(0, "127.0.0.1");
+  await once(service, "listening");
+  const address = service.address();
+  if (!address || typeof address === "string") throw new Error("test-service-address-unavailable");
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/internal/network-readiness`);
+    assert.equal(response.status, 200);
+    assert.equal(acquisitionCalls, 0);
+    assert.deepEqual(await response.json(), {
+      staticEgressAuthorityConfigured: true,
+      observedEgressMatchesReservedAuthority: true,
+      youtubeAttemptCount: 0,
+    });
+  } finally {
+    service.close();
+    await once(service, "close");
+  }
 });
