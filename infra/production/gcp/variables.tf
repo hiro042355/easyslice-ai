@@ -75,6 +75,17 @@ variable "acquisition_worker_image" {
   }
 }
 
+variable "acquisition_worker_egress_experiment_image" {
+  description = "Immutable Environment B Acquisition Worker experiment image authority."
+  type        = string
+  default     = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:bc0754a765ee30832f1196361a95db839dc0234d93d1cdd63b58b25fd12549bf"
+
+  validation {
+    condition     = can(regex("^asia-northeast1-docker\\.pkg\\.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:[0-9a-f]{64}$", var.acquisition_worker_egress_experiment_image))
+    error_message = "Environment B must use an immutable Acquisition Worker digest from the approved Production Artifact Registry."
+  }
+}
+
 variable "acquisition_provider_image" {
   description = "Immutable bgutil PO Token provider sidecar image authority."
   type        = string

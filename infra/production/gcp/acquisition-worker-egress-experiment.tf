@@ -96,7 +96,7 @@ resource "google_cloud_run_v2_service" "acquisition_worker_egress_experiment" {
 
     containers {
       name       = "acquisition-worker"
-      image      = var.acquisition_worker_image
+      image      = var.acquisition_worker_egress_experiment_image
       depends_on = ["bgutil-provider"]
 
       ports {
