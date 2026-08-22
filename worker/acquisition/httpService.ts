@@ -23,7 +23,6 @@ export type WorkerHttpDependencies = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
   readiness(signal?: AbortSignal): Promise<WorkerReadiness>;
   networkReadiness?(signal?: AbortSignal): Promise<WorkerNetworkReadiness>;
-  structuredLogProof?(): void;
   log(event: Readonly<Record<string, string | number | boolean>>): void;
   telemetry?(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
 }>;
@@ -68,10 +67,6 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
       const evidence = await dependencies.networkReadiness(abort.signal);
       const success = evidence.staticEgressAuthorityConfigured && evidence.observedEgressMatchesReservedAuthority;
       return sendJson(response, success ? 200 : 503, evidence);
-    }
-    if (request.method === "POST" && request.url === "/internal/structured-log-proof" && dependencies.structuredLogProof) {
-      dependencies.structuredLogProof();
-      return sendJson(response, 200, { success: true, youtubeAttemptCount: 0 });
     }
     if (request.method === "POST" && request.url === "/v1/acquisitions") {
       if (request.headers["content-type"]?.split(";", 1)[0]?.trim() !== "application/json") {

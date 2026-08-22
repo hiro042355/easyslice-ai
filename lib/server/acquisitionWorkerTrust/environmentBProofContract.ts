@@ -7,7 +7,6 @@ export type EnvironmentBProofEvidence = Readonly<{
   wrongAudienceRejected: boolean;
   staticEgressAuthorityConfigured: boolean;
   observedEgressMatchesReservedAuthority: boolean;
-  structuredLogProof: boolean;
   youtubeAttemptCount: 0;
 }>;
 
@@ -52,22 +51,12 @@ export const runEnvironmentBProof = async (
     && (network as Readonly<{ staticEgressAuthorityConfigured?: unknown }>).staticEgressAuthorityConfigured === true);
   const observedEgressMatchesReservedAuthority = Boolean(network && typeof network === "object" && !Array.isArray(network)
     && (network as Readonly<{ observedEgressMatchesReservedAuthority?: unknown }>).observedEgressMatchesReservedAuthority === true);
-  const structuredLogResponse = await dependencies.fetch(
-    `${ENVIRONMENT_B_URL}/internal/structured-log-proof`,
-    {
-      method: "POST",
-      cache: "no-store",
-      headers: { authorization: `Bearer ${correctToken}` },
-      signal: AbortSignal.timeout(15_000),
-    },
-  );
   const evidence = Object.freeze({
     environmentBReady,
     correctAudienceAccepted: readyResponse.status === 200 && environmentBReady,
     wrongAudienceRejected,
     staticEgressAuthorityConfigured,
     observedEgressMatchesReservedAuthority,
-    structuredLogProof: structuredLogResponse.status === 200,
     youtubeAttemptCount: 0 as const,
   });
   return Object.freeze({ success: Object.values(evidence).every((value) => value === true || value === 0), evidence });

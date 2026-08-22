@@ -157,30 +157,3 @@ test("network readiness endpoint never invokes acquisition execution", async () 
     await once(service, "close");
   }
 });
-
-test("temporary structured-log proof emits one fixed synthetic event without acquisition", async () => {
-  const readiness = Object.freeze({ ready: true, ytDlpVersionMatch: true, ffmpegAvailable: true, nodeSupported: true, providerHealthy: true });
-  let acquisitionCalls = 0;
-  let proofCalls = 0;
-  const service = createAcquisitionWorkerHttpService({
-    readiness: async () => readiness,
-    execute: async () => { acquisitionCalls += 1; throw new Error("must-not-run"); },
-    structuredLogProof: () => { proofCalls += 1; },
-    log() {},
-  });
-  service.listen(0, "127.0.0.1");
-  await once(service, "listening");
-  const address = service.address();
-  if (!address || typeof address === "string") throw new Error("test-service-address-unavailable");
-  try {
-    const response = await fetch(`http://127.0.0.1:${address.port}/internal/structured-log-proof`, { method: "POST" });
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { success: true, youtubeAttemptCount: 0 });
-    assert.equal(proofCalls, 1);
-    assert.equal(acquisitionCalls, 0);
-    assert.equal((await fetch(`http://127.0.0.1:${address.port}/internal/structured-log-proof`)).status, 404);
-  } finally {
-    service.close();
-    await once(service, "close");
-  }
-});
