@@ -8,10 +8,11 @@ import { resolveAcquisitionRuntime } from "../../lib/server/acquisitionWorker/ru
 import { SourceAdapterRegistry, type AcquisitionRuntime, type PoTokenProvider } from "../../lib/server/acquisitionWorker/sourceAdapter";
 import type { AcquisitionResult } from "../../lib/server/acquisitionWorker/types";
 import { YouTubeSourceAdapter, type AcquisitionProcessRunner } from "../../lib/server/acquisitionWorker/youtubeAdapter";
-import { runPackagedYtDlp } from "../../lib/server/packagedYtDlp";
+import { runPackagedYtDlp, YtDlpProcessFailure } from "../../lib/server/packagedYtDlp";
 import { probeBgutilProviderHealth } from "./runtimeReadiness";
 import { ProviderTelemetryProxy } from "./providerTelemetryProxy";
 import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
+import { projectAcquisitionWorkerYtDlpFailure, type AcquisitionWorkerSafeYtDlpFailureLog } from "./safeYtDlpFailureLog";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
 export type AcquisitionWorkerExecution = Readonly<{
@@ -27,9 +28,19 @@ export type AcquisitionWorkerCompositionOptions = Readonly<{
   idempotency?: AcquisitionIdempotencyStore;
   provider?: PoTokenProvider;
   telemetryProxy?: ProviderTelemetryProxy;
+  logYtDlpFailure?: (entry: AcquisitionWorkerSafeYtDlpFailureLog) => void;
 }>;
 
-const productionRunner: AcquisitionProcessRunner = async (args, options) => { await runPackagedYtDlp(args, options); };
+const productionRunner = (
+  log: (entry: AcquisitionWorkerSafeYtDlpFailureLog) => void,
+): AcquisitionProcessRunner => async (args, options) => {
+  try {
+    await runPackagedYtDlp(args, options);
+  } catch (error) {
+    if (error instanceof YtDlpProcessFailure) log(projectAcquisitionWorkerYtDlpFailure(error));
+    throw error;
+  }
+};
 const ephemeralResult: AcquisitionArtifactConsumer = async ({ acquisitionId }) => `acquisition:${acquisitionId}`;
 
 export const createAcquisitionWorkerComposition = async (
@@ -45,8 +56,9 @@ export const createAcquisitionWorkerComposition = async (
   if (proxy) await proxy.start();
   const provider = options.provider ?? new BgutilHttpPoTokenProvider(probeBgutilProviderHealth,
     "http://127.0.0.1:4417", (collector, operation) => proxy!.observe(collector, operation));
+  const runner = options.run ?? productionRunner(options.logYtDlpFailure ?? ((entry) => console.error(entry)));
   const core = new AcquisitionWorkerCore({
-    adapters: new SourceAdapterRegistry([new YouTubeSourceAdapter(options.run ?? productionRunner)]),
+    adapters: new SourceAdapterRegistry([new YouTubeSourceAdapter(runner)]),
     idempotency,
     runtime,
     authorityRoot: options.authorityRoot ?? process.env.ACQUISITION_WORKSPACE_ROOT ?? DEFAULT_AUTHORITY_ROOT,
