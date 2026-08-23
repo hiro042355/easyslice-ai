@@ -1,5 +1,5 @@
 import { AcquisitionWorkerCore, type AcquisitionArtifactConsumer, type AcquisitionMediaInspector } from "../../lib/server/acquisitionWorker/core";
-import { GcsAcquisitionControlObjectStore, createMetadataAccessTokenSupplier, readProductionAcquisitionControlConfiguration } from "../../lib/server/acquisitionWorker/gcsControlStore";
+import { createAcquisitionControlStore } from "../../lib/server/acquisitionWorker/gcsControlStore";
 import type { AcquisitionIdempotencyStore } from "../../lib/server/acquisitionWorker/idempotency";
 import { inspectCanonicalMp4 } from "../../lib/server/acquisitionWorker/mediaValidation";
 import { PersistentAcquisitionIdempotencyStore } from "../../lib/server/acquisitionWorker/persistentIdempotency";
@@ -53,9 +53,8 @@ export const createAcquisitionWorkerComposition = async (
   options: AcquisitionWorkerCompositionOptions = {},
 ): Promise<AcquisitionWorkerExecution> => {
   const runtime = await (options.resolveRuntime ?? resolveAcquisitionRuntime)();
-  const configuration = options.idempotency ? undefined : readProductionAcquisitionControlConfiguration();
   const idempotency = options.idempotency ?? new PersistentAcquisitionIdempotencyStore(
-    new GcsAcquisitionControlObjectStore(configuration!.bucket, createMetadataAccessTokenSupplier()),
+    await createAcquisitionControlStore(),
   );
   const retained = new Map<string, AcquisitionSafeTelemetry>();
   const proxy = options.provider ? undefined : (options.telemetryProxy ?? new ProviderTelemetryProxy());

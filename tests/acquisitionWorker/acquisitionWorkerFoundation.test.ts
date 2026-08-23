@@ -54,7 +54,7 @@ test("request contract is exact, versioned, normalized, bounded, and contains no
   assert.equal(validated.sourceUrl, URL);
   assert.equal(validated.maxBytes, ACQUISITION_MAX_BYTES);
   assert.equal(validated.timeoutMs, 240_000);
-  for (const forbidden of ["uid", "ownerUid", "cookie", "authorization", "storageKey", "path", "command", "executable"]) {
+  for (const forbidden of ["uid", "ownerUid", "cookie", "authorization", "storageKey", "bucket", "controlBucket", "path", "command", "executable"]) {
     assert.throws(() => validateAcquisitionRequest(request({ [forbidden]: "forbidden" })), /invalid-acquisition-request/);
   }
 });

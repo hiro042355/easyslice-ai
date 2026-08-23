@@ -4,15 +4,35 @@ import {
   type AcquisitionControlObjectStore,
   type AcquisitionControlRecord,
 } from "./persistentIdempotency";
+import { readFile } from "node:fs/promises";
+import { GoogleAuth } from "google-auth-library";
 
-const PRODUCTION_BUCKET = "nexcut-prod-jp-2026-media";
+export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
 const STORAGE_API = "https://storage.googleapis.com";
-const METADATA_TOKEN_URL = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token";
+const EXPERIMENT_BUCKET = /^nexcut-production-acquisition-host-experiment-[a-z0-9][a-z0-9-]{5,30}[a-z0-9]$/;
+const STORAGE_SCOPE = "https://www.googleapis.com/auth/devstorage.read_write";
 
 type SafeFetch = (input: string, init?: RequestInit) => Promise<Response>;
+export type AcquisitionControlMode = "PRODUCTION" | "EXPERIMENT";
+export type AcquisitionControlConfiguration = Readonly<{
+  mode: AcquisitionControlMode;
+  bucket: string;
+  prefix: typeof ACQUISITION_CONTROL_PREFIX;
+}>;
+export interface GoogleAccessTokenSupplier {
+  getAccessToken(signal?: AbortSignal): Promise<string>;
+}
 
-const exactObject = (name: string): string => {
-  if (!name.startsWith(ACQUISITION_CONTROL_PREFIX) || name.includes("..") || name.includes("\\")) {
+export class AcquisitionControlAuthFailure extends Error {
+  readonly code = "acquisition-control-auth-failed";
+  constructor() {
+    super("acquisition-control-auth-failed");
+    this.name = "AcquisitionControlAuthFailure";
+  }
+}
+
+const exactObject = (name: string, prefix: typeof ACQUISITION_CONTROL_PREFIX): string => {
+  if (prefix !== ACQUISITION_CONTROL_PREFIX || !name.startsWith(prefix) || name.includes("..") || name.includes("\\")) {
     throw new TypeError("invalid-acquisition-control-object");
   }
   return encodeURIComponent(name);
@@ -23,35 +43,94 @@ const generation = (value: unknown): string => {
   return value;
 };
 
-export const readProductionAcquisitionControlConfiguration = (
+export const readAcquisitionControlConfiguration = (
   environment: Readonly<Record<string, string | undefined>> = process.env,
-): Readonly<{ bucket: string; prefix: typeof ACQUISITION_CONTROL_PREFIX }> => {
-  if (environment.MEDIA_BUCKET_NAME !== PRODUCTION_BUCKET) throw new Error("invalid-acquisition-control-bucket");
-  return Object.freeze({ bucket: PRODUCTION_BUCKET, prefix: ACQUISITION_CONTROL_PREFIX });
+): AcquisitionControlConfiguration => {
+  const mode = environment.ACQUISITION_CONTROL_MODE ?? "PRODUCTION";
+  const bucket = environment.ACQUISITION_CONTROL_BUCKET ?? environment.MEDIA_BUCKET_NAME;
+  const prefix = environment.ACQUISITION_CONTROL_PREFIX ?? ACQUISITION_CONTROL_PREFIX;
+  if ((mode !== "PRODUCTION" && mode !== "EXPERIMENT") || !bucket || prefix !== ACQUISITION_CONTROL_PREFIX) {
+    throw new Error("invalid-acquisition-control-authority");
+  }
+  if (mode === "PRODUCTION") {
+    if (bucket !== PRODUCTION_ACQUISITION_CONTROL_BUCKET || environment.ACQUISITION_EXPERIMENT_BUCKET) {
+      throw new Error("invalid-acquisition-control-authority");
+    }
+  } else if (bucket === PRODUCTION_ACQUISITION_CONTROL_BUCKET
+    || bucket !== environment.ACQUISITION_EXPERIMENT_BUCKET || !EXPERIMENT_BUCKET.test(bucket)) {
+    throw new Error("invalid-acquisition-control-authority");
+  }
+  return Object.freeze({ mode, bucket, prefix: ACQUISITION_CONTROL_PREFIX });
 };
 
-export const createMetadataAccessTokenSupplier = (fetchImpl: SafeFetch = fetch): (() => Promise<string>) => {
-  let cached: Readonly<{ token: string; expiresAt: number }> | undefined;
-  return async () => {
-    if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
-    const response = await fetchImpl(METADATA_TOKEN_URL, { headers: { "Metadata-Flavor": "Google" } });
-    if (!response.ok) throw new Error("acquisition-control-auth-failed");
-    const body = await response.json() as Readonly<{ access_token?: unknown; expires_in?: unknown }>;
-    if (typeof body.access_token !== "string" || typeof body.expires_in !== "number") {
-      throw new Error("acquisition-control-auth-failed");
+type GoogleAuthClient = Readonly<{ getAccessToken(): Promise<Readonly<{ token?: string | null }>> }>;
+type GoogleAuthFactory = Readonly<{ getClient(): Promise<GoogleAuthClient> }>;
+
+export const validateGoogleCredentialPolicy = async (
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+  load: (path: string) => Promise<string> = (path) => readFile(path, "utf8"),
+): Promise<void> => {
+  const credentialPath = environment.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!credentialPath) return;
+  try {
+    const value = JSON.parse(await load(credentialPath)) as Readonly<{ type?: unknown }>;
+    if (value.type !== "external_account") throw new AcquisitionControlAuthFailure();
+  } catch (error) {
+    if (error instanceof AcquisitionControlAuthFailure) throw error;
+    throw new AcquisitionControlAuthFailure();
+  }
+};
+
+export const createAdcAccessTokenSupplier = (
+  auth: GoogleAuthFactory = new GoogleAuth({ scopes: [STORAGE_SCOPE] }) as GoogleAuthFactory,
+): GoogleAccessTokenSupplier => ({
+  async getAccessToken(signal?: AbortSignal) {
+    if (signal?.aborted) throw new AcquisitionControlAuthFailure();
+    const failure = () => new AcquisitionControlAuthFailure();
+    let onAbort: (() => void) | undefined;
+    try {
+      const operation = auth.getClient().then((client) => client.getAccessToken());
+      const response = signal
+        ? await Promise.race([operation, new Promise<never>((_resolve, reject) => {
+          onAbort = () => reject(failure());
+          signal.addEventListener("abort", onAbort, { once: true });
+        })])
+        : await operation;
+      if (typeof response.token !== "string" || response.token.length === 0) throw failure();
+      return response.token;
+    } catch {
+      throw failure();
+    } finally {
+      if (onAbort) signal?.removeEventListener("abort", onAbort);
     }
-    cached = Object.freeze({ token: body.access_token, expiresAt: Date.now() + body.expires_in * 1_000 });
-    return cached.token;
-  };
+  },
+});
+
+export const createAcquisitionControlStore = async (
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+  auth?: GoogleAuthFactory,
+  fetchImpl: SafeFetch = fetch,
+  loadCredentialConfiguration?: (path: string) => Promise<string>,
+): Promise<GcsAcquisitionControlObjectStore> => {
+  const configuration = readAcquisitionControlConfiguration(environment);
+  await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration);
+  const token = createAdcAccessTokenSupplier(auth);
+  await token.getAccessToken();
+  return new GcsAcquisitionControlObjectStore(configuration, token, fetchImpl);
 };
 
 export class GcsAcquisitionControlObjectStore implements AcquisitionControlObjectStore {
   constructor(
-    private readonly bucket: string,
-    private readonly token: () => Promise<string>,
+    private readonly configuration: AcquisitionControlConfiguration,
+    private readonly token: GoogleAccessTokenSupplier,
     private readonly fetchImpl: SafeFetch = fetch,
   ) {
-    if (bucket !== PRODUCTION_BUCKET) throw new TypeError("invalid-acquisition-control-bucket");
+    if (configuration.prefix !== ACQUISITION_CONTROL_PREFIX
+      || (configuration.mode === "PRODUCTION" && configuration.bucket !== PRODUCTION_ACQUISITION_CONTROL_BUCKET)
+      || (configuration.mode === "EXPERIMENT" && (configuration.bucket === PRODUCTION_ACQUISITION_CONTROL_BUCKET
+        || !EXPERIMENT_BUCKET.test(configuration.bucket)))) {
+      throw new TypeError("invalid-acquisition-control-authority");
+    }
   }
 
   async create(objectName: string, record: AcquisitionControlRecord) {
@@ -60,8 +139,8 @@ export class GcsAcquisitionControlObjectStore implements AcquisitionControlObjec
 
   async read(objectName: string) {
     const response = await this.fetchImpl(
-      `${STORAGE_API}/storage/v1/b/${this.bucket}/o/${exactObject(objectName)}?alt=media`,
-      { headers: { authorization: `Bearer ${await this.token()}` } },
+      `${STORAGE_API}/storage/v1/b/${this.configuration.bucket}/o/${exactObject(objectName, this.configuration.prefix)}?alt=media`,
+      { headers: { authorization: `Bearer ${await this.token.getAccessToken()}` } },
     );
     if (response.status === 404) return Object.freeze({ status: "missing" as const });
     if (!response.ok) throw new Error("acquisition-control-read-failed");
@@ -82,10 +161,10 @@ export class GcsAcquisitionControlObjectStore implements AcquisitionControlObjec
     record: AcquisitionControlRecord,
     success: T,
   ): Promise<Readonly<{ status: T; generation: string } | { status: T extends "created" ? "exists" : "precondition-failed" }>> {
-    const name = exactObject(objectName);
+    const name = exactObject(objectName, this.configuration.prefix);
     const response = await this.fetchImpl(
-      `${STORAGE_API}/upload/storage/v1/b/${this.bucket}/o?uploadType=media&name=${name}&ifGenerationMatch=${expectedGeneration}`,
-      { method: "POST", headers: { authorization: `Bearer ${await this.token()}`, "content-type": "application/json" },
+      `${STORAGE_API}/upload/storage/v1/b/${this.configuration.bucket}/o?uploadType=media&name=${name}&ifGenerationMatch=${expectedGeneration}`,
+      { method: "POST", headers: { authorization: `Bearer ${await this.token.getAccessToken()}`, "content-type": "application/json" },
         body: JSON.stringify(validateAcquisitionControlRecord(record)) },
     );
     if (response.status === 412) {

@@ -11,9 +11,12 @@ import {
 } from "../../lib/server/acquisitionWorker/persistentIdempotency";
 import { AcquisitionWorkerFailure, type AcquisitionResult } from "../../lib/server/acquisitionWorker/types";
 import {
+  AcquisitionControlAuthFailure,
   GcsAcquisitionControlObjectStore,
-  createMetadataAccessTokenSupplier,
-  readProductionAcquisitionControlConfiguration,
+  createAdcAccessTokenSupplier,
+  createAcquisitionControlStore,
+  readAcquisitionControlConfiguration,
+  validateGoogleCredentialPolicy,
 } from "../../lib/server/acquisitionWorker/gcsControlStore";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
@@ -172,7 +175,9 @@ test("GCS adapter uses exact objects and generation preconditions without listin
     Response.json({ generation: "2" }),
   ];
   const fetchImpl = async (input: string, init?: RequestInit) => { calls.push({ input, init }); return responses.shift()!; };
-  const adapter = new GcsAcquisitionControlObjectStore("nexcut-prod-jp-2026-media", async () => "opaque-token", fetchImpl);
+  const adapter = new GcsAcquisitionControlObjectStore(
+    readAcquisitionControlConfiguration({ MEDIA_BUCKET_NAME: "nexcut-prod-jp-2026-media" }),
+    { getAccessToken: async () => "opaque-token" }, fetchImpl);
   const terminal = validateAcquisitionControlRecord({ schemaVersion: "1.0", acquisitionId: ID,
     requestFingerprint: "f".repeat(64), state: "succeeded", fenceToken: 1,
     createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString(), result: success() });
@@ -185,13 +190,51 @@ test("GCS adapter uses exact objects and generation preconditions without listin
   assert.doesNotMatch(calls.map((call) => String(call.init?.body ?? "")).join(""), /opaque-token/);
 });
 
-test("Production configuration and metadata credential supplier fail closed", async () => {
-  assert.deepEqual(readProductionAcquisitionControlConfiguration({ MEDIA_BUCKET_NAME: "nexcut-prod-jp-2026-media" }),
-    { bucket: "nexcut-prod-jp-2026-media", prefix: ACQUISITION_CONTROL_PREFIX });
-  assert.throws(() => readProductionAcquisitionControlConfiguration({ MEDIA_BUCKET_NAME: "other" }), /invalid-acquisition-control-bucket/);
-  let calls = 0;
-  const supplier = createMetadataAccessTokenSupplier(async () => { calls += 1; return Response.json({ access_token: "opaque", expires_in: 3600 }); });
-  assert.equal(await supplier(), "opaque");
-  assert.equal(await supplier(), "opaque");
-  assert.equal(calls, 1);
+test("closed Production and experiment bucket authorities fail closed", () => {
+  assert.deepEqual(readAcquisitionControlConfiguration({ MEDIA_BUCKET_NAME: "nexcut-prod-jp-2026-media" }),
+    { mode: "PRODUCTION", bucket: "nexcut-prod-jp-2026-media", prefix: ACQUISITION_CONTROL_PREFIX });
+  assert.throws(() => readAcquisitionControlConfiguration({}), /invalid-acquisition-control-authority/);
+  assert.throws(() => readAcquisitionControlConfiguration({ ACQUISITION_CONTROL_MODE: "PRODUCTION",
+    ACQUISITION_CONTROL_BUCKET: "nexcut-production-acquisition-host-experiment-owner001" }), /invalid-acquisition-control-authority/);
+  assert.throws(() => readAcquisitionControlConfiguration({ ACQUISITION_CONTROL_MODE: "EXPERIMENT",
+    ACQUISITION_CONTROL_BUCKET: "nexcut-prod-jp-2026-media",
+    ACQUISITION_EXPERIMENT_BUCKET: "nexcut-prod-jp-2026-media" }), /invalid-acquisition-control-authority/);
+  assert.deepEqual(readAcquisitionControlConfiguration({ ACQUISITION_CONTROL_MODE: "EXPERIMENT",
+    ACQUISITION_CONTROL_BUCKET: "nexcut-production-acquisition-host-experiment-owner001",
+    ACQUISITION_EXPERIMENT_BUCKET: "nexcut-production-acquisition-host-experiment-owner001" }),
+  { mode: "EXPERIMENT", bucket: "nexcut-production-acquisition-host-experiment-owner001", prefix: ACQUISITION_CONTROL_PREFIX });
+});
+
+test("ADC supplier returns only an in-memory token and safely classifies failures and cancellation", async () => {
+  const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({ getAccessToken: async () => ({ token: "opaque-token" }) }) });
+  assert.equal(await supplier.getAccessToken(), "opaque-token");
+  const raw = new Error("raw-provider-secret-detail");
+  const failing = createAdcAccessTokenSupplier({ getClient: async () => { throw raw; } });
+  await assert.rejects(failing.getAccessToken(), (error: unknown) => error instanceof AcquisitionControlAuthFailure
+    && error.message === "acquisition-control-auth-failed" && !String(error).includes(raw.message));
+  const aborted = new AbortController();
+  aborted.abort();
+  await assert.rejects(supplier.getAccessToken(aborted.signal), AcquisitionControlAuthFailure);
+});
+
+test("credential policy permits ambient or external_account ADC and rejects service-account JSON", async () => {
+  await validateGoogleCredentialPolicy({});
+  await validateGoogleCredentialPolicy({ GOOGLE_APPLICATION_CREDENTIALS: "/authority/external.json" },
+    async () => JSON.stringify({ type: "external_account" }));
+  await assert.rejects(validateGoogleCredentialPolicy({ GOOGLE_APPLICATION_CREDENTIALS: "/authority/key.json" },
+    async () => JSON.stringify({ type: "service_account", private_key: "must-not-surface" })),
+  (error: unknown) => error instanceof AcquisitionControlAuthFailure && !String(error).includes("must-not-surface"));
+});
+
+test("host-portable control-store composition accepts Production and experiment shapes without cloud calls", async () => {
+  const auth = { getClient: async () => ({ getAccessToken: async () => ({ token: "memory-only" }) }) };
+  const production = await createAcquisitionControlStore({ MEDIA_BUCKET_NAME: "nexcut-prod-jp-2026-media" }, auth,
+    async () => { throw new Error("must-not-contact-cloud"); });
+  const experiment = await createAcquisitionControlStore({ ACQUISITION_CONTROL_MODE: "EXPERIMENT",
+    ACQUISITION_CONTROL_BUCKET: "nexcut-production-acquisition-host-experiment-owner001",
+    ACQUISITION_EXPERIMENT_BUCKET: "nexcut-production-acquisition-host-experiment-owner001",
+    GOOGLE_APPLICATION_CREDENTIALS: "/authority/external.json" }, auth,
+  async () => { throw new Error("must-not-contact-cloud"); }, async () => JSON.stringify({ type: "external_account" }));
+  assert.equal(production instanceof GcsAcquisitionControlObjectStore, true);
+  assert.equal(experiment instanceof GcsAcquisitionControlObjectStore, true);
 });

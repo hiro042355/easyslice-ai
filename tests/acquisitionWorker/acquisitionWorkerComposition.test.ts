@@ -52,7 +52,7 @@ test("Production composition uses persistent GCS store and contains no stub, coo
   const composition = await readFile("worker/acquisition/composition.ts", "utf8");
   const main = await readFile("worker/acquisition/main.ts", "utf8");
   assert.match(composition, /new PersistentAcquisitionIdempotencyStore/);
-  assert.match(composition, /new GcsAcquisitionControlObjectStore/);
+  assert.match(composition, /await createAcquisitionControlStore\(\)/);
   assert.match(composition, /new SourceAdapterRegistry\(\[new YouTubeSourceAdapter/);
   assert.match(main, /execute:\s*execution\.execute/);
   assert.doesNotMatch(main, /errorCode:\s*"unknown-acquisition-failure"/);
