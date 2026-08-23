@@ -9,6 +9,7 @@ if (!Number.isSafeInteger(port) || port <= 0 || port > 65_535) throw new Error("
 const start = async (): Promise<void> => {
   const execution = await createAcquisitionWorkerComposition();
   const service = createAcquisitionWorkerHttpService({ execute: execution.execute, telemetry: execution.telemetry, readiness: probeWorkerReadiness,
+    controlStoreProof: execution.controlStoreProof,
     networkReadiness: (signal) => probeControlledEgress(process.env.EXPECTED_EGRESS_IP, signal),
     log: (entry) => console.info(JSON.stringify(entry)) });
   service.listen(port, "0.0.0.0", () => console.info(JSON.stringify({ event: "worker-listening" })));

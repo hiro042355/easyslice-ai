@@ -23,6 +23,7 @@ export type WorkerHttpDependencies = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
   readiness(signal?: AbortSignal): Promise<WorkerReadiness>;
   networkReadiness?(signal?: AbortSignal): Promise<WorkerNetworkReadiness>;
+  controlStoreProof?(): Promise<Readonly<Record<string, boolean | number>>>;
   log(event: Readonly<Record<string, string | number | boolean>>): void;
   telemetry?(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
 }>;
@@ -67,6 +68,13 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
       const evidence = await dependencies.networkReadiness(abort.signal);
       const success = evidence.staticEgressAuthorityConfigured && evidence.observedEgressMatchesReservedAuthority;
       return sendJson(response, success ? 200 : 503, evidence);
+    }
+    if (request.method === "POST" && request.url === "/internal/control-store-proof") {
+      if (!dependencies.controlStoreProof || request.headers["transfer-encoding"]
+        || Number(request.headers["content-length"] ?? 0) !== 0) {
+        return sendJson(response, 400, { status: "failed", errorCode: "invalid-acquisition-request" });
+      }
+      return sendJson(response, 200, { success: true, evidence: await dependencies.controlStoreProof() });
     }
     if (request.method === "POST" && request.url === "/v1/acquisitions") {
       if (request.headers["content-type"]?.split(";", 1)[0]?.trim() !== "application/json") {
