@@ -53,6 +53,26 @@ resource "google_cloud_run_v2_service" "acquisition_worker" {
       }
 
       env {
+        name  = "ACQUISITION_RUNTIME_MODE"
+        value = "PRODUCTION"
+      }
+
+      env {
+        name  = "ACQUISITION_CONTROL_MODE"
+        value = "PRODUCTION"
+      }
+
+      env {
+        name  = "ACQUISITION_CONTROL_BUCKET"
+        value = google_storage_bucket.production_media.name
+      }
+
+      env {
+        name  = "ACQUISITION_CONTROL_PREFIX"
+        value = "acquisition-control/v1/"
+      }
+
+      env {
         name  = "MEDIA_BUCKET_NAME"
         value = google_storage_bucket.production_media.name
       }

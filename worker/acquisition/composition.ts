@@ -13,13 +13,11 @@ import { probeBgutilProviderHealth } from "./runtimeReadiness";
 import { ProviderTelemetryProxy } from "./providerTelemetryProxy";
 import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 import { emitAcquisitionWorkerSafeYtDlpFailureLog, projectAcquisitionWorkerYtDlpFailure, type AcquisitionWorkerSafeYtDlpFailureLog } from "./safeYtDlpFailureLog";
-import { runProductionControlStoreProof } from "./controlStoreProof";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
 export type AcquisitionWorkerExecution = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
   telemetry(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
-  controlStoreProof(): Promise<Readonly<Record<string, boolean | number>>>;
 }>;
 export type AcquisitionWorkerCompositionOptions = Readonly<{
   authorityRoot?: string;
@@ -76,7 +74,7 @@ export const createAcquisitionWorkerComposition = async (
       nodeVersionMatch: runtime.nodeMajorVersion === 24, ejsAvailable: true },
     retainTelemetry(acquisitionId, telemetry) { retained.set(acquisitionId, telemetry); },
   });
-  return Object.freeze({ execute: (input, signal) => core.execute(input, signal), controlStoreProof: runProductionControlStoreProof,
+  return Object.freeze({ execute: (input, signal) => core.execute(input, signal),
     telemetry: (acquisitionId) => {
       const telemetry = retained.get(acquisitionId);
       retained.delete(acquisitionId);

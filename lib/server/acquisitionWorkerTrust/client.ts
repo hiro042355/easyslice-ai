@@ -68,15 +68,6 @@ export type AcquisitionWorkerInvocationResult = Readonly<{
   diagnostic?: AcquisitionSafeTelemetry;
 }>;
 
-export type AcquisitionControlStoreProofEvidence = Readonly<{
-  ambientAuth: boolean; productionMode: boolean; productionBucket: boolean; experimentRejected: boolean;
-  controlPrefixExact: boolean; controlCreate: boolean; concurrentClaim: boolean; controlRead: boolean;
-  sameFingerprintReplay: boolean; differentFingerprintRejected: boolean; casUpdate: boolean;
-  staleCasRejected: boolean; heartbeat: boolean; staleTakeover: boolean; oldOwnerFenced: boolean;
-  terminalWriteFenced: boolean; leaseAbort: boolean; mediaPrefixDenied: boolean; listingCallCount: 0;
-  cleanup: boolean; testControlResidue: number;
-}>;
-
 export class AcquisitionWorkerTrustFailure extends Error {
   constructor(readonly code: AcquisitionWorkerAuthFailureCode) {
     super(code);
@@ -129,36 +120,6 @@ export const createAcquisitionWorkerTrustClient = (
   configuration: AcquisitionWorkerTrustConfiguration,
   dependencies: AcquisitionWorkerTrustDependencies,
 ) => Object.freeze({
-  async proveControlStore(): Promise<AcquisitionControlStoreProofEvidence> {
-    const token = await dependencies.getIdToken(configuration.workerUrl);
-    if (!token) throw new AcquisitionWorkerTrustFailure("worker-id-token-failed");
-    let response: Response;
-    try {
-      response = await dependencies.fetch(`${configuration.workerUrl}/internal/control-store-proof`, {
-        method: "POST", headers: { authorization: `Bearer ${token}` }, cache: "no-store",
-        signal: AbortSignal.timeout(120_000),
-      });
-    } catch { throw new AcquisitionWorkerTrustFailure("worker-unavailable"); }
-    if (response.status !== 200) throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
-    const body = await response.json().catch(() => null) as { success?: unknown; evidence?: unknown } | null;
-    const evidence = body?.evidence;
-    const booleanKeys = ["ambientAuth", "productionMode", "productionBucket", "experimentRejected", "controlPrefixExact",
-      "controlCreate", "concurrentClaim", "controlRead", "sameFingerprintReplay", "differentFingerprintRejected",
-      "casUpdate", "staleCasRejected", "heartbeat", "staleTakeover", "oldOwnerFenced", "terminalWriteFenced",
-      "leaseAbort", "mediaPrefixDenied", "cleanup"] as const;
-    const keys = [...booleanKeys, "listingCallCount", "testControlResidue"] as const;
-    if (body?.success !== true || !evidence || typeof evidence !== "object" || Array.isArray(evidence)
-      || Object.keys(evidence).length !== keys.length
-      || Object.keys(evidence).some((key) => !keys.includes(key as typeof keys[number]))) {
-      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
-    }
-    const value = evidence as Record<string, unknown>;
-    if (booleanKeys.some((key) => typeof value[key] !== "boolean") || value.listingCallCount !== 0
-      || !Number.isSafeInteger(value.testControlResidue) || (value.testControlResidue as number) < 0) {
-      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
-    }
-    return Object.freeze({ ...value }) as AcquisitionControlStoreProofEvidence;
-  },
   async invoke(input: AcquisitionRequest, options: Readonly<{ signal?: AbortSignal }> = {}): Promise<AcquisitionWorkerInvocationResult> {
     const request = validateAcquisitionRequest(input);
     const token = await dependencies.getIdToken(configuration.workerUrl);
