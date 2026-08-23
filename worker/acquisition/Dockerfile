@@ -10,6 +10,7 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json ./tsconfig.json
+COPY scripts/copyRuntimeDependencyClosure.mjs ./scripts/copyRuntimeDependencyClosure.mjs
 COPY lib/server ./lib/server
 COPY worker/acquisition ./worker/acquisition
 RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
@@ -28,7 +29,8 @@ RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
       grep -F "\"--downloader\", \"${YOUTUBE_DOWNLOADER}\"" worker/acquisition/dist/lib/server/youtubeIngestion.js; \
     else \
       ! grep -F "\"--downloader\"" worker/acquisition/dist/lib/server/youtubeIngestion.js; \
-    fi
+    fi \
+ && node scripts/copyRuntimeDependencyClosure.mjs /src/node_modules /runtime-node-modules google-auth-library
 
 FROM node:24.16.0-bookworm-slim AS runtime
 
@@ -45,6 +47,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build /src/worker/acquisition/dist ./dist
+COPY --from=build /runtime-node-modules ./node_modules
 COPY --from=build /src/node_modules/ffmpeg-static/ffmpeg /app/node_modules/.nexcut-runtime/ffmpeg/ffmpeg
 
 RUN mkdir -p /app/node_modules/.nexcut-runtime/yt-dlp /home/worker/.config/yt-dlp/plugins /workspace/acquisitions \
