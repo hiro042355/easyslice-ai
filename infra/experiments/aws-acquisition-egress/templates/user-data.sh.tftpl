@@ -1,0 +1,69 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+
+install -d -m 0700 /opt/nexcut-experiment
+
+cat >/opt/nexcut-experiment/gcp-wif.json <<'JSON'
+{
+  "type": "external_account",
+  "audience": "//iam.googleapis.com/projects/${gcp_project_number}/locations/global/workloadIdentityPools/${gcp_pool_id}/providers/${gcp_provider_id}",
+  "subject_token_type": "urn:ietf:params:aws:token-type:aws4_request",
+  "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${gcp_service_account}:generateAccessToken",
+  "token_url": "https://sts.googleapis.com/v1/token",
+  "credential_source": {
+    "environment_id": "aws1",
+    "region_url": "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+    "url": "http://169.254.169.254/latest/meta-data/iam/security-credentials",
+    "regional_cred_verification_url": "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
+    "imdsv2_session_token_url": "http://169.254.169.254/latest/api/token"
+  }
+}
+JSON
+
+cat >/opt/nexcut-experiment/environment <<'ENV'
+AWS_REGION=${aws_region}
+EXPECTED_EGRESS_IP=${expected_eip}
+GOOGLE_APPLICATION_CREDENTIALS=/opt/nexcut-experiment/gcp-wif.json
+CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=/opt/nexcut-experiment/gcp-wif.json
+ACQUISITION_RUNTIME_MODE=EXPERIMENT
+ACQUISITION_CONTROL_MODE=EXPERIMENT
+ACQUISITION_CONTROL_BUCKET=${experiment_bucket}
+ACQUISITION_CONTROL_PREFIX=acquisition-control/v1/
+PRODUCTION_MEDIA_BUCKET=${production_bucket}
+WORKER_IMAGE=${worker_image}
+PROVIDER_IMAGE=${provider_image}
+ENV
+chmod 0600 /opt/nexcut-experiment/environment
+chown 10001:10001 /opt/nexcut-experiment/gcp-wif.json
+chmod 0400 /opt/nexcut-experiment/gcp-wif.json
+
+cat >/opt/nexcut-experiment/readiness <<'SCRIPT'
+${readiness_script}
+SCRIPT
+cat >/opt/nexcut-experiment/run-once <<'SCRIPT'
+${run_once_script}
+SCRIPT
+chmod 0500 /opt/nexcut-experiment/readiness /opt/nexcut-experiment/run-once
+
+cat >/etc/yum.repos.d/google-cloud-cli.repo <<'REPO'
+[google-cloud-cli]
+name=Google Cloud CLI
+baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=0
+gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+REPO
+
+dnf install -y docker google-cloud-cli jq
+systemctl enable --now docker amazon-ssm-agent
+
+set -a
+source /opt/nexcut-experiment/environment
+set +a
+gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet >/dev/null
+docker pull "$PROVIDER_IMAGE" >/dev/null
+docker pull "$WORKER_IMAGE" >/dev/null
+
+systemd-run --unit=nexcut-experiment-expiry --on-active=${maximum_lifetime_hours}h /usr/sbin/shutdown -h now

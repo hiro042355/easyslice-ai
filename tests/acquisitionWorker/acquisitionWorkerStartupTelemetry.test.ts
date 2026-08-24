@@ -136,3 +136,13 @@ test("Production and EXPERIMENT authority, acquisition arguments, images, and re
   assert.match(composition, /new YouTubeSourceAdapter/);
   assert.doesNotMatch(composition, /retry|fallback|cookies?|account credentials?/i);
 });
+
+test("AWS bootstrap keeps external-account configuration readable only by the fixed Worker UID", async () => {
+  const userData = await readFile("infra/experiments/aws-acquisition-egress/templates/user-data.sh.tftpl", "utf8");
+  const dockerfile = await readFile("worker/acquisition/Dockerfile", "utf8");
+  assert.match(dockerfile, /USER 10001:10001/);
+  assert.match(userData, /chown 10001:10001 \/opt\/nexcut-experiment\/gcp-wif\.json/);
+  assert.match(userData, /chmod 0400 \/opt\/nexcut-experiment\/gcp-wif\.json/);
+  assert.match(userData, /chmod 0600 \/opt\/nexcut-experiment\/environment/);
+  assert.doesNotMatch(userData, /chmod 0?6(?:44|66) .*gcp-wif\.json/);
+});
