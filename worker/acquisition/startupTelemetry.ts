@@ -1,10 +1,12 @@
 export const STARTUP_STAGES = [
+  "CONTAINER_BOOTSTRAP", "ENTRY_MODULE_LOAD",
   "RUNTIME_RESOLUTION", "CONTROL_STORE_CONFIG", "GOOGLE_AUTH_INIT", "CONTROL_STORE_INIT",
   "TELEMETRY_PROXY_INIT", "HTTP_BIND", "READY", "UNKNOWN",
 ] as const;
 export type StartupStage = typeof STARTUP_STAGES[number];
 
 export const STARTUP_FAILURE_FAMILIES = [
+  "ENTRY_MODULE_LOAD_FAILURE",
   "RUNTIME_DEPENDENCY_FAILURE", "INVALID_CONTROL_AUTHORITY", "GOOGLE_AUTH_FAILURE",
   "CONTROL_STORE_FAILURE", "TELEMETRY_PROXY_FAILURE", "HTTP_BIND_FAILURE", "UNKNOWN_STARTUP_FAILURE",
 ] as const;
@@ -34,6 +36,8 @@ const families = new Set<StartupFailureFamily>(STARTUP_FAILURE_FAMILIES);
 const exactKeys = ["event", "startupStage", "startupFailureFamily", ...evidenceKeys].sort();
 
 const familyForStage = (stage: StartupStage): StartupFailureFamily => ({
+  CONTAINER_BOOTSTRAP: "ENTRY_MODULE_LOAD_FAILURE",
+  ENTRY_MODULE_LOAD: "ENTRY_MODULE_LOAD_FAILURE",
   RUNTIME_RESOLUTION: "RUNTIME_DEPENDENCY_FAILURE",
   CONTROL_STORE_CONFIG: "INVALID_CONTROL_AUTHORITY",
   GOOGLE_AUTH_INIT: "GOOGLE_AUTH_FAILURE",
@@ -73,6 +77,11 @@ export class AcquisitionWorkerStartupTelemetry {
       startupFailureFamily: null, ...this.evidence });
   }
 }
+
+export type AcquisitionWorkerStartupTelemetrySink = Pick<
+  AcquisitionWorkerStartupTelemetry,
+  "enter" | "prove" | "failure" | "ready"
+>;
 
 export const validateAcquisitionWorkerStartupEvent = (input: unknown): AcquisitionWorkerStartupEvent => {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("invalid-startup-telemetry");

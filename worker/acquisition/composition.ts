@@ -13,7 +13,7 @@ import { probeBgutilProviderHealth } from "./runtimeReadiness";
 import { ProviderTelemetryProxy } from "./providerTelemetryProxy";
 import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 import { emitAcquisitionWorkerSafeYtDlpFailureLog, projectAcquisitionWorkerYtDlpFailure, type AcquisitionWorkerSafeYtDlpFailureLog } from "./safeYtDlpFailureLog";
-import type { AcquisitionWorkerStartupTelemetry } from "./startupTelemetry";
+import type { AcquisitionWorkerStartupTelemetrySink } from "./startupTelemetry";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
 export type AcquisitionWorkerExecution = Readonly<{
@@ -30,7 +30,7 @@ export type AcquisitionWorkerCompositionOptions = Readonly<{
   provider?: PoTokenProvider;
   telemetryProxy?: ProviderTelemetryProxy;
   logYtDlpFailure?: (entry: AcquisitionWorkerSafeYtDlpFailureLog) => void;
-  startupTelemetry?: AcquisitionWorkerStartupTelemetry;
+  startupTelemetry?: AcquisitionWorkerStartupTelemetrySink;
 }>;
 
 export const createProductionAcquisitionRunner = (

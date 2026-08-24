@@ -2,12 +2,9 @@ import { createAcquisitionWorkerHttpService } from "./httpService";
 import { createAcquisitionWorkerComposition } from "./composition";
 import { probeWorkerReadiness } from "./runtimeReadiness";
 import { probeControlledEgress } from "./networkReadiness";
-import { AcquisitionWorkerStartupTelemetry } from "./startupTelemetry";
+import type { AcquisitionWorkerStartupTelemetrySink } from "./startupTelemetry";
 
-const startupTelemetry = new AcquisitionWorkerStartupTelemetry();
-
-void (async () => {
-  try {
+export const startAcquisitionWorker = async (startupTelemetry: AcquisitionWorkerStartupTelemetrySink): Promise<void> => {
     const execution = await createAcquisitionWorkerComposition({ startupTelemetry });
     const service = createAcquisitionWorkerHttpService({ execute: execution.execute, telemetry: execution.telemetry, readiness: probeWorkerReadiness,
       networkReadiness: (signal) => probeControlledEgress(process.env.EXPECTED_EGRESS_IP, signal),
@@ -28,8 +25,4 @@ void (async () => {
     const shutdown = () => service.close(() => process.exit(0));
     process.once("SIGTERM", shutdown);
     process.once("SIGINT", shutdown);
-  } catch {
-    console.error(JSON.stringify(startupTelemetry.failure()));
-    process.exit(1);
-  }
-})().catch(() => process.exit(1));
+};

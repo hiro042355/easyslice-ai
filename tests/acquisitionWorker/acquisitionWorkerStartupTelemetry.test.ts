@@ -6,6 +6,7 @@ import {
   validateAcquisitionWorkerStartupEvent,
   type StartupStage,
 } from "../../worker/acquisition/startupTelemetry";
+import { bootstrapAcquisitionWorker } from "../../worker/acquisition/bootstrap";
 
 const cases: ReadonlyArray<readonly [Exclude<StartupStage, "READY">, string, string]> = [
   ["RUNTIME_RESOLUTION", "RUNTIME_DEPENDENCY_FAILURE", "runtimeDependenciesResolved"],
@@ -39,6 +40,51 @@ test("successful startup reaches READY with every boundary proven", () => {
   assert.deepEqual(validateAcquisitionWorkerStartupEvent(event), event);
 });
 
+test("bootstrap projects telemetry-module load failure without raw exception data", async () => {
+  const lines: string[] = [];
+  const original = console.error;
+  console.error = (value?: unknown) => { lines.push(String(value)); };
+  try {
+    await bootstrapAcquisitionWorker(async () => { throw new Error("SECRET /private/path"); });
+  } finally {
+    console.error = original;
+    process.exitCode = undefined;
+  }
+  assert.equal(lines.length, 1);
+  const event = validateAcquisitionWorkerStartupEvent(JSON.parse(lines[0]));
+  assert.equal(event.startupStage, "CONTAINER_BOOTSTRAP");
+  assert.equal(event.startupFailureFamily, "ENTRY_MODULE_LOAD_FAILURE");
+  assert.doesNotMatch(lines[0], /SECRET|private|path/);
+});
+
+test("bootstrap projects Worker entry-module load failure through closed telemetry", async () => {
+  const lines: string[] = [];
+  const original = console.error;
+  console.error = (value?: unknown) => { lines.push(String(value)); };
+  try {
+    await bootstrapAcquisitionWorker(
+      async () => ({ AcquisitionWorkerStartupTelemetry }),
+      async () => { throw new Error("missing runtime dependency"); },
+    );
+  } finally {
+    console.error = original;
+    process.exitCode = undefined;
+  }
+  const event = validateAcquisitionWorkerStartupEvent(JSON.parse(lines[0]));
+  assert.equal(event.startupStage, "ENTRY_MODULE_LOAD");
+  assert.equal(event.startupFailureFamily, "ENTRY_MODULE_LOAD_FAILURE");
+  assert.doesNotMatch(lines[0], /missing runtime dependency/);
+});
+
+test("bootstrap invokes Worker main after closed telemetry is established", async () => {
+  let invoked = false;
+  await bootstrapAcquisitionWorker(
+    async () => ({ AcquisitionWorkerStartupTelemetry }),
+    async () => ({ startAcquisitionWorker: async () => { invoked = true; } }),
+  );
+  assert.equal(invoked, true);
+});
+
 test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fields are rejected", () => {
   const event = new AcquisitionWorkerStartupTelemetry().failure();
   assert.equal(event.startupStage, "UNKNOWN");
@@ -55,20 +101,22 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
 test("startup projection and readiness capture contain no secret, URL, header, or raw-output authority", async () => {
   const implementation = await readFile("worker/acquisition/startupTelemetry.ts", "utf8");
   const main = await readFile("worker/acquisition/main.ts", "utf8");
+  const bootstrap = await readFile("worker/acquisition/bootstrap.ts", "utf8");
   const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
   const event = JSON.stringify(new AcquisitionWorkerStartupTelemetry().failure());
   assert.doesNotMatch(event, /token|credential|authorization|header|https?:|stdout|stderr|bucket|path|command/i);
   assert.doesNotMatch(implementation, /error\.message|error\.stack|String\(error\)|rawStd|rawErr/i);
   assert.doesNotMatch(main, /JSON\.stringify\([^)]*error|console\.(?:error|info)\(error/);
-  assert.match(readiness, /docker logs nexcut-worker 2>\/dev\/null \| jq -Rcer/);
-  assert.doesNotMatch(readiness, /docker logs nexcut-worker(?! 2>\/dev\/null \| jq -Rcer)/);
+  assert.doesNotMatch(bootstrap, /error\.message|error\.stack|String\(error\)|console\.error\([^)]*error/);
+  assert.match(readiness, /docker logs nexcut-worker 2>&1 \| jq -Rcer/);
+  assert.doesNotMatch(readiness, /docker logs nexcut-worker(?! 2>&1 \| jq -Rcer)/);
   assert.doesNotMatch(readiness, /docker run -d --rm --name nexcut-(?:worker|provider)/);
   assert.match(readiness, /docker rm -f nexcut-worker nexcut-provider/);
 });
 
 test("readiness parses Docker stdout/stderr as raw lines before fromjson and removes containers only after projection", async () => {
   const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
-  const capture = readiness.indexOf("docker logs nexcut-worker 2>/dev/null | jq -Rcer");
+  const capture = readiness.indexOf("docker logs nexcut-worker 2>&1 | jq -Rcer");
   const projection = readiness.indexOf("printf '%s\\n' \"$startup_event\"");
   const removal = readiness.indexOf("docker rm -f nexcut-worker nexcut-provider");
   assert.ok(capture >= 0 && projection > capture && removal > projection);
