@@ -13,14 +13,15 @@ cleanup() {
     startup_event="$(docker logs nexcut-worker 2>&1 | jq -Rcer '
       fromjson?
       | select(.event == "acquisition-worker-startup")
-      | select((keys | sort) == (["controlAuthorityValidated","controlStoreInitialized","event","googleAuthInitialized","httpListenerBound","runtimeDependenciesResolved","startupFailureFamily","startupStage","telemetryProxyInitialized"] | sort))
+      | select((keys | sort) == (["awsRegionResolved","awsRoleCredentialsAcquired","controlAuthorityValidated","controlStoreInitialized","event","gcpStsExchangeSucceeded","googleAuthInitialized","googleAuthStage","httpListenerBound","imdsv2TokenAcquired","runtimeDependenciesResolved","serviceAccountImpersonationSucceeded","startupFailureFamily","startupStage","telemetryProxyInitialized"] | sort))
       | select(.startupStage | IN("CONTAINER_BOOTSTRAP","ENTRY_MODULE_LOAD","RUNTIME_RESOLUTION","CONTROL_STORE_CONFIG","GOOGLE_AUTH_INIT","CONTROL_STORE_INIT","TELEMETRY_PROXY_INIT","HTTP_BIND","READY","UNKNOWN"))
       | select(.startupFailureFamily | IN("ENTRY_MODULE_LOAD_FAILURE","RUNTIME_DEPENDENCY_FAILURE","INVALID_CONTROL_AUTHORITY","GOOGLE_AUTH_FAILURE","CONTROL_STORE_FAILURE","TELEMETRY_PROXY_FAILURE","HTTP_BIND_FAILURE","UNKNOWN_STARTUP_FAILURE",null))
+      | select(.googleAuthStage | IN("CREDENTIAL_FILE_LOAD","EXTERNAL_ACCOUNT_PARSE","IMDSV2_TOKEN","AWS_REGION_DISCOVERY","AWS_ROLE_CREDENTIAL_FETCH","GCP_STS_EXCHANGE","SERVICE_ACCOUNT_IMPERSONATION","READY","UNKNOWN"))
       | select((.startupStage == "READY") == (.startupFailureFamily == null))
-      | select([.runtimeDependenciesResolved,.controlAuthorityValidated,.googleAuthInitialized,.controlStoreInitialized,.telemetryProxyInitialized,.httpListenerBound] | all(IN("YES","NO","UNKNOWN")))
+      | select([.runtimeDependenciesResolved,.controlAuthorityValidated,.googleAuthInitialized,.controlStoreInitialized,.telemetryProxyInitialized,.httpListenerBound,.imdsv2TokenAcquired,.awsRegionResolved,.awsRoleCredentialsAcquired,.gcpStsExchangeSucceeded,.serviceAccountImpersonationSucceeded] | all(IN("YES","NO","UNKNOWN")))
     ' | tail -n 1 || true)"
     if [ -z "$startup_event" ]; then
-      startup_event='{"event":"acquisition-worker-startup","startupStage":"UNKNOWN","startupFailureFamily":"UNKNOWN_STARTUP_FAILURE","runtimeDependenciesResolved":"UNKNOWN","controlAuthorityValidated":"UNKNOWN","googleAuthInitialized":"UNKNOWN","controlStoreInitialized":"UNKNOWN","telemetryProxyInitialized":"UNKNOWN","httpListenerBound":"UNKNOWN"}'
+      startup_event='{"event":"acquisition-worker-startup","startupStage":"UNKNOWN","googleAuthStage":"UNKNOWN","startupFailureFamily":"UNKNOWN_STARTUP_FAILURE","runtimeDependenciesResolved":"UNKNOWN","controlAuthorityValidated":"UNKNOWN","googleAuthInitialized":"UNKNOWN","controlStoreInitialized":"UNKNOWN","telemetryProxyInitialized":"UNKNOWN","httpListenerBound":"UNKNOWN","imdsv2TokenAcquired":"UNKNOWN","awsRegionResolved":"UNKNOWN","awsRoleCredentialsAcquired":"UNKNOWN","gcpStsExchangeSucceeded":"UNKNOWN","serviceAccountImpersonationSucceeded":"UNKNOWN"}'
     fi
     printf '%s\n' "$startup_event"
   fi

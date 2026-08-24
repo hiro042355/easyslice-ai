@@ -13,6 +13,7 @@ type WorkerMainModule = Readonly<{
 const bootstrapFailure = Object.freeze({
   event: "acquisition-worker-startup",
   startupStage: "CONTAINER_BOOTSTRAP",
+  googleAuthStage: "UNKNOWN",
   startupFailureFamily: "ENTRY_MODULE_LOAD_FAILURE",
   runtimeDependenciesResolved: "UNKNOWN",
   controlAuthorityValidated: "UNKNOWN",
@@ -20,6 +21,11 @@ const bootstrapFailure = Object.freeze({
   controlStoreInitialized: "UNKNOWN",
   telemetryProxyInitialized: "UNKNOWN",
   httpListenerBound: "UNKNOWN",
+  imdsv2TokenAcquired: "UNKNOWN",
+  awsRegionResolved: "UNKNOWN",
+  awsRoleCredentialsAcquired: "UNKNOWN",
+  gcpStsExchangeSucceeded: "UNKNOWN",
+  serviceAccountImpersonationSucceeded: "UNKNOWN",
 });
 
 export const bootstrapAcquisitionWorker = async (

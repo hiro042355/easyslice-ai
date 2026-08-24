@@ -61,6 +61,8 @@ export const createAcquisitionWorkerComposition = async (
   const idempotency = options.idempotency ?? new PersistentAcquisitionIdempotencyStore(
     await createAcquisitionControlStore(process.env, undefined, fetch, undefined, options.startupTelemetry ? {
       controlAuthorityValidated: () => options.startupTelemetry!.prove("controlAuthorityValidated"),
+      googleAuthStage: (stage) => options.startupTelemetry!.enterGoogleAuth(stage),
+      googleAuthEvidence: (key) => options.startupTelemetry!.proveGoogleAuth(key),
       googleAuthStarting: () => options.startupTelemetry!.enter("GOOGLE_AUTH_INIT"),
       googleAuthInitialized: () => options.startupTelemetry!.prove("googleAuthInitialized"),
       controlStoreStarting: () => options.startupTelemetry!.enter("CONTROL_STORE_INIT"),

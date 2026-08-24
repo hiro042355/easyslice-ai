@@ -6,6 +6,8 @@ import {
 } from "./persistentIdempotency";
 import { readFile } from "node:fs/promises";
 import { GoogleAuth } from "google-auth-library";
+import { Gaxios, type GaxiosOptions } from "gaxios";
+import type { GoogleAuthEvidenceKey, GoogleAuthStage } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
 const STORAGE_API = "https://storage.googleapis.com";
@@ -25,6 +27,8 @@ export interface GoogleAccessTokenSupplier {
 
 export type AcquisitionControlStoreStartupObserver = Readonly<{
   controlAuthorityValidated(): void;
+  googleAuthStage(stage: GoogleAuthStage): void;
+  googleAuthEvidence(key: GoogleAuthEvidenceKey): void;
   googleAuthStarting(): void;
   googleAuthInitialized(): void;
   controlStoreStarting(): void;
@@ -44,6 +48,48 @@ const exactObject = (name: string, prefix: typeof ACQUISITION_CONTROL_PREFIX): s
     throw new TypeError("invalid-acquisition-control-object");
   }
   return encodeURIComponent(name);
+};
+
+type GoogleAuthRequestBoundary = Readonly<{
+  stage: Exclude<GoogleAuthStage, "CREDENTIAL_FILE_LOAD" | "EXTERNAL_ACCOUNT_PARSE" | "READY" | "UNKNOWN">;
+  success: readonly GoogleAuthEvidenceKey[];
+}>;
+
+const classifyGoogleAuthRequest = (input: string): GoogleAuthRequestBoundary | undefined => {
+  let url: URL;
+  try { url = new URL(input); } catch { return undefined; }
+  if (url.hostname === "169.254.169.254" && url.pathname === "/latest/api/token") {
+    return { stage: "IMDSV2_TOKEN", success: ["imdsv2TokenAcquired"] };
+  }
+  if (url.hostname === "169.254.169.254" && url.pathname === "/latest/meta-data/placement/availability-zone") {
+    return { stage: "AWS_REGION_DISCOVERY", success: ["awsRegionResolved"] };
+  }
+  if (url.hostname === "169.254.169.254" && url.pathname.startsWith("/latest/meta-data/iam/security-credentials")) {
+    return { stage: "AWS_ROLE_CREDENTIAL_FETCH", success: url.pathname === "/latest/meta-data/iam/security-credentials"
+      ? [] : ["awsRoleCredentialsAcquired"] };
+  }
+  if (url.hostname === "sts.googleapis.com" && url.pathname === "/v1/token") {
+    return { stage: "GCP_STS_EXCHANGE", success: ["gcpStsExchangeSucceeded"] };
+  }
+  if (url.hostname === "iamcredentials.googleapis.com" && url.pathname.endsWith(":generateAccessToken")) {
+    return { stage: "SERVICE_ACCOUNT_IMPERSONATION", success: ["serviceAccountImpersonationSucceeded"] };
+  }
+  return undefined;
+};
+
+export const createGoogleAuthTelemetryTransporter = (
+  startup: AcquisitionControlStoreStartupObserver,
+  transporter: Gaxios = new Gaxios(),
+): Gaxios => {
+  const request = transporter.request.bind(transporter);
+  transporter.request = (async <T>(options: GaxiosOptions) => {
+    const boundary = classifyGoogleAuthRequest(String(options.url ?? ""));
+    if (boundary) startup.googleAuthStage(boundary.stage);
+    const response = await request<T>(options);
+    if (boundary) for (const key of boundary.success) startup.googleAuthEvidence(key);
+    return response;
+  }) as typeof transporter.request;
+  return transporter;
 };
 
 const generation = (value: unknown): string => {
@@ -77,11 +123,15 @@ type GoogleAuthFactory = Readonly<{ getClient(): Promise<GoogleAuthClient> }>;
 export const validateGoogleCredentialPolicy = async (
   environment: Readonly<Record<string, string | undefined>> = process.env,
   load: (path: string) => Promise<string> = (path) => readFile(path, "utf8"),
+  startup?: Pick<AcquisitionControlStoreStartupObserver, "googleAuthStage">,
 ): Promise<void> => {
   const credentialPath = environment.GOOGLE_APPLICATION_CREDENTIALS;
   if (!credentialPath) return;
   try {
-    const value = JSON.parse(await load(credentialPath)) as Readonly<{ type?: unknown }>;
+    startup?.googleAuthStage("CREDENTIAL_FILE_LOAD");
+    const contents = await load(credentialPath);
+    startup?.googleAuthStage("EXTERNAL_ACCOUNT_PARSE");
+    const value = JSON.parse(contents) as Readonly<{ type?: unknown }>;
     if (value.type !== "external_account") throw new AcquisitionControlAuthFailure();
   } catch (error) {
     if (error instanceof AcquisitionControlAuthFailure) throw error;
@@ -123,10 +173,13 @@ export const createAcquisitionControlStore = async (
 ): Promise<GcsAcquisitionControlObjectStore> => {
   const configuration = readAcquisitionControlConfiguration(environment);
   startup?.controlAuthorityValidated();
-  await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration);
+  await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration, startup);
   startup?.googleAuthStarting();
-  const token = createAdcAccessTokenSupplier(auth);
+  const resolvedAuth = auth ?? new GoogleAuth({ scopes: [STORAGE_SCOPE],
+    clientOptions: startup ? { transporter: createGoogleAuthTelemetryTransporter(startup) } : undefined }) as GoogleAuthFactory;
+  const token = createAdcAccessTokenSupplier(resolvedAuth);
   await token.getAccessToken();
+  startup?.googleAuthStage("READY");
   startup?.googleAuthInitialized();
   startup?.controlStoreStarting();
   const store = new GcsAcquisitionControlObjectStore(configuration, token, fetchImpl);

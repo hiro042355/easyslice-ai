@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
+import { Gaxios, type GaxiosOptions } from "gaxios";
 import {
   ACQUISITION_CONTROL_PREFIX,
   PersistentAcquisitionIdempotencyStore,
@@ -15,9 +16,11 @@ import {
   GcsAcquisitionControlObjectStore,
   createAdcAccessTokenSupplier,
   createAcquisitionControlStore,
+  createGoogleAuthTelemetryTransporter,
   readAcquisitionControlConfiguration,
   validateGoogleCredentialPolicy,
 } from "../../lib/server/acquisitionWorker/gcsControlStore";
+import type { GoogleAuthEvidenceKey, GoogleAuthStage } from "../../worker/acquisition/startupTelemetry";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const ID2 = "223e4567-e89b-42d3-a456-426614174000";
@@ -224,6 +227,58 @@ test("credential policy permits ambient or external_account ADC and rejects serv
   await assert.rejects(validateGoogleCredentialPolicy({ GOOGLE_APPLICATION_CREDENTIALS: "/authority/key.json" },
     async () => JSON.stringify({ type: "service_account", private_key: "must-not-surface" })),
   (error: unknown) => error instanceof AcquisitionControlAuthFailure && !String(error).includes("must-not-surface"));
+});
+
+test("credential policy maps unreadable and malformed external-account files to closed substages", async () => {
+  const stages: GoogleAuthStage[] = [];
+  const observer = { googleAuthStage: (stage: GoogleAuthStage) => stages.push(stage) };
+  await assert.rejects(validateGoogleCredentialPolicy({ GOOGLE_APPLICATION_CREDENTIALS: "/closed" },
+    async () => { throw new Error("private path secret"); }, observer), AcquisitionControlAuthFailure);
+  assert.deepEqual(stages, ["CREDENTIAL_FILE_LOAD"]);
+  stages.length = 0;
+  await assert.rejects(validateGoogleCredentialPolicy({ GOOGLE_APPLICATION_CREDENTIALS: "/closed" },
+    async () => "{malformed", observer), AcquisitionControlAuthFailure);
+  assert.deepEqual(stages, ["CREDENTIAL_FILE_LOAD", "EXTERNAL_ACCOUNT_PARSE"]);
+});
+
+test("GoogleAuth transporter maps only fixed credential boundaries and proves success after delegation", async () => {
+  const stages: GoogleAuthStage[] = [];
+  const evidence: GoogleAuthEvidenceKey[] = [];
+  const base = new Gaxios();
+  base.request = (async () => ({ data: {}, status: 200, statusText: "OK", headers: new Headers(), config: {} })) as typeof base.request;
+  const transporter = createGoogleAuthTelemetryTransporter({
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {},
+    googleAuthStage: (stage) => stages.push(stage), googleAuthEvidence: (key) => evidence.push(key),
+  }, base);
+  const urls = [
+    "http://169.254.169.254/latest/api/token",
+    "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+    "http://169.254.169.254/latest/meta-data/iam/security-credentials",
+    "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role",
+    "https://sts.googleapis.com/v1/token",
+    "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/closed:generateAccessToken",
+  ];
+  for (const url of urls) await transporter.request({ url } as GaxiosOptions);
+  assert.deepEqual(stages, ["IMDSV2_TOKEN", "AWS_REGION_DISCOVERY", "AWS_ROLE_CREDENTIAL_FETCH",
+    "AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE", "SERVICE_ACCOUNT_IMPERSONATION"]);
+  assert.deepEqual(evidence, ["imdsv2TokenAcquired", "awsRegionResolved", "awsRoleCredentialsAcquired",
+    "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded"]);
+});
+
+test("GoogleAuth transporter retains failed boundary without raw error projection", async () => {
+  const stages: GoogleAuthStage[] = [];
+  const evidence: GoogleAuthEvidenceKey[] = [];
+  const base = new Gaxios();
+  base.request = (async () => { throw new Error("raw token credential path"); }) as typeof base.request;
+  const transporter = createGoogleAuthTelemetryTransporter({
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {},
+    googleAuthStage: (stage) => stages.push(stage), googleAuthEvidence: (key) => evidence.push(key),
+  }, base);
+  await assert.rejects(transporter.request({ url: "https://sts.googleapis.com/v1/token" }));
+  assert.deepEqual(stages, ["GCP_STS_EXCHANGE"]);
+  assert.deepEqual(evidence, []);
 });
 
 test("host-portable control-store composition accepts Production and experiment shapes without cloud calls", async () => {

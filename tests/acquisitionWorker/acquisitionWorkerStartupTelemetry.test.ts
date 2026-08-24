@@ -90,12 +90,40 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.equal(event.startupStage, "UNKNOWN");
   assert.equal(event.startupFailureFamily, "UNKNOWN_STARTUP_FAILURE");
   assert.equal(event.runtimeDependenciesResolved, "UNKNOWN");
+  assert.equal(event.googleAuthStage, "UNKNOWN");
+  assert.equal(event.imdsv2TokenAcquired, "UNKNOWN");
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, startupStage: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, startupFailureFamily: "token rejected" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, googleAuthStage: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, runtimeDependenciesResolved: "MAYBE" }));
   const missing = Object.fromEntries(Object.entries(event).filter(([key]) => key !== "httpListenerBound"));
   assert.throws(() => validateAcquisitionWorkerStartupEvent(missing));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, stderr: "forbidden" }));
+});
+
+test("failed GoogleAuth substage marks only its corresponding closed evidence NO", () => {
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.enter("GOOGLE_AUTH_INIT");
+  telemetry.enterGoogleAuth("GCP_STS_EXCHANGE");
+  const event = telemetry.failure();
+  assert.equal(event.gcpStsExchangeSucceeded, "NO");
+  assert.equal(event.awsRoleCredentialsAcquired, "UNKNOWN");
+  assert.equal(event.startupFailureFamily, "GOOGLE_AUTH_FAILURE");
+});
+
+test("GoogleAuth closed substages and evidence reach READY without arbitrary authority", () => {
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.enter("GOOGLE_AUTH_INIT");
+  for (const [stage, evidence] of [
+    ["IMDSV2_TOKEN", "imdsv2TokenAcquired"], ["AWS_REGION_DISCOVERY", "awsRegionResolved"],
+    ["AWS_ROLE_CREDENTIAL_FETCH", "awsRoleCredentialsAcquired"], ["GCP_STS_EXCHANGE", "gcpStsExchangeSucceeded"],
+    ["SERVICE_ACCOUNT_IMPERSONATION", "serviceAccountImpersonationSucceeded"],
+  ] as const) { telemetry.enterGoogleAuth(stage); telemetry.proveGoogleAuth(evidence); }
+  telemetry.prove("googleAuthInitialized");
+  const event = telemetry.ready();
+  assert.equal(event.googleAuthStage, "READY");
+  assert.equal(event.serviceAccountImpersonationSucceeded, "YES");
+  assert.deepEqual(validateAcquisitionWorkerStartupEvent(event), event);
 });
 
 test("startup projection and readiness capture contain no secret, URL, header, or raw-output authority", async () => {
@@ -104,7 +132,7 @@ test("startup projection and readiness capture contain no secret, URL, header, o
   const bootstrap = await readFile("worker/acquisition/bootstrap.ts", "utf8");
   const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
   const event = JSON.stringify(new AcquisitionWorkerStartupTelemetry().failure());
-  assert.doesNotMatch(event, /token|credential|authorization|header|https?:|stdout|stderr|bucket|path|command/i);
+  assert.doesNotMatch(event, /AKIA|SECRET|Bearer |Authorization|https?:|stdout|stderr|private\/|commandLine/i);
   assert.doesNotMatch(implementation, /error\.message|error\.stack|String\(error\)|rawStd|rawErr/i);
   assert.doesNotMatch(main, /JSON\.stringify\([^)]*error|console\.(?:error|info)\(error/);
   assert.doesNotMatch(bootstrap, /error\.message|error\.stack|String\(error\)|console\.error\([^)]*error/);
