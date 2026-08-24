@@ -10,7 +10,7 @@ cleanup() {
   status=$?
   trap - EXIT
   if [ "$status" -ne 0 ]; then
-    startup_event="$(docker logs nexcut-worker 2>/dev/null | jq -cer '
+    startup_event="$(docker logs nexcut-worker 2>/dev/null | jq -Rcer '
       fromjson?
       | select(.event == "acquisition-worker-startup")
       | select((keys | sort) == (["controlAuthorityValidated","controlStoreInitialized","event","googleAuthInitialized","httpListenerBound","runtimeDependenciesResolved","startupFailureFamily","startupStage","telemetryProxyInitialized"] | sort))

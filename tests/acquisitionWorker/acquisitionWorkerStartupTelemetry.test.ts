@@ -60,10 +60,22 @@ test("startup projection and readiness capture contain no secret, URL, header, o
   assert.doesNotMatch(event, /token|credential|authorization|header|https?:|stdout|stderr|bucket|path|command/i);
   assert.doesNotMatch(implementation, /error\.message|error\.stack|String\(error\)|rawStd|rawErr/i);
   assert.doesNotMatch(main, /JSON\.stringify\([^)]*error|console\.(?:error|info)\(error/);
-  assert.match(readiness, /docker logs nexcut-worker 2>\/dev\/null \| jq -cer/);
-  assert.doesNotMatch(readiness, /docker logs nexcut-worker(?! 2>\/dev\/null \| jq)/);
+  assert.match(readiness, /docker logs nexcut-worker 2>\/dev\/null \| jq -Rcer/);
+  assert.doesNotMatch(readiness, /docker logs nexcut-worker(?! 2>\/dev\/null \| jq -Rcer)/);
   assert.doesNotMatch(readiness, /docker run -d --rm --name nexcut-(?:worker|provider)/);
   assert.match(readiness, /docker rm -f nexcut-worker nexcut-provider/);
+});
+
+test("readiness parses Docker stdout/stderr as raw lines before fromjson and removes containers only after projection", async () => {
+  const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
+  const capture = readiness.indexOf("docker logs nexcut-worker 2>/dev/null | jq -Rcer");
+  const projection = readiness.indexOf("printf '%s\\n' \"$startup_event\"");
+  const removal = readiness.indexOf("docker rm -f nexcut-worker nexcut-provider");
+  assert.ok(capture >= 0 && projection > capture && removal > projection);
+  assert.match(readiness, /fromjson\?/);
+  assert.match(readiness, /startup_event='\{"event":"acquisition-worker-startup","startupStage":"UNKNOWN"/);
+  assert.doesNotMatch(readiness, /docker logs[^\n]*(?:>|tee|Out-File)[^\n]*\.(?:log|txt|json)/i);
+  assert.doesNotMatch(readiness, /cat\s+.*docker|printf[^\n]*docker logs/);
 });
 
 test("Production and EXPERIMENT authority, acquisition arguments, images, and retry behavior remain unchanged", async () => {
