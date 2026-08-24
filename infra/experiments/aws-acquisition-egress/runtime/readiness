@@ -1,0 +1,81 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+set -a
+source /opt/nexcut-experiment/environment
+set +a
+
+result=false
+cleanup() {
+  status=$?
+  trap - EXIT
+  if [ "$status" -ne 0 ]; then
+    startup_event="$(docker logs nexcut-worker 2>/dev/null | jq -cer '
+      fromjson?
+      | select(.event == "acquisition-worker-startup")
+      | select((keys | sort) == (["controlAuthorityValidated","controlStoreInitialized","event","googleAuthInitialized","httpListenerBound","runtimeDependenciesResolved","startupFailureFamily","startupStage","telemetryProxyInitialized"] | sort))
+      | select(.startupStage | IN("RUNTIME_RESOLUTION","CONTROL_STORE_CONFIG","GOOGLE_AUTH_INIT","CONTROL_STORE_INIT","TELEMETRY_PROXY_INIT","HTTP_BIND","READY","UNKNOWN"))
+      | select(.startupFailureFamily | IN("RUNTIME_DEPENDENCY_FAILURE","INVALID_CONTROL_AUTHORITY","GOOGLE_AUTH_FAILURE","CONTROL_STORE_FAILURE","TELEMETRY_PROXY_FAILURE","HTTP_BIND_FAILURE","UNKNOWN_STARTUP_FAILURE",null))
+      | select((.startupStage == "READY") == (.startupFailureFamily == null))
+      | select([.runtimeDependenciesResolved,.controlAuthorityValidated,.googleAuthInitialized,.controlStoreInitialized,.telemetryProxyInitialized,.httpListenerBound] | all(IN("YES","NO","UNKNOWN")))
+    ' | tail -n 1 || true)"
+    if [ -z "$startup_event" ]; then
+      startup_event='{"event":"acquisition-worker-startup","startupStage":"UNKNOWN","startupFailureFamily":"UNKNOWN_STARTUP_FAILURE","runtimeDependenciesResolved":"UNKNOWN","controlAuthorityValidated":"UNKNOWN","googleAuthInitialized":"UNKNOWN","controlStoreInitialized":"UNKNOWN","telemetryProxyInitialized":"UNKNOWN","httpListenerBound":"UNKNOWN"}'
+    fi
+    printf '%s\n' "$startup_event"
+  fi
+  docker rm -f nexcut-worker nexcut-provider >/dev/null 2>&1 || true
+  rm -f /tmp/nexcut-egress
+  exit "$status"
+}
+trap cleanup EXIT
+
+test "$(curl -fsS --max-time 10 https://checkip.amazonaws.com | tr -d '\r\n')" = "$EXPECTED_EGRESS_IP"
+
+worker_repo="${WORKER_IMAGE%@*}"
+worker_expected="${WORKER_IMAGE#*@}"
+provider_repo="${PROVIDER_IMAGE%@*}"
+provider_expected="${PROVIDER_IMAGE#*@}"
+worker_actual="$(docker image inspect --format '{{index .RepoDigests 0}}' "$WORKER_IMAGE")"
+provider_actual="$(docker image inspect --format '{{index .RepoDigests 0}}' "$PROVIDER_IMAGE")"
+test "$worker_actual" = "$worker_repo@$worker_expected"
+test "$provider_actual" = "$provider_repo@$provider_expected"
+
+docker run -d --name nexcut-provider --network host "$PROVIDER_IMAGE" >/dev/null
+docker run -d --name nexcut-worker --network host \
+  -e PORT=8080 \
+  -e ACQUISITION_RUNTIME_MODE=EXPERIMENT \
+  -e ACQUISITION_CONTROL_MODE=EXPERIMENT \
+  -e ACQUISITION_CONTROL_BUCKET="$ACQUISITION_CONTROL_BUCKET" \
+  -e ACQUISITION_EXPERIMENT_BUCKET="$ACQUISITION_CONTROL_BUCKET" \
+  -e ACQUISITION_CONTROL_PREFIX="$ACQUISITION_CONTROL_PREFIX" \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/run/nexcut/gcp-wif.json \
+  -v "$GOOGLE_APPLICATION_CREDENTIALS:/run/nexcut/gcp-wif.json:ro" \
+  "$WORKER_IMAGE" >/dev/null
+
+for _ in $(seq 1 30); do
+  curl -fsS --max-time 2 http://127.0.0.1:4416/ping >/dev/null && \
+    curl -fsS --max-time 2 http://127.0.0.1:8080/readyz >/dev/null && break
+  sleep 2
+done
+curl -fsS --max-time 2 http://127.0.0.1:4416/ping >/dev/null
+curl -fsS --max-time 2 http://127.0.0.1:8080/readyz >/dev/null
+
+token="$(gcloud auth print-access-token --cred-file="$GOOGLE_APPLICATION_CREDENTIALS")"
+name="acquisition-control/v1/readiness-$(cat /proc/sys/kernel/random/uuid)"
+encoded_name="$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$name")"
+object_url="https://storage.googleapis.com/upload/storage/v1/b/$ACQUISITION_CONTROL_BUCKET/o?uploadType=media&ifGenerationMatch=0&name=$encoded_name"
+curl -fsS --max-time 15 -X POST -H "Authorization: Bearer $token" -H 'Content-Type: application/octet-stream' --data-binary 'ready' "$object_url" >/dev/null
+curl -fsS --max-time 15 -H "Authorization: Bearer $token" "https://storage.googleapis.com/storage/v1/b/$ACQUISITION_CONTROL_BUCKET/o/$encoded_name?alt=media" >/dev/null
+curl -fsS --max-time 15 -X DELETE -H "Authorization: Bearer $token" "https://storage.googleapis.com/storage/v1/b/$ACQUISITION_CONTROL_BUCKET/o/$encoded_name" >/dev/null
+if curl -fsS --max-time 15 -H "Authorization: Bearer $token" "https://storage.googleapis.com/storage/v1/b/$ACQUISITION_CONTROL_BUCKET/o/$encoded_name?alt=media" >/dev/null; then
+  exit 1
+fi
+if curl -fsS --max-time 15 -H "Authorization: Bearer $token" "https://storage.googleapis.com/storage/v1/b/$PRODUCTION_MEDIA_BUCKET/o/nonexistent-readiness-object?alt=media" >/dev/null; then
+  exit 1
+fi
+unset token
+test ! -e /opt/nexcut-experiment/attempt.claimed
+
+result=true
+jq -nc --argjson success "$result" '{success:$success,evidence:{egressMatch:true,workerDigestMatch:true,providerDigestMatch:true,providerReady:true,workerReady:true,wifIdentity:true,experimentBucketCrud:true,productionBucketDenied:true,residue:0,attemptCount:0,youtubeContact:false}}'

@@ -23,6 +23,14 @@ export interface GoogleAccessTokenSupplier {
   getAccessToken(signal?: AbortSignal): Promise<string>;
 }
 
+export type AcquisitionControlStoreStartupObserver = Readonly<{
+  controlAuthorityValidated(): void;
+  googleAuthStarting(): void;
+  googleAuthInitialized(): void;
+  controlStoreStarting(): void;
+  controlStoreInitialized(): void;
+}>;
+
 export class AcquisitionControlAuthFailure extends Error {
   readonly code = "acquisition-control-auth-failed";
   constructor() {
@@ -111,12 +119,19 @@ export const createAcquisitionControlStore = async (
   auth?: GoogleAuthFactory,
   fetchImpl: SafeFetch = fetch,
   loadCredentialConfiguration?: (path: string) => Promise<string>,
+  startup?: AcquisitionControlStoreStartupObserver,
 ): Promise<GcsAcquisitionControlObjectStore> => {
   const configuration = readAcquisitionControlConfiguration(environment);
+  startup?.controlAuthorityValidated();
   await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration);
+  startup?.googleAuthStarting();
   const token = createAdcAccessTokenSupplier(auth);
   await token.getAccessToken();
-  return new GcsAcquisitionControlObjectStore(configuration, token, fetchImpl);
+  startup?.googleAuthInitialized();
+  startup?.controlStoreStarting();
+  const store = new GcsAcquisitionControlObjectStore(configuration, token, fetchImpl);
+  startup?.controlStoreInitialized();
+  return store;
 };
 
 export class GcsAcquisitionControlObjectStore implements AcquisitionControlObjectStore {

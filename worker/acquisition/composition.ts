@@ -13,6 +13,7 @@ import { probeBgutilProviderHealth } from "./runtimeReadiness";
 import { ProviderTelemetryProxy } from "./providerTelemetryProxy";
 import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 import { emitAcquisitionWorkerSafeYtDlpFailureLog, projectAcquisitionWorkerYtDlpFailure, type AcquisitionWorkerSafeYtDlpFailureLog } from "./safeYtDlpFailureLog";
+import type { AcquisitionWorkerStartupTelemetry } from "./startupTelemetry";
 
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
 export type AcquisitionWorkerExecution = Readonly<{
@@ -29,6 +30,7 @@ export type AcquisitionWorkerCompositionOptions = Readonly<{
   provider?: PoTokenProvider;
   telemetryProxy?: ProviderTelemetryProxy;
   logYtDlpFailure?: (entry: AcquisitionWorkerSafeYtDlpFailureLog) => void;
+  startupTelemetry?: AcquisitionWorkerStartupTelemetry;
 }>;
 
 export const createProductionAcquisitionRunner = (
@@ -52,13 +54,24 @@ const ephemeralResult: AcquisitionArtifactConsumer = async ({ acquisitionId }) =
 export const createAcquisitionWorkerComposition = async (
   options: AcquisitionWorkerCompositionOptions = {},
 ): Promise<AcquisitionWorkerExecution> => {
+  options.startupTelemetry?.enter("RUNTIME_RESOLUTION");
   const runtime = await (options.resolveRuntime ?? resolveAcquisitionRuntime)();
+  options.startupTelemetry?.prove("runtimeDependenciesResolved");
+  options.startupTelemetry?.enter("CONTROL_STORE_CONFIG");
   const idempotency = options.idempotency ?? new PersistentAcquisitionIdempotencyStore(
-    await createAcquisitionControlStore(),
+    await createAcquisitionControlStore(process.env, undefined, fetch, undefined, options.startupTelemetry ? {
+      controlAuthorityValidated: () => options.startupTelemetry!.prove("controlAuthorityValidated"),
+      googleAuthStarting: () => options.startupTelemetry!.enter("GOOGLE_AUTH_INIT"),
+      googleAuthInitialized: () => options.startupTelemetry!.prove("googleAuthInitialized"),
+      controlStoreStarting: () => options.startupTelemetry!.enter("CONTROL_STORE_INIT"),
+      controlStoreInitialized: () => options.startupTelemetry!.prove("controlStoreInitialized"),
+    } : undefined),
   );
   const retained = new Map<string, AcquisitionSafeTelemetry>();
   const proxy = options.provider ? undefined : (options.telemetryProxy ?? new ProviderTelemetryProxy());
+  options.startupTelemetry?.enter("TELEMETRY_PROXY_INIT");
   if (proxy) await proxy.start();
+  options.startupTelemetry?.prove("telemetryProxyInitialized");
   const provider = options.provider ?? new BgutilHttpPoTokenProvider(probeBgutilProviderHealth,
     "http://127.0.0.1:4417", (collector, operation) => proxy!.observe(collector, operation));
   const runner = options.run ?? createProductionAcquisitionRunner(options.logYtDlpFailure ?? emitAcquisitionWorkerSafeYtDlpFailureLog);
