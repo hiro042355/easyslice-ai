@@ -6,6 +6,7 @@ import {
 } from "./persistentIdempotency";
 import { readFile } from "node:fs/promises";
 import { GoogleAuth } from "google-auth-library";
+import { StsCredentials } from "google-auth-library/build/src/auth/stscredentials";
 import { Gaxios, type GaxiosOptions } from "gaxios";
 import type { GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
   Sigv4StructuralEvidence } from "../../../worker/acquisition/startupTelemetry";
@@ -219,6 +220,36 @@ export const createGoogleAuthTelemetryTransporter = (
   return transporter;
 };
 
+const bridgedStsCredentials = new WeakSet<object>();
+
+export const installStsTransporterTelemetryBridge = (
+  client: unknown,
+  startup: AcquisitionControlStoreStartupObserver,
+): boolean => {
+  if (!client || typeof client !== "object") return false;
+  const stsCredential = Reflect.get(client, "stsCredential") as unknown;
+  if (!(stsCredential instanceof StsCredentials)
+    || typeof Reflect.get(stsCredential, "exchangeToken") !== "function") return false;
+  if (bridgedStsCredentials.has(stsCredential)) return true;
+  const transporter = Reflect.get(stsCredential, "transporter") as unknown;
+  if (!(transporter instanceof Gaxios)) return false;
+  createGoogleAuthTelemetryTransporter(startup, transporter);
+  bridgedStsCredentials.add(stsCredential);
+  return true;
+};
+
+const createObservedGoogleAuth = (startup: AcquisitionControlStoreStartupObserver): GoogleAuth => {
+  const auth = new GoogleAuth({ scopes: [STORAGE_SCOPE],
+    clientOptions: { transporter: createGoogleAuthTelemetryTransporter(startup) } });
+  const fromJSON = auth.fromJSON.bind(auth);
+  auth.fromJSON = ((json: Parameters<GoogleAuth["fromJSON"]>[0], options?: Parameters<GoogleAuth["fromJSON"]>[1]) => {
+    const client = fromJSON(json, options);
+    try { installStsTransporterTelemetryBridge(client, startup); } catch { /* Telemetry must not affect authentication. */ }
+    return client;
+  }) as GoogleAuth["fromJSON"];
+  return auth;
+};
+
 const generation = (value: unknown): string => {
   if (typeof value !== "string" || !/^\d+$/.test(value)) throw new Error("invalid-gcs-generation");
   return value;
@@ -316,8 +347,8 @@ export const createAcquisitionControlStore = async (
   observedStartup?.controlAuthorityValidated();
   await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration, observedStartup);
   observedStartup?.googleAuthStarting();
-  const resolvedAuth = auth ?? new GoogleAuth({ scopes: [STORAGE_SCOPE],
-    clientOptions: observedStartup ? { transporter: createGoogleAuthTelemetryTransporter(observedStartup) } : undefined }) as GoogleAuthFactory;
+  const resolvedAuth = auth ?? (observedStartup ? createObservedGoogleAuth(observedStartup)
+    : new GoogleAuth({ scopes: [STORAGE_SCOPE] })) as GoogleAuthFactory;
   const token = createAdcAccessTokenSupplier(resolvedAuth, (error) => {
     if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.gcpStsFailure?.(classifyGcpStsFailure(error));
   });

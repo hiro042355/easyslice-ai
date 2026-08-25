@@ -21,6 +21,7 @@ import {
   createAdcAccessTokenSupplier,
   createAcquisitionControlStore,
   createGoogleAuthTelemetryTransporter,
+  installStsTransporterTelemetryBridge,
   readAcquisitionControlConfiguration,
   validateGoogleCredentialPolicy,
 } from "../../lib/server/acquisitionWorker/gcsControlStore";
@@ -430,6 +431,110 @@ test("synthetic AWS SigV4 subject token proceeds through STS and impersonation w
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
+});
+
+test("actual StsCredentials transporter receives one telemetry-only bridge", async () => {
+  const audience = "//iam.googleapis.com/projects/566365202495/locations/global/workloadIdentityPools/closed/providers/closed";
+  const client = new AwsClient({
+    audience, subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+    token_url: "https://sts.googleapis.com/v1/token",
+    aws_security_credentials_supplier: {
+      getAwsRegion: async () => "ap-northeast-1",
+      getAwsSecurityCredentials: async () => ({ accessKeyId: "CLOSEDACCESS", secretAccessKey: "closed-signing-material",
+        token: "closed-session-material" }),
+    },
+  });
+  const stsCredential = Reflect.get(client, "stsCredential") as object;
+  const stsTransporter = Reflect.get(stsCredential, "transporter") as Gaxios;
+  const metadataTransporter = Reflect.get(client, "transporter") as Gaxios;
+  assert.notEqual(stsTransporter, metadataTransporter);
+  const originalRequest = stsTransporter.request;
+  let requests = 0;
+  let retained: Record<string, string> | undefined;
+  let requestShape: Readonly<{ url: unknown; data: unknown; headers: unknown; retry: unknown; timeout: unknown }> | undefined;
+  stsTransporter.request = (async (options: GaxiosOptions) => {
+    requests += 1;
+    requestShape = { url: options.url, data: options.data instanceof URLSearchParams ? options.data.toString() : options.data,
+      headers: options.headers, retry: options.retry, timeout: options.timeout };
+    throw { response: { status: 400, data: { error: "invalid_grant" } } };
+  }) as typeof stsTransporter.request;
+  const observer = {
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    sigv4Evidence: (evidence: Record<string, string>) => { retained = evidence; },
+  };
+  assert.equal(installStsTransporterTelemetryBridge(client, observer), true);
+  assert.equal(installStsTransporterTelemetryBridge(client, observer), true);
+  const bridgedRequest = stsTransporter.request;
+  assert.notEqual(bridgedRequest, originalRequest);
+  await assert.rejects(client.getAccessToken(), (error: unknown) => {
+    assert.equal(classifyGcpStsFailure(error), "SUBJECT_TOKEN_REJECTED");
+    return true;
+  });
+  assert.equal(requests, 1);
+  assert.ok(retained);
+  assert.equal(Object.keys(retained).length, 13);
+  assert.equal(Object.values(retained).some((value) => value !== "UNKNOWN"), true);
+  assert.equal(stsTransporter.request, bridgedRequest);
+  assert.equal(requestShape?.url, "https://sts.googleapis.com/v1/token");
+  assert.equal(typeof requestShape?.data, "string");
+  assert.equal(requestShape?.retry, true);
+  assert.equal(requestShape?.timeout, undefined);
+  assert.doesNotMatch(JSON.stringify(retained), /CLOSEDACCESS|closed-signing|closed-session|AWS4-HMAC|subject_token/i);
+});
+
+test("unexpected StsCredentials shapes preserve authentication and UNKNOWN telemetry", async () => {
+  let observed = 0;
+  const observer = {
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    sigv4Evidence: () => { observed += 1; },
+  };
+  assert.equal(installStsTransporterTelemetryBridge({}, observer), false);
+  assert.equal(installStsTransporterTelemetryBridge({ stsCredential: { exchangeToken() {}, transporter: new Gaxios() } }, observer), false);
+  const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({ getAccessToken: async () => ({ token: "memory-only" }) }) });
+  assert.equal(await supplier.getAccessToken(), "memory-only");
+  assert.equal(observed, 0);
+});
+
+test("STS telemetry bridge preserves the exact delegated request and successful authentication result", async () => {
+  const audience = "//iam.googleapis.com/projects/566365202495/locations/global/workloadIdentityPools/closed/providers/closed";
+  const client = new AwsClient({
+    audience, subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+    token_url: "https://sts.googleapis.com/v1/token",
+    aws_security_credentials_supplier: {
+      getAwsRegion: async () => "ap-northeast-1",
+      getAwsSecurityCredentials: async () => ({ accessKeyId: "CLOSEDACCESS", secretAccessKey: "closed-signing-material",
+        token: "closed-session-material" }),
+    },
+  });
+  const stsCredential = Reflect.get(client, "stsCredential") as object;
+  const stsTransporter = Reflect.get(stsCredential, "transporter") as Gaxios;
+  let delegated: GaxiosOptions | undefined;
+  let evidenceCount = 0;
+  stsTransporter.request = (async (options: GaxiosOptions) => {
+    delegated = options;
+    return { data: { access_token: "closed-result", issued_token_type: "urn:ietf:params:oauth:token-type:access_token",
+      token_type: "Bearer", expires_in: 300 }, status: 200, statusText: "OK", headers: new Headers(), config: options };
+  }) as typeof stsTransporter.request;
+  assert.equal(installStsTransporterTelemetryBridge(client, {
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    sigv4Evidence: () => { evidenceCount += 1; },
+  }), true);
+  const result = await client.getAccessToken();
+  assert.equal(typeof result.token, "string");
+  assert.equal(evidenceCount, 1);
+  assert.equal(delegated?.url, "https://sts.googleapis.com/v1/token");
+  assert.equal(delegated?.method, "POST");
+  assert.equal(delegated?.data instanceof URLSearchParams, true);
+  const form = delegated?.data as URLSearchParams;
+  assert.equal(form.get("audience"), audience);
+  assert.equal(form.has("subject_token"), true);
+  assert.equal(form.get("grant_type"), "urn:ietf:params:oauth:grant-type:token-exchange");
+  assert.equal(delegated?.retry, true);
+  assert.equal(delegated?.timeout, undefined);
+  assert.equal(new Headers(delegated?.headers).has("authorization"), false);
 });
 
 test("host-portable control-store composition accepts Production and experiment shapes without cloud calls", async () => {
