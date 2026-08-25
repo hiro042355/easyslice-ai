@@ -7,7 +7,7 @@ $text = (Get-ChildItem -LiteralPath $root -Recurse -File |
 $required = @(
   '10.87.0.0/24', '10.87.0.0/26', 'm7i.xlarge', 'http_tokens                 = "required"',
   'map_public_ip_on_launch = false', 'acquisition-control/v1/', 'AmazonSSMManagedInstanceCore',
-  'sha256:395b7666e5f6ac417da221ae738da4fd7e3d22444f03fd1baff7f8555f4142ae',
+  'sha256:7282415934fae66fef07693c04ff04ac82d5824244913d7e108a3f4fce2edbb6',
   'sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2'
 )
 foreach ($value in $required) { if (-not $text.Contains($value)) { throw "Missing required authority" } }
