@@ -7,7 +7,8 @@ import {
 import { readFile } from "node:fs/promises";
 import { GoogleAuth } from "google-auth-library";
 import { Gaxios, type GaxiosOptions } from "gaxios";
-import type { GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage } from "../../../worker/acquisition/startupTelemetry";
+import type { GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
+  Sigv4StructuralEvidence } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
 const STORAGE_API = "https://storage.googleapis.com";
@@ -30,11 +31,102 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   googleAuthStage(stage: GoogleAuthStage): void;
   googleAuthEvidence(key: GoogleAuthEvidenceKey): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
+  sigv4Evidence?(evidence: Sigv4StructuralEvidence): void;
   googleAuthStarting(): void;
   googleAuthInitialized(): void;
   controlStoreStarting(): void;
   controlStoreInitialized(): void;
 }>;
+
+const EXPECTED_AWS_REGION = "ap-northeast-1";
+const EXPECTED_AWS_STS_HOST = "sts.ap-northeast-1.amazonaws.com";
+export const SIGV4_FRESHNESS_TOLERANCE_MS = 5 * 60 * 1000;
+const unknownSigv4Evidence = (): Sigv4StructuralEvidence => ({
+  sigv4SessionTokenPresent: "UNKNOWN", sigv4ExpectedRegion: "UNKNOWN", sigv4ExpectedHost: "UNKNOWN",
+  sigv4AuthorizationPresent: "UNKNOWN", sigv4AmzDatePresent: "UNKNOWN",
+  sigv4SecurityTokenHeaderPresent: "UNKNOWN", sigv4SecurityTokenSigned: "UNKNOWN",
+  sigv4TargetResourcePresent: "UNKNOWN", sigv4TargetResourceMatchesAudience: "UNKNOWN",
+  sigv4TargetResourceSigned: "UNKNOWN", sigv4GetCallerIdentityRequestValid: "UNKNOWN",
+  sigv4TimestampFreshness: "UNKNOWN", sigv4SubjectTokenRoundTripValid: "UNKNOWN",
+});
+
+const formValue = (data: unknown, key: string): string | undefined => {
+  if (data instanceof URLSearchParams) return data.get(key) ?? undefined;
+  if (typeof data === "string") return new URLSearchParams(data).get(key) ?? undefined;
+  return undefined;
+};
+
+const parseAmzDate = (value: string | undefined): number | undefined => {
+  const match = value?.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+  if (!match) return undefined;
+  const parts = match.slice(1).map(Number);
+  const timestamp = Date.UTC(parts[0]!, parts[1]! - 1, parts[2]!, parts[3]!, parts[4]!, parts[5]!);
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+};
+
+export const projectSigv4SubjectToken = (
+  options: Pick<GaxiosOptions, "data">,
+  now = Date.now(),
+): Sigv4StructuralEvidence => {
+  const subjectToken = formValue(options.data, "subject_token");
+  if (!subjectToken) return Object.freeze(unknownSigv4Evidence());
+  const result = unknownSigv4Evidence();
+  let parsed: unknown;
+  try { parsed = JSON.parse(decodeURIComponent(subjectToken)); } catch {
+    return Object.freeze({ ...result, sigv4SubjectTokenRoundTripValid: "NO" });
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return Object.freeze({ ...result, sigv4SubjectTokenRoundTripValid: "NO" });
+  }
+  const token = parsed as Record<string, unknown>;
+  const exactShape = Object.keys(token).sort().join("\0") === ["headers", "method", "url"].sort().join("\0");
+  const headersInput = Array.isArray(token.headers) ? token.headers : [];
+  const validHeaders = headersInput.every((header) => header && typeof header === "object" && !Array.isArray(header)
+    && Object.keys(header).sort().join("\0") === "key\0value"
+    && typeof (header as Record<string, unknown>).key === "string"
+    && typeof (header as Record<string, unknown>).value === "string");
+  if (!exactShape || typeof token.url !== "string" || typeof token.method !== "string" || !validHeaders) {
+    return Object.freeze({ ...result, sigv4SubjectTokenRoundTripValid: "NO" });
+  }
+  let url: URL;
+  try { url = new URL(token.url); } catch {
+    return Object.freeze({ ...result, sigv4SubjectTokenRoundTripValid: "NO" });
+  }
+  const headers = new Map(headersInput.map((header) => {
+    const value = header as { key: string; value: string };
+    return [value.key.toLowerCase(), value.value] as const;
+  }));
+  const authorization = headers.get("authorization");
+  const signedHeaders = new Set(((authorization ?? "").match(/SignedHeaders=([^,\s]+)/)?.[1] ?? "").split(";").filter(Boolean));
+  const credential = (authorization ?? "").match(/Credential=[^/\s,]+\/\d{8}\/([^/\s,]+)\/([^/\s,]+)\/aws4_request/);
+  const amzDate = headers.get("x-amz-date");
+  const timestamp = parseAmzDate(amzDate);
+  const freshness = timestamp === undefined ? "UNKNOWN"
+    : timestamp < now - SIGV4_FRESHNESS_TOLERANCE_MS ? "STALE"
+      : timestamp > now + SIGV4_FRESHNESS_TOLERANCE_MS ? "FUTURE" : "FRESH";
+  const securityToken = headers.get("x-amz-security-token");
+  const targetResource = headers.get("x-goog-cloud-target-resource");
+  const expectedHost = url.hostname === EXPECTED_AWS_STS_HOST && headers.get("host") === EXPECTED_AWS_STS_HOST;
+  const expectedRegion = credential?.[1] === EXPECTED_AWS_REGION;
+  const expectedService = credential?.[2] === "sts";
+  const getCallerIdentity = token.method === "POST" && expectedHost && expectedRegion && expectedService
+    && url.searchParams.get("Action") === "GetCallerIdentity" && url.searchParams.get("Version") === "2011-06-15";
+  return Object.freeze({
+    sigv4SessionTokenPresent: securityToken ? "YES" : "NO",
+    sigv4ExpectedRegion: expectedRegion ? "YES" : "NO",
+    sigv4ExpectedHost: expectedHost ? "YES" : "NO",
+    sigv4AuthorizationPresent: authorization ? "YES" : "NO",
+    sigv4AmzDatePresent: amzDate ? "YES" : "NO",
+    sigv4SecurityTokenHeaderPresent: securityToken ? "YES" : "NO",
+    sigv4SecurityTokenSigned: signedHeaders.has("x-amz-security-token") ? "YES" : "NO",
+    sigv4TargetResourcePresent: targetResource ? "YES" : "NO",
+    sigv4TargetResourceMatchesAudience: targetResource && targetResource === formValue(options.data, "audience") ? "YES" : "NO",
+    sigv4TargetResourceSigned: signedHeaders.has("x-goog-cloud-target-resource") ? "YES" : "NO",
+    sigv4GetCallerIdentityRequestValid: getCallerIdentity ? "YES" : "NO",
+    sigv4TimestampFreshness: freshness,
+    sigv4SubjectTokenRoundTripValid: "YES",
+  });
+};
 
 export class AcquisitionControlAuthFailure extends Error {
   readonly code = "acquisition-control-auth-failed";
@@ -106,14 +198,15 @@ export const createGoogleAuthTelemetryTransporter = (
 ): Gaxios => {
   const request = transporter.request.bind(transporter);
   let gcpStsSucceeded = false;
-  transporter.request = (async <T>(options: GaxiosOptions) => {
+  transporter.request = (async (options: GaxiosOptions) => {
     const boundary = classifyGoogleAuthRequest(String(options.url ?? ""));
+    if (boundary?.stage === "GCP_STS_EXCHANGE") startup.sigv4Evidence?.(projectSigv4SubjectToken(options));
     if (boundary?.stage === "SERVICE_ACCOUNT_IMPERSONATION" && !gcpStsSucceeded) {
       startup.googleAuthEvidence("gcpStsExchangeSucceeded");
       gcpStsSucceeded = true;
     }
     if (boundary) startup.googleAuthStage(boundary.stage);
-    const response = await request<T>(options);
+    const response = await request(options);
     if (boundary) for (const key of boundary.success) {
       startup.googleAuthEvidence(key);
       if (key === "gcpStsExchangeSucceeded") gcpStsSucceeded = true;

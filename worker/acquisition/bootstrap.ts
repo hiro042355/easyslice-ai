@@ -15,6 +15,7 @@ const bootstrapFailure = Object.freeze({
   startupStage: "CONTAINER_BOOTSTRAP",
   googleAuthStage: "UNKNOWN",
   gcpStsFailureReason: "UNKNOWN",
+  sigv4TimestampFreshness: "UNKNOWN",
   startupFailureFamily: "ENTRY_MODULE_LOAD_FAILURE",
   runtimeDependenciesResolved: "UNKNOWN",
   controlAuthorityValidated: "UNKNOWN",
@@ -27,6 +28,18 @@ const bootstrapFailure = Object.freeze({
   awsRoleCredentialsAcquired: "UNKNOWN",
   gcpStsExchangeSucceeded: "UNKNOWN",
   serviceAccountImpersonationSucceeded: "UNKNOWN",
+  sigv4SessionTokenPresent: "UNKNOWN",
+  sigv4ExpectedRegion: "UNKNOWN",
+  sigv4ExpectedHost: "UNKNOWN",
+  sigv4AuthorizationPresent: "UNKNOWN",
+  sigv4AmzDatePresent: "UNKNOWN",
+  sigv4SecurityTokenHeaderPresent: "UNKNOWN",
+  sigv4SecurityTokenSigned: "UNKNOWN",
+  sigv4TargetResourcePresent: "UNKNOWN",
+  sigv4TargetResourceMatchesAudience: "UNKNOWN",
+  sigv4TargetResourceSigned: "UNKNOWN",
+  sigv4GetCallerIdentityRequestValid: "UNKNOWN",
+  sigv4SubjectTokenRoundTripValid: "UNKNOWN",
 });
 
 export const bootstrapAcquisitionWorker = async (

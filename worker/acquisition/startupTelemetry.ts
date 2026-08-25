@@ -22,6 +22,18 @@ export const GCP_STS_FAILURE_REASONS = [
   "STS_UNAVAILABLE", "STS_TIMEOUT", "UNKNOWN",
 ] as const;
 export type GcpStsFailureReason = typeof GCP_STS_FAILURE_REASONS[number];
+export const SIGV4_TIMESTAMP_FRESHNESS = ["FRESH", "STALE", "FUTURE", "UNKNOWN"] as const;
+export type Sigv4TimestampFreshness = typeof SIGV4_TIMESTAMP_FRESHNESS[number];
+export const SIGV4_EVIDENCE_KEYS = [
+  "sigv4SessionTokenPresent", "sigv4ExpectedRegion", "sigv4ExpectedHost",
+  "sigv4AuthorizationPresent", "sigv4AmzDatePresent", "sigv4SecurityTokenHeaderPresent",
+  "sigv4SecurityTokenSigned", "sigv4TargetResourcePresent", "sigv4TargetResourceMatchesAudience",
+  "sigv4TargetResourceSigned", "sigv4GetCallerIdentityRequestValid", "sigv4SubjectTokenRoundTripValid",
+] as const;
+export type Sigv4EvidenceKey = typeof SIGV4_EVIDENCE_KEYS[number];
+export type Sigv4StructuralEvidence = Readonly<Record<Sigv4EvidenceKey, StartupEvidence> & {
+  sigv4TimestampFreshness: Sigv4TimestampFreshness;
+}>;
 export const GOOGLE_AUTH_EVIDENCE_KEYS = [
   "imdsv2TokenAcquired", "awsRegionResolved", "awsRoleCredentialsAcquired",
   "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded",
@@ -45,11 +57,25 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
   awsRoleCredentialsAcquired: StartupEvidence;
   gcpStsExchangeSucceeded: StartupEvidence;
   serviceAccountImpersonationSucceeded: StartupEvidence;
+  sigv4SessionTokenPresent: StartupEvidence;
+  sigv4ExpectedRegion: StartupEvidence;
+  sigv4ExpectedHost: StartupEvidence;
+  sigv4AuthorizationPresent: StartupEvidence;
+  sigv4AmzDatePresent: StartupEvidence;
+  sigv4SecurityTokenHeaderPresent: StartupEvidence;
+  sigv4SecurityTokenSigned: StartupEvidence;
+  sigv4TargetResourcePresent: StartupEvidence;
+  sigv4TargetResourceMatchesAudience: StartupEvidence;
+  sigv4TargetResourceSigned: StartupEvidence;
+  sigv4GetCallerIdentityRequestValid: StartupEvidence;
+  sigv4TimestampFreshness: Sigv4TimestampFreshness;
+  sigv4SubjectTokenRoundTripValid: StartupEvidence;
 }>;
 
 const evidenceKeys = [
   "runtimeDependenciesResolved", "controlAuthorityValidated", "googleAuthInitialized",
   "controlStoreInitialized", "telemetryProxyInitialized", "httpListenerBound", ...GOOGLE_AUTH_EVIDENCE_KEYS,
+  ...SIGV4_EVIDENCE_KEYS,
 ] as const;
 type EvidenceKey = typeof evidenceKeys[number];
 const evidenceValues = new Set<StartupEvidence>(["YES", "NO", "UNKNOWN"]);
@@ -57,7 +83,9 @@ const stages = new Set<StartupStage>(STARTUP_STAGES);
 const families = new Set<StartupFailureFamily>(STARTUP_FAILURE_FAMILIES);
 const googleAuthStages = new Set<GoogleAuthStage>(GOOGLE_AUTH_STAGES);
 const gcpStsFailureReasons = new Set<GcpStsFailureReason>(GCP_STS_FAILURE_REASONS);
-const exactKeys = ["event", "startupStage", "startupFailureFamily", "googleAuthStage", "gcpStsFailureReason", ...evidenceKeys].sort();
+const sigv4TimestampFreshness = new Set<Sigv4TimestampFreshness>(SIGV4_TIMESTAMP_FRESHNESS);
+const exactKeys = ["event", "startupStage", "startupFailureFamily", "googleAuthStage", "gcpStsFailureReason",
+  "sigv4TimestampFreshness", ...evidenceKeys].sort();
 
 const familyForStage = (stage: StartupStage): StartupFailureFamily => ({
   CONTAINER_BOOTSTRAP: "ENTRY_MODULE_LOAD_FAILURE",
@@ -82,13 +110,24 @@ export class AcquisitionWorkerStartupTelemetry {
     telemetryProxyInitialized: "UNKNOWN", httpListenerBound: "UNKNOWN",
     imdsv2TokenAcquired: "UNKNOWN", awsRegionResolved: "UNKNOWN", awsRoleCredentialsAcquired: "UNKNOWN",
     gcpStsExchangeSucceeded: "UNKNOWN", serviceAccountImpersonationSucceeded: "UNKNOWN",
+    sigv4SessionTokenPresent: "UNKNOWN", sigv4ExpectedRegion: "UNKNOWN", sigv4ExpectedHost: "UNKNOWN",
+    sigv4AuthorizationPresent: "UNKNOWN", sigv4AmzDatePresent: "UNKNOWN",
+    sigv4SecurityTokenHeaderPresent: "UNKNOWN", sigv4SecurityTokenSigned: "UNKNOWN",
+    sigv4TargetResourcePresent: "UNKNOWN", sigv4TargetResourceMatchesAudience: "UNKNOWN",
+    sigv4TargetResourceSigned: "UNKNOWN", sigv4GetCallerIdentityRequestValid: "UNKNOWN",
+    sigv4SubjectTokenRoundTripValid: "UNKNOWN",
   };
+  private sigv4TimestampFreshness: Sigv4TimestampFreshness = "UNKNOWN";
 
   enter(stage: Exclude<StartupStage, "READY">): void { this.stage = stage; }
   prove(key: EvidenceKey): void { this.evidence[key] = "YES"; }
   enterGoogleAuth(stage: GoogleAuthStage): void { this.googleAuthStage = stage; }
   proveGoogleAuth(key: GoogleAuthEvidenceKey): void { this.evidence[key] = "YES"; }
   failGcpSts(reason: GcpStsFailureReason): void { this.gcpStsFailureReason = reason; }
+  observeSigv4(value: Sigv4StructuralEvidence): void {
+    for (const key of SIGV4_EVIDENCE_KEYS) this.evidence[key] = value[key];
+    this.sigv4TimestampFreshness = value.sigv4TimestampFreshness;
+  }
 
   failure(): AcquisitionWorkerStartupEvent {
     const failedKey: Partial<Record<StartupStage, EvidenceKey>> = {
@@ -109,6 +148,7 @@ export class AcquisitionWorkerStartupTelemetry {
     }
     return Object.freeze({ event: "acquisition-worker-startup", startupStage: this.stage, googleAuthStage: this.googleAuthStage,
       gcpStsFailureReason: this.gcpStsFailureReason,
+      sigv4TimestampFreshness: this.sigv4TimestampFreshness,
       startupFailureFamily: familyForStage(this.stage), ...this.evidence });
   }
 
@@ -117,13 +157,14 @@ export class AcquisitionWorkerStartupTelemetry {
     this.googleAuthStage = "READY";
     return Object.freeze({ event: "acquisition-worker-startup", startupStage: "READY", googleAuthStage: "READY",
       gcpStsFailureReason: "UNKNOWN",
+      sigv4TimestampFreshness: this.sigv4TimestampFreshness,
       startupFailureFamily: null, ...this.evidence });
   }
 }
 
 export type AcquisitionWorkerStartupTelemetrySink = Pick<
   AcquisitionWorkerStartupTelemetry,
-  "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "failGcpSts" | "failure" | "ready"
+  "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "failGcpSts" | "observeSigv4" | "failure" | "ready"
 >;
 
 export const validateAcquisitionWorkerStartupEvent = (input: unknown): AcquisitionWorkerStartupEvent => {
@@ -133,6 +174,7 @@ export const validateAcquisitionWorkerStartupEvent = (input: unknown): Acquisiti
     || value.event !== "acquisition-worker-startup" || !stages.has(value.startupStage as StartupStage)
     || !googleAuthStages.has(value.googleAuthStage as GoogleAuthStage)
     || !gcpStsFailureReasons.has(value.gcpStsFailureReason as GcpStsFailureReason)
+    || !sigv4TimestampFreshness.has(value.sigv4TimestampFreshness as Sigv4TimestampFreshness)
     || (value.startupFailureFamily !== null && !families.has(value.startupFailureFamily as StartupFailureFamily))
     || evidenceKeys.some((key) => !evidenceValues.has(value[key] as StartupEvidence))
     || (value.startupStage === "READY") !== (value.startupFailureFamily === null)) {

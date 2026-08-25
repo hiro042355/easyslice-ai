@@ -92,15 +92,36 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.equal(event.runtimeDependenciesResolved, "UNKNOWN");
   assert.equal(event.googleAuthStage, "UNKNOWN");
   assert.equal(event.gcpStsFailureReason, "UNKNOWN");
+  assert.equal(event.sigv4TimestampFreshness, "UNKNOWN");
+  assert.equal(event.sigv4ExpectedRegion, "UNKNOWN");
   assert.equal(event.imdsv2TokenAcquired, "UNKNOWN");
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, startupStage: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, startupFailureFamily: "token rejected" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, googleAuthStage: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, gcpStsFailureReason: "raw-error" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4TimestampFreshness: "MAYBE" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4ExpectedRegion: "MAYBE" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, runtimeDependenciesResolved: "MAYBE" }));
   const missing = Object.fromEntries(Object.entries(event).filter(([key]) => key !== "httpListenerBound"));
   assert.throws(() => validateAcquisitionWorkerStartupEvent(missing));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, stderr: "forbidden" }));
+});
+
+test("closed SigV4 structure is copied into the exact startup event without arbitrary authority", () => {
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.observeSigv4({
+    sigv4SessionTokenPresent: "YES", sigv4ExpectedRegion: "YES", sigv4ExpectedHost: "YES",
+    sigv4AuthorizationPresent: "YES", sigv4AmzDatePresent: "YES",
+    sigv4SecurityTokenHeaderPresent: "YES", sigv4SecurityTokenSigned: "YES",
+    sigv4TargetResourcePresent: "YES", sigv4TargetResourceMatchesAudience: "YES",
+    sigv4TargetResourceSigned: "NO", sigv4GetCallerIdentityRequestValid: "YES",
+    sigv4TimestampFreshness: "FRESH", sigv4SubjectTokenRoundTripValid: "YES",
+  });
+  const event = telemetry.failure();
+  assert.equal(event.sigv4TargetResourceSigned, "NO");
+  assert.equal(event.sigv4TimestampFreshness, "FRESH");
+  assert.deepEqual(validateAcquisitionWorkerStartupEvent(event), event);
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4ExpectedHost: "raw-host" }));
 });
 
 test("failed GoogleAuth substage marks only its corresponding closed evidence NO", () => {
@@ -152,7 +173,7 @@ test("startup projection and readiness capture contain no secret, URL, header, o
   const bootstrap = await readFile("worker/acquisition/bootstrap.ts", "utf8");
   const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
   const event = JSON.stringify(new AcquisitionWorkerStartupTelemetry().failure());
-  assert.doesNotMatch(event, /AKIA|SECRET|Bearer |Authorization|https?:|stdout|stderr|private\/|commandLine/i);
+  assert.doesNotMatch(event, /AKIA|SECRET|Bearer |https?:|stdout|stderr|private\/|commandLine/i);
   assert.doesNotMatch(implementation, /error\.message|error\.stack|String\(error\)|rawStd|rawErr/i);
   assert.doesNotMatch(main, /JSON\.stringify\([^)]*error|console\.(?:error|info)\(error/);
   assert.doesNotMatch(bootstrap, /error\.message|error\.stack|String\(error\)|console\.error\([^)]*error/);
