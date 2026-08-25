@@ -47,10 +47,10 @@ variable "gcp_project_id" {
 
 variable "worker_image" {
   type    = string
-  default = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:b82eb754f84050c7b8843d8e29ff65ea6f6ce42f26379d7e510fbdfc97a77fe8"
+  default = "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:395b7666e5f6ac417da221ae738da4fd7e3d22444f03fd1baff7f8555f4142ae"
 
   validation {
-    condition     = var.worker_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:b82eb754f84050c7b8843d8e29ff65ea6f6ce42f26379d7e510fbdfc97a77fe8"
+    condition     = var.worker_image == "asia-northeast1-docker.pkg.dev/nexcut-prod-jp-2026/nexcut-production/nexcut-acquisition-worker@sha256:395b7666e5f6ac417da221ae738da4fd7e3d22444f03fd1baff7f8555f4142ae"
     error_message = "The AWS host must use the approved immutable Worker digest."
   }
 }
