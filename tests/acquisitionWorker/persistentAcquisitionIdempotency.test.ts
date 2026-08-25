@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { createServer } from "node:http";
 import test from "node:test";
+import { AwsClient } from "google-auth-library";
 import { Gaxios, type GaxiosOptions } from "gaxios";
 import {
   ACQUISITION_CONTROL_PREFIX,
@@ -261,9 +263,26 @@ test("GoogleAuth transporter maps only fixed credential boundaries and proves su
   ];
   for (const url of urls) await transporter.request({ url } as GaxiosOptions);
   assert.deepEqual(stages, ["IMDSV2_TOKEN", "AWS_REGION_DISCOVERY", "AWS_ROLE_CREDENTIAL_FETCH",
-    "AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE", "SERVICE_ACCOUNT_IMPERSONATION"]);
+    "AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE", "GCP_STS_EXCHANGE", "SERVICE_ACCOUNT_IMPERSONATION"]);
   assert.deepEqual(evidence, ["imdsv2TokenAcquired", "awsRegionResolved", "awsRoleCredentialsAcquired",
     "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded"]);
+});
+
+test("successful AWS role credential retrieval advances the closed stage before STS transition", async () => {
+  const stages: GoogleAuthStage[] = [];
+  const evidence: GoogleAuthEvidenceKey[] = [];
+  const base = new Gaxios();
+  base.request = (async () => ({ data: {}, status: 200, statusText: "OK", headers: new Headers(), config: {} })) as typeof base.request;
+  const transporter = createGoogleAuthTelemetryTransporter({
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {},
+    googleAuthStage: (stage) => stages.push(stage), googleAuthEvidence: (key) => evidence.push(key),
+  }, base);
+  await transporter.request({
+    url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role",
+  } as GaxiosOptions);
+  assert.deepEqual(evidence, ["awsRoleCredentialsAcquired"]);
+  assert.deepEqual(stages, ["AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE"]);
 });
 
 test("GoogleAuth transporter retains failed boundary without raw error projection", async () => {
@@ -279,6 +298,50 @@ test("GoogleAuth transporter retains failed boundary without raw error projectio
   await assert.rejects(transporter.request({ url: "https://sts.googleapis.com/v1/token" }));
   assert.deepEqual(stages, ["GCP_STS_EXCHANGE"]);
   assert.deepEqual(evidence, []);
+});
+
+test("synthetic AWS SigV4 subject token proceeds through STS and impersonation without real credentials", async () => {
+  const reached: string[] = [];
+  const server = createServer((request, response) => {
+    if (request.url === "/sts") {
+      reached.push("STS");
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ access_token: "closed-federated", issued_token_type: "urn:ietf:params:oauth:token-type:access_token",
+        token_type: "Bearer", expires_in: 300 }));
+      return;
+    }
+    if (request.url?.endsWith(":generateAccessToken")) {
+      reached.push("IMPERSONATION");
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ accessToken: "closed-impersonated", expireTime: "2099-01-01T00:00:00Z" }));
+      return;
+    }
+    response.writeHead(404).end();
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === "object");
+    const client = new AwsClient({
+      audience: "//iam.googleapis.com/projects/566365202495/locations/global/workloadIdentityPools/closed/providers/closed",
+      subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+      token_url: `http://127.0.0.1:${address.port}/sts`,
+      service_account_impersonation_url: `http://127.0.0.1:${address.port}/v1/projects/-/serviceAccounts/closed:generateAccessToken`,
+      aws_security_credentials_supplier: {
+        getAwsRegion: async () => "ap-northeast-1",
+        getAwsSecurityCredentials: async () => ({ accessKeyId: "CLOSEDACCESS", secretAccessKey: "closed-signing-material",
+          token: "closed-session-material" }),
+      },
+      scopes: ["https://www.googleapis.com/auth/devstorage.read_write"],
+    });
+    const subject = await client.retrieveSubjectToken();
+    assert.equal(subject.length > 0, true);
+    const result = await client.getAccessToken();
+    assert.equal(typeof result.token, "string");
+    assert.deepEqual(reached, ["STS", "IMPERSONATION"]);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
 });
 
 test("host-portable control-store composition accepts Production and experiment shapes without cloud calls", async () => {

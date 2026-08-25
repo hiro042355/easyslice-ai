@@ -87,6 +87,9 @@ export const createGoogleAuthTelemetryTransporter = (
     if (boundary) startup.googleAuthStage(boundary.stage);
     const response = await request<T>(options);
     if (boundary) for (const key of boundary.success) startup.googleAuthEvidence(key);
+    if (boundary?.success.includes("awsRoleCredentialsAcquired")) {
+      startup.googleAuthStage("GCP_STS_EXCHANGE");
+    }
     return response;
   }) as typeof transporter.request;
   return transporter;
