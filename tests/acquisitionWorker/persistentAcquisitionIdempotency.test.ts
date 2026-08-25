@@ -16,6 +16,7 @@ import { AcquisitionWorkerFailure, type AcquisitionResult } from "../../lib/serv
 import {
   AcquisitionControlAuthFailure,
   GcsAcquisitionControlObjectStore,
+  classifyGcpStsFailure,
   createAdcAccessTokenSupplier,
   createAcquisitionControlStore,
   createGoogleAuthTelemetryTransporter,
@@ -298,6 +299,43 @@ test("GoogleAuth transporter retains failed boundary without raw error projectio
   await assert.rejects(transporter.request({ url: "https://sts.googleapis.com/v1/token" }));
   assert.deepEqual(stages, ["GCP_STS_EXCHANGE"]);
   assert.deepEqual(evidence, []);
+});
+
+test("GCP STS failures use only the closed structured classifier", () => {
+  const structured = (status: number, error?: unknown) => ({
+    response: { status, data: error === undefined ? {} : { error, error_description: "must-not-project" } },
+    message: "must-not-project", stack: "must-not-project", headers: { authorization: "must-not-project" },
+  });
+  assert.equal(classifyGcpStsFailure(structured(400, "invalid_target")), "INVALID_AUDIENCE");
+  assert.equal(classifyGcpStsFailure(structured(400, "invalid_grant")), "SUBJECT_TOKEN_REJECTED");
+  assert.equal(classifyGcpStsFailure(structured(400, "access_denied")), "STS_PERMISSION_DENIED");
+  assert.equal(classifyGcpStsFailure(structured(403, "arbitrary")), "STS_PERMISSION_DENIED");
+  assert.equal(classifyGcpStsFailure(structured(500)), "STS_UNAVAILABLE");
+  assert.equal(classifyGcpStsFailure(structured(503, "server_error")), "STS_UNAVAILABLE");
+  assert.equal(classifyGcpStsFailure({ code: "ETIMEDOUT", message: "must-not-project" }), "STS_TIMEOUT");
+  assert.equal(classifyGcpStsFailure(structured(400, "arbitrary_oauth_code")), "UNKNOWN");
+  assert.equal(classifyGcpStsFailure({ response: { status: "403", data: { error: 7 } } }), "UNKNOWN");
+  assert.equal(classifyGcpStsFailure({ code: "ECONNRESET" }), "UNKNOWN");
+  assert.equal(classifyGcpStsFailure(undefined), "UNKNOWN");
+});
+
+test("ADC failure callback observes structured failure while preserving the sanitized auth contract", async () => {
+  const observed: unknown[] = [];
+  const raw = { response: { status: 403, data: { error: "access_denied", error_description: "private" } } };
+  const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({ getAccessToken: async () => { throw raw; } }) },
+    (error) => observed.push(classifyGcpStsFailure(error)));
+  await assert.rejects(supplier.getAccessToken(), (error) => error instanceof AcquisitionControlAuthFailure
+    && error.message === "acquisition-control-auth-failed");
+  assert.deepEqual(observed, ["STS_PERMISSION_DENIED"]);
+  assert.doesNotMatch(JSON.stringify(observed), /private|access_denied|403/);
+});
+
+test("successful ADC token acquisition does not emit a failure classification", async () => {
+  let failures = 0;
+  const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({ getAccessToken: async () => ({ token: "memory-only" }) }) },
+    () => { failures += 1; });
+  assert.equal(await supplier.getAccessToken(), "memory-only");
+  assert.equal(failures, 0);
 });
 
 test("synthetic AWS SigV4 subject token proceeds through STS and impersonation without real credentials", async () => {

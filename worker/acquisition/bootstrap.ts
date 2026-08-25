@@ -14,6 +14,7 @@ const bootstrapFailure = Object.freeze({
   event: "acquisition-worker-startup",
   startupStage: "CONTAINER_BOOTSTRAP",
   googleAuthStage: "UNKNOWN",
+  gcpStsFailureReason: "UNKNOWN",
   startupFailureFamily: "ENTRY_MODULE_LOAD_FAILURE",
   runtimeDependenciesResolved: "UNKNOWN",
   controlAuthorityValidated: "UNKNOWN",

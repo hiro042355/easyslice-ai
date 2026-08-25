@@ -7,7 +7,7 @@ import {
 import { readFile } from "node:fs/promises";
 import { GoogleAuth } from "google-auth-library";
 import { Gaxios, type GaxiosOptions } from "gaxios";
-import type { GoogleAuthEvidenceKey, GoogleAuthStage } from "../../../worker/acquisition/startupTelemetry";
+import type { GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
 const STORAGE_API = "https://storage.googleapis.com";
@@ -29,6 +29,7 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   controlAuthorityValidated(): void;
   googleAuthStage(stage: GoogleAuthStage): void;
   googleAuthEvidence(key: GoogleAuthEvidenceKey): void;
+  gcpStsFailure?(reason: GcpStsFailureReason): void;
   googleAuthStarting(): void;
   googleAuthInitialized(): void;
   controlStoreStarting(): void;
@@ -42,6 +43,28 @@ export class AcquisitionControlAuthFailure extends Error {
     this.name = "AcquisitionControlAuthFailure";
   }
 }
+
+const fixedString = (value: unknown): string | undefined => typeof value === "string" ? value : undefined;
+
+export const classifyGcpStsFailure = (error: unknown): GcpStsFailureReason => {
+  if (!error || typeof error !== "object") return "UNKNOWN";
+  const value = error as Readonly<{ code?: unknown; response?: unknown }>;
+  const code = fixedString(value.code);
+  if (code === "ETIMEDOUT" || code === "ESOCKETTIMEDOUT" || code === "ECONNABORTED") return "STS_TIMEOUT";
+  if (!value.response || typeof value.response !== "object") return "UNKNOWN";
+  const response = value.response as Readonly<{ status?: unknown; data?: unknown }>;
+  const data = response.data && typeof response.data === "object"
+    ? response.data as Readonly<{ error?: unknown }> : undefined;
+  const oauthCode = fixedString(data?.error);
+  if (oauthCode === "invalid_target") return "INVALID_AUDIENCE";
+  if (oauthCode === "invalid_grant") return "SUBJECT_TOKEN_REJECTED";
+  if (oauthCode === "access_denied" || response.status === 403) return "STS_PERMISSION_DENIED";
+  if (oauthCode === "server_error" || oauthCode === "temporarily_unavailable"
+    || (typeof response.status === "number" && response.status >= 500 && response.status <= 599)) {
+    return "STS_UNAVAILABLE";
+  }
+  return "UNKNOWN";
+};
 
 const exactObject = (name: string, prefix: typeof ACQUISITION_CONTROL_PREFIX): string => {
   if (prefix !== ACQUISITION_CONTROL_PREFIX || !name.startsWith(prefix) || name.includes("..") || name.includes("\\")) {
@@ -82,11 +105,19 @@ export const createGoogleAuthTelemetryTransporter = (
   transporter: Gaxios = new Gaxios(),
 ): Gaxios => {
   const request = transporter.request.bind(transporter);
+  let gcpStsSucceeded = false;
   transporter.request = (async <T>(options: GaxiosOptions) => {
     const boundary = classifyGoogleAuthRequest(String(options.url ?? ""));
+    if (boundary?.stage === "SERVICE_ACCOUNT_IMPERSONATION" && !gcpStsSucceeded) {
+      startup.googleAuthEvidence("gcpStsExchangeSucceeded");
+      gcpStsSucceeded = true;
+    }
     if (boundary) startup.googleAuthStage(boundary.stage);
     const response = await request<T>(options);
-    if (boundary) for (const key of boundary.success) startup.googleAuthEvidence(key);
+    if (boundary) for (const key of boundary.success) {
+      startup.googleAuthEvidence(key);
+      if (key === "gcpStsExchangeSucceeded") gcpStsSucceeded = true;
+    }
     if (boundary?.success.includes("awsRoleCredentialsAcquired")) {
       startup.googleAuthStage("GCP_STS_EXCHANGE");
     }
@@ -144,6 +175,7 @@ export const validateGoogleCredentialPolicy = async (
 
 export const createAdcAccessTokenSupplier = (
   auth: GoogleAuthFactory = new GoogleAuth({ scopes: [STORAGE_SCOPE] }) as GoogleAuthFactory,
+  onFailure?: (error: unknown) => void,
 ): GoogleAccessTokenSupplier => ({
   async getAccessToken(signal?: AbortSignal) {
     if (signal?.aborted) throw new AcquisitionControlAuthFailure();
@@ -159,7 +191,8 @@ export const createAdcAccessTokenSupplier = (
         : await operation;
       if (typeof response.token !== "string" || response.token.length === 0) throw failure();
       return response.token;
-    } catch {
+    } catch (error) {
+      onFailure?.(error);
       throw failure();
     } finally {
       if (onAbort) signal?.removeEventListener("abort", onAbort);
@@ -175,18 +208,32 @@ export const createAcquisitionControlStore = async (
   startup?: AcquisitionControlStoreStartupObserver,
 ): Promise<GcsAcquisitionControlObjectStore> => {
   const configuration = readAcquisitionControlConfiguration(environment);
-  startup?.controlAuthorityValidated();
-  await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration, startup);
-  startup?.googleAuthStarting();
+  const currentGoogleAuth = { stage: "UNKNOWN" as GoogleAuthStage };
+  const observedStartup: AcquisitionControlStoreStartupObserver | undefined = startup ? {
+    controlAuthorityValidated: () => startup.controlAuthorityValidated(),
+    googleAuthStage: (stage) => { currentGoogleAuth.stage = stage; startup.googleAuthStage(stage); },
+    googleAuthEvidence: (key) => startup.googleAuthEvidence(key),
+    gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
+    googleAuthStarting: () => startup.googleAuthStarting(),
+    googleAuthInitialized: () => startup.googleAuthInitialized(),
+    controlStoreStarting: () => startup.controlStoreStarting(),
+    controlStoreInitialized: () => startup.controlStoreInitialized(),
+  } : undefined;
+  observedStartup?.controlAuthorityValidated();
+  await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration, observedStartup);
+  observedStartup?.googleAuthStarting();
   const resolvedAuth = auth ?? new GoogleAuth({ scopes: [STORAGE_SCOPE],
-    clientOptions: startup ? { transporter: createGoogleAuthTelemetryTransporter(startup) } : undefined }) as GoogleAuthFactory;
-  const token = createAdcAccessTokenSupplier(resolvedAuth);
+    clientOptions: observedStartup ? { transporter: createGoogleAuthTelemetryTransporter(observedStartup) } : undefined }) as GoogleAuthFactory;
+  const token = createAdcAccessTokenSupplier(resolvedAuth, (error) => {
+    if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.gcpStsFailure?.(classifyGcpStsFailure(error));
+  });
   await token.getAccessToken();
-  startup?.googleAuthStage("READY");
-  startup?.googleAuthInitialized();
-  startup?.controlStoreStarting();
+  if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.googleAuthEvidence("gcpStsExchangeSucceeded");
+  observedStartup?.googleAuthStage("READY");
+  observedStartup?.googleAuthInitialized();
+  observedStartup?.controlStoreStarting();
   const store = new GcsAcquisitionControlObjectStore(configuration, token, fetchImpl);
-  startup?.controlStoreInitialized();
+  observedStartup?.controlStoreInitialized();
   return store;
 };
 
