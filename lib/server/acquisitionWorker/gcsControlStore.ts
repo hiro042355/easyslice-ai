@@ -307,6 +307,7 @@ export const createAcquisitionControlStore = async (
     googleAuthStage: (stage) => { currentGoogleAuth.stage = stage; startup.googleAuthStage(stage); },
     googleAuthEvidence: (key) => startup.googleAuthEvidence(key),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
+    sigv4Evidence: (evidence) => startup.sigv4Evidence?.(evidence),
     googleAuthStarting: () => startup.googleAuthStarting(),
     googleAuthInitialized: () => startup.googleAuthInitialized(),
     controlStoreStarting: () => startup.controlStoreStarting(),

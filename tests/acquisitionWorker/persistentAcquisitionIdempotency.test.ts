@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import test from "node:test";
 import { AwsClient } from "google-auth-library";
@@ -299,6 +300,55 @@ test("GoogleAuth transporter retains failed boundary without raw error projectio
   await assert.rejects(transporter.request({ url: "https://sts.googleapis.com/v1/token" }));
   assert.deepEqual(stages, ["GCP_STS_EXCHANGE"]);
   assert.deepEqual(evidence, []);
+});
+
+test("control-store wrapper forwards closed SigV4 evidence before synthetic STS rejection", async () => {
+  const source = readFileSync("lib/server/acquisitionWorker/gcsControlStore.ts", "utf8");
+  assert.match(source, /const observedStartup:[\s\S]*sigv4Evidence: \(evidence\) => startup\.sigv4Evidence\?\.\(evidence\)/);
+
+  const audience = "//iam.googleapis.com/projects/0/locations/global/workloadIdentityPools/closed/providers/closed";
+  const date = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const marker = "must-not-persist";
+  const subjectToken = encodeURIComponent(JSON.stringify({
+    url: "https://sts.ap-northeast-1.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
+    method: "POST",
+    headers: [
+      { key: "authorization", value: `AWS4-HMAC-SHA256 Credential=${marker}/20260825/ap-northeast-1/sts/aws4_request, SignedHeaders=host;x-amz-date;x-amz-security-token, Signature=${marker}` },
+      { key: "host", value: "sts.ap-northeast-1.amazonaws.com" },
+      { key: "x-amz-date", value: date },
+      { key: "x-amz-security-token", value: marker },
+      { key: "x-goog-cloud-target-resource", value: audience },
+    ],
+  }));
+  const order: string[] = [];
+  let retained: Record<string, string> | undefined;
+  const base = new Gaxios();
+  base.request = (async () => {
+    order.push("request");
+    throw { response: { status: 400, data: { error: "invalid_grant" } } };
+  }) as typeof base.request;
+  const transporter = createGoogleAuthTelemetryTransporter({
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    sigv4Evidence: (evidence) => { order.push("sigv4"); retained = evidence as unknown as Record<string, string>; },
+  }, base);
+  let failureReason = "UNKNOWN";
+  await assert.rejects(transporter.request({
+    url: "https://sts.googleapis.com/v1/token", method: "POST",
+    data: new URLSearchParams({ audience, subject_token: subjectToken }).toString(),
+  } as GaxiosOptions), (error: unknown) => {
+    order.push("failure");
+    failureReason = classifyGcpStsFailure(error);
+    return true;
+  });
+
+  assert.deepEqual(order, ["sigv4", "request", "failure"]);
+  assert.equal(failureReason, "SUBJECT_TOKEN_REJECTED");
+  assert.ok(retained);
+  assert.equal(Object.keys(retained).length, 13);
+  assert.equal(Object.values(retained).some((value) => value !== "UNKNOWN"), true);
+  assert.equal(JSON.stringify({ retained, failureReason }).includes(marker), false);
+  assert.equal(JSON.stringify({ retained, failureReason }).includes(subjectToken), false);
 });
 
 test("GCP STS failures use only the closed structured classifier", () => {
