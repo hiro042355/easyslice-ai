@@ -16,6 +16,8 @@ const bootstrapFailure = Object.freeze({
   googleAuthStage: "UNKNOWN",
   gcpStsFailureReason: "UNKNOWN",
   imdsv2RoleCredentialPayloadShape: "UNKNOWN",
+  outerAccessTokenProgress: "UNKNOWN",
+  outerTokenResultShape: "UNKNOWN",
   sigv4TimestampFreshness: "UNKNOWN",
   startupFailureFamily: "ENTRY_MODULE_LOAD_FAILURE",
   runtimeDependenciesResolved: "UNKNOWN",

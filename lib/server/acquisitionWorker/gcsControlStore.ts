@@ -9,7 +9,7 @@ import { GoogleAuth } from "google-auth-library";
 import { StsCredentials } from "google-auth-library/build/src/auth/stscredentials";
 import { Gaxios, type GaxiosOptions } from "gaxios";
 import type { AwsSessionTokenBoundaryKey, GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
-  Imdsv2RoleCredentialPayloadShape, Sigv4StructuralEvidence,
+  Imdsv2RoleCredentialPayloadShape, OuterAccessTokenProgress, OuterTokenResultShape, Sigv4StructuralEvidence,
   StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
@@ -35,6 +35,7 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   googleAuthBoundaryEvidence?(key: GoogleAuthEvidenceKey, value: StartupEvidence): void;
   sessionTokenBoundaryEvidence?(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void;
   imdsv2PayloadShape?(value: Imdsv2RoleCredentialPayloadShape): void;
+  outerAccessTokenBoundary?(progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
   sigv4Evidence?(evidence: Sigv4StructuralEvidence): void;
   googleAuthStarting(): void;
@@ -442,6 +443,7 @@ export const createAdcAccessTokenSupplier = (
   auth: GoogleAuthFactory = new GoogleAuth({ scopes: [STORAGE_SCOPE] }) as GoogleAuthFactory,
   onFailure?: (error: unknown) => void,
   observe?: (key: GoogleAuthEvidenceKey, value: StartupEvidence) => void,
+  observeOuter?: (progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape) => void,
 ): GoogleAccessTokenSupplier => ({
   async getAccessToken(signal?: AbortSignal) {
     if (signal?.aborted) throw new AcquisitionControlAuthFailure();
@@ -454,13 +456,21 @@ export const createAdcAccessTokenSupplier = (
           onAbort = () => reject(failure());
           signal.addEventListener("abort", onAbort, { once: true });
         })])
-        : await operation;
-      if (typeof response.token !== "string" || response.token.length === 0) {
+       : await operation;
+      const shape: OuterTokenResultShape = response === null || response === undefined
+        ? "NULLISH" : typeof response === "object" ? "OBJECT" : "OTHER";
+      observeOuter?.("OUTER_TOKEN_RESULT_RECEIVED", shape);
+      const tokenType = typeof response.token;
+      observeOuter?.("TOKEN_PROPERTY_READ");
+      if (tokenType !== "string" || (response.token as string).length === 0) {
+        observeOuter?.("ACCEPTANCE_OBSERVER");
         observe?.("accessTokenAccepted", "NO");
         throw failure();
       }
+      observeOuter?.("ACCEPTANCE_OBSERVER");
       observe?.("accessTokenAccepted", "YES");
-      return response.token;
+      observeOuter?.("TOKEN_RETURN");
+      return response.token as string;
     } catch (error) {
       onFailure?.(error);
       throw failure();
@@ -486,6 +496,7 @@ export const createAcquisitionControlStore = async (
     googleAuthBoundaryEvidence: (key, value) => startup.googleAuthBoundaryEvidence?.(key, value),
     sessionTokenBoundaryEvidence: (key, value) => startup.sessionTokenBoundaryEvidence?.(key, value),
     imdsv2PayloadShape: (value) => startup.imdsv2PayloadShape?.(value),
+    outerAccessTokenBoundary: (progress, shape) => startup.outerAccessTokenBoundary?.(progress, shape),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
     sigv4Evidence: (evidence) => startup.sigv4Evidence?.(evidence),
     googleAuthStarting: () => startup.googleAuthStarting(),
@@ -500,7 +511,8 @@ export const createAcquisitionControlStore = async (
     : new GoogleAuth({ scopes: [STORAGE_SCOPE] })) as GoogleAuthFactory;
   const token = createAdcAccessTokenSupplier(resolvedAuth, (error) => {
     if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.gcpStsFailure?.(classifyGcpStsFailure(error));
-  }, (key, value) => observedStartup?.googleAuthBoundaryEvidence?.(key, value));
+  }, (key, value) => observedStartup?.googleAuthBoundaryEvidence?.(key, value),
+  (progress, shape) => observedStartup?.outerAccessTokenBoundary?.(progress, shape));
   await token.getAccessToken();
   if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.googleAuthEvidence("gcpStsExchangeSucceeded");
   observedStartup?.googleAuthStage("READY");

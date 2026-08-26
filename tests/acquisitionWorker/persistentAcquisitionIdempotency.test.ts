@@ -27,7 +27,8 @@ import {
   validateGoogleCredentialPolicy,
 } from "../../lib/server/acquisitionWorker/gcsControlStore";
 import { AcquisitionWorkerStartupTelemetry, type AwsSessionTokenBoundaryKey,
-  type GoogleAuthEvidenceKey, type GoogleAuthStage, type StartupEvidence } from "../../worker/acquisition/startupTelemetry";
+  type GoogleAuthEvidenceKey, type GoogleAuthStage, type OuterAccessTokenProgress,
+  type OuterTokenResultShape, type StartupEvidence } from "../../worker/acquisition/startupTelemetry";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const ID2 = "223e4567-e89b-42d3-a456-426614174000";
@@ -310,6 +311,49 @@ test("access-token observation preserves call count and closed acceptance eviden
     assert.equal(calls, 1);
     assert.deepEqual(observed, [["accessTokenAccepted", expected]]);
   }
+});
+
+test("outer access-token boundary retains exact closed progress and result shape", async () => {
+  const cases: ReadonlyArray<Readonly<{
+    name: string; result: unknown; progress: OuterAccessTokenProgress; shape: OuterTokenResultShape; succeeds: boolean;
+  }>> = [
+    { name: "valid", result: { token: "synthetic" }, progress: "TOKEN_RETURN", shape: "OBJECT", succeeds: true },
+    { name: "empty", result: { token: "" }, progress: "ACCEPTANCE_OBSERVER", shape: "OBJECT", succeeds: false },
+    { name: "missing", result: {}, progress: "ACCEPTANCE_OBSERVER", shape: "OBJECT", succeeds: false },
+    { name: "null-token", result: { token: null }, progress: "ACCEPTANCE_OBSERVER", shape: "OBJECT", succeeds: false },
+    { name: "non-string", result: { token: 7 }, progress: "ACCEPTANCE_OBSERVER", shape: "OBJECT", succeeds: false },
+    { name: "null-result", result: null, progress: "OUTER_TOKEN_RESULT_RECEIVED", shape: "NULLISH", succeeds: false },
+    { name: "undefined-result", result: undefined, progress: "OUTER_TOKEN_RESULT_RECEIVED", shape: "NULLISH", succeeds: false },
+    { name: "primitive-result", result: 7, progress: "ACCEPTANCE_OBSERVER", shape: "OTHER", succeeds: false },
+  ];
+  for (const entry of cases) {
+    const observed: Array<readonly [OuterAccessTokenProgress, OuterTokenResultShape | undefined]> = [];
+    const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({
+      getAccessToken: async () => entry.result,
+    }) } as never, undefined, undefined, (progress, shape) => observed.push([progress, shape]));
+    if (entry.succeeds) assert.equal(await supplier.getAccessToken(), "synthetic", entry.name);
+    else await assert.rejects(supplier.getAccessToken(), AcquisitionControlAuthFailure, entry.name);
+    assert.equal(observed.at(-1)?.[0], entry.progress, entry.name);
+    assert.equal(observed[0]?.[1], entry.shape, entry.name);
+  }
+});
+
+test("outer access-token boundary retains the last completed substage across throwing boundaries", async () => {
+  const getterProgress: OuterAccessTokenProgress[] = [];
+  const throwing = Object.defineProperty({}, "token", { get() { throw new Error("synthetic"); } });
+  const getterSupplier = createAdcAccessTokenSupplier({ getClient: async () => ({
+    getAccessToken: async () => throwing,
+  }) } as never, undefined, undefined, (progress) => getterProgress.push(progress));
+  await assert.rejects(getterSupplier.getAccessToken(), AcquisitionControlAuthFailure);
+  assert.deepEqual(getterProgress, ["OUTER_TOKEN_RESULT_RECEIVED"]);
+
+  const observerProgress: OuterAccessTokenProgress[] = [];
+  const observerSupplier = createAdcAccessTokenSupplier({ getClient: async () => ({
+    getAccessToken: async () => ({ token: "synthetic" }),
+  }) }, undefined, () => { throw new Error("synthetic observer failure"); },
+  (progress) => observerProgress.push(progress));
+  await assert.rejects(observerSupplier.getAccessToken(), AcquisitionControlAuthFailure);
+  assert.deepEqual(observerProgress, ["OUTER_TOKEN_RESULT_RECEIVED", "TOKEN_PROPERTY_READ", "ACCEPTANCE_OBSERVER"]);
 });
 
 test("getAccessToken bridge observes cache assignment without an additional acquisition", async () => {

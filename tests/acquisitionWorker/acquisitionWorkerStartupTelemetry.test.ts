@@ -40,6 +40,23 @@ test("successful startup reaches READY with every boundary proven", () => {
   assert.deepEqual(validateAcquisitionWorkerStartupEvent(event), event);
 });
 
+test("outer access-token progress and shape preserve UNKNOWN and retain success/failure boundaries", () => {
+  const unknown = new AcquisitionWorkerStartupTelemetry().failure();
+  assert.equal(unknown.outerAccessTokenProgress, "UNKNOWN");
+  assert.equal(unknown.outerTokenResultShape, "UNKNOWN");
+
+  const failed = new AcquisitionWorkerStartupTelemetry();
+  failed.enter("GOOGLE_AUTH_INIT");
+  failed.observeOuterAccessToken("TOKEN_PROPERTY_READ", "OBJECT");
+  assert.equal(failed.failure().outerAccessTokenProgress, "TOKEN_PROPERTY_READ");
+  assert.equal(failed.failure().outerTokenResultShape, "OBJECT");
+
+  const succeeded = new AcquisitionWorkerStartupTelemetry();
+  succeeded.observeOuterAccessToken("TOKEN_RETURN", "OBJECT");
+  assert.equal(succeeded.ready().outerAccessTokenProgress, "TOKEN_RETURN");
+  assert.equal(succeeded.ready().outerTokenResultShape, "OBJECT");
+});
+
 test("bootstrap projects telemetry-module load failure without raw exception data", async () => {
   const lines: string[] = [];
   const original = console.error;
@@ -93,6 +110,8 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.equal(event.googleAuthStage, "UNKNOWN");
   assert.equal(event.gcpStsFailureReason, "UNKNOWN");
   assert.equal(event.imdsv2RoleCredentialPayloadShape, "UNKNOWN");
+  assert.equal(event.outerAccessTokenProgress, "UNKNOWN");
+  assert.equal(event.outerTokenResultShape, "UNKNOWN");
   assert.equal(event.sigv4TimestampFreshness, "UNKNOWN");
   assert.equal(event.sigv4ExpectedRegion, "UNKNOWN");
   assert.equal(event.imdsv2TokenAcquired, "UNKNOWN");
@@ -104,6 +123,8 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
     ...event, imdsv2RoleCredentialPayloadShape: "RAW",
   }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4TimestampFreshness: "MAYBE" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, outerAccessTokenProgress: "RAW" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, outerTokenResultShape: "STRING" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4ExpectedRegion: "MAYBE" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, runtimeDependenciesResolved: "MAYBE" }));
   const missing = Object.fromEntries(Object.entries(event).filter(([key]) => key !== "httpListenerBound"));
