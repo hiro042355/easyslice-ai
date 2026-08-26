@@ -18,6 +18,7 @@ import {
   AcquisitionControlAuthFailure,
   GcsAcquisitionControlObjectStore,
   classifyGcpStsFailure,
+  classifyImdsv2RoleCredentialPayload,
   createAdcAccessTokenSupplier,
   createAcquisitionControlStore,
   createGoogleAuthTelemetryTransporter,
@@ -290,21 +291,56 @@ test("successful AWS role credential retrieval advances the closed stage before 
 });
 
 test("actual IMDS role response projects only closed session-token presence", async () => {
-  for (const [data, expected] of [
-    [{ Token: "synthetic-session" }, "YES"], [{}, "NO"], ["malformed", "UNKNOWN"],
+  for (const [data, expectedShape, expectedToken] of [
+    [{ AccessKeyId: "synthetic", SecretAccessKey: "synthetic", Token: "synthetic-session" }, "PLAIN_OBJECT", "YES"],
+    [{ AccessKeyId: "synthetic", SecretAccessKey: "synthetic" }, "PLAIN_OBJECT", "NO"],
+    [JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic", Token: "synthetic-session" }),
+      "JSON_STRING", "YES"],
+    [JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic" }), "JSON_STRING", "NO"],
+    ["malformed", "OTHER", "UNKNOWN"],
   ] as const) {
     const observed: Array<readonly [AwsSessionTokenBoundaryKey, StartupEvidence]> = [];
+    const shapes: string[] = [];
     const base = new Gaxios();
-    base.request = (async (options) => ({ data, status: 200, statusText: "OK", headers: new Headers(), config: options })) as typeof base.request;
+    const originalResponse = { data, status: 200, statusText: "OK", headers: new Headers(), config: {} };
+    base.request = (async (options) => Object.assign(originalResponse, { config: options })) as typeof base.request;
     const transporter = createGoogleAuthTelemetryTransporter({
       controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
       controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
       sessionTokenBoundaryEvidence: (key, value) => observed.push([key, value]),
+      imdsv2PayloadShape: (value) => shapes.push(value),
     }, base);
-    await transporter.request({ url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role" });
-    assert.deepEqual(observed, [["imdsv2RoleTokenPresent", expected]]);
+    const response = await transporter.request({
+      url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role",
+    });
+    assert.equal(response, originalResponse);
+    assert.equal(response.data, data);
+    assert.deepEqual(shapes, [expectedShape]);
+    assert.deepEqual(observed, [["imdsv2RoleTokenPresent", expectedToken]]);
     assert.doesNotMatch(JSON.stringify(observed), /synthetic-session|SYNTHETIC|AWS4-HMAC/);
   }
+});
+
+test("IMDS role response-shape classifier remains closed and rejects unrelated payloads", () => {
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload({ unrelated: true }),
+    { shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload('{"unrelated":true}'),
+    { shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload(7),
+    { shape: "OTHER", tokenPresent: "UNKNOWN" });
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload(new Uint8Array()),
+    { shape: "OTHER", tokenPresent: "UNKNOWN" });
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload(null),
+    { shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload(undefined),
+    { shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+  let getterCalls = 0;
+  const accessorPayload = Object.defineProperty({}, "AccessKeyId", {
+    get() { getterCalls += 1; return "forbidden"; },
+  });
+  assert.deepEqual(classifyImdsv2RoleCredentialPayload(accessorPayload),
+    { shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+  assert.equal(getterCalls, 0);
 });
 
 test("actual signer supplier input projects token presence without a second credential acquisition", async () => {
@@ -347,11 +383,14 @@ test("downstream invalid_grant and success retain both earlier token-boundary ob
       googleAuthEvidence: (key: GoogleAuthEvidenceKey) => telemetry.proveGoogleAuth(key),
       sessionTokenBoundaryEvidence: (key: AwsSessionTokenBoundaryKey, value: StartupEvidence) =>
         telemetry.observeSessionTokenBoundary(key, value),
+      imdsv2PayloadShape: (value: "PLAIN_OBJECT" | "JSON_STRING" | "OTHER" | "UNKNOWN") =>
+        telemetry.observeImdsv2PayloadShape(value),
     };
     const metadata = new Gaxios();
     metadata.request = (async (options) => {
       metadataRequests += 1;
-      return { data: { Token: "must-not-retain" }, status: 200, statusText: "OK", headers: new Headers(), config: options };
+      return { data: { AccessKeyId: "SYNTHETIC", SecretAccessKey: "synthetic-only", Token: "must-not-retain" },
+        status: 200, statusText: "OK", headers: new Headers(), config: options };
     }) as typeof metadata.request;
     await createGoogleAuthTelemetryTransporter(observer, metadata).request({
       url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role",
@@ -387,6 +426,7 @@ test("downstream invalid_grant and success retain both earlier token-boundary ob
     const event = fail ? telemetry.failure() : telemetry.ready();
     assert.equal(metadataRequests, 1); assert.equal(credentialCalls, 1); assert.equal(stsRequests, 1);
     assert.equal(event.imdsv2RoleTokenPresent, "YES");
+    assert.equal(event.imdsv2RoleCredentialPayloadShape, "PLAIN_OBJECT");
     assert.equal(event.signerInputTokenPresent, "YES");
     assert.doesNotMatch(JSON.stringify(event), /must-not-retain|SYNTHETIC|memory-only|invalid_grant/);
   };

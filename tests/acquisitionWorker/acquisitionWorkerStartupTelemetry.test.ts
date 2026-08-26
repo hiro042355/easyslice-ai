@@ -92,6 +92,7 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.equal(event.runtimeDependenciesResolved, "UNKNOWN");
   assert.equal(event.googleAuthStage, "UNKNOWN");
   assert.equal(event.gcpStsFailureReason, "UNKNOWN");
+  assert.equal(event.imdsv2RoleCredentialPayloadShape, "UNKNOWN");
   assert.equal(event.sigv4TimestampFreshness, "UNKNOWN");
   assert.equal(event.sigv4ExpectedRegion, "UNKNOWN");
   assert.equal(event.imdsv2TokenAcquired, "UNKNOWN");
@@ -99,6 +100,9 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, startupFailureFamily: "token rejected" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, googleAuthStage: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, gcpStsFailureReason: "raw-error" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({
+    ...event, imdsv2RoleCredentialPayloadShape: "RAW",
+  }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4TimestampFreshness: "MAYBE" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, sigv4ExpectedRegion: "MAYBE" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, runtimeDependenciesResolved: "MAYBE" }));
@@ -112,17 +116,21 @@ test("session-token boundary evidence preserves YES, NO, and UNKNOWN in failure 
   failure.enter("GOOGLE_AUTH_INIT");
   failure.enterGoogleAuth("GCP_STS_EXCHANGE");
   failure.observeSessionTokenBoundary("imdsv2RoleTokenPresent", "YES");
+  failure.observeImdsv2PayloadShape("JSON_STRING");
   failure.observeSessionTokenBoundary("signerInputTokenPresent", "NO");
   const failedEvent = failure.failure();
   assert.equal(failedEvent.imdsv2RoleTokenPresent, "YES");
+  assert.equal(failedEvent.imdsv2RoleCredentialPayloadShape, "JSON_STRING");
   assert.equal(failedEvent.signerInputTokenPresent, "NO");
   assert.deepEqual(validateAcquisitionWorkerStartupEvent(failedEvent), failedEvent);
 
   const success = new AcquisitionWorkerStartupTelemetry();
   success.observeSessionTokenBoundary("imdsv2RoleTokenPresent", "YES");
+  success.observeImdsv2PayloadShape("PLAIN_OBJECT");
   success.observeSessionTokenBoundary("signerInputTokenPresent", "YES");
   const readyEvent = success.ready();
   assert.equal(readyEvent.imdsv2RoleTokenPresent, "YES");
+  assert.equal(readyEvent.imdsv2RoleCredentialPayloadShape, "PLAIN_OBJECT");
   assert.equal(readyEvent.signerInputTokenPresent, "YES");
 
   const unknown = new AcquisitionWorkerStartupTelemetry().failure();

@@ -64,6 +64,7 @@ export const createAcquisitionWorkerComposition = async (
       googleAuthStage: (stage) => options.startupTelemetry!.enterGoogleAuth(stage),
       googleAuthEvidence: (key) => options.startupTelemetry!.proveGoogleAuth(key),
       sessionTokenBoundaryEvidence: (key, value) => options.startupTelemetry!.observeSessionTokenBoundary(key, value),
+      imdsv2PayloadShape: (value) => options.startupTelemetry!.observeImdsv2PayloadShape(value),
       gcpStsFailure: (reason) => options.startupTelemetry!.failGcpSts(reason),
       sigv4Evidence: (evidence) => options.startupTelemetry!.observeSigv4(evidence),
       googleAuthStarting: () => options.startupTelemetry!.enter("GOOGLE_AUTH_INIT"),

@@ -15,6 +15,7 @@ const bootstrapFailure = Object.freeze({
   startupStage: "CONTAINER_BOOTSTRAP",
   googleAuthStage: "UNKNOWN",
   gcpStsFailureReason: "UNKNOWN",
+  imdsv2RoleCredentialPayloadShape: "UNKNOWN",
   sigv4TimestampFreshness: "UNKNOWN",
   startupFailureFamily: "ENTRY_MODULE_LOAD_FAILURE",
   runtimeDependenciesResolved: "UNKNOWN",

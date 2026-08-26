@@ -43,6 +43,10 @@ export const AWS_SESSION_TOKEN_BOUNDARY_KEYS = [
   "imdsv2RoleTokenPresent", "signerInputTokenPresent",
 ] as const;
 export type AwsSessionTokenBoundaryKey = typeof AWS_SESSION_TOKEN_BOUNDARY_KEYS[number];
+export const IMDSV2_ROLE_CREDENTIAL_PAYLOAD_SHAPES = [
+  "PLAIN_OBJECT", "JSON_STRING", "OTHER", "UNKNOWN",
+] as const;
+export type Imdsv2RoleCredentialPayloadShape = typeof IMDSV2_ROLE_CREDENTIAL_PAYLOAD_SHAPES[number];
 
 export type AcquisitionWorkerStartupEvent = Readonly<{
   event: "acquisition-worker-startup";
@@ -50,6 +54,7 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
   startupFailureFamily: StartupFailureFamily | null;
   googleAuthStage: GoogleAuthStage;
   gcpStsFailureReason: GcpStsFailureReason;
+  imdsv2RoleCredentialPayloadShape: Imdsv2RoleCredentialPayloadShape;
   runtimeDependenciesResolved: StartupEvidence;
   controlAuthorityValidated: StartupEvidence;
   googleAuthInitialized: StartupEvidence;
@@ -89,9 +94,12 @@ const stages = new Set<StartupStage>(STARTUP_STAGES);
 const families = new Set<StartupFailureFamily>(STARTUP_FAILURE_FAMILIES);
 const googleAuthStages = new Set<GoogleAuthStage>(GOOGLE_AUTH_STAGES);
 const gcpStsFailureReasons = new Set<GcpStsFailureReason>(GCP_STS_FAILURE_REASONS);
+const imdsv2RoleCredentialPayloadShapes = new Set<Imdsv2RoleCredentialPayloadShape>(
+  IMDSV2_ROLE_CREDENTIAL_PAYLOAD_SHAPES,
+);
 const sigv4TimestampFreshness = new Set<Sigv4TimestampFreshness>(SIGV4_TIMESTAMP_FRESHNESS);
 const exactKeys = ["event", "startupStage", "startupFailureFamily", "googleAuthStage", "gcpStsFailureReason",
-  "sigv4TimestampFreshness", ...evidenceKeys].sort();
+  "imdsv2RoleCredentialPayloadShape", "sigv4TimestampFreshness", ...evidenceKeys].sort();
 
 const familyForStage = (stage: StartupStage): StartupFailureFamily => ({
   CONTAINER_BOOTSTRAP: "ENTRY_MODULE_LOAD_FAILURE",
@@ -110,6 +118,7 @@ export class AcquisitionWorkerStartupTelemetry {
   private stage: StartupStage = "UNKNOWN";
   private googleAuthStage: GoogleAuthStage = "UNKNOWN";
   private gcpStsFailureReason: GcpStsFailureReason = "UNKNOWN";
+  private imdsv2RoleCredentialPayloadShape: Imdsv2RoleCredentialPayloadShape = "UNKNOWN";
   private readonly evidence: Record<EvidenceKey, StartupEvidence> = {
     runtimeDependenciesResolved: "UNKNOWN", controlAuthorityValidated: "UNKNOWN",
     googleAuthInitialized: "UNKNOWN", controlStoreInitialized: "UNKNOWN",
@@ -132,6 +141,9 @@ export class AcquisitionWorkerStartupTelemetry {
   proveGoogleAuth(key: GoogleAuthEvidenceKey): void { this.evidence[key] = "YES"; }
   observeSessionTokenBoundary(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void {
     this.evidence[key] = value;
+  }
+  observeImdsv2PayloadShape(value: Imdsv2RoleCredentialPayloadShape): void {
+    this.imdsv2RoleCredentialPayloadShape = value;
   }
   failGcpSts(reason: GcpStsFailureReason): void { this.gcpStsFailureReason = reason; }
   observeSigv4(value: Sigv4StructuralEvidence): void {
@@ -158,6 +170,7 @@ export class AcquisitionWorkerStartupTelemetry {
     }
     return Object.freeze({ event: "acquisition-worker-startup", startupStage: this.stage, googleAuthStage: this.googleAuthStage,
       gcpStsFailureReason: this.gcpStsFailureReason,
+      imdsv2RoleCredentialPayloadShape: this.imdsv2RoleCredentialPayloadShape,
       sigv4TimestampFreshness: this.sigv4TimestampFreshness,
       startupFailureFamily: familyForStage(this.stage), ...this.evidence });
   }
@@ -167,6 +180,7 @@ export class AcquisitionWorkerStartupTelemetry {
     this.googleAuthStage = "READY";
     return Object.freeze({ event: "acquisition-worker-startup", startupStage: "READY", googleAuthStage: "READY",
       gcpStsFailureReason: "UNKNOWN",
+      imdsv2RoleCredentialPayloadShape: this.imdsv2RoleCredentialPayloadShape,
       sigv4TimestampFreshness: this.sigv4TimestampFreshness,
       startupFailureFamily: null, ...this.evidence });
   }
@@ -175,7 +189,7 @@ export class AcquisitionWorkerStartupTelemetry {
 export type AcquisitionWorkerStartupTelemetrySink = Pick<
   AcquisitionWorkerStartupTelemetry,
   "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "observeSessionTokenBoundary"
-  | "failGcpSts" | "observeSigv4" | "failure" | "ready"
+  | "observeImdsv2PayloadShape" | "failGcpSts" | "observeSigv4" | "failure" | "ready"
 >;
 
 export const validateAcquisitionWorkerStartupEvent = (input: unknown): AcquisitionWorkerStartupEvent => {
@@ -185,6 +199,9 @@ export const validateAcquisitionWorkerStartupEvent = (input: unknown): Acquisiti
     || value.event !== "acquisition-worker-startup" || !stages.has(value.startupStage as StartupStage)
     || !googleAuthStages.has(value.googleAuthStage as GoogleAuthStage)
     || !gcpStsFailureReasons.has(value.gcpStsFailureReason as GcpStsFailureReason)
+    || !imdsv2RoleCredentialPayloadShapes.has(
+      value.imdsv2RoleCredentialPayloadShape as Imdsv2RoleCredentialPayloadShape,
+    )
     || !sigv4TimestampFreshness.has(value.sigv4TimestampFreshness as Sigv4TimestampFreshness)
     || (value.startupFailureFamily !== null && !families.has(value.startupFailureFamily as StartupFailureFamily))
     || evidenceKeys.some((key) => !evidenceValues.has(value[key] as StartupEvidence))

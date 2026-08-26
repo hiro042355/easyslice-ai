@@ -9,7 +9,8 @@ import { GoogleAuth } from "google-auth-library";
 import { StsCredentials } from "google-auth-library/build/src/auth/stscredentials";
 import { Gaxios, type GaxiosOptions } from "gaxios";
 import type { AwsSessionTokenBoundaryKey, GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
-  Sigv4StructuralEvidence, StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
+  Imdsv2RoleCredentialPayloadShape, Sigv4StructuralEvidence,
+  StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
 const STORAGE_API = "https://storage.googleapis.com";
@@ -32,6 +33,7 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   googleAuthStage(stage: GoogleAuthStage): void;
   googleAuthEvidence(key: GoogleAuthEvidenceKey): void;
   sessionTokenBoundaryEvidence?(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void;
+  imdsv2PayloadShape?(value: Imdsv2RoleCredentialPayloadShape): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
   sigv4Evidence?(evidence: Sigv4StructuralEvidence): void;
   googleAuthStarting(): void;
@@ -210,11 +212,9 @@ export const createGoogleAuthTelemetryTransporter = (
     if (boundary) startup.googleAuthStage(boundary.stage);
     const response = await request(options);
     if (boundary?.success.includes("awsRoleCredentialsAcquired")) {
-      const data = response.data;
-      const tokenEvidence: StartupEvidence = data && typeof data === "object" && !Array.isArray(data)
-        ? (typeof Reflect.get(data, "Token") === "string" && Reflect.get(data, "Token").length > 0 ? "YES" : "NO")
-        : "UNKNOWN";
-      startup.sessionTokenBoundaryEvidence?.("imdsv2RoleTokenPresent", tokenEvidence);
+      const classification = classifyImdsv2RoleCredentialPayload(response.data);
+      startup.imdsv2PayloadShape?.(classification.shape);
+      startup.sessionTokenBoundaryEvidence?.("imdsv2RoleTokenPresent", classification.tokenPresent);
     }
     if (boundary) for (const key of boundary.success) {
       startup.googleAuthEvidence(key);
@@ -226,6 +226,61 @@ export const createGoogleAuthTelemetryTransporter = (
     return response;
   }) as typeof transporter.request;
   return transporter;
+};
+
+type Imdsv2RoleCredentialPayloadClassification = Readonly<{
+  shape: Imdsv2RoleCredentialPayloadShape;
+  tokenPresent: StartupEvidence;
+}>;
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
+const classifyCredentialObject = (
+  value: Record<string, unknown>,
+  shape: "PLAIN_OBJECT" | "JSON_STRING",
+): Imdsv2RoleCredentialPayloadClassification => {
+  const stringValue = (key: string): string | undefined => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      ? descriptor.value : undefined;
+  };
+  const accessKeyId = stringValue("AccessKeyId");
+  const secretAccessKey = stringValue("SecretAccessKey");
+  if (!accessKeyId || !secretAccessKey) {
+    return Object.freeze({ shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+  }
+  const token = stringValue("Token");
+  return Object.freeze({
+    shape,
+    tokenPresent: token && token.length > 0 ? "YES" : "NO",
+  });
+};
+
+export const classifyImdsv2RoleCredentialPayload = (
+  value: unknown,
+): Imdsv2RoleCredentialPayloadClassification => {
+  try {
+    if (isPlainObject(value)) return classifyCredentialObject(value, "PLAIN_OBJECT");
+    if (typeof value === "string") {
+      const parsed: unknown = JSON.parse(value);
+      return isPlainObject(parsed)
+        ? classifyCredentialObject(parsed, "JSON_STRING")
+        : Object.freeze({ shape: "OTHER", tokenPresent: "UNKNOWN" });
+    }
+    if (value === null || value === undefined) {
+      return Object.freeze({ shape: "UNKNOWN", tokenPresent: "UNKNOWN" });
+    }
+    return Object.freeze({ shape: "OTHER", tokenPresent: "UNKNOWN" });
+  } catch {
+    return Object.freeze({
+      shape: typeof value === "string" ? "OTHER" : "UNKNOWN",
+      tokenPresent: "UNKNOWN",
+    });
+  }
 };
 
 const bridgedStsCredentials = new WeakSet<object>();
@@ -363,6 +418,7 @@ export const createAcquisitionControlStore = async (
     googleAuthStage: (stage) => { currentGoogleAuth.stage = stage; startup.googleAuthStage(stage); },
     googleAuthEvidence: (key) => startup.googleAuthEvidence(key),
     sessionTokenBoundaryEvidence: (key, value) => startup.sessionTokenBoundaryEvidence?.(key, value),
+    imdsv2PayloadShape: (value) => startup.imdsv2PayloadShape?.(value),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
     sigv4Evidence: (evidence) => startup.sigv4Evidence?.(evidence),
     googleAuthStarting: () => startup.googleAuthStarting(),
