@@ -63,6 +63,7 @@ export const createAcquisitionWorkerComposition = async (
       controlAuthorityValidated: () => options.startupTelemetry!.prove("controlAuthorityValidated"),
       googleAuthStage: (stage) => options.startupTelemetry!.enterGoogleAuth(stage),
       googleAuthEvidence: (key) => options.startupTelemetry!.proveGoogleAuth(key),
+      googleAuthBoundaryEvidence: (key, value) => options.startupTelemetry!.observeGoogleAuth(key, value),
       sessionTokenBoundaryEvidence: (key, value) => options.startupTelemetry!.observeSessionTokenBoundary(key, value),
       imdsv2PayloadShape: (value) => options.startupTelemetry!.observeImdsv2PayloadShape(value),
       gcpStsFailure: (reason) => options.startupTelemetry!.failGcpSts(reason),

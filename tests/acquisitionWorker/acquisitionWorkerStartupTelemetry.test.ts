@@ -199,6 +199,24 @@ test("GoogleAuth closed substages and evidence reach READY without arbitrary aut
   assert.deepEqual(validateAcquisitionWorkerStartupEvent(event), event);
 });
 
+test("post-impersonation evidence survives downstream startup failure and preserves UNKNOWN", () => {
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.enter("GOOGLE_AUTH_INIT");
+  telemetry.enterGoogleAuth("SERVICE_ACCOUNT_IMPERSONATION");
+  telemetry.observeGoogleAuth("impersonationHttpResponse", "YES");
+  telemetry.observeGoogleAuth("impersonationResponseSchema", "YES");
+  telemetry.observeGoogleAuth("impersonatedTokenPresent", "NO");
+  const event = telemetry.failure();
+  assert.equal(event.impersonationHttpResponse, "YES");
+  assert.equal(event.impersonationResponseSchema, "YES");
+  assert.equal(event.impersonatedTokenPresent, "NO");
+  assert.equal(event.impersonatedExpiryValid, "UNKNOWN");
+  assert.equal(event.credentialCacheAssigned, "UNKNOWN");
+  assert.equal(event.getAccessTokenReturned, "UNKNOWN");
+  assert.equal(event.accessTokenAccepted, "UNKNOWN");
+  validateAcquisitionWorkerStartupEvent(event);
+});
+
 test("startup projection and readiness capture contain no secret, URL, header, or raw-output authority", async () => {
   const implementation = await readFile("worker/acquisition/startupTelemetry.ts", "utf8");
   const main = await readFile("worker/acquisition/main.ts", "utf8");

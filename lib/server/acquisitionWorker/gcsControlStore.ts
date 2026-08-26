@@ -32,6 +32,7 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   controlAuthorityValidated(): void;
   googleAuthStage(stage: GoogleAuthStage): void;
   googleAuthEvidence(key: GoogleAuthEvidenceKey): void;
+  googleAuthBoundaryEvidence?(key: GoogleAuthEvidenceKey, value: StartupEvidence): void;
   sessionTokenBoundaryEvidence?(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void;
   imdsv2PayloadShape?(value: Imdsv2RoleCredentialPayloadShape): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
@@ -238,6 +239,19 @@ export const createGoogleAuthTelemetryTransporter = (
     }
     if (boundary) startup.googleAuthStage(boundary.stage);
     const response = await request(options);
+    if (boundary?.stage === "SERVICE_ACCOUNT_IMPERSONATION") {
+      startup.googleAuthBoundaryEvidence?.("impersonationHttpResponse", "YES");
+      const data = response.data;
+      const responseObject = isPlainObject(data);
+      const hasMinimumShape = responseObject
+        && Object.hasOwn(data, "accessToken") && Object.hasOwn(data, "expireTime");
+      startup.googleAuthBoundaryEvidence?.("impersonationResponseSchema", hasMinimumShape ? "YES" : "NO");
+      startup.googleAuthBoundaryEvidence?.("impersonatedTokenPresent", responseObject
+        ? (typeof data.accessToken === "string" && data.accessToken.length > 0 ? "YES" : "NO") : "UNKNOWN");
+      const expiry = responseObject && typeof data.expireTime === "string" ? Date.parse(data.expireTime) : Number.NaN;
+      startup.googleAuthBoundaryEvidence?.("impersonatedExpiryValid", responseObject
+        ? (Number.isFinite(expiry) && expiry > Date.now() ? "YES" : "NO") : "UNKNOWN");
+    }
     if (boundary?.success.includes("awsRoleCredentialsAcquired")) {
       const classification = classifyImdsv2RoleCredentialPayload(response.data);
       startup.imdsv2PayloadShape?.(classification.shape);
@@ -309,6 +323,7 @@ export const classifyImdsv2RoleCredentialPayload = (
 
 const bridgedStsCredentials = new WeakSet<object>();
 const bridgedAwsCredentialSuppliers = new WeakSet<object>();
+const observedAccessTokenClients = new WeakSet<object>();
 
 export const installStsTransporterTelemetryBridge = (
   client: unknown,
@@ -322,6 +337,28 @@ export const installStsTransporterTelemetryBridge = (
   const transporter = Reflect.get(stsCredential, "transporter") as unknown;
   if (!(transporter instanceof Gaxios)) return false;
   createGoogleAuthTelemetryTransporter(startup, transporter);
+  if (!observedAccessTokenClients.has(client)) {
+    const getAccessToken = Reflect.get(client, "getAccessToken") as unknown;
+    if (typeof getAccessToken === "function") {
+      const delegated = getAccessToken.bind(client) as () => Promise<unknown>;
+      Reflect.set(client, "getAccessToken", async () => {
+        try {
+          const result = await delegated();
+          startup.googleAuthBoundaryEvidence?.("getAccessTokenReturned", "YES");
+          const token = result && typeof result === "object" ? Reflect.get(result, "token") : undefined;
+          const cache = Reflect.get(client, "cachedAccessToken") as unknown;
+          const cachedToken = cache && typeof cache === "object" ? Reflect.get(cache, "access_token") : undefined;
+          startup.googleAuthBoundaryEvidence?.("credentialCacheAssigned",
+            typeof token === "string" && token.length > 0 && cachedToken === token ? "YES" : "NO");
+          return result;
+        } catch (error) {
+          startup.googleAuthBoundaryEvidence?.("getAccessTokenReturned", "NO");
+          throw error;
+        }
+      });
+      observedAccessTokenClients.add(client);
+    }
+  }
   const supplier = Reflect.get(client, "awsSecurityCredentialsSupplier") as unknown;
   if (supplier && typeof supplier === "object" && !bridgedAwsCredentialSuppliers.has(supplier)) {
     const getCredentials = Reflect.get(supplier, "getAwsSecurityCredentials") as unknown;
@@ -404,6 +441,7 @@ export const validateGoogleCredentialPolicy = async (
 export const createAdcAccessTokenSupplier = (
   auth: GoogleAuthFactory = new GoogleAuth({ scopes: [STORAGE_SCOPE] }) as GoogleAuthFactory,
   onFailure?: (error: unknown) => void,
+  observe?: (key: GoogleAuthEvidenceKey, value: StartupEvidence) => void,
 ): GoogleAccessTokenSupplier => ({
   async getAccessToken(signal?: AbortSignal) {
     if (signal?.aborted) throw new AcquisitionControlAuthFailure();
@@ -417,7 +455,11 @@ export const createAdcAccessTokenSupplier = (
           signal.addEventListener("abort", onAbort, { once: true });
         })])
         : await operation;
-      if (typeof response.token !== "string" || response.token.length === 0) throw failure();
+      if (typeof response.token !== "string" || response.token.length === 0) {
+        observe?.("accessTokenAccepted", "NO");
+        throw failure();
+      }
+      observe?.("accessTokenAccepted", "YES");
       return response.token;
     } catch (error) {
       onFailure?.(error);
@@ -441,6 +483,7 @@ export const createAcquisitionControlStore = async (
     controlAuthorityValidated: () => startup.controlAuthorityValidated(),
     googleAuthStage: (stage) => { currentGoogleAuth.stage = stage; startup.googleAuthStage(stage); },
     googleAuthEvidence: (key) => startup.googleAuthEvidence(key),
+    googleAuthBoundaryEvidence: (key, value) => startup.googleAuthBoundaryEvidence?.(key, value),
     sessionTokenBoundaryEvidence: (key, value) => startup.sessionTokenBoundaryEvidence?.(key, value),
     imdsv2PayloadShape: (value) => startup.imdsv2PayloadShape?.(value),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
@@ -457,7 +500,7 @@ export const createAcquisitionControlStore = async (
     : new GoogleAuth({ scopes: [STORAGE_SCOPE] })) as GoogleAuthFactory;
   const token = createAdcAccessTokenSupplier(resolvedAuth, (error) => {
     if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.gcpStsFailure?.(classifyGcpStsFailure(error));
-  });
+  }, (key, value) => observedStartup?.googleAuthBoundaryEvidence?.(key, value));
   await token.getAccessToken();
   if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.googleAuthEvidence("gcpStsExchangeSucceeded");
   observedStartup?.googleAuthStage("READY");

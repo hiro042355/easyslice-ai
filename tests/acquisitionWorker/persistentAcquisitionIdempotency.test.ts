@@ -273,6 +273,72 @@ test("GoogleAuth transporter maps only fixed credential boundaries and proves su
     "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded"]);
 });
 
+test("post-impersonation transporter projects only closed response evidence", async () => {
+  const cases = [
+    [{ accessToken: "memory-only", expireTime: "2099-01-01T00:00:00Z" }, ["YES", "YES", "YES", "YES"]],
+    [{ expireTime: "2099-01-01T00:00:00Z" }, ["YES", "NO", "NO", "YES"]],
+    [{ accessToken: "", expireTime: "2099-01-01T00:00:00Z" }, ["YES", "YES", "NO", "YES"]],
+    [{ accessToken: 7, expireTime: "2099-01-01T00:00:00Z" }, ["YES", "YES", "NO", "YES"]],
+    [{ accessToken: "memory-only", expireTime: "invalid" }, ["YES", "YES", "YES", "NO"]],
+    ["malformed", ["YES", "NO", "UNKNOWN", "UNKNOWN"]],
+  ] as const;
+  for (const [data, expected] of cases) {
+    const observed: Array<readonly [GoogleAuthEvidenceKey, StartupEvidence]> = [];
+    const base = new Gaxios();
+    base.request = (async (options) => ({ data, status: 200, statusText: "OK", headers: new Headers(), config: options })) as typeof base.request;
+    await createGoogleAuthTelemetryTransporter({
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      googleAuthBoundaryEvidence: (key, value) => observed.push([key, value]),
+    }, base).request({ url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/closed:generateAccessToken" });
+    assert.deepEqual(observed.map((entry) => entry[1]), expected);
+    assert.deepEqual(observed.map((entry) => entry[0]), ["impersonationHttpResponse", "impersonationResponseSchema",
+      "impersonatedTokenPresent", "impersonatedExpiryValid"]);
+    assert.doesNotMatch(JSON.stringify(observed), /memory-only|2099|invalid/);
+  }
+});
+
+test("access-token observation preserves call count and closed acceptance evidence", async () => {
+  for (const [token, expected] of [["memory-only", "YES"], ["", "NO"], [undefined, "NO"], [7, "NO"]] as const) {
+    let calls = 0;
+    const observed: Array<readonly [GoogleAuthEvidenceKey, StartupEvidence]> = [];
+    const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({ getAccessToken: async () => {
+      calls += 1; return { token: token as string | undefined };
+    } }) }, undefined, (key, value) => observed.push([key, value]));
+    if (expected === "YES") assert.equal(await supplier.getAccessToken(), "memory-only");
+    else await assert.rejects(supplier.getAccessToken(), AcquisitionControlAuthFailure);
+    assert.equal(calls, 1);
+    assert.deepEqual(observed, [["accessTokenAccepted", expected]]);
+  }
+});
+
+test("getAccessToken bridge observes cache assignment without an additional acquisition", async () => {
+  let calls = 0;
+  const observed: Array<readonly [GoogleAuthEvidenceKey, StartupEvidence]> = [];
+  const client = new AwsClient({
+    audience: "//iam.googleapis.com/projects/566365202495/locations/global/workloadIdentityPools/closed/providers/closed",
+    subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+    token_url: "https://sts.googleapis.com/v1/token",
+    aws_security_credentials_supplier: {
+      getAwsRegion: async () => "ap-northeast-1",
+      getAwsSecurityCredentials: async () => ({ accessKeyId: "closed", secretAccessKey: "closed" }),
+    },
+  });
+  Reflect.set(client, "getAccessToken", async () => {
+    calls += 1;
+    Reflect.set(client, "cachedAccessToken", { access_token: "memory-only" });
+    return { token: "memory-only" };
+  });
+  assert.equal(installStsTransporterTelemetryBridge(client, {
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    googleAuthBoundaryEvidence: (key, value) => observed.push([key, value]),
+  }), true);
+  await client.getAccessToken();
+  assert.equal(calls, 1);
+  assert.deepEqual(observed, [["getAccessTokenReturned", "YES"], ["credentialCacheAssigned", "YES"]]);
+});
+
 test("successful AWS role credential retrieval advances the closed stage before STS transition", async () => {
   const stages: GoogleAuthStage[] = [];
   const evidence: GoogleAuthEvidenceKey[] = [];
