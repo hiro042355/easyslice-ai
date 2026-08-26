@@ -338,14 +338,52 @@ test("outer access-token boundary retains exact closed progress and result shape
   }
 });
 
+test("outer continuation boundaries retain the last completed step without extra auth calls", async () => {
+  const run = async (getClient: () => Promise<never>) => {
+    const boundaries: string[] = [];
+    const supplier = createAdcAccessTokenSupplier({ getClient }, undefined, undefined, undefined,
+      (key) => boundaries.push(key));
+    await assert.rejects(supplier.getAccessToken(), AcquisitionControlAuthFailure);
+    return boundaries;
+  };
+  assert.deepEqual(await run(async () => { throw new Error("synthetic"); }), ["outerGetClientStarted"]);
+
+  let calls = 0;
+  const rejected: string[] = [];
+  const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({ getAccessToken: async () => {
+    calls += 1; throw new Error("synthetic");
+  } }) }, undefined, undefined, undefined, (key) => rejected.push(key));
+  await assert.rejects(supplier.getAccessToken(), AcquisitionControlAuthFailure);
+  assert.equal(calls, 1);
+  assert.deepEqual(rejected, ["outerGetClientStarted", "outerClientResolved", "outerGetAccessTokenInvoked"]);
+});
+
+test("successful outer continuation records every boundary and same-execution correlation", async () => {
+  const boundaries: string[] = [];
+  const correlations: Array<readonly [string, object]> = [];
+  const marker = Object.freeze({});
+  const supplier = createAdcAccessTokenSupplier({ getClient: async () => ({
+    getAccessToken: async () => ({ token: "synthetic" }),
+  }) }, undefined, undefined, undefined, (key) => boundaries.push(key),
+  (boundary, value) => correlations.push([boundary, value]), marker);
+  assert.equal(await supplier.getAccessToken(), "synthetic");
+  assert.deepEqual(boundaries, ["outerGetClientStarted", "outerClientResolved", "outerGetAccessTokenInvoked",
+    "outerContinuationEntered"]);
+  assert.deepEqual(correlations, [["OUTER_CONTINUATION", marker]]);
+});
+
 test("outer access-token boundary retains the last completed substage across throwing boundaries", async () => {
   const getterProgress: OuterAccessTokenProgress[] = [];
+  const getterBoundaries: string[] = [];
   const throwing = Object.defineProperty({}, "token", { get() { throw new Error("synthetic"); } });
   const getterSupplier = createAdcAccessTokenSupplier({ getClient: async () => ({
     getAccessToken: async () => throwing,
-  }) } as never, undefined, undefined, (progress) => getterProgress.push(progress));
+  }) } as never, undefined, undefined, (progress) => getterProgress.push(progress),
+  (key) => getterBoundaries.push(key));
   await assert.rejects(getterSupplier.getAccessToken(), AcquisitionControlAuthFailure);
   assert.deepEqual(getterProgress, ["OUTER_TOKEN_RESULT_RECEIVED"]);
+  assert.deepEqual(getterBoundaries, ["outerGetClientStarted", "outerClientResolved", "outerGetAccessTokenInvoked",
+    "outerContinuationEntered"]);
 
   const observerProgress: OuterAccessTokenProgress[] = [];
   const observerSupplier = createAdcAccessTokenSupplier({ getClient: async () => ({
@@ -884,4 +922,52 @@ test("host-portable control-store composition accepts Production and experiment 
   async () => { throw new Error("must-not-contact-cloud"); }, async () => JSON.stringify({ type: "external_account" }));
   assert.equal(production instanceof GcsAcquisitionControlObjectStore, true);
   assert.equal(experiment instanceof GcsAcquisitionControlObjectStore, true);
+});
+
+test("full control-store composition projects closed outer continuation evidence into one startup state", async () => {
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.enter("CONTROL_STORE_CONFIG");
+  const marker = Object.freeze({});
+  const startup = {
+    controlAuthorityValidated: () => telemetry.prove("controlAuthorityValidated"),
+    googleAuthStage: (stage: GoogleAuthStage) => telemetry.enterGoogleAuth(stage),
+    googleAuthEvidence: (key: GoogleAuthEvidenceKey) => telemetry.proveGoogleAuth(key),
+    googleAuthBoundaryEvidence: (key: GoogleAuthEvidenceKey, value: StartupEvidence) => {
+      if (key === "getAccessTokenReturned" || key === "credentialCacheAssigned") {
+        telemetry.observeOuterCorrelation("INNER_PRODUCER", marker);
+      }
+      telemetry.observeGoogleAuth(key, value);
+    },
+    sessionTokenBoundaryEvidence: (key: AwsSessionTokenBoundaryKey, value: StartupEvidence) =>
+      telemetry.observeSessionTokenBoundary(key, value),
+    imdsv2PayloadShape: (value: Parameters<typeof telemetry.observeImdsv2PayloadShape>[0]) =>
+      telemetry.observeImdsv2PayloadShape(value),
+    outerAccessTokenBoundary: (progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape) =>
+      telemetry.observeOuterAccessToken(progress, shape),
+    outerContinuationEvidence: (key: Parameters<typeof telemetry.observeOuterContinuation>[0]) =>
+      telemetry.observeOuterContinuation(key),
+    outerCorrelationEvidence: (boundary: Parameters<typeof telemetry.observeOuterCorrelation>[0]) =>
+      telemetry.observeOuterCorrelation(boundary, marker),
+    googleAuthStarting: () => telemetry.enter("GOOGLE_AUTH_INIT"),
+    googleAuthInitialized: () => telemetry.prove("googleAuthInitialized"),
+    controlStoreStarting: () => telemetry.enter("CONTROL_STORE_INIT"),
+    controlStoreInitialized: () => telemetry.prove("controlStoreInitialized"),
+  };
+  const auth = { getClient: async () => ({ getAccessToken: async () => {
+    startup.googleAuthBoundaryEvidence("getAccessTokenReturned", "YES");
+    return { token: "synthetic" };
+  } }) };
+  await createAcquisitionControlStore({ ACQUISITION_CONTROL_MODE: "EXPERIMENT",
+    ACQUISITION_CONTROL_BUCKET: "nexcut-production-acquisition-host-experiment-owner001",
+    ACQUISITION_EXPERIMENT_BUCKET: "nexcut-production-acquisition-host-experiment-owner001" }, auth,
+  async () => { throw new Error("must-not-contact-cloud"); }, undefined, startup);
+  const event = telemetry.failure();
+  assert.equal(event.outerGetClientStarted, "YES");
+  assert.equal(event.outerClientResolved, "YES");
+  assert.equal(event.outerGetAccessTokenInvoked, "YES");
+  assert.equal(event.outerContinuationEntered, "YES");
+  assert.equal(event.outerAccessTokenProgress, "TOKEN_RETURN");
+  assert.equal(event.outerTokenResultShape, "OBJECT");
+  assert.equal(event.accessTokenAccepted, "YES");
+  assert.equal(event.outerTelemetrySameExecution, "YES");
 });

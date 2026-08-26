@@ -12,6 +12,11 @@ export const STARTUP_FAILURE_FAMILIES = [
 ] as const;
 export type StartupFailureFamily = typeof STARTUP_FAILURE_FAMILIES[number];
 export type StartupEvidence = "YES" | "NO" | "UNKNOWN";
+export const OUTER_CONTINUATION_EVIDENCE_KEYS = [
+  "outerGetClientStarted", "outerClientResolved", "outerGetAccessTokenInvoked", "outerContinuationEntered",
+] as const;
+export type OuterContinuationEvidenceKey = typeof OUTER_CONTINUATION_EVIDENCE_KEYS[number];
+export type OuterCorrelationBoundary = "INNER_PRODUCER" | "OUTER_CONTINUATION";
 export const OUTER_ACCESS_TOKEN_PROGRESS = [
   "UNKNOWN", "OUTER_TOKEN_RESULT_RECEIVED", "TOKEN_PROPERTY_READ", "ACCEPTANCE_OBSERVER", "TOKEN_RETURN",
 ] as const;
@@ -65,6 +70,11 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
   imdsv2RoleCredentialPayloadShape: Imdsv2RoleCredentialPayloadShape;
   outerAccessTokenProgress: OuterAccessTokenProgress;
   outerTokenResultShape: OuterTokenResultShape;
+  outerTelemetrySameExecution: StartupEvidence;
+  outerGetClientStarted: StartupEvidence;
+  outerClientResolved: StartupEvidence;
+  outerGetAccessTokenInvoked: StartupEvidence;
+  outerContinuationEntered: StartupEvidence;
   runtimeDependenciesResolved: StartupEvidence;
   controlAuthorityValidated: StartupEvidence;
   googleAuthInitialized: StartupEvidence;
@@ -103,7 +113,7 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
 const evidenceKeys = [
   "runtimeDependenciesResolved", "controlAuthorityValidated", "googleAuthInitialized",
   "controlStoreInitialized", "telemetryProxyInitialized", "httpListenerBound", ...GOOGLE_AUTH_EVIDENCE_KEYS,
-  ...AWS_SESSION_TOKEN_BOUNDARY_KEYS, ...SIGV4_EVIDENCE_KEYS,
+  ...AWS_SESSION_TOKEN_BOUNDARY_KEYS, ...SIGV4_EVIDENCE_KEYS, ...OUTER_CONTINUATION_EVIDENCE_KEYS,
 ] as const;
 type EvidenceKey = typeof evidenceKeys[number];
 const evidenceValues = new Set<StartupEvidence>(["YES", "NO", "UNKNOWN"]);
@@ -119,6 +129,7 @@ const outerTokenResultShapeValues = new Set<OuterTokenResultShape>(OUTER_TOKEN_R
 const sigv4TimestampFreshness = new Set<Sigv4TimestampFreshness>(SIGV4_TIMESTAMP_FRESHNESS);
 const exactKeys = ["event", "startupStage", "startupFailureFamily", "googleAuthStage", "gcpStsFailureReason",
   "imdsv2RoleCredentialPayloadShape", "outerAccessTokenProgress", "outerTokenResultShape",
+  "outerTelemetrySameExecution",
   "sigv4TimestampFreshness", ...evidenceKeys].sort();
 
 const familyForStage = (stage: StartupStage): StartupFailureFamily => ({
@@ -141,6 +152,8 @@ export class AcquisitionWorkerStartupTelemetry {
   private imdsv2RoleCredentialPayloadShape: Imdsv2RoleCredentialPayloadShape = "UNKNOWN";
   private outerAccessTokenProgress: OuterAccessTokenProgress = "UNKNOWN";
   private outerTokenResultShape: OuterTokenResultShape = "UNKNOWN";
+  private readonly outerCorrelation: Partial<Record<OuterCorrelationBoundary, object>> = {};
+  private outerTelemetrySameExecution: StartupEvidence = "UNKNOWN";
   private readonly evidence: Record<EvidenceKey, StartupEvidence> = {
     runtimeDependenciesResolved: "UNKNOWN", controlAuthorityValidated: "UNKNOWN",
     googleAuthInitialized: "UNKNOWN", controlStoreInitialized: "UNKNOWN",
@@ -157,6 +170,8 @@ export class AcquisitionWorkerStartupTelemetry {
     sigv4TargetResourcePresent: "UNKNOWN", sigv4TargetResourceMatchesAudience: "UNKNOWN",
     sigv4TargetResourceSigned: "UNKNOWN", sigv4GetCallerIdentityRequestValid: "UNKNOWN",
     sigv4SubjectTokenRoundTripValid: "UNKNOWN",
+    outerGetClientStarted: "UNKNOWN", outerClientResolved: "UNKNOWN",
+    outerGetAccessTokenInvoked: "UNKNOWN", outerContinuationEntered: "UNKNOWN",
   };
   private sigv4TimestampFreshness: Sigv4TimestampFreshness = "UNKNOWN";
 
@@ -174,6 +189,13 @@ export class AcquisitionWorkerStartupTelemetry {
   observeOuterAccessToken(progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape): void {
     this.outerAccessTokenProgress = progress;
     if (shape) this.outerTokenResultShape = shape;
+  }
+  observeOuterContinuation(key: OuterContinuationEvidenceKey): void { this.evidence[key] = "YES"; }
+  observeOuterCorrelation(boundary: OuterCorrelationBoundary, marker: object): void {
+    this.outerCorrelation[boundary] = marker;
+    const inner = this.outerCorrelation.INNER_PRODUCER;
+    const outer = this.outerCorrelation.OUTER_CONTINUATION;
+    this.outerTelemetrySameExecution = inner && outer ? (inner === outer ? "YES" : "NO") : "UNKNOWN";
   }
   failGcpSts(reason: GcpStsFailureReason): void { this.gcpStsFailureReason = reason; }
   observeSigv4(value: Sigv4StructuralEvidence): void {
@@ -202,6 +224,7 @@ export class AcquisitionWorkerStartupTelemetry {
       gcpStsFailureReason: this.gcpStsFailureReason,
       imdsv2RoleCredentialPayloadShape: this.imdsv2RoleCredentialPayloadShape,
       outerAccessTokenProgress: this.outerAccessTokenProgress, outerTokenResultShape: this.outerTokenResultShape,
+      outerTelemetrySameExecution: this.outerTelemetrySameExecution,
       sigv4TimestampFreshness: this.sigv4TimestampFreshness,
       startupFailureFamily: familyForStage(this.stage), ...this.evidence });
   }
@@ -213,6 +236,7 @@ export class AcquisitionWorkerStartupTelemetry {
       gcpStsFailureReason: "UNKNOWN",
       imdsv2RoleCredentialPayloadShape: this.imdsv2RoleCredentialPayloadShape,
       outerAccessTokenProgress: this.outerAccessTokenProgress, outerTokenResultShape: this.outerTokenResultShape,
+      outerTelemetrySameExecution: this.outerTelemetrySameExecution,
       sigv4TimestampFreshness: this.sigv4TimestampFreshness,
       startupFailureFamily: null, ...this.evidence });
   }
@@ -221,7 +245,8 @@ export class AcquisitionWorkerStartupTelemetry {
 export type AcquisitionWorkerStartupTelemetrySink = Pick<
   AcquisitionWorkerStartupTelemetry,
   "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "observeGoogleAuth" | "observeSessionTokenBoundary"
-  | "observeImdsv2PayloadShape" | "observeOuterAccessToken" | "failGcpSts" | "observeSigv4" | "failure" | "ready"
+  | "observeImdsv2PayloadShape" | "observeOuterAccessToken" | "observeOuterContinuation"
+  | "observeOuterCorrelation" | "failGcpSts" | "observeSigv4" | "failure" | "ready"
 >;
 
 export const validateAcquisitionWorkerStartupEvent = (input: unknown): AcquisitionWorkerStartupEvent => {
@@ -236,6 +261,7 @@ export const validateAcquisitionWorkerStartupEvent = (input: unknown): Acquisiti
     )
     || !outerAccessTokenProgressValues.has(value.outerAccessTokenProgress as OuterAccessTokenProgress)
     || !outerTokenResultShapeValues.has(value.outerTokenResultShape as OuterTokenResultShape)
+    || !evidenceValues.has(value.outerTelemetrySameExecution as StartupEvidence)
     || !sigv4TimestampFreshness.has(value.sigv4TimestampFreshness as Sigv4TimestampFreshness)
     || (value.startupFailureFamily !== null && !families.has(value.startupFailureFamily as StartupFailureFamily))
     || evidenceKeys.some((key) => !evidenceValues.has(value[key] as StartupEvidence))

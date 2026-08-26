@@ -9,7 +9,8 @@ import { GoogleAuth } from "google-auth-library";
 import { StsCredentials } from "google-auth-library/build/src/auth/stscredentials";
 import { Gaxios, type GaxiosOptions } from "gaxios";
 import type { AwsSessionTokenBoundaryKey, GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
-  Imdsv2RoleCredentialPayloadShape, OuterAccessTokenProgress, OuterTokenResultShape, Sigv4StructuralEvidence,
+  Imdsv2RoleCredentialPayloadShape, OuterAccessTokenProgress, OuterContinuationEvidenceKey,
+  OuterCorrelationBoundary, OuterTokenResultShape, Sigv4StructuralEvidence,
   StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
@@ -36,6 +37,8 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   sessionTokenBoundaryEvidence?(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void;
   imdsv2PayloadShape?(value: Imdsv2RoleCredentialPayloadShape): void;
   outerAccessTokenBoundary?(progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape): void;
+  outerContinuationEvidence?(key: OuterContinuationEvidenceKey): void;
+  outerCorrelationEvidence?(boundary: OuterCorrelationBoundary, marker: object): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
   sigv4Evidence?(evidence: Sigv4StructuralEvidence): void;
   googleAuthStarting(): void;
@@ -444,19 +447,29 @@ export const createAdcAccessTokenSupplier = (
   onFailure?: (error: unknown) => void,
   observe?: (key: GoogleAuthEvidenceKey, value: StartupEvidence) => void,
   observeOuter?: (progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape) => void,
+  observeContinuation?: (key: OuterContinuationEvidenceKey) => void,
+  observeCorrelation?: (boundary: OuterCorrelationBoundary, marker: object) => void,
+  correlationMarker: object = Object.freeze({}),
 ): GoogleAccessTokenSupplier => ({
   async getAccessToken(signal?: AbortSignal) {
     if (signal?.aborted) throw new AcquisitionControlAuthFailure();
     const failure = () => new AcquisitionControlAuthFailure();
     let onAbort: (() => void) | undefined;
     try {
-      const operation = auth.getClient().then((client) => client.getAccessToken());
+      observeContinuation?.("outerGetClientStarted");
+      const operation = auth.getClient().then((client) => {
+        observeContinuation?.("outerClientResolved");
+        observeContinuation?.("outerGetAccessTokenInvoked");
+        return client.getAccessToken();
+      });
       const response = signal
         ? await Promise.race([operation, new Promise<never>((_resolve, reject) => {
           onAbort = () => reject(failure());
           signal.addEventListener("abort", onAbort, { once: true });
         })])
        : await operation;
+      observeContinuation?.("outerContinuationEntered");
+      observeCorrelation?.("OUTER_CONTINUATION", correlationMarker);
       const shape: OuterTokenResultShape = response === null || response === undefined
         ? "NULLISH" : typeof response === "object" ? "OBJECT" : "OTHER";
       observeOuter?.("OUTER_TOKEN_RESULT_RECEIVED", shape);
@@ -489,14 +502,22 @@ export const createAcquisitionControlStore = async (
 ): Promise<GcsAcquisitionControlObjectStore> => {
   const configuration = readAcquisitionControlConfiguration(environment);
   const currentGoogleAuth = { stage: "UNKNOWN" as GoogleAuthStage };
+  const outerCorrelationMarker = Object.freeze({});
   const observedStartup: AcquisitionControlStoreStartupObserver | undefined = startup ? {
     controlAuthorityValidated: () => startup.controlAuthorityValidated(),
     googleAuthStage: (stage) => { currentGoogleAuth.stage = stage; startup.googleAuthStage(stage); },
     googleAuthEvidence: (key) => startup.googleAuthEvidence(key),
-    googleAuthBoundaryEvidence: (key, value) => startup.googleAuthBoundaryEvidence?.(key, value),
+    googleAuthBoundaryEvidence: (key, value) => {
+      if (key === "getAccessTokenReturned" || key === "credentialCacheAssigned") {
+        startup.outerCorrelationEvidence?.("INNER_PRODUCER", outerCorrelationMarker);
+      }
+      startup.googleAuthBoundaryEvidence?.(key, value);
+    },
     sessionTokenBoundaryEvidence: (key, value) => startup.sessionTokenBoundaryEvidence?.(key, value),
     imdsv2PayloadShape: (value) => startup.imdsv2PayloadShape?.(value),
     outerAccessTokenBoundary: (progress, shape) => startup.outerAccessTokenBoundary?.(progress, shape),
+    outerContinuationEvidence: (key) => startup.outerContinuationEvidence?.(key),
+    outerCorrelationEvidence: (boundary, marker) => startup.outerCorrelationEvidence?.(boundary, marker),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
     sigv4Evidence: (evidence) => startup.sigv4Evidence?.(evidence),
     googleAuthStarting: () => startup.googleAuthStarting(),
@@ -512,7 +533,9 @@ export const createAcquisitionControlStore = async (
   const token = createAdcAccessTokenSupplier(resolvedAuth, (error) => {
     if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.gcpStsFailure?.(classifyGcpStsFailure(error));
   }, (key, value) => observedStartup?.googleAuthBoundaryEvidence?.(key, value),
-  (progress, shape) => observedStartup?.outerAccessTokenBoundary?.(progress, shape));
+  (progress, shape) => observedStartup?.outerAccessTokenBoundary?.(progress, shape),
+  (key) => observedStartup?.outerContinuationEvidence?.(key),
+  (boundary, marker) => observedStartup?.outerCorrelationEvidence?.(boundary, marker), outerCorrelationMarker);
   await token.getAccessToken();
   if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.googleAuthEvidence("gcpStsExchangeSucceeded");
   observedStartup?.googleAuthStage("READY");

@@ -57,6 +57,29 @@ test("outer access-token progress and shape preserve UNKNOWN and retain success/
   assert.equal(succeeded.ready().outerTokenResultShape, "OBJECT");
 });
 
+test("outer continuation correlation is closed and distinguishes same, distinct, and unknown executions", () => {
+  const unknown = new AcquisitionWorkerStartupTelemetry().failure();
+  assert.equal(unknown.outerTelemetrySameExecution, "UNKNOWN");
+  assert.equal(unknown.outerGetClientStarted, "UNKNOWN");
+
+  const same = new AcquisitionWorkerStartupTelemetry();
+  const marker = Object.freeze({});
+  same.observeOuterContinuation("outerGetClientStarted");
+  same.observeOuterContinuation("outerClientResolved");
+  same.observeOuterContinuation("outerGetAccessTokenInvoked");
+  same.observeOuterContinuation("outerContinuationEntered");
+  same.observeOuterCorrelation("INNER_PRODUCER", marker);
+  same.observeOuterCorrelation("OUTER_CONTINUATION", marker);
+  const sameEvent = same.ready();
+  assert.equal(sameEvent.outerTelemetrySameExecution, "YES");
+  assert.equal(sameEvent.outerContinuationEntered, "YES");
+
+  const distinct = new AcquisitionWorkerStartupTelemetry();
+  distinct.observeOuterCorrelation("INNER_PRODUCER", Object.freeze({}));
+  distinct.observeOuterCorrelation("OUTER_CONTINUATION", Object.freeze({}));
+  assert.equal(distinct.failure().outerTelemetrySameExecution, "NO");
+});
+
 test("bootstrap projects telemetry-module load failure without raw exception data", async () => {
   const lines: string[] = [];
   const original = console.error;
@@ -112,6 +135,7 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.equal(event.imdsv2RoleCredentialPayloadShape, "UNKNOWN");
   assert.equal(event.outerAccessTokenProgress, "UNKNOWN");
   assert.equal(event.outerTokenResultShape, "UNKNOWN");
+  assert.equal(event.outerTelemetrySameExecution, "UNKNOWN");
   assert.equal(event.sigv4TimestampFreshness, "UNKNOWN");
   assert.equal(event.sigv4ExpectedRegion, "UNKNOWN");
   assert.equal(event.imdsv2TokenAcquired, "UNKNOWN");
