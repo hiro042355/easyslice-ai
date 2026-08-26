@@ -8,8 +8,8 @@ import { readFile } from "node:fs/promises";
 import { GoogleAuth } from "google-auth-library";
 import { StsCredentials } from "google-auth-library/build/src/auth/stscredentials";
 import { Gaxios, type GaxiosOptions } from "gaxios";
-import type { GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
-  Sigv4StructuralEvidence } from "../../../worker/acquisition/startupTelemetry";
+import type { AwsSessionTokenBoundaryKey, GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
+  Sigv4StructuralEvidence, StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
 const STORAGE_API = "https://storage.googleapis.com";
@@ -31,6 +31,7 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   controlAuthorityValidated(): void;
   googleAuthStage(stage: GoogleAuthStage): void;
   googleAuthEvidence(key: GoogleAuthEvidenceKey): void;
+  sessionTokenBoundaryEvidence?(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
   sigv4Evidence?(evidence: Sigv4StructuralEvidence): void;
   googleAuthStarting(): void;
@@ -208,6 +209,13 @@ export const createGoogleAuthTelemetryTransporter = (
     }
     if (boundary) startup.googleAuthStage(boundary.stage);
     const response = await request(options);
+    if (boundary?.success.includes("awsRoleCredentialsAcquired")) {
+      const data = response.data;
+      const tokenEvidence: StartupEvidence = data && typeof data === "object" && !Array.isArray(data)
+        ? (typeof Reflect.get(data, "Token") === "string" && Reflect.get(data, "Token").length > 0 ? "YES" : "NO")
+        : "UNKNOWN";
+      startup.sessionTokenBoundaryEvidence?.("imdsv2RoleTokenPresent", tokenEvidence);
+    }
     if (boundary) for (const key of boundary.success) {
       startup.googleAuthEvidence(key);
       if (key === "gcpStsExchangeSucceeded") gcpStsSucceeded = true;
@@ -221,6 +229,7 @@ export const createGoogleAuthTelemetryTransporter = (
 };
 
 const bridgedStsCredentials = new WeakSet<object>();
+const bridgedAwsCredentialSuppliers = new WeakSet<object>();
 
 export const installStsTransporterTelemetryBridge = (
   client: unknown,
@@ -234,6 +243,22 @@ export const installStsTransporterTelemetryBridge = (
   const transporter = Reflect.get(stsCredential, "transporter") as unknown;
   if (!(transporter instanceof Gaxios)) return false;
   createGoogleAuthTelemetryTransporter(startup, transporter);
+  const supplier = Reflect.get(client, "awsSecurityCredentialsSupplier") as unknown;
+  if (supplier && typeof supplier === "object" && !bridgedAwsCredentialSuppliers.has(supplier)) {
+    const getCredentials = Reflect.get(supplier, "getAwsSecurityCredentials") as unknown;
+    if (typeof getCredentials === "function") {
+      const delegated = getCredentials.bind(supplier) as (context: unknown) => Promise<unknown>;
+      Reflect.set(supplier, "getAwsSecurityCredentials", async (context: unknown) => {
+        const credentials = await delegated(context);
+        const tokenEvidence: StartupEvidence = credentials && typeof credentials === "object" && !Array.isArray(credentials)
+          ? (Boolean(Reflect.get(credentials, "token")) ? "YES" : "NO")
+          : "UNKNOWN";
+        startup.sessionTokenBoundaryEvidence?.("signerInputTokenPresent", tokenEvidence);
+        return credentials;
+      });
+      bridgedAwsCredentialSuppliers.add(supplier);
+    }
+  }
   bridgedStsCredentials.add(stsCredential);
   return true;
 };
@@ -337,6 +362,7 @@ export const createAcquisitionControlStore = async (
     controlAuthorityValidated: () => startup.controlAuthorityValidated(),
     googleAuthStage: (stage) => { currentGoogleAuth.stage = stage; startup.googleAuthStage(stage); },
     googleAuthEvidence: (key) => startup.googleAuthEvidence(key),
+    sessionTokenBoundaryEvidence: (key, value) => startup.sessionTokenBoundaryEvidence?.(key, value),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
     sigv4Evidence: (evidence) => startup.sigv4Evidence?.(evidence),
     googleAuthStarting: () => startup.googleAuthStarting(),

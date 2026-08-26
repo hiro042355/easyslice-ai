@@ -107,6 +107,30 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, stderr: "forbidden" }));
 });
 
+test("session-token boundary evidence preserves YES, NO, and UNKNOWN in failure and success events", () => {
+  const failure = new AcquisitionWorkerStartupTelemetry();
+  failure.enter("GOOGLE_AUTH_INIT");
+  failure.enterGoogleAuth("GCP_STS_EXCHANGE");
+  failure.observeSessionTokenBoundary("imdsv2RoleTokenPresent", "YES");
+  failure.observeSessionTokenBoundary("signerInputTokenPresent", "NO");
+  const failedEvent = failure.failure();
+  assert.equal(failedEvent.imdsv2RoleTokenPresent, "YES");
+  assert.equal(failedEvent.signerInputTokenPresent, "NO");
+  assert.deepEqual(validateAcquisitionWorkerStartupEvent(failedEvent), failedEvent);
+
+  const success = new AcquisitionWorkerStartupTelemetry();
+  success.observeSessionTokenBoundary("imdsv2RoleTokenPresent", "YES");
+  success.observeSessionTokenBoundary("signerInputTokenPresent", "YES");
+  const readyEvent = success.ready();
+  assert.equal(readyEvent.imdsv2RoleTokenPresent, "YES");
+  assert.equal(readyEvent.signerInputTokenPresent, "YES");
+
+  const unknown = new AcquisitionWorkerStartupTelemetry().failure();
+  assert.equal(unknown.imdsv2RoleTokenPresent, "UNKNOWN");
+  assert.equal(unknown.signerInputTokenPresent, "UNKNOWN");
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...unknown, signerInputTokenPresent: "MAYBE" }));
+});
+
 test("closed SigV4 structure is copied into the exact startup event without arbitrary authority", () => {
   const telemetry = new AcquisitionWorkerStartupTelemetry();
   telemetry.observeSigv4({

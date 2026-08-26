@@ -26,6 +26,8 @@ const bootstrapFailure = Object.freeze({
   imdsv2TokenAcquired: "UNKNOWN",
   awsRegionResolved: "UNKNOWN",
   awsRoleCredentialsAcquired: "UNKNOWN",
+  imdsv2RoleTokenPresent: "UNKNOWN",
+  signerInputTokenPresent: "UNKNOWN",
   gcpStsExchangeSucceeded: "UNKNOWN",
   serviceAccountImpersonationSucceeded: "UNKNOWN",
   sigv4SessionTokenPresent: "UNKNOWN",

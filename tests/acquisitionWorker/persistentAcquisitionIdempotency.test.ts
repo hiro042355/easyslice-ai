@@ -25,7 +25,8 @@ import {
   readAcquisitionControlConfiguration,
   validateGoogleCredentialPolicy,
 } from "../../lib/server/acquisitionWorker/gcsControlStore";
-import type { GoogleAuthEvidenceKey, GoogleAuthStage } from "../../worker/acquisition/startupTelemetry";
+import { AcquisitionWorkerStartupTelemetry, type AwsSessionTokenBoundaryKey,
+  type GoogleAuthEvidenceKey, type GoogleAuthStage, type StartupEvidence } from "../../worker/acquisition/startupTelemetry";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const ID2 = "223e4567-e89b-42d3-a456-426614174000";
@@ -286,6 +287,111 @@ test("successful AWS role credential retrieval advances the closed stage before 
   } as GaxiosOptions);
   assert.deepEqual(evidence, ["awsRoleCredentialsAcquired"]);
   assert.deepEqual(stages, ["AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE"]);
+});
+
+test("actual IMDS role response projects only closed session-token presence", async () => {
+  for (const [data, expected] of [
+    [{ Token: "synthetic-session" }, "YES"], [{}, "NO"], ["malformed", "UNKNOWN"],
+  ] as const) {
+    const observed: Array<readonly [AwsSessionTokenBoundaryKey, StartupEvidence]> = [];
+    const base = new Gaxios();
+    base.request = (async (options) => ({ data, status: 200, statusText: "OK", headers: new Headers(), config: options })) as typeof base.request;
+    const transporter = createGoogleAuthTelemetryTransporter({
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      sessionTokenBoundaryEvidence: (key, value) => observed.push([key, value]),
+    }, base);
+    await transporter.request({ url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role" });
+    assert.deepEqual(observed, [["imdsv2RoleTokenPresent", expected]]);
+    assert.doesNotMatch(JSON.stringify(observed), /synthetic-session|SYNTHETIC|AWS4-HMAC/);
+  }
+});
+
+test("actual signer supplier input projects token presence without a second credential acquisition", async () => {
+  for (const [token, expected] of [["synthetic-session", "YES"], [undefined, "NO"]] as const) {
+    let credentialCalls = 0;
+    const observed: Array<readonly [AwsSessionTokenBoundaryKey, StartupEvidence]> = [];
+    const client = new AwsClient({
+      audience: "//iam.googleapis.com/projects/0/locations/global/workloadIdentityPools/closed/providers/closed",
+      subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+      token_url: "http://127.0.0.1/unused",
+      aws_security_credentials_supplier: {
+        getAwsRegion: async () => "ap-northeast-1",
+        getAwsSecurityCredentials: async () => {
+          credentialCalls += 1;
+          return { accessKeyId: "SYNTHETIC", secretAccessKey: "synthetic-only", ...(token ? { token } : {}) };
+        },
+      },
+    });
+    assert.equal(installStsTransporterTelemetryBridge(client, {
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      sessionTokenBoundaryEvidence: (key, value) => observed.push([key, value]),
+    }), true);
+    await client.retrieveSubjectToken();
+    assert.equal(credentialCalls, 1);
+    assert.deepEqual(observed, [["signerInputTokenPresent", expected]]);
+    assert.doesNotMatch(JSON.stringify(observed), /synthetic-session|SYNTHETIC/);
+  }
+});
+
+test("downstream invalid_grant and success retain both earlier token-boundary observations", async () => {
+  const run = async (fail: boolean) => {
+    const telemetry = new AcquisitionWorkerStartupTelemetry();
+    telemetry.enter("GOOGLE_AUTH_INIT");
+    let metadataRequests = 0; let credentialCalls = 0; let stsRequests = 0;
+    const observer = {
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {},
+      googleAuthStage: (stage: GoogleAuthStage) => telemetry.enterGoogleAuth(stage),
+      googleAuthEvidence: (key: GoogleAuthEvidenceKey) => telemetry.proveGoogleAuth(key),
+      sessionTokenBoundaryEvidence: (key: AwsSessionTokenBoundaryKey, value: StartupEvidence) =>
+        telemetry.observeSessionTokenBoundary(key, value),
+    };
+    const metadata = new Gaxios();
+    metadata.request = (async (options) => {
+      metadataRequests += 1;
+      return { data: { Token: "must-not-retain" }, status: 200, statusText: "OK", headers: new Headers(), config: options };
+    }) as typeof metadata.request;
+    await createGoogleAuthTelemetryTransporter(observer, metadata).request({
+      url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role",
+    });
+
+    const client = new AwsClient({
+      audience: "//iam.googleapis.com/projects/0/locations/global/workloadIdentityPools/closed/providers/closed",
+      subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+      token_url: "https://sts.googleapis.com/v1/token",
+      aws_security_credentials_supplier: {
+        getAwsRegion: async () => "ap-northeast-1",
+        getAwsSecurityCredentials: async () => {
+          credentialCalls += 1;
+          return { accessKeyId: "SYNTHETIC", secretAccessKey: "synthetic-only", token: "must-not-retain" };
+        },
+      },
+    });
+    const sts = Reflect.get(Reflect.get(client, "stsCredential"), "transporter") as Gaxios;
+    sts.request = (async (options) => {
+      stsRequests += 1;
+      if (fail) throw { response: { status: 400, data: { error: "invalid_grant" } } };
+      return { data: { access_token: "memory-only", issued_token_type: "urn:ietf:params:oauth:token-type:access_token",
+        token_type: "Bearer", expires_in: 300 }, status: 200, statusText: "OK", headers: new Headers(), config: options };
+    }) as typeof sts.request;
+    assert.equal(installStsTransporterTelemetryBridge(client, observer), true);
+    if (fail) {
+      await assert.rejects(client.getAccessToken(), (error) => {
+        telemetry.failGcpSts(classifyGcpStsFailure(error)); return true;
+      });
+    } else {
+      assert.equal(typeof (await client.getAccessToken()).token, "string");
+    }
+    const event = fail ? telemetry.failure() : telemetry.ready();
+    assert.equal(metadataRequests, 1); assert.equal(credentialCalls, 1); assert.equal(stsRequests, 1);
+    assert.equal(event.imdsv2RoleTokenPresent, "YES");
+    assert.equal(event.signerInputTokenPresent, "YES");
+    assert.doesNotMatch(JSON.stringify(event), /must-not-retain|SYNTHETIC|memory-only|invalid_grant/);
+  };
+  await run(true);
+  await run(false);
 });
 
 test("GoogleAuth transporter retains failed boundary without raw error projection", async () => {

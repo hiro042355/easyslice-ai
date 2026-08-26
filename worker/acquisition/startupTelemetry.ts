@@ -39,6 +39,10 @@ export const GOOGLE_AUTH_EVIDENCE_KEYS = [
   "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded",
 ] as const;
 export type GoogleAuthEvidenceKey = typeof GOOGLE_AUTH_EVIDENCE_KEYS[number];
+export const AWS_SESSION_TOKEN_BOUNDARY_KEYS = [
+  "imdsv2RoleTokenPresent", "signerInputTokenPresent",
+] as const;
+export type AwsSessionTokenBoundaryKey = typeof AWS_SESSION_TOKEN_BOUNDARY_KEYS[number];
 
 export type AcquisitionWorkerStartupEvent = Readonly<{
   event: "acquisition-worker-startup";
@@ -57,6 +61,8 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
   awsRoleCredentialsAcquired: StartupEvidence;
   gcpStsExchangeSucceeded: StartupEvidence;
   serviceAccountImpersonationSucceeded: StartupEvidence;
+  imdsv2RoleTokenPresent: StartupEvidence;
+  signerInputTokenPresent: StartupEvidence;
   sigv4SessionTokenPresent: StartupEvidence;
   sigv4ExpectedRegion: StartupEvidence;
   sigv4ExpectedHost: StartupEvidence;
@@ -75,7 +81,7 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
 const evidenceKeys = [
   "runtimeDependenciesResolved", "controlAuthorityValidated", "googleAuthInitialized",
   "controlStoreInitialized", "telemetryProxyInitialized", "httpListenerBound", ...GOOGLE_AUTH_EVIDENCE_KEYS,
-  ...SIGV4_EVIDENCE_KEYS,
+  ...AWS_SESSION_TOKEN_BOUNDARY_KEYS, ...SIGV4_EVIDENCE_KEYS,
 ] as const;
 type EvidenceKey = typeof evidenceKeys[number];
 const evidenceValues = new Set<StartupEvidence>(["YES", "NO", "UNKNOWN"]);
@@ -110,6 +116,7 @@ export class AcquisitionWorkerStartupTelemetry {
     telemetryProxyInitialized: "UNKNOWN", httpListenerBound: "UNKNOWN",
     imdsv2TokenAcquired: "UNKNOWN", awsRegionResolved: "UNKNOWN", awsRoleCredentialsAcquired: "UNKNOWN",
     gcpStsExchangeSucceeded: "UNKNOWN", serviceAccountImpersonationSucceeded: "UNKNOWN",
+    imdsv2RoleTokenPresent: "UNKNOWN", signerInputTokenPresent: "UNKNOWN",
     sigv4SessionTokenPresent: "UNKNOWN", sigv4ExpectedRegion: "UNKNOWN", sigv4ExpectedHost: "UNKNOWN",
     sigv4AuthorizationPresent: "UNKNOWN", sigv4AmzDatePresent: "UNKNOWN",
     sigv4SecurityTokenHeaderPresent: "UNKNOWN", sigv4SecurityTokenSigned: "UNKNOWN",
@@ -123,6 +130,9 @@ export class AcquisitionWorkerStartupTelemetry {
   prove(key: EvidenceKey): void { this.evidence[key] = "YES"; }
   enterGoogleAuth(stage: GoogleAuthStage): void { this.googleAuthStage = stage; }
   proveGoogleAuth(key: GoogleAuthEvidenceKey): void { this.evidence[key] = "YES"; }
+  observeSessionTokenBoundary(key: AwsSessionTokenBoundaryKey, value: StartupEvidence): void {
+    this.evidence[key] = value;
+  }
   failGcpSts(reason: GcpStsFailureReason): void { this.gcpStsFailureReason = reason; }
   observeSigv4(value: Sigv4StructuralEvidence): void {
     for (const key of SIGV4_EVIDENCE_KEYS) this.evidence[key] = value[key];
@@ -164,7 +174,8 @@ export class AcquisitionWorkerStartupTelemetry {
 
 export type AcquisitionWorkerStartupTelemetrySink = Pick<
   AcquisitionWorkerStartupTelemetry,
-  "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "failGcpSts" | "observeSigv4" | "failure" | "ready"
+  "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "observeSessionTokenBoundary"
+  | "failGcpSts" | "observeSigv4" | "failure" | "ready"
 >;
 
 export const validateAcquisitionWorkerStartupEvent = (input: unknown): AcquisitionWorkerStartupEvent => {
