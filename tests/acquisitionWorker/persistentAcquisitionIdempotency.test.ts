@@ -290,14 +290,14 @@ test("successful AWS role credential retrieval advances the closed stage before 
   assert.deepEqual(stages, ["AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE"]);
 });
 
-test("actual IMDS role response projects only closed session-token presence", async () => {
-  for (const [data, expectedShape, expectedToken] of [
-    [{ AccessKeyId: "synthetic", SecretAccessKey: "synthetic", Token: "synthetic-session" }, "PLAIN_OBJECT", "YES"],
-    [{ AccessKeyId: "synthetic", SecretAccessKey: "synthetic" }, "PLAIN_OBJECT", "NO"],
+test("actual IMDS role response projects original shape and strictly normalizes recognized credential strings", async () => {
+  for (const [data, expectedShape, expectedToken, normalized] of [
+    [{ AccessKeyId: "synthetic", SecretAccessKey: "synthetic", Token: "synthetic-session" }, "PLAIN_OBJECT", "YES", false],
+    [{ AccessKeyId: "synthetic", SecretAccessKey: "synthetic" }, "PLAIN_OBJECT", "NO", false],
     [JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic", Token: "synthetic-session" }),
-      "JSON_STRING", "YES"],
-    [JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic" }), "JSON_STRING", "NO"],
-    ["malformed", "OTHER", "UNKNOWN"],
+      "JSON_STRING", "YES", true],
+    [JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic" }), "JSON_STRING", "NO", true],
+    ["malformed", "OTHER", "UNKNOWN", false],
   ] as const) {
     const observed: Array<readonly [AwsSessionTokenBoundaryKey, StartupEvidence]> = [];
     const shapes: string[] = [];
@@ -314,10 +314,38 @@ test("actual IMDS role response projects only closed session-token presence", as
       url: "http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role",
     });
     assert.equal(response, originalResponse);
-    assert.equal(response.data, data);
+    if (normalized) {
+      assert.equal(typeof response.data, "object");
+      assert.deepEqual(response.data, JSON.parse(data as string));
+    } else assert.equal(response.data, data);
     assert.deepEqual(shapes, [expectedShape]);
     assert.deepEqual(observed, [["imdsv2RoleTokenPresent", expectedToken]]);
     assert.doesNotMatch(JSON.stringify(observed), /synthetic-session|SYNTHETIC|AWS4-HMAC/);
+  }
+});
+
+test("IMDS credential normalization is exact-endpoint-only and preserves unrecognized responses", async () => {
+  const credential = JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic", Token: "synthetic-session" });
+  for (const [url, data, normalized] of [
+    ["http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role", credential, true],
+    ["http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role", "{", false],
+    ["http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role", '{"unrelated":true}', false],
+    ["http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role", "[]", false],
+    ["http://169.254.169.254/latest/meta-data/iam/security-credentials/closed-role", "7", false],
+    ["http://169.254.169.254/latest/meta-data/iam/security-credentials", credential, false],
+    ["http://169.254.169.254/latest/meta-data/placement/availability-zone", credential, false],
+    ["https://sts.googleapis.com/v1/token", credential, false],
+  ] as const) {
+    const base = new Gaxios();
+    const originalResponse = { data, status: 200, statusText: "OK", headers: new Headers(), config: {} };
+    base.request = (async (options) => Object.assign(originalResponse, { config: options })) as typeof base.request;
+    const response = await createGoogleAuthTelemetryTransporter({
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    }, base).request({ url });
+    assert.equal(response, originalResponse);
+    assert.equal(typeof response.data === "object", normalized);
+    if (!normalized) assert.equal(response.data, data);
   }
 });
 
@@ -368,6 +396,58 @@ test("actual signer supplier input projects token presence without a second cred
     assert.equal(credentialCalls, 1);
     assert.deepEqual(observed, [["signerInputTokenPresent", expected]]);
     assert.doesNotMatch(JSON.stringify(observed), /synthetic-session|SYNTHETIC/);
+  }
+});
+
+test("full default supplier path normalizes only the credential envelope and preserves token absence", async () => {
+  for (const includeToken of [true, false]) {
+    const observed: Array<readonly [AwsSessionTokenBoundaryKey, StartupEvidence]> = [];
+    const shapes: string[] = [];
+    const urls: string[] = [];
+    const base = new Gaxios();
+    base.request = (async (options: GaxiosOptions) => {
+      const url = String(options.url ?? "");
+      urls.push(url);
+      const data = url.endsWith("/placement/availability-zone") ? "ap-northeast-1a"
+        : url.endsWith("/security-credentials") ? "closed-role"
+          : JSON.stringify({ AccessKeyId: "synthetic", SecretAccessKey: "synthetic",
+            ...(includeToken ? { Token: "synthetic-session" } : {}) });
+      return { data, status: 200, statusText: "OK", headers: new Headers(), config: options };
+    }) as typeof base.request;
+    const observer = {
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      sessionTokenBoundaryEvidence: (key: AwsSessionTokenBoundaryKey, value: StartupEvidence) =>
+        observed.push([key, value]),
+      imdsv2PayloadShape: (value: string) => shapes.push(value),
+    };
+    const transporter = createGoogleAuthTelemetryTransporter(observer, base);
+    const client = new AwsClient({
+      audience: "//iam.googleapis.com/projects/0/locations/global/workloadIdentityPools/closed/providers/closed",
+      subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+      token_url: "http://127.0.0.1/unused",
+      credential_source: {
+        environment_id: "aws1",
+        region_url: "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+        url: "http://169.254.169.254/latest/meta-data/iam/security-credentials",
+        regional_cred_verification_url: "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
+      },
+    });
+    Reflect.get(client, "supplierContext").transporter = transporter;
+    assert.equal(installStsTransporterTelemetryBridge(client, observer), true);
+    const subject = JSON.parse(decodeURIComponent(await client.retrieveSubjectToken())) as
+      Readonly<{ headers: ReadonlyArray<Readonly<{ key: string; value: string }>> }>;
+    const headerNames = new Set(subject.headers.map(({ key }) => key.toLowerCase()));
+    assert.deepEqual(shapes, ["JSON_STRING"]);
+    assert.deepEqual(observed, [
+      ["imdsv2RoleTokenPresent", includeToken ? "YES" : "NO"],
+      ["signerInputTokenPresent", includeToken ? "YES" : "NO"],
+    ]);
+    assert.equal(headerNames.has("x-amz-security-token"), includeToken);
+    assert.equal(urls.length, 3);
+    assert.equal(urls.filter((url) => url.includes("/security-credentials/closed-role")).length, 1);
+    assert.doesNotMatch(JSON.stringify({ shapes, observed, headerNames: [...headerNames] }),
+      /synthetic-session|synthetic|AWS4-HMAC/);
   }
 });
 

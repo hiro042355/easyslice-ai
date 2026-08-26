@@ -196,6 +196,33 @@ const classifyGoogleAuthRequest = (input: string): GoogleAuthRequestBoundary | u
   return undefined;
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
+const isImdsRoleCredentialDocumentRequest = (input: string): boolean => {
+  let url: URL;
+  try { url = new URL(input); } catch { return false; }
+  return url.hostname === "169.254.169.254"
+    && /^\/latest\/meta-data\/iam\/security-credentials\/[^/]+$/.test(url.pathname)
+    && url.search === "" && url.hash === "";
+};
+
+const normalizeImdsRoleCredentialResponseData = (value: unknown): unknown => {
+  if (typeof value !== "string") return value;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!isPlainObject(parsed)
+      || !Object.hasOwn(parsed, "AccessKeyId") || !Object.hasOwn(parsed, "SecretAccessKey")
+      || typeof parsed.AccessKeyId !== "string" || typeof parsed.SecretAccessKey !== "string") return value;
+    return parsed;
+  } catch {
+    return value;
+  }
+};
+
 export const createGoogleAuthTelemetryTransporter = (
   startup: AcquisitionControlStoreStartupObserver,
   transporter: Gaxios = new Gaxios(),
@@ -215,6 +242,9 @@ export const createGoogleAuthTelemetryTransporter = (
       const classification = classifyImdsv2RoleCredentialPayload(response.data);
       startup.imdsv2PayloadShape?.(classification.shape);
       startup.sessionTokenBoundaryEvidence?.("imdsv2RoleTokenPresent", classification.tokenPresent);
+      if (isImdsRoleCredentialDocumentRequest(String(options.url ?? ""))) {
+        response.data = normalizeImdsRoleCredentialResponseData(response.data);
+      }
     }
     if (boundary) for (const key of boundary.success) {
       startup.googleAuthEvidence(key);
@@ -232,12 +262,6 @@ type Imdsv2RoleCredentialPayloadClassification = Readonly<{
   shape: Imdsv2RoleCredentialPayloadShape;
   tokenPresent: StartupEvidence;
 }>;
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-};
 
 const classifyCredentialObject = (
   value: Record<string, unknown>,
