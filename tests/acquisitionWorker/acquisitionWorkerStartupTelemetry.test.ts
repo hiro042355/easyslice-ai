@@ -314,6 +314,20 @@ test("readiness parses Docker stdout/stderr as raw lines before fromjson and rem
   assert.doesNotMatch(readiness, /cat\s+.*docker|printf[^\n]*docker logs/);
 });
 
+test("readiness uses the exported gcloud credential-file authority without an unsupported print-access-token flag", async () => {
+  const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
+  const userData = await readFile("infra/experiments/aws-acquisition-egress/templates/user-data.sh.tftpl", "utf8");
+  const invocation = "gcloud auth print-access-token";
+  const tokenAcquisition = readiness.indexOf(invocation);
+  const bucketCrud = readiness.indexOf("https://storage.googleapis.com/upload/storage/v1/b/");
+  assert.doesNotMatch(readiness, /gcloud auth print-access-token\s+--cred-file(?:=|\s)/);
+  assert.equal(readiness.split(invocation).length - 1, 1);
+  assert.match(readiness, /set -a\nsource \/opt\/nexcut-experiment\/environment\nset \+a/);
+  assert.match(userData, /CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=\/opt\/nexcut-experiment\/gcp-wif\.json/);
+  assert.ok(tokenAcquisition >= 0 && bucketCrud > tokenAcquisition);
+  assert.doesNotMatch(readiness, /gcloud auth (?:login|application-default)|print-access-token[^\n]*retry/i);
+});
+
 test("Production and EXPERIMENT authority, acquisition arguments, images, and retry behavior remain unchanged", async () => {
   const readiness = await readFile("infra/experiments/aws-acquisition-egress/runtime/readiness", "utf8");
   const composition = await readFile("worker/acquisition/composition.ts", "utf8");

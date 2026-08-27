@@ -68,7 +68,7 @@ done
 curl -fsS --max-time 2 http://127.0.0.1:4416/ping >/dev/null
 curl -fsS --max-time 2 http://127.0.0.1:8080/readyz >/dev/null
 
-token="$(gcloud auth print-access-token --cred-file="$GOOGLE_APPLICATION_CREDENTIALS")"
+token="$(gcloud auth print-access-token)"
 name="acquisition-control/v1/readiness-$(cat /proc/sys/kernel/random/uuid)"
 encoded_name="$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$name")"
 object_url="https://storage.googleapis.com/upload/storage/v1/b/$ACQUISITION_CONTROL_BUCKET/o?uploadType=media&ifGenerationMatch=0&name=$encoded_name"
