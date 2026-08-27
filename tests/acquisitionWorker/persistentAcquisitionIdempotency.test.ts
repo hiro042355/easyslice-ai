@@ -16,12 +16,14 @@ import {
 import { AcquisitionWorkerFailure, type AcquisitionResult } from "../../lib/server/acquisitionWorker/types";
 import {
   AcquisitionControlAuthFailure,
+  ACQUISITION_GOOGLE_CLOUD_PROJECT_ID,
   GcsAcquisitionControlObjectStore,
   classifyGcpStsFailure,
   classifyProjectIdFailure,
   classifyImdsv2RoleCredentialPayload,
   createAdcAccessTokenSupplier,
   createAcquisitionControlStore,
+  createAcquisitionGoogleAuth,
   createGoogleAuthTelemetryTransporter,
   installStsTransporterTelemetryBridge,
   readAcquisitionControlConfiguration,
@@ -274,6 +276,80 @@ test("GoogleAuth transporter maps only fixed credential boundaries and proves su
     "AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE", "GCP_STS_EXCHANGE", "SERVICE_ACCOUNT_IMPERSONATION"]);
   assert.deepEqual(evidence, ["imdsv2TokenAcquired", "awsRegionResolved", "awsRoleCredentialsAcquired",
     "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded"]);
+});
+
+test("acquisition GoogleAuth uses the closed project authority without Cloud Resource Manager discovery", async () => {
+  let requests = 0;
+  const base = new Gaxios();
+  base.request = (async () => {
+    requests += 1;
+    throw new Error("must-not-contact-cloud-resource-manager");
+  }) as typeof base.request;
+  const evidence: Array<readonly [ProjectIdEvidenceKey, StartupEvidence]> = [];
+  const auth = createAcquisitionGoogleAuth({
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    projectIdEvidence: (key, value) => evidence.push([key, value]),
+  }, base);
+  assert.equal(ACQUISITION_GOOGLE_CLOUD_PROJECT_ID, "nexcut-prod-jp-2026");
+  assert.equal(await auth.getProjectId(), ACQUISITION_GOOGLE_CLOUD_PROJECT_ID);
+  assert.equal(requests, 0);
+  assert.deepEqual(evidence, []);
+  assert.deepEqual(Reflect.get(auth, "scopes"), ["https://www.googleapis.com/auth/devstorage.read_write"]);
+});
+
+test("explicit project authority carries the offline full composition past getClient without CRM lookup", async () => {
+  let crmRequests = 0;
+  let getClientCalls = 0;
+  let getAccessTokenCalls = 0;
+  let googleAuthInitialized = 0;
+  const continuation: string[] = [];
+  const accepted: StartupEvidence[] = [];
+  const base = new Gaxios();
+  base.request = (async (options) => {
+    if (String(options.url).includes("cloudresourcemanager.googleapis.com")) crmRequests += 1;
+    throw new Error("must-not-contact-external-authority");
+  }) as typeof base.request;
+  const auth = createAcquisitionGoogleAuth(undefined, base);
+  Reflect.set(auth, "jsonContent", {
+    type: "external_account",
+    audience: "//iam.googleapis.com/projects/566365202495/locations/global/workloadIdentityPools/closed/providers/closed",
+    subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+    token_url: "https://sts.googleapis.com/v1/token",
+    credential_source: {
+      environment_id: "aws1",
+      region_url: "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+      url: "http://169.254.169.254/latest/meta-data/iam/security-credentials",
+      regional_cred_verification_url: "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
+    },
+  });
+  const getClient = auth.getClient.bind(auth);
+  auth.getClient = async () => {
+    getClientCalls += 1;
+    const client = await getClient();
+    client.getAccessToken = async () => {
+      getAccessTokenCalls += 1;
+      return { token: "memory-only" };
+    };
+    return client;
+  };
+  const store = await createAcquisitionControlStore({ MEDIA_BUCKET_NAME: "nexcut-prod-jp-2026-media" }, auth,
+    async () => { throw new Error("must-not-contact-storage"); }, undefined, {
+      controlAuthorityValidated() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      googleAuthBoundaryEvidence: (key, value) => { if (key === "accessTokenAccepted") accepted.push(value); },
+      outerContinuationEvidence: (key) => continuation.push(key),
+      googleAuthStarting() {}, googleAuthInitialized: () => { googleAuthInitialized += 1; },
+      controlStoreStarting() {}, controlStoreInitialized() {},
+    });
+  assert.equal(store instanceof GcsAcquisitionControlObjectStore, true);
+  assert.equal(await auth.getProjectId(), ACQUISITION_GOOGLE_CLOUD_PROJECT_ID);
+  assert.equal(crmRequests, 0);
+  assert.equal(getClientCalls, 1);
+  assert.equal(getAccessTokenCalls, 1);
+  assert.deepEqual(continuation, ["outerGetClientStarted", "outerClientResolved", "outerGetAccessTokenInvoked",
+    "outerContinuationEntered"]);
+  assert.deepEqual(accepted, ["YES"]);
+  assert.equal(googleAuthInitialized, 1);
 });
 
 test("Cloud Resource Manager project lookup telemetry classifies closed success and invalid responses", async () => {

@@ -14,7 +14,8 @@ import type { AwsSessionTokenBoundaryKey, GcpStsFailureReason, GoogleAuthEvidenc
   Sigv4StructuralEvidence,
   StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
 
-export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
+export const ACQUISITION_GOOGLE_CLOUD_PROJECT_ID = "nexcut-prod-jp-2026" as const;
+export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = `${ACQUISITION_GOOGLE_CLOUD_PROJECT_ID}-media` as const;
 const STORAGE_API = "https://storage.googleapis.com";
 const EXPERIMENT_BUCKET = /^nexcut-production-acquisition-host-experiment-[a-z0-9][a-z0-9-]{5,30}[a-z0-9]$/;
 const STORAGE_SCOPE = "https://www.googleapis.com/auth/devstorage.read_write";
@@ -452,9 +453,13 @@ export const installStsTransporterTelemetryBridge = (
   return true;
 };
 
-const createObservedGoogleAuth = (startup: AcquisitionControlStoreStartupObserver): GoogleAuth => {
-  const auth = new GoogleAuth({ scopes: [STORAGE_SCOPE],
-    clientOptions: { transporter: createGoogleAuthTelemetryTransporter(startup) } });
+export const createAcquisitionGoogleAuth = (
+  startup?: AcquisitionControlStoreStartupObserver,
+  transporter: Gaxios = new Gaxios(),
+): GoogleAuth => {
+  const auth = new GoogleAuth({ projectId: ACQUISITION_GOOGLE_CLOUD_PROJECT_ID, scopes: [STORAGE_SCOPE],
+    ...(startup ? { clientOptions: { transporter: createGoogleAuthTelemetryTransporter(startup, transporter) } } : {}) });
+  if (!startup) return auth;
   const fromJSON = auth.fromJSON.bind(auth);
   auth.fromJSON = ((json: Parameters<GoogleAuth["fromJSON"]>[0], options?: Parameters<GoogleAuth["fromJSON"]>[1]) => {
     const client = fromJSON(json, options);
@@ -512,7 +517,7 @@ export const validateGoogleCredentialPolicy = async (
 };
 
 export const createAdcAccessTokenSupplier = (
-  auth: GoogleAuthFactory = new GoogleAuth({ scopes: [STORAGE_SCOPE] }) as GoogleAuthFactory,
+  auth: GoogleAuthFactory = createAcquisitionGoogleAuth() as GoogleAuthFactory,
   onFailure?: (error: unknown) => void,
   observe?: (key: GoogleAuthEvidenceKey, value: StartupEvidence) => void,
   observeOuter?: (progress: OuterAccessTokenProgress, shape?: OuterTokenResultShape) => void,
@@ -599,8 +604,7 @@ export const createAcquisitionControlStore = async (
   observedStartup?.controlAuthorityValidated();
   await validateGoogleCredentialPolicy(environment, loadCredentialConfiguration, observedStartup);
   observedStartup?.googleAuthStarting();
-  const resolvedAuth = auth ?? (observedStartup ? createObservedGoogleAuth(observedStartup)
-    : new GoogleAuth({ scopes: [STORAGE_SCOPE] })) as GoogleAuthFactory;
+  const resolvedAuth = auth ?? createAcquisitionGoogleAuth(observedStartup) as GoogleAuthFactory;
   const token = createAdcAccessTokenSupplier(resolvedAuth, (error) => {
     if (currentGoogleAuth.stage === "GCP_STS_EXCHANGE") observedStartup?.gcpStsFailure?.(classifyGcpStsFailure(error));
   }, (key, value) => observedStartup?.googleAuthBoundaryEvidence?.(key, value),
