@@ -33,6 +33,16 @@ export const GCP_STS_FAILURE_REASONS = [
   "STS_UNAVAILABLE", "STS_TIMEOUT", "UNKNOWN",
 ] as const;
 export type GcpStsFailureReason = typeof GCP_STS_FAILURE_REASONS[number];
+export const PROJECT_ID_FAILURE_REASONS = [
+  "PERMISSION_DENIED", "UNAVAILABLE", "TIMEOUT", "INVALID_RESPONSE", "UNKNOWN",
+] as const;
+export type ProjectIdFailureReason = typeof PROJECT_ID_FAILURE_REASONS[number];
+export const PROJECT_ID_EVIDENCE_KEYS = [
+  "projectIdResolutionStarted", "cloudResourceManagerRequestStarted",
+  "cloudResourceManagerResponseObserved", "cloudResourceManagerProjectIdPresent",
+  "projectIdResolutionCompleted",
+] as const;
+export type ProjectIdEvidenceKey = typeof PROJECT_ID_EVIDENCE_KEYS[number];
 export const SIGV4_TIMESTAMP_FRESHNESS = ["FRESH", "STALE", "FUTURE", "UNKNOWN"] as const;
 export type Sigv4TimestampFreshness = typeof SIGV4_TIMESTAMP_FRESHNESS[number];
 export const SIGV4_EVIDENCE_KEYS = [
@@ -67,6 +77,7 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
   startupFailureFamily: StartupFailureFamily | null;
   googleAuthStage: GoogleAuthStage;
   gcpStsFailureReason: GcpStsFailureReason;
+  projectIdFailureReason: ProjectIdFailureReason;
   imdsv2RoleCredentialPayloadShape: Imdsv2RoleCredentialPayloadShape;
   outerAccessTokenProgress: OuterAccessTokenProgress;
   outerTokenResultShape: OuterTokenResultShape;
@@ -75,6 +86,11 @@ export type AcquisitionWorkerStartupEvent = Readonly<{
   outerClientResolved: StartupEvidence;
   outerGetAccessTokenInvoked: StartupEvidence;
   outerContinuationEntered: StartupEvidence;
+  projectIdResolutionStarted: StartupEvidence;
+  cloudResourceManagerRequestStarted: StartupEvidence;
+  cloudResourceManagerResponseObserved: StartupEvidence;
+  cloudResourceManagerProjectIdPresent: StartupEvidence;
+  projectIdResolutionCompleted: StartupEvidence;
   runtimeDependenciesResolved: StartupEvidence;
   controlAuthorityValidated: StartupEvidence;
   googleAuthInitialized: StartupEvidence;
@@ -114,6 +130,7 @@ const evidenceKeys = [
   "runtimeDependenciesResolved", "controlAuthorityValidated", "googleAuthInitialized",
   "controlStoreInitialized", "telemetryProxyInitialized", "httpListenerBound", ...GOOGLE_AUTH_EVIDENCE_KEYS,
   ...AWS_SESSION_TOKEN_BOUNDARY_KEYS, ...SIGV4_EVIDENCE_KEYS, ...OUTER_CONTINUATION_EVIDENCE_KEYS,
+  ...PROJECT_ID_EVIDENCE_KEYS,
 ] as const;
 type EvidenceKey = typeof evidenceKeys[number];
 const evidenceValues = new Set<StartupEvidence>(["YES", "NO", "UNKNOWN"]);
@@ -121,6 +138,7 @@ const stages = new Set<StartupStage>(STARTUP_STAGES);
 const families = new Set<StartupFailureFamily>(STARTUP_FAILURE_FAMILIES);
 const googleAuthStages = new Set<GoogleAuthStage>(GOOGLE_AUTH_STAGES);
 const gcpStsFailureReasons = new Set<GcpStsFailureReason>(GCP_STS_FAILURE_REASONS);
+const projectIdFailureReasons = new Set<ProjectIdFailureReason>(PROJECT_ID_FAILURE_REASONS);
 const imdsv2RoleCredentialPayloadShapes = new Set<Imdsv2RoleCredentialPayloadShape>(
   IMDSV2_ROLE_CREDENTIAL_PAYLOAD_SHAPES,
 );
@@ -128,6 +146,7 @@ const outerAccessTokenProgressValues = new Set<OuterAccessTokenProgress>(OUTER_A
 const outerTokenResultShapeValues = new Set<OuterTokenResultShape>(OUTER_TOKEN_RESULT_SHAPES);
 const sigv4TimestampFreshness = new Set<Sigv4TimestampFreshness>(SIGV4_TIMESTAMP_FRESHNESS);
 const exactKeys = ["event", "startupStage", "startupFailureFamily", "googleAuthStage", "gcpStsFailureReason",
+  "projectIdFailureReason",
   "imdsv2RoleCredentialPayloadShape", "outerAccessTokenProgress", "outerTokenResultShape",
   "outerTelemetrySameExecution",
   "sigv4TimestampFreshness", ...evidenceKeys].sort();
@@ -149,6 +168,7 @@ export class AcquisitionWorkerStartupTelemetry {
   private stage: StartupStage = "UNKNOWN";
   private googleAuthStage: GoogleAuthStage = "UNKNOWN";
   private gcpStsFailureReason: GcpStsFailureReason = "UNKNOWN";
+  private projectIdFailureReason: ProjectIdFailureReason = "UNKNOWN";
   private imdsv2RoleCredentialPayloadShape: Imdsv2RoleCredentialPayloadShape = "UNKNOWN";
   private outerAccessTokenProgress: OuterAccessTokenProgress = "UNKNOWN";
   private outerTokenResultShape: OuterTokenResultShape = "UNKNOWN";
@@ -172,6 +192,9 @@ export class AcquisitionWorkerStartupTelemetry {
     sigv4SubjectTokenRoundTripValid: "UNKNOWN",
     outerGetClientStarted: "UNKNOWN", outerClientResolved: "UNKNOWN",
     outerGetAccessTokenInvoked: "UNKNOWN", outerContinuationEntered: "UNKNOWN",
+    projectIdResolutionStarted: "UNKNOWN", cloudResourceManagerRequestStarted: "UNKNOWN",
+    cloudResourceManagerResponseObserved: "UNKNOWN", cloudResourceManagerProjectIdPresent: "UNKNOWN",
+    projectIdResolutionCompleted: "UNKNOWN",
   };
   private sigv4TimestampFreshness: Sigv4TimestampFreshness = "UNKNOWN";
 
@@ -198,6 +221,8 @@ export class AcquisitionWorkerStartupTelemetry {
     this.outerTelemetrySameExecution = inner && outer ? (inner === outer ? "YES" : "NO") : "UNKNOWN";
   }
   failGcpSts(reason: GcpStsFailureReason): void { this.gcpStsFailureReason = reason; }
+  observeProjectId(key: ProjectIdEvidenceKey, value: StartupEvidence): void { this.evidence[key] = value; }
+  failProjectId(reason: ProjectIdFailureReason): void { this.projectIdFailureReason = reason; }
   observeSigv4(value: Sigv4StructuralEvidence): void {
     for (const key of SIGV4_EVIDENCE_KEYS) this.evidence[key] = value[key];
     this.sigv4TimestampFreshness = value.sigv4TimestampFreshness;
@@ -222,6 +247,7 @@ export class AcquisitionWorkerStartupTelemetry {
     }
     return Object.freeze({ event: "acquisition-worker-startup", startupStage: this.stage, googleAuthStage: this.googleAuthStage,
       gcpStsFailureReason: this.gcpStsFailureReason,
+      projectIdFailureReason: this.projectIdFailureReason,
       imdsv2RoleCredentialPayloadShape: this.imdsv2RoleCredentialPayloadShape,
       outerAccessTokenProgress: this.outerAccessTokenProgress, outerTokenResultShape: this.outerTokenResultShape,
       outerTelemetrySameExecution: this.outerTelemetrySameExecution,
@@ -234,6 +260,7 @@ export class AcquisitionWorkerStartupTelemetry {
     this.googleAuthStage = "READY";
     return Object.freeze({ event: "acquisition-worker-startup", startupStage: "READY", googleAuthStage: "READY",
       gcpStsFailureReason: "UNKNOWN",
+      projectIdFailureReason: this.projectIdFailureReason,
       imdsv2RoleCredentialPayloadShape: this.imdsv2RoleCredentialPayloadShape,
       outerAccessTokenProgress: this.outerAccessTokenProgress, outerTokenResultShape: this.outerTokenResultShape,
       outerTelemetrySameExecution: this.outerTelemetrySameExecution,
@@ -247,6 +274,7 @@ export type AcquisitionWorkerStartupTelemetrySink = Pick<
   "enter" | "prove" | "enterGoogleAuth" | "proveGoogleAuth" | "observeGoogleAuth" | "observeSessionTokenBoundary"
   | "observeImdsv2PayloadShape" | "observeOuterAccessToken" | "observeOuterContinuation"
   | "observeOuterCorrelation" | "failGcpSts" | "observeSigv4" | "failure" | "ready"
+  | "observeProjectId" | "failProjectId"
 >;
 
 export const validateAcquisitionWorkerStartupEvent = (input: unknown): AcquisitionWorkerStartupEvent => {
@@ -256,6 +284,7 @@ export const validateAcquisitionWorkerStartupEvent = (input: unknown): Acquisiti
     || value.event !== "acquisition-worker-startup" || !stages.has(value.startupStage as StartupStage)
     || !googleAuthStages.has(value.googleAuthStage as GoogleAuthStage)
     || !gcpStsFailureReasons.has(value.gcpStsFailureReason as GcpStsFailureReason)
+    || !projectIdFailureReasons.has(value.projectIdFailureReason as ProjectIdFailureReason)
     || !imdsv2RoleCredentialPayloadShapes.has(
       value.imdsv2RoleCredentialPayloadShape as Imdsv2RoleCredentialPayloadShape,
     )

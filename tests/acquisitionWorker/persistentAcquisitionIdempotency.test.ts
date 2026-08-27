@@ -18,6 +18,7 @@ import {
   AcquisitionControlAuthFailure,
   GcsAcquisitionControlObjectStore,
   classifyGcpStsFailure,
+  classifyProjectIdFailure,
   classifyImdsv2RoleCredentialPayload,
   createAdcAccessTokenSupplier,
   createAcquisitionControlStore,
@@ -28,7 +29,8 @@ import {
 } from "../../lib/server/acquisitionWorker/gcsControlStore";
 import { AcquisitionWorkerStartupTelemetry, type AwsSessionTokenBoundaryKey,
   type GoogleAuthEvidenceKey, type GoogleAuthStage, type OuterAccessTokenProgress,
-  type OuterTokenResultShape, type StartupEvidence } from "../../worker/acquisition/startupTelemetry";
+  type OuterTokenResultShape, type ProjectIdEvidenceKey, type ProjectIdFailureReason,
+  type StartupEvidence } from "../../worker/acquisition/startupTelemetry";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const ID2 = "223e4567-e89b-42d3-a456-426614174000";
@@ -272,6 +274,119 @@ test("GoogleAuth transporter maps only fixed credential boundaries and proves su
     "AWS_ROLE_CREDENTIAL_FETCH", "GCP_STS_EXCHANGE", "GCP_STS_EXCHANGE", "SERVICE_ACCOUNT_IMPERSONATION"]);
   assert.deepEqual(evidence, ["imdsv2TokenAcquired", "awsRegionResolved", "awsRoleCredentialsAcquired",
     "gcpStsExchangeSucceeded", "serviceAccountImpersonationSucceeded"]);
+});
+
+test("Cloud Resource Manager project lookup telemetry classifies closed success and invalid responses", async () => {
+  const cases: ReadonlyArray<readonly [unknown, StartupEvidence, ProjectIdFailureReason]> = [
+    [{ projectId: "synthetic-project" }, "YES", "UNKNOWN"],
+    [{}, "NO", "INVALID_RESPONSE"],
+    [{ projectId: "" }, "NO", "INVALID_RESPONSE"],
+    ["malformed", "NO", "INVALID_RESPONSE"],
+  ];
+  for (const [data, projectIdPresent, reason] of cases) {
+    let calls = 0;
+    const evidence: Array<readonly [ProjectIdEvidenceKey, StartupEvidence]> = [];
+    let failure: ProjectIdFailureReason = "UNKNOWN";
+    const base = new Gaxios();
+    base.request = (async (options) => {
+      calls += 1;
+      return { data, status: 200, statusText: "OK", headers: new Headers(), config: options };
+    }) as typeof base.request;
+    const response = await createGoogleAuthTelemetryTransporter({
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      projectIdEvidence: (key, value) => evidence.push([key, value]),
+      projectIdFailure: (value) => { failure = value; },
+    }, base).request({ url: "https://cloudresourcemanager.googleapis.com/v1/projects/566365202495" });
+    assert.equal(response.data, data);
+    assert.equal(calls, 1);
+    assert.deepEqual(evidence, [["cloudResourceManagerRequestStarted", "YES"],
+      ["cloudResourceManagerResponseObserved", "YES"],
+      ["cloudResourceManagerProjectIdPresent", projectIdPresent]]);
+    assert.equal(failure, reason);
+  }
+});
+
+test("Cloud Resource Manager project lookup telemetry classifies 401, 403, 5xx, timeout, and unknown rejection", async () => {
+  const cases: ReadonlyArray<readonly [number | undefined, string | undefined, ProjectIdFailureReason, StartupEvidence]> = [
+    [401, undefined, "PERMISSION_DENIED", "YES"], [403, undefined, "PERMISSION_DENIED", "YES"],
+    [500, undefined, "UNAVAILABLE", "YES"], [503, undefined, "UNAVAILABLE", "YES"],
+    [undefined, "ETIMEDOUT", "TIMEOUT", "NO"], [undefined, undefined, "UNKNOWN", "NO"],
+  ];
+  for (const [status, code, expected, responseObserved] of cases) {
+    const evidence: Array<readonly [ProjectIdEvidenceKey, StartupEvidence]> = [];
+    let reason: ProjectIdFailureReason = "UNKNOWN";
+    let calls = 0;
+    const error = Object.assign(new Error("must-not-project"), code ? { code } : {}, status === undefined ? {}
+      : { response: { status, data: { error: { status: status === 403 ? "PERMISSION_DENIED" : "UNAVAILABLE" } } } });
+    const base = new Gaxios();
+    base.request = (async () => { calls += 1; throw error; }) as typeof base.request;
+    await assert.rejects(createGoogleAuthTelemetryTransporter({
+      controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+      controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+      projectIdEvidence: (key, value) => evidence.push([key, value]),
+      projectIdFailure: (value) => { reason = value; },
+    }, base).request({ url: "https://cloudresourcemanager.googleapis.com/v1/projects/566365202495" }), error);
+    assert.equal(calls, 1);
+    assert.equal(reason, expected);
+    assert.deepEqual(evidence.slice(0, 2), [["cloudResourceManagerRequestStarted", "YES"],
+      ["cloudResourceManagerResponseObserved", responseObserved]]);
+    assert.equal(JSON.stringify({ evidence, reason }).includes("must-not-project"), false);
+  }
+  assert.equal(classifyProjectIdFailure({ response: { status: 403 } }), "PERMISSION_DENIED");
+  assert.equal(classifyProjectIdFailure({ response: { status: 503 } }), "UNAVAILABLE");
+  assert.equal(classifyProjectIdFailure({ code: "ECONNABORTED" }), "TIMEOUT");
+  assert.equal(classifyProjectIdFailure(new Error("unclassified")), "UNKNOWN");
+});
+
+test("project-ID wrapper observes one delegated lookup and retains completion through downstream failure", async () => {
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.enter("GOOGLE_AUTH_INIT");
+  let projectCalls = 0;
+  let requestCalls = 0;
+  let accessTokenCalls = 0;
+  const client = new AwsClient({
+    audience: "//iam.googleapis.com/projects/566365202495/locations/global/workloadIdentityPools/closed/providers/closed",
+    subject_token_type: "urn:ietf:params:aws:token-type:aws4_request",
+    token_url: "https://sts.googleapis.com/v1/token",
+    aws_security_credentials_supplier: {
+      getAwsRegion: async () => "ap-northeast-1",
+      getAwsSecurityCredentials: async () => ({ accessKeyId: "closed", secretAccessKey: "closed", token: "closed" }),
+    },
+  });
+  const stsCredential = Reflect.get(client, "stsCredential") as object;
+  const transporter = Reflect.get(stsCredential, "transporter") as Gaxios;
+  transporter.request = (async (options) => {
+    requestCalls += 1;
+    return { data: { projectId: "synthetic-project" }, status: 200, statusText: "OK",
+      headers: new Headers(), config: options };
+  }) as typeof transporter.request;
+  client.getAccessToken = async () => { accessTokenCalls += 1; return { token: "memory-only" }; };
+  client.getProjectId = async () => {
+    projectCalls += 1;
+    const response = await transporter.request({
+      url: "https://cloudresourcemanager.googleapis.com/v1/projects/566365202495",
+    });
+    return (response.data as { projectId: string }).projectId;
+  };
+  assert.equal(installStsTransporterTelemetryBridge(client, {
+    controlAuthorityValidated() {}, googleAuthStarting() {}, googleAuthInitialized() {},
+    controlStoreStarting() {}, controlStoreInitialized() {}, googleAuthStage() {}, googleAuthEvidence() {},
+    googleAuthBoundaryEvidence: (key, value) => telemetry.observeGoogleAuth(key, value),
+    projectIdEvidence: (key, value) => telemetry.observeProjectId(key, value),
+    projectIdFailure: (reason) => telemetry.failProjectId(reason),
+  }), true);
+  assert.equal(await client.getProjectId(), "synthetic-project");
+  const event = telemetry.failure();
+  assert.equal(projectCalls, 1);
+  assert.equal(requestCalls, 1);
+  assert.equal(accessTokenCalls, 0);
+  assert.equal(event.projectIdResolutionStarted, "YES");
+  assert.equal(event.cloudResourceManagerRequestStarted, "YES");
+  assert.equal(event.cloudResourceManagerResponseObserved, "YES");
+  assert.equal(event.cloudResourceManagerProjectIdPresent, "YES");
+  assert.equal(event.projectIdResolutionCompleted, "YES");
+  assert.equal(event.projectIdFailureReason, "UNKNOWN");
 });
 
 test("post-impersonation transporter projects only closed response evidence", async () => {

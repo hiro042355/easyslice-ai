@@ -10,7 +10,8 @@ import { StsCredentials } from "google-auth-library/build/src/auth/stscredential
 import { Gaxios, type GaxiosOptions } from "gaxios";
 import type { AwsSessionTokenBoundaryKey, GcpStsFailureReason, GoogleAuthEvidenceKey, GoogleAuthStage,
   Imdsv2RoleCredentialPayloadShape, OuterAccessTokenProgress, OuterContinuationEvidenceKey,
-  OuterCorrelationBoundary, OuterTokenResultShape, Sigv4StructuralEvidence,
+  OuterCorrelationBoundary, OuterTokenResultShape, ProjectIdEvidenceKey, ProjectIdFailureReason,
+  Sigv4StructuralEvidence,
   StartupEvidence } from "../../../worker/acquisition/startupTelemetry";
 
 export const PRODUCTION_ACQUISITION_CONTROL_BUCKET = "nexcut-prod-jp-2026-media";
@@ -40,6 +41,8 @@ export type AcquisitionControlStoreStartupObserver = Readonly<{
   outerContinuationEvidence?(key: OuterContinuationEvidenceKey): void;
   outerCorrelationEvidence?(boundary: OuterCorrelationBoundary, marker: object): void;
   gcpStsFailure?(reason: GcpStsFailureReason): void;
+  projectIdEvidence?(key: ProjectIdEvidenceKey, value: StartupEvidence): void;
+  projectIdFailure?(reason: ProjectIdFailureReason): void;
   sigv4Evidence?(evidence: Sigv4StructuralEvidence): void;
   googleAuthStarting(): void;
   googleAuthInitialized(): void;
@@ -201,6 +204,30 @@ const classifyGoogleAuthRequest = (input: string): GoogleAuthRequestBoundary | u
   return undefined;
 };
 
+const isCloudResourceManagerProjectLookup = (input: string): boolean => {
+  let url: URL;
+  try { url = new URL(input); } catch { return false; }
+  return url.hostname === "cloudresourcemanager.googleapis.com"
+    && /^\/v1\/projects\/[^/]+$/.test(url.pathname) && url.search === "" && url.hash === "";
+};
+
+export const classifyProjectIdFailure = (error: unknown): ProjectIdFailureReason => {
+  if (!error || typeof error !== "object") return "UNKNOWN";
+  const value = error as Readonly<{ code?: unknown; response?: unknown }>;
+  const code = fixedString(value.code);
+  if (code === "ETIMEDOUT" || code === "ESOCKETTIMEDOUT" || code === "ECONNABORTED") return "TIMEOUT";
+  if (!value.response || typeof value.response !== "object") return "UNKNOWN";
+  const response = value.response as Readonly<{ status?: unknown; data?: unknown }>;
+  const data = isPlainObject(response.data) && isPlainObject(response.data.error) ? response.data.error : undefined;
+  const statusAuthority = fixedString(data?.status);
+  if (response.status === 401 || response.status === 403 || statusAuthority === "PERMISSION_DENIED") {
+    return "PERMISSION_DENIED";
+  }
+  if ((typeof response.status === "number" && response.status >= 500 && response.status <= 599)
+    || statusAuthority === "UNAVAILABLE") return "UNAVAILABLE";
+  return "UNKNOWN";
+};
+
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
@@ -235,14 +262,35 @@ export const createGoogleAuthTelemetryTransporter = (
   const request = transporter.request.bind(transporter);
   let gcpStsSucceeded = false;
   transporter.request = (async (options: GaxiosOptions) => {
-    const boundary = classifyGoogleAuthRequest(String(options.url ?? ""));
+    const requestUrl = String(options.url ?? "");
+    const boundary = classifyGoogleAuthRequest(requestUrl);
+    const projectLookup = isCloudResourceManagerProjectLookup(requestUrl);
+    if (projectLookup) startup.projectIdEvidence?.("cloudResourceManagerRequestStarted", "YES");
     if (boundary?.stage === "GCP_STS_EXCHANGE") startup.sigv4Evidence?.(projectSigv4SubjectToken(options));
     if (boundary?.stage === "SERVICE_ACCOUNT_IMPERSONATION" && !gcpStsSucceeded) {
       startup.googleAuthEvidence("gcpStsExchangeSucceeded");
       gcpStsSucceeded = true;
     }
     if (boundary) startup.googleAuthStage(boundary.stage);
-    const response = await request(options);
+    let response;
+    try {
+      response = await request(options);
+    } catch (error) {
+      if (projectLookup) {
+        const observed = Boolean(error && typeof error === "object" && Reflect.get(error, "response"));
+        startup.projectIdEvidence?.("cloudResourceManagerResponseObserved", observed ? "YES" : "NO");
+        if (observed) startup.projectIdEvidence?.("cloudResourceManagerProjectIdPresent", "NO");
+        startup.projectIdFailure?.(classifyProjectIdFailure(error));
+      }
+      throw error;
+    }
+    if (projectLookup) {
+      startup.projectIdEvidence?.("cloudResourceManagerResponseObserved", "YES");
+      const data = response.data;
+      const present = isPlainObject(data) && typeof data.projectId === "string" && data.projectId.trim().length > 0;
+      startup.projectIdEvidence?.("cloudResourceManagerProjectIdPresent", present ? "YES" : "NO");
+      if (!present) startup.projectIdFailure?.("INVALID_RESPONSE");
+    }
     if (boundary?.stage === "SERVICE_ACCOUNT_IMPERSONATION") {
       startup.googleAuthBoundaryEvidence?.("impersonationHttpResponse", "YES");
       const data = response.data;
@@ -328,12 +376,33 @@ export const classifyImdsv2RoleCredentialPayload = (
 const bridgedStsCredentials = new WeakSet<object>();
 const bridgedAwsCredentialSuppliers = new WeakSet<object>();
 const observedAccessTokenClients = new WeakSet<object>();
+const observedProjectIdClients = new WeakSet<object>();
 
 export const installStsTransporterTelemetryBridge = (
   client: unknown,
   startup: AcquisitionControlStoreStartupObserver,
 ): boolean => {
   if (!client || typeof client !== "object") return false;
+  if (!observedProjectIdClients.has(client)) {
+    const getProjectId = Reflect.get(client, "getProjectId") as unknown;
+    if (typeof getProjectId === "function") {
+      const delegated = getProjectId.bind(client) as () => Promise<unknown>;
+      Reflect.set(client, "getProjectId", async () => {
+        startup.projectIdEvidence?.("projectIdResolutionStarted", "YES");
+        try {
+          const result = await delegated();
+          const valid = typeof result === "string" && result.trim().length > 0;
+          startup.projectIdEvidence?.("projectIdResolutionCompleted", valid ? "YES" : "NO");
+          if (!valid) startup.projectIdFailure?.("INVALID_RESPONSE");
+          return result;
+        } catch (error) {
+          startup.projectIdEvidence?.("projectIdResolutionCompleted", "NO");
+          throw error;
+        }
+      });
+      observedProjectIdClients.add(client);
+    }
+  }
   const stsCredential = Reflect.get(client, "stsCredential") as unknown;
   if (!(stsCredential instanceof StsCredentials)
     || typeof Reflect.get(stsCredential, "exchangeToken") !== "function") return false;
@@ -519,6 +588,8 @@ export const createAcquisitionControlStore = async (
     outerContinuationEvidence: (key) => startup.outerContinuationEvidence?.(key),
     outerCorrelationEvidence: (boundary, marker) => startup.outerCorrelationEvidence?.(boundary, marker),
     gcpStsFailure: (reason) => startup.gcpStsFailure?.(reason),
+    projectIdEvidence: (key, value) => startup.projectIdEvidence?.(key, value),
+    projectIdFailure: (reason) => startup.projectIdFailure?.(reason),
     sigv4Evidence: (evidence) => startup.sigv4Evidence?.(evidence),
     googleAuthStarting: () => startup.googleAuthStarting(),
     googleAuthInitialized: () => startup.googleAuthInitialized(),

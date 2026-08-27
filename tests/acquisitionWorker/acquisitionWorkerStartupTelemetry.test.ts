@@ -132,6 +132,8 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.equal(event.runtimeDependenciesResolved, "UNKNOWN");
   assert.equal(event.googleAuthStage, "UNKNOWN");
   assert.equal(event.gcpStsFailureReason, "UNKNOWN");
+  assert.equal(event.projectIdFailureReason, "UNKNOWN");
+  assert.equal(event.projectIdResolutionStarted, "UNKNOWN");
   assert.equal(event.imdsv2RoleCredentialPayloadShape, "UNKNOWN");
   assert.equal(event.outerAccessTokenProgress, "UNKNOWN");
   assert.equal(event.outerTokenResultShape, "UNKNOWN");
@@ -143,6 +145,7 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, startupFailureFamily: "token rejected" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, googleAuthStage: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, gcpStsFailureReason: "raw-error" }));
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, projectIdFailureReason: "raw-error" }));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({
     ...event, imdsv2RoleCredentialPayloadShape: "RAW",
   }));
@@ -154,6 +157,27 @@ test("UNKNOWN is preserved and arbitrary strings, missing fields, and extra fiel
   const missing = Object.fromEntries(Object.entries(event).filter(([key]) => key !== "httpListenerBound"));
   assert.throws(() => validateAcquisitionWorkerStartupEvent(missing));
   assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...event, stderr: "forbidden" }));
+});
+
+test("project-ID evidence preserves closed success, failure retention, and UNKNOWN", () => {
+  const unknown = new AcquisitionWorkerStartupTelemetry().failure();
+  for (const key of ["projectIdResolutionStarted", "cloudResourceManagerRequestStarted",
+    "cloudResourceManagerResponseObserved", "cloudResourceManagerProjectIdPresent",
+    "projectIdResolutionCompleted"] as const) assert.equal(unknown[key], "UNKNOWN");
+
+  const telemetry = new AcquisitionWorkerStartupTelemetry();
+  telemetry.enter("GOOGLE_AUTH_INIT");
+  for (const key of ["projectIdResolutionStarted", "cloudResourceManagerRequestStarted",
+    "cloudResourceManagerResponseObserved", "cloudResourceManagerProjectIdPresent",
+    "projectIdResolutionCompleted"] as const) telemetry.observeProjectId(key, "YES");
+  const retained = telemetry.failure();
+  assert.equal(retained.projectIdFailureReason, "UNKNOWN");
+  assert.equal(retained.projectIdResolutionCompleted, "YES");
+  assert.deepEqual(validateAcquisitionWorkerStartupEvent(retained), retained);
+
+  telemetry.failProjectId("PERMISSION_DENIED");
+  assert.equal(telemetry.failure().projectIdFailureReason, "PERMISSION_DENIED");
+  assert.throws(() => validateAcquisitionWorkerStartupEvent({ ...retained, projectIdResolutionCompleted: "MAYBE" }));
 });
 
 test("session-token boundary evidence preserves YES, NO, and UNKNOWN in failure and success events", () => {
