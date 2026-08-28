@@ -38,12 +38,8 @@ chmod 0600 /opt/nexcut-experiment/environment
 chown 10001:10001 /opt/nexcut-experiment/gcp-wif.json
 chmod 0400 /opt/nexcut-experiment/gcp-wif.json
 
-cat >/opt/nexcut-experiment/readiness <<'SCRIPT'
-${readiness_script}
-SCRIPT
-cat >/opt/nexcut-experiment/run-once <<'SCRIPT'
-${run_once_script}
-SCRIPT
+printf '%s' '${readiness_script_gzip}' | base64 -d | gzip -d >/opt/nexcut-experiment/readiness
+printf '%s' '${run_once_script_gzip}' | base64 -d | gzip -d >/opt/nexcut-experiment/run-once
 chmod 0500 /opt/nexcut-experiment/readiness /opt/nexcut-experiment/run-once
 
 cat >/etc/yum.repos.d/google-cloud-cli.repo <<'REPO'

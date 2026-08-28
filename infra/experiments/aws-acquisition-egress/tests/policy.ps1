@@ -7,10 +7,37 @@ $text = (Get-ChildItem -LiteralPath $root -Recurse -File |
 $required = @(
   '10.87.0.0/24', '10.87.0.0/26', 'm7i.xlarge', 'http_tokens                 = "required"',
   'map_public_ip_on_launch = false', 'acquisition-control/v1/', 'AmazonSSMManagedInstanceCore',
-  'sha256:752a9612ed72dc21bd9f6fe71905a99021d6632c4ce77c4c50d0ec8e46aa04b5',
+  'sha256:afb5e90e5107356b2bd04cbeaeb92951b9f9055332464f59751cf7dbc45f90c4',
   'sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2'
 )
 foreach ($value in $required) { if (-not $text.Contains($value)) { throw "Missing required authority" } }
+
+$variables = Get-Content -LiteralPath (Join-Path $root 'variables.tf') -Raw
+$workerDigest = 'sha256:afb5e90e5107356b2bd04cbeaeb92951b9f9055332464f59751cf7dbc45f90c4'
+$providerDigest = 'sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2'
+if ([regex]::Matches($variables, [regex]::Escape($workerDigest)).Count -ne 2) {
+  throw 'Worker immutable digest must be the exact default and validation authority.'
+}
+if ([regex]::Matches($variables, [regex]::Escape($providerDigest)).Count -ne 2) {
+  throw 'Provider immutable digest must be the exact default and validation authority.'
+}
+
+$main = Get-Content -LiteralPath (Join-Path $root 'main.tf') -Raw
+$userDataTemplate = Get-Content -LiteralPath (Join-Path $root 'templates/user-data.sh.tftpl') -Raw
+foreach ($script in @('readiness', 'run-once')) {
+  if (-not $main.Contains("base64gzip(file(`"`${path.module}/runtime/$script`"))")) {
+    throw "Runtime script must remain repository-owned and gzip-embedded: $script"
+  }
+}
+if (($userDataTemplate | Select-String -Pattern 'base64 -d \| gzip -d' -AllMatches).Matches.Count -ne 2) {
+  throw 'Both closed runtime scripts must be locally decoded from immutable user_data.'
+}
+if ($userDataTemplate -match 'curl.+\|.+(ba)?sh|github\.com|raw\.githubusercontent\.com') {
+  throw 'Mutable or untrusted runtime download is forbidden.'
+}
+if (-not $main.Contains('length(aws_instance.experiment.user_data) <= 15000')) {
+  throw 'The rendered user_data 15,000-byte safety budget must remain enforced.'
+}
 
 $forbidden = @('allUsers', 'allAuthenticatedUsers', 'google_service_account_key', 'aws_key_pair', 'aws_nat_gateway', '0.0.0.0/0"`n  ingress')
 foreach ($value in $forbidden) { if ($text.Contains($value)) { throw "Forbidden authority present: $value" } }
