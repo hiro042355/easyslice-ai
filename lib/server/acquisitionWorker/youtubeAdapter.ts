@@ -10,6 +10,21 @@ export type AcquisitionProcessRunner = (
   options: Readonly<{ timeoutMs: number; signal?: AbortSignal; telemetry?: AcquisitionTelemetryCollector }>,
 ) => Promise<void>;
 
+const CONTROLLED_EXPERIMENT_ZERO_RETRY_ARGUMENTS = Object.freeze([
+  "--retries", "0",
+  "--fragment-retries", "0",
+  "--extractor-retries", "0",
+  "--file-access-retries", "0",
+  "--abort-on-unavailable-fragments",
+] as const);
+
+export const controlledExperimentRetryArguments = (
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): readonly string[] => environment.ACQUISITION_RUNTIME_MODE === "EXPERIMENT"
+  && environment.ACQUISITION_CONTROL_MODE === "EXPERIMENT"
+  ? CONTROLLED_EXPERIMENT_ZERO_RETRY_ARGUMENTS
+  : Object.freeze([]);
+
 const PROCESS_FAILURE_MAP: Readonly<Partial<Record<YtDlpProcessFailureReason, AcquisitionFailureCode>>> = Object.freeze({
   "youtube-bot-check": "youtube-bot-check",
   "youtube-sign-in-required": "youtube-sign-in-required",
@@ -33,11 +48,15 @@ export const classifyYouTubeProcessFailure = (reason: YtDlpProcessFailureReason)
   retryable: ["network-failure", "yt-dlp-timeout"].includes(reason),
 });
 
-export const createYouTubeWorkerArguments = (context: SourceAcquisitionContext): readonly string[] => Object.freeze([
+export const createYouTubeWorkerArguments = (
+  context: SourceAcquisitionContext,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): readonly string[] => Object.freeze([
   "--no-js-runtimes",
   "--js-runtimes", nodeJsRuntimeArgument(context.runtime.nodeExecutable),
   "--extractor-args", "youtube:player_client=mweb",
   ...(context.provider?.ytDlpArguments() ?? []),
+  ...controlledExperimentRetryArguments(environment),
   ...createYouTubeAcquisitionArguments(context.request.sourceUrl, context.workspace.mediaPath),
 ]);
 

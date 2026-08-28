@@ -17,6 +17,7 @@ import {
   YouTubeSourceAdapter,
   acquisitionRequestFingerprint,
   createYouTubeWorkerArguments,
+  controlledExperimentRetryArguments,
   nodeJsRuntimeArgument,
   inspectCanonicalMp4,
   resolveAcquisitionRuntime,
@@ -126,6 +127,55 @@ test("YouTube arguments explicitly bind Node EJS and mweb, preserve canonical pr
   assert.ok(args.includes(context.workspace.mediaPath));
   assert.doesNotMatch(JSON.stringify(args), /cookie|username|password|netrc|shell|storageKey|userId/i);
   assert.equal(nodeJsRuntimeArgument("/runtime/node"), "node:/runtime/node");
+});
+
+test("controlled EXPERIMENT mode explicitly disables every applicable yt-dlp retry without changing Production", async () => {
+  assert.deepEqual(controlledExperimentRetryArguments({
+    ACQUISITION_RUNTIME_MODE: "EXPERIMENT",
+    ACQUISITION_CONTROL_MODE: "EXPERIMENT",
+  }), [
+    "--retries", "0",
+    "--fragment-retries", "0",
+    "--extractor-retries", "0",
+    "--file-access-retries", "0",
+    "--abort-on-unavailable-fragments",
+  ]);
+  assert.deepEqual(controlledExperimentRetryArguments({
+    ACQUISITION_RUNTIME_MODE: "PRODUCTION",
+    ACQUISITION_CONTROL_MODE: "PRODUCTION",
+  }), []);
+  assert.deepEqual(controlledExperimentRetryArguments({
+    ACQUISITION_RUNTIME_MODE: "EXPERIMENT",
+    ACQUISITION_CONTROL_MODE: "PRODUCTION",
+  }), []);
+
+  const controlledArgs = createYouTubeWorkerArguments({
+    request: validateAcquisitionRequest(request()),
+    workspace: resolveAcquisitionWorkspace(ID, "/tmp/nexcut-acquisition-tests"),
+    runtime,
+  }, { ACQUISITION_RUNTIME_MODE: "EXPERIMENT", ACQUISITION_CONTROL_MODE: "EXPERIMENT" });
+  for (const option of ["--retries", "--fragment-retries", "--extractor-retries", "--file-access-retries"]) {
+    const index = controlledArgs.indexOf(option);
+    assert.ok(index >= 0);
+    assert.equal(controlledArgs[index + 1], "0");
+    assert.equal(controlledArgs.filter((value) => value === option).length, 1);
+  }
+  assert.equal(controlledArgs.filter((value) => value === "--abort-on-unavailable-fragments").length, 1);
+  assert.equal(controlledArgs.filter((value) => value === "youtube:player_client=mweb").length, 1);
+  assert.equal(controlledArgs.at(-1), URL);
+
+  let processInvocations = 0;
+  const context = {
+    request: validateAcquisitionRequest(request()),
+    workspace: resolveAcquisitionWorkspace(ID, "/tmp/nexcut-acquisition-tests"),
+    runtime,
+  } satisfies SourceAcquisitionContext;
+  const adapter = new YouTubeSourceAdapter(async () => {
+    processInvocations += 1;
+    throw new YtDlpProcessFailure("network-failure");
+  });
+  await assert.rejects(adapter.acquire(context), /network-failure/);
+  assert.equal(processInvocations, 1);
 });
 
 test("runtime requires an explicit executable Node >=22 and never falls back to PATH", async () => {

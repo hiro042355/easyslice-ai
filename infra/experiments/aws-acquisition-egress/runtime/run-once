@@ -1,0 +1,174 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+
+readonly approval=/opt/nexcut-experiment/OWNER_ATTEMPT_APPROVED
+readonly marker=/opt/nexcut-experiment/attempt.claimed
+readonly environment=/opt/nexcut-experiment/environment
+provider_started=NO
+worker_started=NO
+
+emit() {
+  jq -nc --arg status "$1" --arg consumed "$2" --arg started "$3" \
+    --arg result "$4" --arg outcome "$5" \
+    '{status:$status,attemptConsumed:$consumed,acquisitionStarted:$started,acquisitionResult:$result,httpOutcomeFamily:$outcome}'
+}
+
+fail_precheck() {
+  emit "$1" NO NO UNKNOWN UNKNOWN
+  exit "$2"
+}
+
+on_error() {
+  status=$?
+  trap - ERR
+  if [ -e "$marker" ]; then
+    emit ACQUISITION_FAILED YES UNKNOWN FAILED UNKNOWN
+  else
+    emit PRECHECK_FAILED NO NO UNKNOWN UNKNOWN
+  fi
+  exit "$status"
+}
+trap on_error ERR
+
+cleanup() {
+  status=$?
+  trap - EXIT
+  [ "$worker_started" = NO ] || docker rm -f nexcut-worker >/dev/null 2>&1 || true
+  [ "$provider_started" = NO ] || docker rm -f nexcut-provider >/dev/null 2>&1 || true
+  rm -f /tmp/nexcut-acquisition-result.json
+  exit "$status"
+}
+trap cleanup EXIT
+
+# The controlled target has exactly one authority. It is a root-owned local
+# approval document, provisioned separately by an Owner-authorized operation.
+# Arguments and environment variables cannot override the target.
+[ "$#" -eq 0 ] || fail_precheck PRECHECK_FAILED 64
+[ -z "${ACQUISITION_SOURCE_URL:-}" ] || fail_precheck PRECHECK_FAILED 64
+[ -f "$approval" ] || fail_precheck NOT_CONFIGURED 77
+[ ! -L "$approval" ] || fail_precheck PRECHECK_FAILED 77
+[ "$(stat -c '%U:%G' "$approval")" = root:root ] || fail_precheck PRECHECK_FAILED 77
+[ "$(stat -c '%a' "$approval")" = 600 ] || fail_precheck PRECHECK_FAILED 77
+
+approval_json="$(jq -ce '
+  select((keys | sort) == (["acquisitionId","schemaVersion","sourceUrl"] | sort))
+  | select(.schemaVersion == 1)
+  | select(.acquisitionId | type == "string" and test("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"))
+  | select(.sourceUrl | type == "string" and test("^https://www\\.youtube\\.com/watch\\?v=[A-Za-z0-9_-]{11}$"))
+' "$approval" 2>/dev/null)" || fail_precheck PRECHECK_FAILED 77
+
+acquisition_id="$(jq -r '.acquisitionId' <<<"$approval_json")"
+source_url="$(jq -r '.sourceUrl' <<<"$approval_json")"
+
+[ -f "$environment" ] || fail_precheck NOT_CONFIGURED 79
+set -a
+set +e
+set +u
+source "$environment"
+environment_status=$?
+set -u
+set -e
+set +a
+[ "$environment_status" -eq 0 ] || fail_precheck PRECHECK_FAILED 79
+for required_name in WORKER_IMAGE PROVIDER_IMAGE GOOGLE_APPLICATION_CREDENTIALS ACQUISITION_CONTROL_BUCKET ACQUISITION_CONTROL_PREFIX; do
+  [ -n "${!required_name:-}" ] || fail_precheck NOT_CONFIGURED 79
+done
+[ "${ACQUISITION_RUNTIME_MODE:-}" = EXPERIMENT ] || fail_precheck PRECHECK_FAILED 79
+[ "${ACQUISITION_CONTROL_MODE:-}" = EXPERIMENT ] || fail_precheck PRECHECK_FAILED 79
+[[ "$ACQUISITION_CONTROL_BUCKET" =~ ^nexcut-production-acquisition-host-experiment-[0-9]+$ ]] || fail_precheck PRECHECK_FAILED 79
+[ -f "$GOOGLE_APPLICATION_CREDENTIALS" ] || fail_precheck PRECHECK_FAILED 79
+[[ "$WORKER_IMAGE" == *@sha256:* ]] || fail_precheck PRECHECK_FAILED 79
+[[ "$PROVIDER_IMAGE" == *@sha256:* ]] || fail_precheck PRECHECK_FAILED 79
+[ ! -e "$marker" ] || fail_precheck ALREADY_CONSUMED 78
+
+request="$(jq -nc --arg acquisitionId "$acquisition_id" --arg sourceUrl "$source_url" '{requestVersion:"1.0",acquisitionId:$acquisitionId,source:"youtube",sourceUrl:$sourceUrl,requestedOutputProfile:"canonical-mp4",maxBytes:2147483648,timeoutMs:240000}')"
+jq -e '
+  (keys | sort) == (["acquisitionId","maxBytes","requestVersion","requestedOutputProfile","source","sourceUrl","timeoutMs"] | sort)
+  and .requestVersion == "1.0" and .source == "youtube"
+  and .requestedOutputProfile == "canonical-mp4"
+  and (.maxBytes == 2147483648) and (.timeoutMs == 240000)
+' >/dev/null <<<"$request" || fail_precheck PRECHECK_FAILED 79
+
+# Local-only preflight. None of these calls contact YouTube and none consume
+# the attempt. Existing containers are rejected rather than reused.
+[ -z "$(docker ps -aq --filter name=^/nexcut-provider$ --filter name=^/nexcut-worker$)" ] || fail_precheck PRECHECK_FAILED 79
+worker_repo="${WORKER_IMAGE%@*}"
+worker_expected="${WORKER_IMAGE#*@}"
+provider_repo="${PROVIDER_IMAGE%@*}"
+provider_expected="${PROVIDER_IMAGE#*@}"
+[ "$(docker image inspect --format '{{index .RepoDigests 0}}' "$WORKER_IMAGE")" = "$worker_repo@$worker_expected" ] || fail_precheck PRECHECK_FAILED 79
+[ "$(docker image inspect --format '{{index .RepoDigests 0}}' "$PROVIDER_IMAGE")" = "$provider_repo@$provider_expected" ] || fail_precheck PRECHECK_FAILED 79
+
+docker run -d --name nexcut-provider --network host "$PROVIDER_IMAGE" >/dev/null
+provider_started=YES
+docker run -d --name nexcut-worker --network host \
+  -e PORT=8080 \
+  -e ACQUISITION_RUNTIME_MODE=EXPERIMENT \
+  -e ACQUISITION_CONTROL_MODE=EXPERIMENT \
+  -e ACQUISITION_CONTROL_BUCKET="$ACQUISITION_CONTROL_BUCKET" \
+  -e ACQUISITION_EXPERIMENT_BUCKET="$ACQUISITION_CONTROL_BUCKET" \
+  -e ACQUISITION_CONTROL_PREFIX="$ACQUISITION_CONTROL_PREFIX" \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/run/nexcut/gcp-wif.json \
+  -v "$GOOGLE_APPLICATION_CREDENTIALS:/run/nexcut/gcp-wif.json:ro" \
+  "$WORKER_IMAGE" >/dev/null
+worker_started=YES
+
+for _ in $(seq 1 30); do
+  if curl -fsS --max-time 2 http://127.0.0.1:4416/ping >/dev/null && \
+     curl -fsS --max-time 2 http://127.0.0.1:8080/readyz >/dev/null; then
+    ready=YES
+    break
+  fi
+  sleep 2
+done
+[ "${ready:-NO}" = YES ] || fail_precheck PRECHECK_FAILED 79
+[ ! -e "$marker" ] || fail_precheck ALREADY_CONSUMED 78
+
+# ATTEMPT_CONSUMPTION_BOUNDARY: this atomic create is the last local action
+# before the one Worker acquisition POST. The marker is deliberately retained
+# for every outcome after this point.
+if ! ( set -o noclobber; printf '%s\n' '{"schemaVersion":1,"state":"ATTEMPT_CONSUMED"}' >"$marker" ) 2>/dev/null; then
+  fail_precheck ALREADY_CONSUMED 78
+fi
+emit ATTEMPT_CONSUMED YES NO UNKNOWN UNKNOWN
+emit ACQUISITION_STARTED YES YES UNKNOWN UNKNOWN
+
+set +e
+http_code="$(curl -sS --max-time 245 -o /tmp/nexcut-acquisition-result.json -w '%{http_code}' \
+  -X POST -H 'Content-Type: application/json' --data-binary "$request" \
+  http://127.0.0.1:8080/v1/acquisitions)"
+curl_status=$?
+set -e
+
+if [ "$curl_status" -ne 0 ]; then
+  emit ACQUISITION_FAILED YES YES FAILED NETWORK
+  exit 80
+fi
+
+case "$http_code" in
+  2??) outcome=SUCCESS ;;
+  403) outcome=403 ;;
+  429) outcome=429 ;;
+  4??) outcome=OTHER_4XX ;;
+  5??) outcome=5XX ;;
+  *) outcome=UNKNOWN ;;
+esac
+
+if [ "$outcome" = SUCCESS ] && jq -e '
+  .status == "succeeded"
+  and (.artifactReference | type == "string" and length > 0)
+  and (.media | keys | sort) == (["byteSize","contentType","durationSeconds","hasAudio","hasVideo"] | sort)
+  and .media.contentType == "video/mp4"
+  and .media.hasVideo == true
+  and (.media.hasAudio | type == "boolean")
+  and (.media.byteSize | type == "number" and . > 0)
+  and (.media.durationSeconds | type == "number" and . > 0)
+' /tmp/nexcut-acquisition-result.json >/dev/null 2>&1; then
+  emit ACQUISITION_SUCCEEDED YES YES SUCCEEDED SUCCESS
+  exit 0
+fi
+
+# Arbitrary Worker bodies are never relayed. Only the closed result is emitted.
+emit ACQUISITION_FAILED YES YES FAILED "$outcome"
+exit 80
