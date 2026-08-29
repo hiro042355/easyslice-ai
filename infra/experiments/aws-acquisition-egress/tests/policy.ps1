@@ -7,13 +7,13 @@ $text = (Get-ChildItem -LiteralPath $root -Recurse -File |
 $required = @(
   '10.87.0.0/24', '10.87.0.0/26', 'm7i.xlarge', 'http_tokens                 = "required"',
   'map_public_ip_on_launch = false', 'acquisition-control/v1/', 'AmazonSSMManagedInstanceCore',
-  'sha256:afb5e90e5107356b2bd04cbeaeb92951b9f9055332464f59751cf7dbc45f90c4',
+  'sha256:9bfdadef1d829ce10eecaf3ade5f72a94853b4dd1127f66292c17ba410f53f3a',
   'sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2'
 )
 foreach ($value in $required) { if (-not $text.Contains($value)) { throw "Missing required authority" } }
 
 $variables = Get-Content -LiteralPath (Join-Path $root 'variables.tf') -Raw
-$workerDigest = 'sha256:afb5e90e5107356b2bd04cbeaeb92951b9f9055332464f59751cf7dbc45f90c4'
+$workerDigest = 'sha256:9bfdadef1d829ce10eecaf3ade5f72a94853b4dd1127f66292c17ba410f53f3a'
 $providerDigest = 'sha256:dde367547487b7458109508c69dbf8533f53d006b81d2616081095374d74d5f2'
 if ([regex]::Matches($variables, [regex]::Escape($workerDigest)).Count -ne 2) {
   throw 'Worker immutable digest must be the exact default and validation authority.'
