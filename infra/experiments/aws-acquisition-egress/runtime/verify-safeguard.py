@@ -12,11 +12,13 @@ from typing import Final
 
 TIMER_UNIT: Final = "nexcut-experiment-expiry.timer"
 SERVICE_UNIT: Final = "nexcut-experiment-expiry.service"
+SYSTEMD_SERVICE: Final = "org.freedesktop.systemd1"
 TIMER_OBJECT_PATH: Final = (
     "/org/freedesktop/systemd1/unit/"
     "nexcut_2dexperiment_2dexpiry_2etimer"
 )
-UINT64_PATTERN: Final = re.compile(r"^[0-9]+$")
+TIMER_INTERFACE: Final = "org.freedesktop.systemd1.Timer"
+TYPED_UINT64_PATTERN: Final = re.compile(r"^t[ \t]+([0-9]+)$")
 
 
 @dataclass(frozen=True)
@@ -34,11 +36,14 @@ class TimerEvidence:
     diagnosticOutcome: str
 
 
-def parse_uint64(value: str | None) -> int | None:
-    if value is None or not UINT64_PATTERN.fullmatch(value):
+def parse_typed_uint64(value: str | None) -> int | None:
+    if value is None:
         return None
-    parsed = int(value)
-    if parsed < 0 or parsed > (2**64 - 1):
+    match = TYPED_UINT64_PATTERN.fullmatch(value.strip())
+    if match is None:
+        return None
+    parsed = int(match.group(1))
+    if parsed > (2**64 - 1):
         return None
     return parsed
 
@@ -108,15 +113,14 @@ def dbus_timer_usec(name: str) -> tuple[str, int | None]:
         raw = run_text(
             "busctl",
             "get-property",
-            "--value",
-            "org.freedesktop.systemd1",
+            SYSTEMD_SERVICE,
             TIMER_OBJECT_PATH,
-            "org.freedesktop.systemd1.Timer",
+            TIMER_INTERFACE,
             name,
         )
     except (OSError, subprocess.CalledProcessError):
         return "UNKNOWN", None
-    parsed = parse_uint64(raw)
+    parsed = parse_typed_uint64(raw)
     return raw if parsed is not None else "UNKNOWN", parsed
 
 
