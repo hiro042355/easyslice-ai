@@ -219,19 +219,20 @@ resource "aws_instance" "experiment" {
   }
 
   user_data = templatefile("${path.module}/templates/user-data.sh.tftpl", {
-    aws_region             = var.aws_region
-    expected_eip           = aws_eip.experiment.public_ip
-    maximum_lifetime_hours = var.maximum_lifetime_hours
-    gcp_project_number     = data.google_project.production.number
-    gcp_pool_id            = local.gcp_pool_id
-    gcp_provider_id        = local.gcp_provider_id
-    gcp_service_account    = google_service_account.aws_experiment.email
-    experiment_bucket      = google_storage_bucket.experiment.name
-    production_bucket      = "nexcut-prod-jp-2026-media"
-    worker_image           = var.worker_image
-    provider_image         = var.provider_image
-    readiness_script_gzip  = base64gzip(file("${path.module}/runtime/readiness"))
-    run_once_script_gzip   = base64gzip(file("${path.module}/runtime/run-once"))
+    aws_region                     = var.aws_region
+    expected_eip                   = aws_eip.experiment.public_ip
+    maximum_lifetime_hours         = var.maximum_lifetime_hours
+    gcp_project_number             = data.google_project.production.number
+    gcp_pool_id                    = local.gcp_pool_id
+    gcp_provider_id                = local.gcp_provider_id
+    gcp_service_account            = google_service_account.aws_experiment.email
+    experiment_bucket              = google_storage_bucket.experiment.name
+    production_bucket              = "nexcut-prod-jp-2026-media"
+    worker_image                   = var.worker_image
+    provider_image                 = var.provider_image
+    readiness_script_gzip          = base64gzip(file("${path.module}/runtime/readiness"))
+    run_once_script_gzip           = base64gzip(file("${path.module}/runtime/run-once"))
+    safeguard_verifier_script_gzip = base64gzip(file("${path.module}/runtime/verify-safeguard.py"))
   })
 
   lifecycle {

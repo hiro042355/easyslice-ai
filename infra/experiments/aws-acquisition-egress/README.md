@@ -32,3 +32,10 @@ provider, manifest, and media requests required inside one acquisition.
 Security boundaries: no ingress, no SSH key, IMDSv2 required, one Elastic IP,
 SSM-only execution, ambient AWS role to GCP WIF, dedicated GCP service account
 and bucket, and an eight-hour instance-initiated termination timer.
+
+`/opt/nexcut-experiment/verify-safeguard` is the repository-owned, fail-closed
+timer verifier. It reads typed `uint64` timer deadlines from systemd D-Bus and
+compares realtime and monotonic deadlines only with the corresponding local
+clock. Missing or unparseable evidence is `TIMESTAMP_UNAVAILABLE`, conflicting
+clock evidence is `INCONSISTENT`, and the human-readable `list-timers` table is
+never timing authority.

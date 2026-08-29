@@ -24,19 +24,33 @@ if ([regex]::Matches($variables, [regex]::Escape($providerDigest)).Count -ne 2) 
 
 $main = Get-Content -LiteralPath (Join-Path $root 'main.tf') -Raw
 $userDataTemplate = Get-Content -LiteralPath (Join-Path $root 'templates/user-data.sh.tftpl') -Raw
-foreach ($script in @('readiness', 'run-once')) {
+foreach ($script in @('readiness', 'run-once', 'verify-safeguard.py')) {
   if (-not $main.Contains("base64gzip(file(`"`${path.module}/runtime/$script`"))")) {
     throw "Runtime script must remain repository-owned and gzip-embedded: $script"
   }
 }
-if (($userDataTemplate | Select-String -Pattern 'base64 -d \| gzip -d' -AllMatches).Matches.Count -ne 2) {
-  throw 'Both closed runtime scripts must be locally decoded from immutable user_data.'
+if (($userDataTemplate | Select-String -Pattern 'base64 -d \| gzip -d' -AllMatches).Matches.Count -ne 3) {
+  throw 'All closed runtime scripts must be locally decoded from immutable user_data.'
 }
 if ($userDataTemplate -match 'curl.+\|.+(ba)?sh|github\.com|raw\.githubusercontent\.com') {
   throw 'Mutable or untrusted runtime download is forbidden.'
 }
 if (-not $main.Contains('length(aws_instance.experiment.user_data) <= 15000')) {
   throw 'The rendered user_data 15,000-byte safety budget must remain enforced.'
+}
+
+$safeguardVerifier = Get-Content -LiteralPath (Join-Path $root 'runtime/verify-safeguard.py') -Raw
+foreach ($requiredSafeguardBoundary in @(
+  'busctl', 'NextElapseUSecRealtime', 'NextElapseUSecMonotonic',
+  'time.CLOCK_MONOTONIC', 'FUTURE_PROVEN', 'TIMESTAMP_UNAVAILABLE',
+  'EXPIRED_PROVEN', 'INCONSISTENT'
+)) {
+  if (-not $safeguardVerifier.Contains($requiredSafeguardBoundary)) {
+    throw "Missing safeguard verification boundary: $requiredSafeguardBoundary"
+  }
+}
+if ($safeguardVerifier.Contains('list-timers')) {
+  throw 'Human-readable list-timers output must not be verification authority.'
 }
 
 $forbidden = @('allUsers', 'allAuthenticatedUsers', 'google_service_account_key', 'aws_key_pair', 'aws_nat_gateway', '0.0.0.0/0"`n  ingress')

@@ -40,7 +40,8 @@ chmod 0400 /opt/nexcut-experiment/gcp-wif.json
 
 printf '%s' '${readiness_script_gzip}' | base64 -d | gzip -d >/opt/nexcut-experiment/readiness
 printf '%s' '${run_once_script_gzip}' | base64 -d | gzip -d >/opt/nexcut-experiment/run-once
-chmod 0500 /opt/nexcut-experiment/readiness /opt/nexcut-experiment/run-once
+printf '%s' '${safeguard_verifier_script_gzip}' | base64 -d | gzip -d >/opt/nexcut-experiment/verify-safeguard
+chmod 0500 /opt/nexcut-experiment/readiness /opt/nexcut-experiment/run-once /opt/nexcut-experiment/verify-safeguard
 
 cat >/etc/yum.repos.d/google-cloud-cli.repo <<'REPO'
 [google-cloud-cli]
