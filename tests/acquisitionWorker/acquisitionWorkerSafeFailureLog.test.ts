@@ -21,7 +21,8 @@ const telemetry = (stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRA
     mediaRequestReached: stage === "MEDIA" || stage === "HLS_FRAGMENT" ? "YES" : "UNKNOWN",
     selectedTransport: stage === "MEDIA" ? "DIRECT" : stage.startsWith("HLS_") ? "HLS" : "UNKNOWN",
     hlsManifestReached: stage.startsWith("HLS_") ? "YES" : "UNKNOWN",
-    hlsFragmentReached: stage === "HLS_FRAGMENT" ? "YES" : "UNKNOWN", http403Stage: stage });
+    hlsFragmentReached: stage === "HLS_FRAGMENT" ? "YES" : "UNKNOWN", http403Stage: stage,
+    botCheckEvidenceStage: "UNKNOWN" });
   collector.failure("unknown-acquisition-failure");
   return collector.snapshot();
 };

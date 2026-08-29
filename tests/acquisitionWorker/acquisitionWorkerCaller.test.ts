@@ -45,6 +45,7 @@ const diagnostic = Object.freeze({
   ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
   jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
   mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN", processFailureFamily: "youtube-bot-check",
+  botCheckEvidenceStage: "UNKNOWN",
 } as const);
 
 test("caller uses one short-lived token, fixed Worker path, exact request, and no retry", async () => {

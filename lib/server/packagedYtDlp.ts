@@ -42,12 +42,14 @@ export type YtDlpClosedStageTelemetry = Readonly<{
   hlsManifestReached: "YES" | "NO" | "UNKNOWN";
   hlsFragmentReached: "YES" | "NO" | "UNKNOWN";
   http403Stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRAGMENT" | "UNKNOWN";
+  botCheckEvidenceStage: "PRE_EXTERNAL_REQUEST" | "PLAYER_RESPONSE" | "GVS_RESPONSE" | "MEDIA_RESPONSE" | "EXTRACTOR" | "UNKNOWN";
 }>;
 
 const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
   mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
   hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
+  botCheckEvidenceStage: "UNKNOWN",
 });
 
 export type YtDlpFailureDiagnostic = Readonly<{
@@ -187,6 +189,14 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
     ? "HLS" : dashMarker ? "DASH" : directMarker ? "DIRECT" : "UNKNOWN";
   const media403 = !hlsFragment403 && /unable to download video data[^\r\n]*403|403[^\r\n]*video data/i.test(stderr);
   const mediaReached = media403 || hlsFragmentMarker || hlsFragment403 || /\[download\]\s+destination:|downloading\s+video\s+format/i.test(stderr);
+  const botCheck = /confirm you(?:'|’)re not a bot|sign in to confirm you(?:'|’)re not a bot/i;
+  const botCheckLine = stderr.split(/\r?\n/).find((line) => botCheck.test(line));
+  const botCheckEvidenceStage = !botCheckLine ? "UNKNOWN"
+    : /before (?:the )?(?:first )?(?:external|youtube) request/i.test(botCheckLine) ? "PRE_EXTERNAL_REQUEST"
+      : /player[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "PLAYER_RESPONSE"
+        : /gvs[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "GVS_RESPONSE"
+          : /(?:media|video data)[^\r\n]*(?:response|request)|(?:response|request)[^\r\n]*(?:media|video data)/i.test(botCheckLine) ? "MEDIA_RESPONSE"
+            : /\[youtube(?::[^\]]+)?\]|extractor/i.test(botCheckLine) ? "EXTRACTOR" : "UNKNOWN";
   const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : hlsManifest403 ? "HLS_MANIFEST"
     : hlsFragment403 ? "HLS_FRAGMENT" : media403 ? "MEDIA" : "UNKNOWN";
   return Object.freeze({
@@ -198,6 +208,7 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
     hlsManifestReached: hlsManifestMarker || hlsFragmentMarker || hlsFragment403 ? "YES" : "UNKNOWN",
     hlsFragmentReached: hlsFragmentMarker || hlsFragment403 ? "YES" : "UNKNOWN",
     http403Stage,
+    botCheckEvidenceStage,
   });
 };
 

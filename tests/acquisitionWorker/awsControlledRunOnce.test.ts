@@ -66,6 +66,19 @@ test("future attempts retain one strict closed result without weakening cleanup 
   assert.equal((script.match(/set -o noclobber/g) ?? []).length, 1);
 });
 
+test("closed result v2 explicitly projects provider, token, request-stage, client, and bot-check evidence", () => {
+  assert.match(script, /schemaVersion:2/);
+  const fields = [
+    "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure",
+    "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
+    "gvsRequestReached", "mediaRequestReached", "configuredPlayerClient", "observedPlayerClient",
+    "failureStage", "botCheckEvidenceStage",
+  ];
+  for (const field of fields) {
+    assert.match(script, new RegExp(`${field}:\\(\\$diagnostic\\.${field} \\/\\/ "UNKNOWN"\\)`));
+  }
+});
+
 test("Worker 400 and 422 remain distinguishable and OTHER_4XX retains the numeric status", () => {
   assert.match(script, /workerHttpStatus:\$workerHttpStatus/);
   assert.match(script, /\$workerHttpStatus == 200 or \$workerHttpStatus == 422/);
@@ -77,4 +90,5 @@ test("closed result projection cannot retain raw response, headers, or process o
   const projection = script.slice(script.indexOf("persist_closed_result()"), script.indexOf("# The controlled target"));
   assert.doesNotMatch(projection, /Authorization|cookie|credential|poToken|visitorData|stdout|stderr|sourceUrl|headers/i);
   assert.doesNotMatch(projection, /rawBody:\s*\$rawBody/);
+  assert.doesNotMatch(projection, /poToken|contentBinding|expiresAt|sourceUrl/i);
 });

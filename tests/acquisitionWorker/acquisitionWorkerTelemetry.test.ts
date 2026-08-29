@@ -26,6 +26,7 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
     jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
     mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN", processFailureFamily: "NONE",
+    botCheckEvidenceStage: "UNKNOWN",
   });
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
   const serialized = JSON.stringify(diagnostic);
@@ -121,6 +122,7 @@ test("closed token contexts and process stages reject arbitrary values", () => {
   const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, tokenContext: "ARBITRARY" }));
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, http403Stage: "ARBITRARY" }));
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, botCheckEvidenceStage: "ARBITRARY" }));
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, retryCount: 1 }));
   for (const selectedTransport of ["HLS", "DIRECT", "DASH", "UNKNOWN"] as const) {
     assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, selectedTransport }).selectedTransport, selectedTransport);
@@ -128,6 +130,9 @@ test("closed token contexts and process stages reject arbitrary values", () => {
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, selectedTransport: "ARBITRARY" }));
   for (const http403Stage of ["HLS_MANIFEST", "HLS_FRAGMENT"] as const) {
     assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, http403Stage }).http403Stage, http403Stage);
+  }
+  for (const botCheckEvidenceStage of ["PRE_EXTERNAL_REQUEST", "PLAYER_RESPONSE", "GVS_RESPONSE", "MEDIA_RESPONSE", "EXTRACTOR", "UNKNOWN"] as const) {
+    assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, botCheckEvidenceStage }).botCheckEvidenceStage, botCheckEvidenceStage);
   }
 });
 

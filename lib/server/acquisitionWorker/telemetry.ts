@@ -11,6 +11,10 @@ export const ACQUISITION_TRANSPORTS = ["HLS", "DIRECT", "DASH", "UNKNOWN"] as co
 export type AcquisitionTransport = (typeof ACQUISITION_TRANSPORTS)[number];
 export const HTTP_403_STAGES = ["PLAYER", "GVS", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN"] as const;
 export type TelemetryHttp403Stage = (typeof HTTP_403_STAGES)[number];
+export const BOT_CHECK_EVIDENCE_STAGES = [
+  "PRE_EXTERNAL_REQUEST", "PLAYER_RESPONSE", "GVS_RESPONSE", "MEDIA_RESPONSE", "EXTRACTOR", "UNKNOWN",
+] as const;
+export type BotCheckEvidenceStage = (typeof BOT_CHECK_EVIDENCE_STAGES)[number];
 export const PROVIDER_PRECHECK_OUTCOMES = ["NOT_RUN", "NOT_CONFIGURED", "AVAILABLE", "UNAVAILABLE", "FAILED", "UNKNOWN"] as const;
 export type ProviderPrecheckOutcome = (typeof PROVIDER_PRECHECK_OUTCOMES)[number];
 export const PROCESS_FAILURE_FAMILIES = [
@@ -72,6 +76,7 @@ export type AcquisitionSafeTelemetry = Readonly<{
   mediaBytesObserved: TelemetryTriState;
   safeFailureCode: AcquisitionFailureCode | "NONE";
   failureStage: TelemetryFailureStage;
+  botCheckEvidenceStage: BotCheckEvidenceStage;
 }>;
 
 const tri = new Set<string>(TELEMETRY_TRI_STATES);
@@ -82,6 +87,7 @@ const transports = new Set<string>(ACQUISITION_TRANSPORTS);
 const http403Stages = new Set<string>(HTTP_403_STAGES);
 const providerPrecheckOutcomes = new Set<string>(PROVIDER_PRECHECK_OUTCOMES);
 const processFailureFamilies = new Set<string>(PROCESS_FAILURE_FAMILIES);
+const botCheckEvidenceStages = new Set<string>(BOT_CHECK_EVIDENCE_STAGES);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
   "acquisitionExecutionBegan", "providerPrecheckOutcome", "ytDlpSpawnAttempted", "ytDlpProcessStarted",
@@ -93,7 +99,7 @@ const keys = [
   "hlsFragmentReached", "http403Stage", "retryCount",
   "nodeExecutable", "nodeVersionMatch", "ejsAvailable", "ejsActualUse", "configuredPlayerClient",
   "observedPlayerClient", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
-  "mediaBytesObserved", "safeFailureCode", "failureStage",
+  "mediaBytesObserved", "safeFailureCode", "failureStage", "botCheckEvidenceStage",
 ] as const;
 
 export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSafeTelemetry => {
@@ -124,6 +130,8 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !safeFailureCodes.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "failureStage") {
       if (typeof item !== "string" || !stages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "botCheckEvidenceStage") {
+      if (typeof item !== "string" || !botCheckEvidenceStages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (typeof item !== "string" || !tri.has(item)) throw new TypeError("invalid-acquisition-telemetry");
   }
   return Object.freeze({ ...value }) as AcquisitionSafeTelemetry;
@@ -147,6 +155,7 @@ export class AcquisitionTelemetryCollector {
       ejsAvailable: runtime.ejsAvailable ? "YES" : "NO", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB",
       observedPlayerClient: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
       mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
+      botCheckEvidenceStage: "UNKNOWN",
     };
   }
   providerHealth(value: boolean): void { this.#state.providerHealthy = value ? "YES" : "NO"; }
@@ -183,6 +192,7 @@ export class AcquisitionTelemetryCollector {
     hlsManifestReached: TelemetryTriState;
     hlsFragmentReached: TelemetryTriState;
     http403Stage: TelemetryHttp403Stage;
+    botCheckEvidenceStage: BotCheckEvidenceStage;
   }>): void {
     this.#state.tokenContext = evidence.tokenContext;
     this.#state.tokenConsumedByYtDlp = evidence.tokenConsumedByYtDlp;
@@ -192,6 +202,7 @@ export class AcquisitionTelemetryCollector {
     this.#state.hlsManifestReached = evidence.hlsManifestReached;
     this.#state.hlsFragmentReached = evidence.hlsFragmentReached;
     this.#state.http403Stage = evidence.http403Stage;
+    this.#state.botCheckEvidenceStage = evidence.botCheckEvidenceStage;
     this.#state.externalRequestStageReached = evidence.gvsRequestReached === "YES" || evidence.mediaRequestReached === "YES"
       ? "YES" : "UNKNOWN";
   }

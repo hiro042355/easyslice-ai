@@ -92,7 +92,7 @@ test("production runner merges in-process provider and closed stage evidence int
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
       closedStageTelemetry: { tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
         mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
-        hlsFragmentReached: "UNKNOWN", http403Stage: "GVS" },
+        hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", botCheckEvidenceStage: "UNKNOWN" },
     });
   });
   await assert.rejects(runner([], { timeoutMs: 1_000, telemetry: collector }), YtDlpProcessFailure);
