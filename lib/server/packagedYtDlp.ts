@@ -361,6 +361,7 @@ type YtDlpChildProcess = Readonly<{
   stdout: Readable;
   stderr: Readable;
   kill(signal: "SIGKILL"): boolean;
+  once(event: "spawn", listener: () => void): unknown;
   once(event: "error", listener: (error: Error) => void): unknown;
   once(event: "close", listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown;
 }>;
@@ -384,6 +385,7 @@ export const runPackagedYtDlp = async (
     projectRoot?: string;
     spawnImpl?: YtDlpSpawn;
     outputLimitBytes?: number;
+    onSpawnStarted?: () => void;
   }>,
 ): Promise<YtDlpProcessResult> => {
   if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs <= 0) throw new TypeError("invalid-yt-dlp-timeout");
@@ -431,6 +433,7 @@ export const runPackagedYtDlp = async (
     };
     child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
     child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
+    child.once("spawn", () => options.onSpawnStarted?.());
     child.once("error", () => {
       if (!settled) { settled = true; cleanup(); reject(new YtDlpProcessFailure("yt-dlp-spawn-failed")); }
     });

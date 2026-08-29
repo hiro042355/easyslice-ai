@@ -59,6 +59,25 @@ test("Production composition uses persistent GCS store and contains no stub, coo
   assert.doesNotMatch(composition, /process\.env\.(?:PATH|PROVIDER_URL)|cookies?|credentials?|Generic/i);
 });
 
+test("provider precheck failure is retained and proves yt-dlp was not spawned", async () => {
+  const authorityRoot = await mkdtemp(path.join(os.tmpdir(), "nexcut-provider-precheck-"));
+  let runCount = 0;
+  const unavailable: PoTokenProvider = Object.freeze({ authority: "closed-test-provider",
+    status: async () => "unavailable" as const, ytDlpArguments: () => [] });
+  const composition = await createAcquisitionWorkerComposition({ authorityRoot, resolveRuntime: async () => runtime,
+    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider: unavailable,
+    run: async () => { runCount += 1; } });
+  const result = await composition.execute(request);
+  assert.equal(result.status, "failed");
+  const telemetry = composition.telemetry(ID)!;
+  assert.equal(telemetry.acquisitionExecutionBegan, "YES");
+  assert.equal(telemetry.providerPrecheckOutcome, "UNAVAILABLE");
+  assert.equal(telemetry.ytDlpSpawnAttempted, "NO");
+  assert.equal(telemetry.ytDlpProcessStarted, "NO");
+  assert.equal(telemetry.externalRequestStageReached, "UNKNOWN");
+  assert.equal(runCount, 0);
+});
+
 test("production runner merges in-process provider and closed stage evidence into one failure event", async () => {
   const collector = new AcquisitionTelemetryCollector({ pluginArtifact: true, nodeConfigured: true,
     nodeExecutable: true, nodeVersionMatch: true, ejsAvailable: true });
@@ -66,7 +85,8 @@ test("production runner merges in-process provider and closed stage evidence int
   collector.providerResult(true);
   collector.providerTokenResponse(true, true);
   const entries: unknown[] = [];
-  const runner = createProductionAcquisitionRunner((entry) => entries.push(entry), async () => {
+  const runner = createProductionAcquisitionRunner((entry) => entries.push(entry), async (_args, options) => {
+    options.onSpawnStarted?.();
     throw new YtDlpProcessFailure("unknown-yt-dlp-failure", {
       exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
@@ -77,6 +97,9 @@ test("production runner merges in-process provider and closed stage evidence int
   });
   await assert.rejects(runner([], { timeoutMs: 1_000, telemetry: collector }), YtDlpProcessFailure);
   assert.equal(entries.length, 1);
+  assert.equal(collector.snapshot().ytDlpProcessStarted, "YES");
+  assert.equal(collector.snapshot().has403, true);
+  assert.equal(collector.snapshot().processFailureFamily, "unknown-yt-dlp-failure");
   assert.deepEqual(entries[0], {
     severity: "ERROR", event: "acquisition-process-failure", exitCode: 1, signal: null,
     safeFailureFamily: "unknown-yt-dlp-failure", has403: true, has429: false, has5xx: false,

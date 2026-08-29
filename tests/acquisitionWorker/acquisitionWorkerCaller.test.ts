@@ -32,6 +32,9 @@ const request: AcquisitionRequest = Object.freeze({
   timeoutMs: ACQUISITION_DEFAULT_TIMEOUT_MS,
 });
 const diagnostic = Object.freeze({
+  acquisitionExecutionBegan: "YES", providerPrecheckOutcome: "AVAILABLE", ytDlpSpawnAttempted: "YES",
+  ytDlpProcessStarted: "YES", externalRequestStageReached: "YES", has403: true, has429: false,
+  has5xx: false, timeoutObserved: false,
   expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
   providerHealthy: "YES", acquisitionProviderRequest: "YES", acquisitionProviderSuccess: "YES",
   acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
@@ -41,7 +44,7 @@ const diagnostic = Object.freeze({
   hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA", retryCount: 0,
   ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
   jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
-  mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN",
+  mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN", processFailureFamily: "youtube-bot-check",
 } as const);
 
 test("caller uses one short-lived token, fixed Worker path, exact request, and no retry", async () => {

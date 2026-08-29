@@ -51,3 +51,30 @@ test("target and output contracts remain closed and secret-safe", () => {
   assert.doesNotMatch(script, /cookie/i);
   assert.doesNotMatch(script, /PO.?token/i);
 });
+
+test("future attempts retain one strict closed result without weakening cleanup or attempt consumption", () => {
+  assert.match(script, /readonly closed_result=\/opt\/nexcut-experiment\/closed-result\.json/);
+  assert.match(script, /workerHttpStatus:\$workerHttpStatus/);
+  assert.match(script, /workerRequestDispatched:"YES"/);
+  assert.match(script, /providerPrecheckOutcome/);
+  assert.match(script, /ytDlpSpawnAttempted/);
+  assert.match(script, /ytDlpProcessStarted/);
+  assert.match(script, /configuredHttpRetries:0/);
+  assert.match(script, /fallbackClientCount:0/);
+  assert.match(script, /mv -f "\$temporary" "\$closed_result"/);
+  assert.doesNotMatch(script, /rm -f[^\n]*closed_result|rm -f[^\n]*closed-result/);
+  assert.equal((script.match(/set -o noclobber/g) ?? []).length, 1);
+});
+
+test("Worker 400 and 422 remain distinguishable and OTHER_4XX retains the numeric status", () => {
+  assert.match(script, /workerHttpStatus:\$workerHttpStatus/);
+  assert.match(script, /\$workerHttpStatus == 200 or \$workerHttpStatus == 422/);
+  assert.match(script, /elif \$workerHttpStatus == 415 then "NO"/);
+  assert.match(script, /4\?\?\) outcome=OTHER_4XX/);
+});
+
+test("closed result projection cannot retain raw response, headers, or process output", () => {
+  const projection = script.slice(script.indexOf("persist_closed_result()"), script.indexOf("# The controlled target"));
+  assert.doesNotMatch(projection, /Authorization|cookie|credential|poToken|visitorData|stdout|stderr|sourceUrl|headers/i);
+  assert.doesNotMatch(projection, /rawBody:\s*\$rawBody/);
+});

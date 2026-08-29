@@ -71,15 +71,22 @@ export class YouTubeSourceAdapter implements SourceAdapter {
 
   async acquire(context: SourceAcquisitionContext): Promise<void> {
     if (context.provider) {
+      context.telemetry?.providerPrecheck("UNKNOWN");
       const providerStatus = await context.provider.status(context.signal);
       context.telemetry?.providerHealth(providerStatus === "available");
+      context.telemetry?.providerPrecheck(providerStatus === "available" ? "AVAILABLE"
+        : providerStatus === "unavailable" ? "UNAVAILABLE"
+          : providerStatus === "not-configured" ? "NOT_CONFIGURED" : "FAILED");
       if (providerStatus === "unavailable") throw new AcquisitionWorkerFailure("po-token-provider-unavailable", true);
       if (providerStatus === "failed") throw new AcquisitionWorkerFailure("po-token-provider-failed", true);
     }
     try {
-      const execute = () => this.run(createYouTubeWorkerArguments(context), {
+      const execute = () => {
+        context.telemetry?.ytDlpSpawnAttempt();
+        return this.run(createYouTubeWorkerArguments(context), {
         timeoutMs: context.request.timeoutMs, signal: context.signal, telemetry: context.telemetry,
-      });
+        });
+      };
       await (context.provider?.observe && context.telemetry
         ? context.provider.observe(context.telemetry, execute)
         : execute());

@@ -11,6 +11,17 @@ export const ACQUISITION_TRANSPORTS = ["HLS", "DIRECT", "DASH", "UNKNOWN"] as co
 export type AcquisitionTransport = (typeof ACQUISITION_TRANSPORTS)[number];
 export const HTTP_403_STAGES = ["PLAYER", "GVS", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN"] as const;
 export type TelemetryHttp403Stage = (typeof HTTP_403_STAGES)[number];
+export const PROVIDER_PRECHECK_OUTCOMES = ["NOT_RUN", "NOT_CONFIGURED", "AVAILABLE", "UNAVAILABLE", "FAILED", "UNKNOWN"] as const;
+export type ProviderPrecheckOutcome = (typeof PROVIDER_PRECHECK_OUTCOMES)[number];
+export const PROCESS_FAILURE_FAMILIES = [
+  "yt-dlp-missing", "yt-dlp-not-executable", "yt-dlp-spawn-failed", "yt-dlp-timeout",
+  "yt-dlp-cancelled", "yt-dlp-output-limit", "yt-dlp-exit-failed", "youtube-sign-in-required",
+  "youtube-bot-check", "video-unavailable", "private-video", "age-restricted", "region-restricted",
+  "live-stream-unsupported", "playlist-unsupported", "format-unavailable", "ffmpeg-unavailable",
+  "network-failure", "extractor-failure", "permission-failure", "output-path-failure",
+  "unknown-yt-dlp-failure", "yt-dlp-version-mismatch", "NONE",
+] as const;
+export type ProcessFailureFamily = (typeof PROCESS_FAILURE_FAMILIES)[number];
 
 export const FAILURE_STAGES = [
   "PRE_EXECUTION", "PROVIDER_REQUEST", "PO_TOKEN", "EXTRACTOR", "JS_CHALLENGE",
@@ -19,6 +30,16 @@ export const FAILURE_STAGES = [
 export type TelemetryFailureStage = (typeof FAILURE_STAGES)[number];
 
 export type AcquisitionSafeTelemetry = Readonly<{
+  acquisitionExecutionBegan: TelemetryTriState;
+  providerPrecheckOutcome: ProviderPrecheckOutcome;
+  ytDlpSpawnAttempted: TelemetryTriState;
+  ytDlpProcessStarted: TelemetryTriState;
+  externalRequestStageReached: TelemetryTriState;
+  has403: boolean;
+  has429: boolean;
+  has5xx: boolean;
+  timeoutObserved: boolean;
+  processFailureFamily: ProcessFailureFamily;
   expectedPluginArtifactPresent: TelemetryTriState;
   runtimePluginDetection: TelemetryTriState;
   providerConfigured: TelemetryTriState;
@@ -59,8 +80,12 @@ const stages = new Set<string>(FAILURE_STAGES);
 const tokenContexts = new Set<string>(TOKEN_CONTEXTS);
 const transports = new Set<string>(ACQUISITION_TRANSPORTS);
 const http403Stages = new Set<string>(HTTP_403_STAGES);
+const providerPrecheckOutcomes = new Set<string>(PROVIDER_PRECHECK_OUTCOMES);
+const processFailureFamilies = new Set<string>(PROCESS_FAILURE_FAMILIES);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
+  "acquisitionExecutionBegan", "providerPrecheckOutcome", "ytDlpSpawnAttempted", "ytDlpProcessStarted",
+  "externalRequestStageReached", "has403", "has429", "has5xx", "timeoutObserved", "processFailureFamily",
   "expectedPluginArtifactPresent", "runtimePluginDetection", "providerConfigured", "providerHealthy",
   "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure", "nodeConfigured",
   "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
@@ -89,6 +114,12 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !http403Stages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "retryCount") {
       if (item !== 0) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "providerPrecheckOutcome") {
+      if (typeof item !== "string" || !providerPrecheckOutcomes.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "has403" || key === "has429" || key === "has5xx" || key === "timeoutObserved") {
+      if (typeof item !== "boolean") throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "processFailureFamily") {
+      if (typeof item !== "string" || !processFailureFamilies.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "safeFailureCode") {
       if (typeof item !== "string" || !safeFailureCodes.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "failureStage") {
@@ -99,9 +130,12 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
 };
 
 export class AcquisitionTelemetryCollector {
-  readonly #state: Record<string, string | number>;
+  readonly #state: Record<string, string | number | boolean>;
   constructor(runtime: Readonly<{ pluginArtifact: boolean; nodeConfigured: boolean; nodeExecutable: boolean; nodeVersionMatch: boolean; ejsAvailable: boolean }>) {
     this.#state = {
+      acquisitionExecutionBegan: "NO", providerPrecheckOutcome: "NOT_RUN", ytDlpSpawnAttempted: "NO",
+      ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
+      has5xx: false, timeoutObserved: false, processFailureFamily: "NONE",
       expectedPluginArtifactPresent: runtime.pluginArtifact ? "YES" : "NO", runtimePluginDetection: "UNKNOWN",
       providerConfigured: "YES", providerHealthy: "UNKNOWN", acquisitionProviderRequest: "NO",
       acquisitionProviderSuccess: "NO", acquisitionProviderFailure: "NO", nodeConfigured: runtime.nodeConfigured ? "YES" : "NO",
@@ -116,6 +150,19 @@ export class AcquisitionTelemetryCollector {
     };
   }
   providerHealth(value: boolean): void { this.#state.providerHealthy = value ? "YES" : "NO"; }
+  executionBegan(): void { this.#state.acquisitionExecutionBegan = "YES"; }
+  providerPrecheck(value: Exclude<ProviderPrecheckOutcome, "NOT_RUN">): void {
+    this.#state.providerPrecheckOutcome = value;
+  }
+  ytDlpSpawnAttempt(): void { this.#state.ytDlpSpawnAttempted = "YES"; }
+  ytDlpStarted(): void { this.#state.ytDlpProcessStarted = "YES"; }
+  processFailureEvidence(value: Readonly<{ family: Exclude<ProcessFailureFamily, "NONE">; has403: boolean; has429: boolean; has5xx: boolean; timedOut: boolean }>): void {
+    this.#state.processFailureFamily = value.family;
+    this.#state.has403 = value.has403;
+    this.#state.has429 = value.has429;
+    this.#state.has5xx = value.has5xx;
+    this.#state.timeoutObserved = value.timedOut;
+  }
   providerRequest(): void { this.#state.acquisitionProviderRequest = "YES"; }
   providerResult(success: boolean): void {
     this.#state.acquisitionProviderSuccess = success ? "YES" : "NO";
@@ -145,6 +192,8 @@ export class AcquisitionTelemetryCollector {
     this.#state.hlsManifestReached = evidence.hlsManifestReached;
     this.#state.hlsFragmentReached = evidence.hlsFragmentReached;
     this.#state.http403Stage = evidence.http403Stage;
+    this.#state.externalRequestStageReached = evidence.gvsRequestReached === "YES" || evidence.mediaRequestReached === "YES"
+      ? "YES" : "UNKNOWN";
   }
   failure(code: AcquisitionFailureCode): void { this.#state.safeFailureCode = code; }
   snapshot(): AcquisitionSafeTelemetry { return validateAcquisitionSafeTelemetry(this.#state); }

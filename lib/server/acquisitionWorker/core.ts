@@ -47,6 +47,7 @@ export class AcquisitionWorkerCore {
           pluginArtifact: false, nodeConfigured: false, nodeExecutable: false, nodeVersionMatch: false, ejsAvailable: false,
         });
         try {
+          telemetry.executionBegan();
           const executionSignal = signal ? AbortSignal.any([signal, leaseSignal]) : leaseSignal;
           if (executionSignal.aborted) throw new AcquisitionWorkerFailure("acquisition-cancelled", true);
           workspace = await createAcquisitionWorkspace(request.acquisitionId, this.dependencies.authorityRoot);

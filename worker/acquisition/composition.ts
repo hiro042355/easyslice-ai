@@ -38,13 +38,18 @@ export const createProductionAcquisitionRunner = (
   run: typeof runPackagedYtDlp = runPackagedYtDlp,
 ): AcquisitionProcessRunner => async (args, options) => {
   try {
-    await run(args, options);
+    await run(args, { ...options, onSpawnStarted: () => options.telemetry?.ytDlpStarted() });
   } catch (error) {
     if (error instanceof YtDlpProcessFailure) {
       if (error.diagnostic.closedStageTelemetry) options.telemetry?.processEvidence(error.diagnostic.closedStageTelemetry);
       const failure = classifyYouTubeProcessFailure(error.reason);
       options.telemetry?.failure(failure.code);
-      if (options.telemetry) log(projectAcquisitionWorkerYtDlpFailure(error, options.telemetry.snapshot()));
+      if (options.telemetry) {
+        const safe = projectAcquisitionWorkerYtDlpFailure(error, options.telemetry.snapshot());
+        options.telemetry.processFailureEvidence({ family: error.reason, has403: safe.has403, has429: safe.has429,
+          has5xx: safe.has5xx, timedOut: error.diagnostic.timedOut });
+        log(projectAcquisitionWorkerYtDlpFailure(error, options.telemetry.snapshot()));
+      }
     }
     throw error;
   }

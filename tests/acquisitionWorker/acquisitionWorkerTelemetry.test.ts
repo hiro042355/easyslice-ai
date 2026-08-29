@@ -13,6 +13,9 @@ const runtime = Object.freeze({ pluginArtifact: true, nodeConfigured: true, node
 test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () => {
   const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
   assert.deepEqual(diagnostic, {
+    acquisitionExecutionBegan: "NO", providerPrecheckOutcome: "NOT_RUN", ytDlpSpawnAttempted: "NO",
+    ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
+    has5xx: false, timeoutObserved: false,
     expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
     providerHealthy: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
     acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
@@ -22,7 +25,7 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
     ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
     jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
-    mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
+    mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN", processFailureFamily: "NONE",
   });
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
   const serialized = JSON.stringify(diagnostic);
@@ -47,6 +50,22 @@ test("health is separate while token request success/failure is observable", () 
   failed.providerRequest(); failed.providerResult(false);
   assert.equal(failed.snapshot().acquisitionProviderFailure, "YES");
   assert.equal(failed.snapshot().failureStage, "PROVIDER_REQUEST");
+});
+
+test("execution, provider precheck, and process boundaries remain closed", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.executionBegan();
+  collector.providerPrecheck("AVAILABLE");
+  collector.ytDlpSpawnAttempt();
+  collector.ytDlpStarted();
+  collector.processFailureEvidence({ family: "yt-dlp-exit-failed", has403: true, has429: false, has5xx: false, timedOut: false });
+  const value = collector.snapshot();
+  assert.equal(value.acquisitionExecutionBegan, "YES");
+  assert.equal(value.providerPrecheckOutcome, "AVAILABLE");
+  assert.equal(value.ytDlpSpawnAttempted, "YES");
+  assert.equal(value.ytDlpProcessStarted, "YES");
+  assert.equal(value.has403, true);
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...value, providerPrecheckOutcome: "private" }));
 });
 
 const listen = async (handler: (request: IncomingMessage, response: ServerResponse) => void) => {

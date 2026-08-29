@@ -5,6 +5,7 @@ umask 077
 readonly approval=/opt/nexcut-experiment/OWNER_ATTEMPT_APPROVED
 readonly marker=/opt/nexcut-experiment/attempt.claimed
 readonly environment=/opt/nexcut-experiment/environment
+readonly closed_result=/opt/nexcut-experiment/closed-result.json
 provider_started=NO
 worker_started=NO
 
@@ -40,6 +41,50 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT
+
+persist_closed_result() {
+  local http_status="$1" outcome="$2" result_status="$3"
+  local temporary="${closed_result}.tmp"
+  jq -nce --argjson workerHttpStatus "$http_status" --arg outcome "$outcome" \
+    --arg resultStatus "$result_status" --rawfile rawBody /tmp/nexcut-acquisition-result.json '
+    def tri($value): if $value == true then "YES" elif $value == false then "NO" else "UNKNOWN" end;
+    def accepted($response):
+      if ($workerHttpStatus == 200 or $workerHttpStatus == 422)
+        and ($response | type == "object")
+        and ($response.status == "succeeded" or $response.status == "failed") then "YES"
+      elif $workerHttpStatus == 415 then "NO"
+      else "UNKNOWN" end;
+    (try ($rawBody | fromjson) catch {}) as $response | ($response.diagnostic // {}) as $diagnostic |
+    {
+      schemaVersion:1,
+      workerHttpStatus:$workerHttpStatus,
+      workerRequestDispatched:"YES",
+      workerRequestAccepted:accepted($response),
+      acquisitionExecutionBegan:($diagnostic.acquisitionExecutionBegan // "UNKNOWN"),
+      providerPrecheckOutcome:($diagnostic.providerPrecheckOutcome // "UNKNOWN"),
+      ytDlpSpawnAttempted:($diagnostic.ytDlpSpawnAttempted // "UNKNOWN"),
+      ytDlpProcessStarted:($diagnostic.ytDlpProcessStarted // "UNKNOWN"),
+      youtubeRequestStageReached:($diagnostic.externalRequestStageReached // "UNKNOWN"),
+      safeFailureFamily:($diagnostic.processFailureFamily // "UNKNOWN"),
+      has403:(if $diagnostic.has403 == null then "UNKNOWN" else tri($diagnostic.has403) end),
+      has429:(if $diagnostic.has429 == null then "UNKNOWN" else tri($diagnostic.has429) end),
+      has5xx:(if $diagnostic.has5xx == null then "UNKNOWN" else tri($diagnostic.has5xx) end),
+      timeoutObserved:(if $diagnostic.timeoutObserved == null then "UNKNOWN" else tri($diagnostic.timeoutObserved) end),
+      configuredHttpRetries:0,
+      configuredFragmentRetries:0,
+      configuredExtractorRetries:0,
+      configuredFileAccessRetries:0,
+      observedRetryCount:($diagnostic.retryCount // "UNKNOWN"),
+      fallbackClientCount:0,
+      acquisitionResultStatus:$resultStatus,
+      safeErrorCode:($response.errorCode // "NONE"),
+      httpOutcomeFamily:$outcome
+    }
+  ' >"$temporary"
+  chown root:root "$temporary"
+  chmod 0600 "$temporary"
+  mv -f "$temporary" "$closed_result"
+}
 
 # The controlled target has exactly one authority. It is a root-owned local
 # approval document, provisioned separately by an Owner-authorized operation.
@@ -81,6 +126,7 @@ done
 [[ "$WORKER_IMAGE" == *@sha256:* ]] || fail_precheck PRECHECK_FAILED 79
 [[ "$PROVIDER_IMAGE" == *@sha256:* ]] || fail_precheck PRECHECK_FAILED 79
 [ ! -e "$marker" ] || fail_precheck ALREADY_CONSUMED 78
+[ ! -e "$closed_result" ] || fail_precheck PRECHECK_FAILED 79
 
 request="$(jq -nc --arg acquisitionId "$acquisition_id" --arg sourceUrl "$source_url" '{requestVersion:"1.0",acquisitionId:$acquisitionId,source:"youtube",sourceUrl:$sourceUrl,requestedOutputProfile:"canonical-mp4",maxBytes:2147483648,timeoutMs:240000}')"
 jq -e '
@@ -142,6 +188,8 @@ curl_status=$?
 set -e
 
 if [ "$curl_status" -ne 0 ]; then
+  printf '%s' '{}' >/tmp/nexcut-acquisition-result.json
+  persist_closed_result 0 NETWORK FAILED
   emit ACQUISITION_FAILED YES YES FAILED NETWORK
   exit 80
 fi
@@ -165,10 +213,14 @@ if [ "$outcome" = SUCCESS ] && jq -e '
   and (.media.byteSize | type == "number" and . > 0)
   and (.media.durationSeconds | type == "number" and . > 0)
 ' /tmp/nexcut-acquisition-result.json >/dev/null 2>&1; then
+  persist_closed_result "$http_code" SUCCESS SUCCEEDED
+  cat "$closed_result"
   emit ACQUISITION_SUCCEEDED YES YES SUCCEEDED SUCCESS
   exit 0
 fi
 
 # Arbitrary Worker bodies are never relayed. Only the closed result is emitted.
+persist_closed_result "$http_code" "$outcome" FAILED
+cat "$closed_result"
 emit ACQUISITION_FAILED YES YES FAILED "$outcome"
 exit 80
