@@ -72,7 +72,8 @@ test("closed result v2 explicitly projects provider, token, request-stage, clien
     "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure",
     "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
     "gvsRequestReached", "mediaRequestReached", "configuredPlayerClient", "observedPlayerClient",
-    "failureStage", "botCheckEvidenceStage",
+    "failureStage", "botCheckEvidenceStage", "providerPluginConfigured", "providerPluginDiscovered",
+    "providerPluginActivated", "extractorTerminatedBeforeProviderRequest",
   ];
   for (const field of fields) {
     assert.match(script, new RegExp(`${field}:\\(\\$diagnostic\\.${field} \\/\\/ "UNKNOWN"\\)`));

@@ -7,7 +7,7 @@ import { InMemoryAcquisitionIdempotencyStore } from "../../lib/server/acquisitio
 import type { AcquisitionRuntime, PoTokenProvider } from "../../lib/server/acquisitionWorker/sourceAdapter";
 import type { AcquisitionMediaMetadata } from "../../lib/server/acquisitionWorker/types";
 import { AcquisitionTelemetryCollector } from "../../lib/server/acquisitionWorker/telemetry";
-import { extractSafeYtDlpStderrSignature, YtDlpProcessFailure } from "../../lib/server/packagedYtDlp";
+import { extractClosedYtDlpStageTelemetry, extractSafeYtDlpStderrSignature, YtDlpProcessFailure } from "../../lib/server/packagedYtDlp";
 import { createAcquisitionWorkerComposition, createProductionAcquisitionRunner } from "../../worker/acquisition/composition";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
@@ -42,10 +42,41 @@ test("composition reaches Core, fixed YouTube adapter, runtime, provider, valida
     } });
   assert.deepEqual(await composition.execute(request), { acquisitionId: ID, status: "succeeded",
     artifactReference: `acquisition:${ID}`, media });
-  assert.equal(composition.telemetry(ID)?.configuredPlayerClient, "MWEB");
+  const telemetry = composition.telemetry(ID)!;
+  assert.equal(telemetry.configuredPlayerClient, "MWEB");
+  assert.equal(telemetry.providerPluginConfigured, "YES");
+  assert.equal(telemetry.providerPluginDiscovered, "UNKNOWN");
+  assert.equal(telemetry.providerPluginActivated, "UNKNOWN");
+  assert.equal(telemetry.acquisitionProviderRequest, "NO");
   assert.equal(composition.telemetry(ID), undefined);
   assert.equal(inspected, true);
   await assert.rejects(stat(path.join(authorityRoot, ID)), { code: "ENOENT" });
+});
+
+test("extractor bot-check before provider request retains Attempt 3-style closed boundaries", async () => {
+  const authorityRoot = await mkdtemp(path.join(os.tmpdir(), "nexcut-extractor-before-provider-"));
+  const evidence = extractClosedYtDlpStageTelemetry("ERROR: [youtube] closed: Sign in to confirm you're not a bot");
+  const composition = await createAcquisitionWorkerComposition({ authorityRoot, resolveRuntime: async () => runtime,
+    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider,
+    run: async (_args, options) => {
+      options.telemetry?.ytDlpStarted();
+      throw new YtDlpProcessFailure("youtube-bot-check", { exitCode: 1, signal: null, timedOut: false,
+        aborted: false, stdoutLimitExceeded: false, stderrLimitExceeded: false,
+        stderrSignature: extractSafeYtDlpStderrSignature("closed bot-check"), closedStageTelemetry: evidence });
+    } });
+  const result = await composition.execute(request);
+  assert.deepEqual(result, { acquisitionId: ID, status: "failed", errorCode: "youtube-bot-check", retryable: false });
+  const telemetry = composition.telemetry(ID)!;
+  assert.equal(telemetry.providerPluginConfigured, "YES");
+  assert.equal(telemetry.providerPluginDiscovered, "UNKNOWN");
+  assert.equal(telemetry.providerPluginActivated, "UNKNOWN");
+  assert.equal(telemetry.acquisitionProviderRequest, "NO");
+  assert.equal(telemetry.extractorTerminatedBeforeProviderRequest, "YES");
+  assert.equal(telemetry.botCheckEvidenceStage, "EXTRACTOR");
+  assert.equal(telemetry.failureStage, "EXTRACTOR");
+  assert.equal(telemetry.externalRequestStageReached, "UNKNOWN");
+  assert.equal(telemetry.gvsRequestReached, "UNKNOWN");
+  assert.equal(telemetry.mediaRequestReached, "UNKNOWN");
 });
 
 test("Production composition uses persistent GCS store and contains no stub, cookies, paths, or generic adapter", async () => {

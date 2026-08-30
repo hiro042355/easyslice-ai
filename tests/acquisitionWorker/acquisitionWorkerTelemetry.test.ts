@@ -17,7 +17,8 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
     has5xx: false, timeoutObserved: false,
     expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
-    providerHealthy: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
+    providerHealthy: "UNKNOWN", providerPluginConfigured: "UNKNOWN", providerPluginDiscovered: "UNKNOWN",
+    providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
     acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
     providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
@@ -26,7 +27,7 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
     jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
     mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN", processFailureFamily: "NONE",
-    botCheckEvidenceStage: "UNKNOWN",
+    botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
   });
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
   const serialized = JSON.stringify(diagnostic);
@@ -51,6 +52,34 @@ test("health is separate while token request success/failure is observable", () 
   failed.providerRequest(); failed.providerResult(false);
   assert.equal(failed.snapshot().acquisitionProviderFailure, "YES");
   assert.equal(failed.snapshot().failureStage, "PROVIDER_REQUEST");
+});
+
+test("plugin configuration remains distinct from discovery, activation, and token request", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.providerPluginConfiguration(true);
+  const configured = collector.snapshot();
+  assert.equal(configured.providerPluginConfigured, "YES");
+  assert.equal(configured.providerPluginDiscovered, "UNKNOWN");
+  assert.equal(configured.providerPluginActivated, "UNKNOWN");
+  assert.equal(configured.acquisitionProviderRequest, "NO");
+});
+
+test("explicit extractor bot-check termination closes only the pre-provider-request boundary", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.providerPluginConfiguration(true);
+  collector.ytDlpStarted();
+  collector.processEvidence({ tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN",
+    hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
+    botCheckEvidenceStage: "EXTRACTOR" });
+  collector.processTerminated();
+  const value = collector.snapshot();
+  assert.equal(value.failureStage, "EXTRACTOR");
+  assert.equal(value.extractorTerminatedBeforeProviderRequest, "YES");
+  assert.equal(value.acquisitionProviderRequest, "NO");
+  assert.equal(value.externalRequestStageReached, "UNKNOWN");
+  assert.equal(value.gvsRequestReached, "UNKNOWN");
+  assert.equal(value.mediaRequestReached, "UNKNOWN");
 });
 
 test("execution, provider precheck, and process boundaries remain closed", () => {

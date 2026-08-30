@@ -48,6 +48,9 @@ export type AcquisitionSafeTelemetry = Readonly<{
   runtimePluginDetection: TelemetryTriState;
   providerConfigured: TelemetryTriState;
   providerHealthy: TelemetryTriState;
+  providerPluginConfigured: TelemetryTriState;
+  providerPluginDiscovered: TelemetryTriState;
+  providerPluginActivated: TelemetryTriState;
   acquisitionProviderRequest: TelemetryTriState;
   acquisitionProviderSuccess: TelemetryTriState;
   acquisitionProviderFailure: TelemetryTriState;
@@ -77,6 +80,7 @@ export type AcquisitionSafeTelemetry = Readonly<{
   safeFailureCode: AcquisitionFailureCode | "NONE";
   failureStage: TelemetryFailureStage;
   botCheckEvidenceStage: BotCheckEvidenceStage;
+  extractorTerminatedBeforeProviderRequest: TelemetryTriState;
 }>;
 
 const tri = new Set<string>(TELEMETRY_TRI_STATES);
@@ -93,6 +97,7 @@ const keys = [
   "acquisitionExecutionBegan", "providerPrecheckOutcome", "ytDlpSpawnAttempted", "ytDlpProcessStarted",
   "externalRequestStageReached", "has403", "has429", "has5xx", "timeoutObserved", "processFailureFamily",
   "expectedPluginArtifactPresent", "runtimePluginDetection", "providerConfigured", "providerHealthy",
+  "providerPluginConfigured", "providerPluginDiscovered", "providerPluginActivated",
   "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure", "nodeConfigured",
   "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
   "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
@@ -100,6 +105,7 @@ const keys = [
   "nodeExecutable", "nodeVersionMatch", "ejsAvailable", "ejsActualUse", "configuredPlayerClient",
   "observedPlayerClient", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
   "mediaBytesObserved", "safeFailureCode", "failureStage", "botCheckEvidenceStage",
+  "extractorTerminatedBeforeProviderRequest",
 ] as const;
 
 export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSafeTelemetry => {
@@ -145,7 +151,8 @@ export class AcquisitionTelemetryCollector {
       ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
       has5xx: false, timeoutObserved: false, processFailureFamily: "NONE",
       expectedPluginArtifactPresent: runtime.pluginArtifact ? "YES" : "NO", runtimePluginDetection: "UNKNOWN",
-      providerConfigured: "YES", providerHealthy: "UNKNOWN", acquisitionProviderRequest: "NO",
+      providerConfigured: "YES", providerHealthy: "UNKNOWN", providerPluginConfigured: "UNKNOWN",
+      providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO",
       acquisitionProviderSuccess: "NO", acquisitionProviderFailure: "NO", nodeConfigured: runtime.nodeConfigured ? "YES" : "NO",
       providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
       tokenConsumedByYtDlp: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
@@ -155,10 +162,11 @@ export class AcquisitionTelemetryCollector {
       ejsAvailable: runtime.ejsAvailable ? "YES" : "NO", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB",
       observedPlayerClient: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
       mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
-      botCheckEvidenceStage: "UNKNOWN",
+      botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
     };
   }
   providerHealth(value: boolean): void { this.#state.providerHealthy = value ? "YES" : "NO"; }
+  providerPluginConfiguration(value: boolean): void { this.#state.providerPluginConfigured = value ? "YES" : "NO"; }
   executionBegan(): void { this.#state.acquisitionExecutionBegan = "YES"; }
   providerPrecheck(value: Exclude<ProviderPrecheckOutcome, "NOT_RUN">): void {
     this.#state.providerPrecheckOutcome = value;
@@ -203,8 +211,14 @@ export class AcquisitionTelemetryCollector {
     this.#state.hlsFragmentReached = evidence.hlsFragmentReached;
     this.#state.http403Stage = evidence.http403Stage;
     this.#state.botCheckEvidenceStage = evidence.botCheckEvidenceStage;
+    if (evidence.botCheckEvidenceStage === "EXTRACTOR") this.#state.failureStage = "EXTRACTOR";
     this.#state.externalRequestStageReached = evidence.gvsRequestReached === "YES" || evidence.mediaRequestReached === "YES"
       ? "YES" : "UNKNOWN";
+  }
+  processTerminated(): void {
+    this.#state.extractorTerminatedBeforeProviderRequest = this.#state.ytDlpProcessStarted === "YES"
+      && this.#state.botCheckEvidenceStage === "EXTRACTOR" && this.#state.acquisitionProviderRequest === "NO"
+      ? "YES" : this.#state.acquisitionProviderRequest === "YES" ? "NO" : "UNKNOWN";
   }
   failure(code: AcquisitionFailureCode): void { this.#state.safeFailureCode = code; }
   snapshot(): AcquisitionSafeTelemetry { return validateAcquisitionSafeTelemetry(this.#state); }

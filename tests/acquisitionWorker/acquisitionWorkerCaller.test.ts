@@ -36,7 +36,8 @@ const diagnostic = Object.freeze({
   ytDlpProcessStarted: "YES", externalRequestStageReached: "YES", has403: true, has429: false,
   has5xx: false, timeoutObserved: false,
   expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
-  providerHealthy: "YES", acquisitionProviderRequest: "YES", acquisitionProviderSuccess: "YES",
+  providerHealthy: "YES", providerPluginConfigured: "YES", providerPluginDiscovered: "UNKNOWN",
+  providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "YES", acquisitionProviderSuccess: "YES",
   acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
   providerTokenResponseObserved: "YES", providerTokenSchemaValid: "YES", tokenContext: "GVS",
   tokenConsumedByYtDlp: "YES", playerClient: "MWEB", gvsRequestReached: "YES",
@@ -45,7 +46,7 @@ const diagnostic = Object.freeze({
   ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
   jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
   mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN", processFailureFamily: "youtube-bot-check",
-  botCheckEvidenceStage: "UNKNOWN",
+  botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "NO",
 } as const);
 
 test("caller uses one short-lived token, fixed Worker path, exact request, and no retry", async () => {

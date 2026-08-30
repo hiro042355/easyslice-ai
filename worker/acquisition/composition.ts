@@ -42,6 +42,7 @@ export const createProductionAcquisitionRunner = (
   } catch (error) {
     if (error instanceof YtDlpProcessFailure) {
       if (error.diagnostic.closedStageTelemetry) options.telemetry?.processEvidence(error.diagnostic.closedStageTelemetry);
+      options.telemetry?.processTerminated();
       const failure = classifyYouTubeProcessFailure(error.reason);
       options.telemetry?.failure(failure.code);
       if (options.telemetry) {

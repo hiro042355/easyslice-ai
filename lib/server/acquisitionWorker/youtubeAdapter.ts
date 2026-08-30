@@ -82,8 +82,11 @@ export class YouTubeSourceAdapter implements SourceAdapter {
     }
     try {
       const execute = () => {
+        const args = createYouTubeWorkerArguments(context);
+        context.telemetry?.providerPluginConfiguration(args.some((value) =>
+          value.startsWith("youtubepot-bgutilhttp:base_url=")));
         context.telemetry?.ytDlpSpawnAttempt();
-        return this.run(createYouTubeWorkerArguments(context), {
+        return this.run(args, {
         timeoutMs: context.request.timeoutMs, signal: context.signal, telemetry: context.telemetry,
         });
       };
@@ -96,6 +99,7 @@ export class YouTubeSourceAdapter implements SourceAdapter {
         if (error.diagnostic.closedStageTelemetry) {
           context.telemetry?.processEvidence(error.diagnostic.closedStageTelemetry);
         }
+        context.telemetry?.processTerminated();
         const failure = classifyYouTubeProcessFailure(error.reason);
         throw new AcquisitionWorkerFailure(failure.code, failure.retryable);
       }
