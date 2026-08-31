@@ -1,0 +1,5 @@
+import type { ReferenceWorkflowFetchHookDescriptor, ReferenceWorkflowFetchHookRegistry, ReferenceWorkflowHookClientMode } from "./referenceWorkflowHookTypes";
+const modes: readonly ReferenceWorkflowHookClientMode[] = Object.freeze(["fixture", "fetch-reference"]);
+const descriptor: ReferenceWorkflowFetchHookDescriptor = Object.freeze({ id: "reference-workflow-controller-hook-fetch-v1", descriptorVersion: "2.0", contractVersion: "1.0", resultVersion: "1.0", clientModes: modes, fixtureClientSupported: true, fetchClientSupported: true, abortSupportClass: "bootstrap-caller-abort-workflow-late-response-suppression", timeoutOwner: "clients", productionReady: false, availability: "available" });
+const copy = (): ReferenceWorkflowFetchHookDescriptor => ({ ...descriptor, clientModes: [...descriptor.clientModes] });
+export function createReferenceWorkflowFetchHookRegistry(): ReferenceWorkflowFetchHookRegistry { return Object.freeze({ list: () => Object.freeze([copy()]), get: id => id === descriptor.id ? copy() : undefined }); }

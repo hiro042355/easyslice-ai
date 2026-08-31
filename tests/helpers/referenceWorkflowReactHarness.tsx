@@ -1,0 +1,20 @@
+import React, { StrictMode, useEffect } from "react";
+import { act } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { createRequire } from "node:module";
+import { useReferenceWorkflowController } from "@/hooks/useReferenceWorkflowController";
+import type { ReferenceWorkflowHookInput, ReferenceWorkflowHookResult } from "@/hooks/referenceWorkflowHookTypes";
+
+const requireModule = createRequire(import.meta.url);
+const { JSDOM } = requireModule("jsdom") as { JSDOM: new (html?: string, options?: Record<string, unknown>) => { window: Window } };
+
+export type Observer<T> = { latest?: ReferenceWorkflowHookResult<T>; renders: number; failures: number };
+function recordObservation<T>(observer: Observer<T>, result: ReferenceWorkflowHookResult<T>) { try { observer.latest = result; observer.renders++; } catch { observer.failures++; } }
+export function Harness<T, R>({ input, observer }: { input: ReferenceWorkflowHookInput<T, R>; observer: Observer<T> }) { const result = useReferenceWorkflowController(input); useEffect(() => { recordObservation(observer, result); }, [observer, result]); return null; }
+export function element<T, R>(input: ReferenceWorkflowHookInput<T, R>, observer: Observer<T>) { return <StrictMode><Harness input={input} observer={observer} /></StrictMode>; }
+export function installDom(markup = "<div id=\"root\"></div>") { const dom = new JSDOM(`<!doctype html><html><body>${markup}</body></html>`, { url: "http://localhost" }); const g = globalThis as Record<string, unknown>; const keys = ["window", "document", "navigator", "HTMLElement", "Event", "CustomEvent", "Node"] as const; const old = new Map<string, PropertyDescriptor | undefined>(); for (const key of keys) { old.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: dom.window[key as keyof Window] }); } old.set("IS_REACT_ACT_ENVIRONMENT", Object.getOwnPropertyDescriptor(globalThis, "IS_REACT_ACT_ENVIRONMENT")); Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, writable: true, value: true }); return { dom, container: dom.window.document.getElementById("root")!, restore() { for (const key of [...keys, "IS_REACT_ACT_ENVIRONMENT"]) { const descriptor = old.get(key); if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete g[key]; } dom.window.close(); } }; }
+export async function mount<T, R>(input: ReferenceWorkflowHookInput<T, R>, observer: Observer<T>) { const host = installDom(); let root!: Root; await act(async () => { root = createRoot(host.container); root.render(element(input, observer)); await Promise.resolve(); }); return { ...host, root, async unmount() { await act(async () => { root.unmount(); await Promise.resolve(); }); host.restore(); } }; }
+export function serverMarkup<T, R>(input: ReferenceWorkflowHookInput<T, R>, observer: Observer<T>) { return renderToString(element(input, observer)); }
+export async function hydrate<T, R>(markup: string, input: ReferenceWorkflowHookInput<T, R>, observer: Observer<T>) { const host = installDom(`<div id="root">${markup}</div>`); let root!: Root; await act(async () => { root = hydrateRoot(host.container, element(input, observer)); await Promise.resolve(); }); return { ...host, root, async unmount() { await act(async () => { root.unmount(); await Promise.resolve(); }); host.restore(); } }; }
+export function captureConsoleWarnings() { const originalError = console.error, originalWarn = console.warn; const classes = new Set<string>(); const classify = (args: unknown[]) => { const text = typeof args[0] === "string" ? args[0] : "unknown"; classes.add(/hydration/i.test(text) ? "hydration" : /act/i.test(text) ? "act" : /unmount/i.test(text) ? "unmount" : /hook/i.test(text) ? "hook" : "other"); }; console.error = (...args: unknown[]) => classify(args); console.warn = (...args: unknown[]) => classify(args); return { classes, restore() { console.error = originalError; console.warn = originalWarn; } }; }

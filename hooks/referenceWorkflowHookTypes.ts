@@ -1,0 +1,24 @@
+import type { WorkflowUiFixtureScenario, WorkflowUiOperation, WorkflowUiPollPolicy, WorkflowUiPollScheduler, WorkflowUiProjector } from "@/lib/workflowUi/types";
+import type { ReferenceWorkflowViewCore } from "@/lib/workflowUi/referenceWorkflowViewProjector";
+import type { ReferenceWorkflowControllerHolder } from "./referenceWorkflowControllerHolder";
+
+export type ReferenceWorkflowHookContractVersion = "1.0";
+export type ReferenceWorkflowHookResultVersion = "1.0";
+export type ReferenceWorkflowHookTimerHandle = unknown;
+export type ReferenceWorkflowHookTimerAdapter = { schedule(delayMs: number, callback: () => void): ReferenceWorkflowHookTimerHandle; cancel(handle: ReferenceWorkflowHookTimerHandle): void };
+export type ReferenceWorkflowHookEnvironmentSnapshot = { online: boolean; visibility: "visible" | "hidden" };
+export type ReferenceWorkflowHookEnvironment = { getSnapshot(): ReferenceWorkflowHookEnvironmentSnapshot; subscribe(listener: () => void): () => void };
+export type ReferenceWorkflowHookAccessibility = { ariaBusy: boolean; liveMessageKey?: `workflow.${string}`; statusRole: "status" | "alert"; focusTargetHint?: "result-heading" | "error-heading" | "cancelled-heading" };
+export type ReferenceWorkflowHookCapabilities = Pick<ReferenceWorkflowViewCore, "canStart" | "canPoll" | "canQueryResult" | "canCancel" | "canReset" | "isBusy" | "isTerminal" | "isPollingPaused">;
+export type ReferenceWorkflowHookViewState = ReferenceWorkflowViewCore & ReferenceWorkflowHookEnvironmentSnapshot & { viewVersion: "1.0"; accessibility: ReferenceWorkflowHookAccessibility };
+export type ReferenceWorkflowHookCommandStatus = "accepted" | "completed" | "pending" | "conflict" | "not-ready" | "invalid" | "aborted" | "disposed" | "failed" | "preempted" | "terminal-replayed";
+export type ReferenceWorkflowHookCommandResult = { resultVersion: "1.0"; status: ReferenceWorkflowHookCommandStatus; messageKey: `workflow.${string}`; state: ReferenceWorkflowHookViewState };
+export type ReferenceWorkflowHookDependencies = { controllerHolder: ReferenceWorkflowControllerHolder; timer: ReferenceWorkflowHookTimerAdapter; environment: ReferenceWorkflowHookEnvironment; pollScheduler: WorkflowUiPollScheduler; pollPolicy: WorkflowUiPollPolicy };
+export type ReferenceWorkflowHookInput<TInput = unknown, TRequest = unknown> = { operation: WorkflowUiOperation; projector: WorkflowUiProjector<TInput, TRequest>; dependencies: ReferenceWorkflowHookDependencies; autoRecover?: boolean };
+export type ReferenceWorkflowHookResult<TInput = unknown> = { state: ReferenceWorkflowHookViewState; assets: ReferenceWorkflowHookViewState["assets"]; messageKey: ReferenceWorkflowHookViewState["messageKey"]; progress: ReferenceWorkflowHookViewState["progress"]; retryAdvice: ReferenceWorkflowHookViewState["retryAdvice"]; accessibility: ReferenceWorkflowHookAccessibility; canStart: boolean; canPoll: boolean; canQueryResult: boolean; canCancel: boolean; canReset: boolean; isBusy: boolean; isTerminal: boolean; isOffline: boolean; isHidden: boolean; isPollingPaused: boolean; start(input: TInput): Promise<ReferenceWorkflowHookCommandResult>; pollNow(): Promise<ReferenceWorkflowHookCommandResult>; queryResult(): Promise<ReferenceWorkflowHookCommandResult>; cancel(): Promise<ReferenceWorkflowHookCommandResult>; recover(): Promise<ReferenceWorkflowHookCommandResult>; reset(): ReferenceWorkflowHookCommandResult };
+export type ReferenceWorkflowHookFixtureConfig = { operation: WorkflowUiOperation; scenario: WorkflowUiFixtureScenario; clockMs?: readonly number[]; environment?: ReferenceWorkflowHookEnvironmentSnapshot; autoRecover?: boolean };
+export type ReferenceWorkflowHookDescriptor = { id: "reference-workflow-controller-hook-v1"; contractVersion: "1.0"; resultVersion: "1.0"; supportedOperations: readonly WorkflowUiOperation[]; fixtureSupported: true; fetchClientSupported: false; sessionRecoverySupported: true; availability: "available" };
+export type ReferenceWorkflowHookRegistry = { list(): readonly ReferenceWorkflowHookDescriptor[]; get(id: string): ReferenceWorkflowHookDescriptor | undefined };
+export type ReferenceWorkflowHookClientMode = "fixture" | "fetch-reference";
+export type ReferenceWorkflowFetchHookDescriptor = { id: "reference-workflow-controller-hook-fetch-v1"; descriptorVersion: "2.0"; contractVersion: "1.0"; resultVersion: "1.0"; clientModes: readonly ReferenceWorkflowHookClientMode[]; fixtureClientSupported: true; fetchClientSupported: true; abortSupportClass: "bootstrap-caller-abort-workflow-late-response-suppression"; timeoutOwner: "clients"; productionReady: false; availability: "available" };
+export type ReferenceWorkflowFetchHookRegistry = { list(): readonly ReferenceWorkflowFetchHookDescriptor[]; get(id: string): ReferenceWorkflowFetchHookDescriptor | undefined };
