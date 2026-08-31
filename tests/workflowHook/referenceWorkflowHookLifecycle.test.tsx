@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { act } from "react";
+import React, { Suspense, useEffect } from "react";
 import type { ReferenceWorkflowHookInput } from "@/hooks/referenceWorkflowHookTypes";
-import { element, mount, hydrate, serverMarkup, type Observer } from "../helpers/referenceWorkflowReactHarness";
+import { captureConsoleWarnings, element, hydrate, installDom, mount, serverMarkup, withConsoleWarnings, withHydration, withMount, withReactElement, type Observer } from "../helpers/referenceWorkflowReactHarness";
 import { createFakeTimer } from "../helpers/referenceWorkflowFakeTimer";
 import { createFakeEnvironment } from "../helpers/referenceWorkflowFakeEnvironment";
 import { migrateWorkflowUiSessionV1ToV2 } from "@/lib/workflowUi/referenceWorkflowSessionStore";
@@ -19,6 +20,7 @@ import { createReferenceWorkflowHookView, mapReferenceWorkflowCommandResult } fr
 import { createInitialWorkflowUiState } from "@/lib/workflowUi/workflowUiReducer";
 import type { WorkflowUiApiClientResult, WorkflowUiControllerInput, WorkflowApiResultDTO } from "@/lib/workflowUi/types";
 import { compareWorkflowUiTerminalResults } from "@/lib/workflowUi/workflowUiUtils";
+import { useReferenceWorkflowController } from "@/hooks/useReferenceWorkflowController";
 
 type Input = { ready: boolean };
 const request: WorkflowUiControllerInput = { operation: "generate-mv", request: { requestVersion: "1.0", operation: "generate-mv", workflowInput: {} as never } };
@@ -74,6 +76,115 @@ test("one-shot polling cancels stale handles and never overlaps", async () => {
   await act(async () => { s.timer.fireNext(); await Promise.resolve(); }); assert.ok(s.timer.registrations() >= before); assert.ok(s.timer.active() <= 1);
   await act(async () => { observer.latest!.reset(); await Promise.resolve(); }); assert.equal(observer.latest?.state.displayStatus, "idle"); assert.equal(s.timer.active(), 0);
   await host.unmount(); assert.equal(s.timer.active(), 0);
+});
+
+test("Harness setup rollback, restoration idempotence, and ownership order preserve globals", () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  assert.throws(() => installDom("<div></div>"), /reference-workflow-root-missing/);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, "window"), originalWindow);
+
+  const outer = installDom();
+  const outerWindow = globalThis.window;
+  const inner = installDom();
+  assert.notEqual(globalThis.window, outerWindow);
+  assert.throws(() => outer.restore(), /reference-workflow-dom-ownership-order/);
+  assert.notEqual(globalThis.window, outerWindow);
+  inner.restore();
+  assert.equal(globalThis.window, outerWindow);
+  outer.restore();
+  outer.restore();
+  assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, "window"), originalWindow);
+});
+
+test("callback failure still releases subscriptions, disposes once, and restores globals", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const s = setup();
+  const observer: Observer<Input> = { renders: 0, failures: 0 };
+  await assert.rejects(withMount(s.hookInput, observer, async () => {
+    assert.equal(s.environment.listeners(), 1);
+    assert.equal(s.controllerSubscriptions(), 1);
+    throw new Error("intentional-callback-failure");
+  }), /intentional-callback-failure/);
+  assert.equal(s.environment.listeners(), 0);
+  assert.equal(s.controllerSubscriptions(), 0);
+  assert.equal(s.disposals(), 1);
+  assert.equal(s.timer.active(), 0);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, "window"), originalWindow);
+});
+
+test("root cleanup failure still restores globals and reports the cleanup error", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  function CleanupFailure() {
+    useEffect(() => () => { throw new Error("intentional-unmount-failure"); }, []);
+    return null;
+  }
+  await assert.rejects(withReactElement(<CleanupFailure />, () => undefined), /intentional-unmount-failure/);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, "window"), originalWindow);
+});
+
+test("hydration callback rejection cleans the root, subscriptions, and globals", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const s = setup();
+  const serverObserver: Observer<Input> = { renders: 0, failures: 0 };
+  const clientObserver: Observer<Input> = { renders: 0, failures: 0 };
+  const markup = serverMarkup(s.hookInput, serverObserver);
+  await assert.rejects(withHydration(markup, s.hookInput, clientObserver, () => {
+    assert.equal(s.environment.listeners(), 1);
+    throw new Error("intentional-hydration-callback-failure");
+  }), /intentional-hydration-callback-failure/);
+  assert.equal(s.environment.listeners(), 0);
+  assert.equal(s.controllerSubscriptions(), 0);
+  assert.equal(s.disposals(), 1);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, "window"), originalWindow);
+});
+
+test("console capture preserves evidence, restores after exceptions, and enforces LIFO ownership", async () => {
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  const outer = captureConsoleWarnings();
+  const inner = captureConsoleWarnings();
+  console.warn("unexpected detail", { evidence: 7 });
+  assert.equal(inner.evidence.length, 1);
+  assert.equal(inner.evidence[0].classification, "other");
+  assert.deepEqual(inner.evidence[0].arguments, ["unexpected detail", { evidence: 7 }]);
+  assert.throws(() => outer.restore(), /reference-workflow-console-ownership-order/);
+  inner.restore();
+  assert.equal(console.warn === originalWarn, false);
+  outer.restore();
+  outer.restore();
+  assert.equal(console.error, originalError);
+  assert.equal(console.warn, originalWarn);
+  await assert.rejects(withConsoleWarnings(capture => {
+    console.error("unexpected async detail", { evidence: 9 });
+    assert.equal(capture.evidence.length, 1);
+    throw new Error("intentional-console-scope-failure");
+  }), /intentional-console-scope-failure/);
+  assert.equal(console.error, originalError);
+  assert.equal(console.warn, originalWarn);
+});
+
+test("public Suspense abandons an attempted Hook render before commit without lifecycle residue", async () => {
+  const s = setup();
+  const never = new Promise<never>(() => undefined);
+  function SuspendedHook(): React.ReactNode {
+    useReferenceWorkflowController(s.hookInput);
+    throw never;
+  }
+  await withReactElement(<Suspense fallback={<span data-suspended="yes">fallback</span>}><SuspendedHook /></Suspense>, async host => {
+    assert.equal(host.container.querySelector("[data-suspended=yes]")?.textContent, "fallback");
+    assert.equal(s.factories(), 0);
+    assert.equal(s.controllerSubscriptions(), 0);
+    assert.equal(s.environment.listeners(), 0);
+    assert.equal(s.timer.active(), 0);
+    assert.equal(s.disposals(), 0);
+    await act(async () => { host.root.render(<span data-replacement="yes">replacement</span>); await Promise.resolve(); });
+    assert.equal(host.container.querySelector("[data-replacement=yes]")?.textContent, "replacement");
+  });
+  assert.equal(s.factories(), 0);
+  assert.equal(s.controllerSubscriptions(), 0);
+  assert.equal(s.environment.listeners(), 0);
+  assert.equal(s.timer.active(), 0);
+  assert.equal(s.disposals(), 0);
 });
 
 test("static production Hook boundaries remain isolated", () => {
