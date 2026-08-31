@@ -889,6 +889,18 @@ Normative terms: MUST、MUST NOT、SHOULD、MAYは本Contractの拘束度を示�
 - Owner is Web Platform/Identity/Security.
 - Acceptance requires recovery matrix tests across reload and identity changes.
 
+### 81.1 Approved Session V2 Browser Adapter Policy
+
+- The approved persistence mechanism is `sessionStorage`: it survives same-tab reload, remains tab-scoped, and is not a durable workflow database or cross-browser history mechanism.
+- Persistent recovery requires a caller-supplied authenticated-session-scoped opaque identity partition. The partition is not a credential, token, or raw user/account/tenant ID; it selects a namespaced storage key and is not serialized into the Session V2 body.
+- Anonymous or unauthenticated composition does not enable persistent browser recovery. Logout, login, account switch, tenant switch, and identity-partition change invalidate the old adapter and rotate the opaque partition; cleanup is best effort and never grants or revokes server authorization.
+- The adapter owns only tab-local deterministic read, write, delete, exact schema validation, partition namespacing, and expiry validation. Cross-tab authentication lifecycle notification belongs to product composition, while authorization, idempotency, revision/conflict, workflow truth, and terminal truth remain server-owned. Browser locks, leases, `BroadcastChannel`, and storage-event coordination are not part of this adapter.
+- Storage unavailability or read/write/delete failure fails closed for durable recovery but does not fail the active in-memory workflow. A write, read, or delete operation failure disables persistence for that adapter instance. Malformed, unsupported, migration-invalid, extra-key, or restricted-field records receive at most one best-effort cleanup attempt and are never partially accepted.
+- Browser expiry uses the existing Session V2 `expiresAt`; `baselineTime >= expiresAt` is expired. The adapter does not invent or extend TTL. Every unexpired record remains an untrusted hint and recovery must use the existing authenticated server `queryResult` path; server authorization and reference truth win.
+- The exact persisted semantic fields are `sessionVersion`, `operation`, `reference.referenceVersion`, `reference.kind`, `reference.reference`, `lastServerStatus`, `pollAttempts`, `createdAt`, and `expiresAt`.
+- Access/refresh/session tokens, credentials, cookies, Authorization or CSRF material, idempotency keys, raw identity IDs, workflow inputs or user content, provider/upload payloads or credentials, asset lists or locators, signed URLs, billing/private-audit payloads, and raw errors/stacks are forbidden browser fields.
+- Implementation evidence is `lib/workflowUi/referenceWorkflowBrowserSessionStore.ts` with deterministic coverage in `tests/workflowUi/referenceWorkflowBrowserSessionStore.test.ts`. This closes only the browser adapter contract; it does not establish Production UI, production API/auth, Asset Delivery, provider, or cloud readiness.
+
 ## 82. Asset Preview／Download
 
 - Preview and download are separate authenticated delivery intents.
