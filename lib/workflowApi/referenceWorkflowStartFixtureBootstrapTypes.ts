@@ -1,0 +1,9 @@
+import type { StartWorkflowRequest } from "@/lib/workflowApi/types";
+
+export type ReferenceWorkflowStartFixtureId = "canonical-vocal-success-v1" | "canonical-music-success-v1" | "canonical-mv-success-v1";
+export type ReferenceWorkflowStartFixtureOperation = "generate-vocal" | "generate-music" | "generate-mv";
+export type ReferenceWorkflowStartFixtureBootstrapRequest = { contractVersion: "1.0"; fixtureId: ReferenceWorkflowStartFixtureId; operation: ReferenceWorkflowStartFixtureOperation };
+export type ReferenceWorkflowStartFixtureBootstrapErrorCode = "fixture-bootstrap-invalid-request" | "fixture-bootstrap-unavailable" | "fixture-bootstrap-unauthenticated" | "fixture-bootstrap-forbidden" | "fixture-bootstrap-unsupported" | "fixture-bootstrap-projection-failed" | "fixture-bootstrap-validation-failed" | "fixture-bootstrap-response-too-large" | "fixture-bootstrap-internal-error";
+export type ReferenceWorkflowStartFixtureBootstrapResult = { status: "ready"; contractVersion: "1.0"; fixtureId: ReferenceWorkflowStartFixtureId; operation: ReferenceWorkflowStartFixtureOperation; request: Omit<StartWorkflowRequest, "idempotencyKey"> } | { status: "failed"; error: { code: ReferenceWorkflowStartFixtureBootstrapErrorCode; message: "Reference start fixture is unavailable." } };
+export type ReferenceWorkflowStartFixtureBootstrapDescriptor = { descriptorVersion: "1.0"; id: "reference-workflow-start-fixture-bootstrap-v1"; contractVersion: "1.0"; supportedFixtureIds: readonly ReferenceWorkflowStartFixtureId[]; supportedOperations: readonly ReferenceWorkflowStartFixtureOperation[]; authenticationRequired: true; csrfRequired: true; productionReady: false; availability: "available" };
+export type ReferenceWorkflowStartFixtureBootstrapRegistry = { list(): readonly ReferenceWorkflowStartFixtureBootstrapDescriptor[]; get(id: string): ReferenceWorkflowStartFixtureBootstrapDescriptor | undefined };

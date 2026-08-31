@@ -1,0 +1,1 @@
+import type {WorkflowUiIdempotencyKeyFactory} from "./types";export function createReferenceWorkflowIdempotencyKeyFactory(instance="1"):WorkflowUiIdempotencyKeyFactory{let counter=0;return Object.freeze({next(namespace){counter++;return`reference-ui-${namespace}-key-${instance}-${counter}`}})}
