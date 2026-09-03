@@ -133,11 +133,26 @@ export type PostgreSQLTransactionDiscardResult =
       safeReason: "postgresql-discard-failed";
     }>;
 
-export type PostgreSQLConnectionConfig = Readonly<{
-  host: string; port: number; database: string; user: string; password: string;
+export type PostgreSQLPoolCommonConfig = Readonly<{
+  database: string; user: string;
   maxConnections: number; connectionTimeoutMs: number; idleTimeoutMs: number;
   queryTimeoutMs?: number;
-  applicationName: string; tls: Readonly<{ mode: "disabled" | "verify-full" }>;
+  applicationName: string;
+}>;
+
+export type PostgreSQLConnectionConfig = PostgreSQLPoolCommonConfig & Readonly<{
+  host: string; port: number; database: string; user: string; password: string;
+  tls: Readonly<{ mode: "disabled" | "verify-full" }>;
+  connectorDriverOptions?: never;
+}>;
+
+export type PostgreSQLConnectorDriverOptions = Readonly<{
+  stream: NonNullable<import("pg").PoolConfig["stream"]>;
+}>;
+
+export type PostgreSQLConnectorConnectionConfig = PostgreSQLPoolCommonConfig & Readonly<{
+  connectorDriverOptions: PostgreSQLConnectorDriverOptions;
+  host?: never; port?: never; password?: never; tls?: never;
 }>;
 
 export type PostgreSQLDriverDescriptor = Readonly<{

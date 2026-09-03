@@ -1,42 +1,56 @@
-import { AuthTypes, Connector, IpAddressTypes } from "@google-cloud/cloud-sql-connector";
 import type { IdentityPoolClient } from "google-auth-library";
 import { Pool } from "pg";
+import {
+  createProductionCloudSqlConnectorAuthority,
+  type ProductionCloudSqlConfiguration,
+  type ProductionCloudSqlConnectorAuthority,
+} from "../productionDatabaseRuntime/cloudSqlConnectorAuthority";
 
-export type ProductionMediaCloudSqlConfiguration = Readonly<{
-  instanceConnectionName: string;
-  database: string;
-  iamUser: string;
+export type ProductionMediaCloudSqlConfiguration = ProductionCloudSqlConfiguration;
+
+type Dependencies = Readonly<{
+  createConnectorAuthority(
+    authClient: IdentityPoolClient,
+    configuration: ProductionCloudSqlConfiguration,
+  ): ProductionCloudSqlConnectorAuthority;
+  createPool(configuration: ConstructorParameters<typeof Pool>[0]): Pool;
 }>;
+
+const defaultDependencies: Dependencies = Object.freeze({
+  createConnectorAuthority: createProductionCloudSqlConnectorAuthority,
+  createPool: (configuration) => new Pool(configuration),
+});
 
 export const withProductionMediaCloudSqlPool = async <T>(
   authClient: IdentityPoolClient,
   configuration: ProductionMediaCloudSqlConfiguration,
   operation: (pool: Pool) => Promise<T>,
+  dependencies: Dependencies = defaultDependencies,
 ): Promise<T> => {
-  if (configuration.instanceConnectionName !== "nexcut-prod-jp-2026:asia-northeast1:nexcut-prod-postgresql") throw new Error("Invalid Production Cloud SQL authority");
-  if (configuration.database !== "nexcut") throw new Error("Invalid Production database authority");
-  if (configuration.iamUser !== "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam") throw new Error("Invalid Production IAM database user authority");
-  type ConnectorAuth = NonNullable<ConstructorParameters<typeof Connector>[0]>["auth"];
-  const connector = new Connector({ auth: authClient as unknown as ConnectorAuth });
+  const authority = dependencies.createConnectorAuthority(authClient, configuration);
   let pool: Pool | undefined;
+  let outcome: Readonly<{ status: "success"; value: T }> | Readonly<{ status: "failure"; error: unknown }>;
   try {
-    const options = await connector.getOptions({
-      instanceConnectionName: configuration.instanceConnectionName,
-      ipType: IpAddressTypes.PUBLIC,
-      authType: AuthTypes.IAM,
-    });
-    pool = new Pool({
+    const options = await authority.getDriverOptions();
+    pool = dependencies.createPool({
       ...options,
-      user: configuration.iamUser,
-      database: configuration.database,
+      user: authority.iamUser,
+      database: authority.database,
       max: 1,
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 1_000,
       query_timeout: 10_000,
     });
-    return await operation(pool);
-  } finally {
-    if (pool) await pool.end();
-    connector.close();
+    outcome = Object.freeze({ status: "success", value: await operation(pool) });
+  } catch (error) {
+    outcome = Object.freeze({ status: "failure", error });
   }
+  let cleanupFailed = false;
+  if (pool) {
+    try { await pool.end(); } catch { cleanupFailed = true; }
+  }
+  try { authority.close(); } catch { cleanupFailed = true; }
+  if (outcome.status === "failure") throw outcome.error;
+  if (cleanupFailed) throw new Error("Production media Cloud SQL cleanup failed");
+  return outcome.value;
 };
