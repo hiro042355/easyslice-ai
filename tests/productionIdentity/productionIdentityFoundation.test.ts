@@ -54,8 +54,38 @@ test("identity copies are deterministic and isolated from the credential", () =>
   const identity = projectVerifiedIdentity(decoded(), "opaque-token");
   assert.equal(identity.userId, "firebase-user-1");
   assert.equal(identity.sessionId.length, 64);
+  assert.equal(identity.issuedAt, 10_000);
+  assert.equal(identity.expiresAt, 20_000);
   assert.equal(JSON.stringify(identity).includes("opaque-token"), false);
   assert.equal(Object.isFrozen(identity), true);
+});
+
+test("identity timestamps deterministically normalize Firebase epoch seconds once", () => {
+  const identity = projectVerifiedIdentity(decoded({ iat: 1_725_000_001, exp: 1_725_003_601 }), "opaque-token");
+  assert.equal(identity.issuedAt, 1_725_000_001_000);
+  assert.equal(identity.expiresAt, 1_725_003_601_000);
+  assert.equal(identity.sessionId, projectVerifiedIdentity(decoded({ iat: 10, exp: 20 }), "opaque-token").sessionId);
+});
+
+for (const timestamps of [
+  { iat: Number.NaN, exp: 20 },
+  { iat: 10.5, exp: 20 },
+  { iat: 10, exp: Number.MAX_SAFE_INTEGER },
+  { iat: 20, exp: 20 },
+  { iat: 21, exp: 20 },
+] as const) {
+  test(`identity rejects invalid timestamp material ${String(timestamps.iat)}:${String(timestamps.exp)}`, () => {
+    assert.throws(() => projectVerifiedIdentity(decoded(timestamps), "opaque-token"), /invalid-identity-timestamp/u);
+  });
+}
+
+test("route guard fails closed when verified Firebase timestamps are invalid", async () => {
+  const guard = createAuthenticatedRouteGuard(verifier(decoded({ iat: 20, exp: 20 })));
+  const result = await guard(new Request("https://app.example/api/cut", {
+    headers: { cookie: `${SESSION_COOKIE_NAME}=opaque` },
+  }));
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.response.status, 401);
 });
 
 test("ownership requires the verified canonical user", () => {

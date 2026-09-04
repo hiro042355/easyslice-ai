@@ -52,11 +52,23 @@ export class FirebaseAuthenticationAdapter implements AuthenticationExecutionCap
   }
 }
 
-export const projectVerifiedIdentity = (decoded: DecodedIdToken, credential: string): VerifiedIdentity => Object.freeze({
-  identityVersion: "1.0",
-  userId: decoded.uid as UserId,
-  providerSubject: decoded.sub,
-  sessionId: createHash("sha256").update(credential).digest("hex") as SessionId,
-  issuedAt: decoded.iat,
-  expiresAt: decoded.exp,
-});
+const firebaseEpochSecondsToMilliseconds = (value: number): number => {
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error("invalid-identity-timestamp");
+  const milliseconds = value * 1_000;
+  if (!Number.isSafeInteger(milliseconds)) throw new Error("invalid-identity-timestamp");
+  return milliseconds;
+};
+
+export const projectVerifiedIdentity = (decoded: DecodedIdToken, credential: string): VerifiedIdentity => {
+  const issuedAt = firebaseEpochSecondsToMilliseconds(decoded.iat);
+  const expiresAt = firebaseEpochSecondsToMilliseconds(decoded.exp);
+  if (expiresAt <= issuedAt) throw new Error("invalid-identity-timestamp");
+  return Object.freeze({
+    identityVersion: "1.0",
+    userId: decoded.uid as UserId,
+    providerSubject: decoded.sub,
+    sessionId: createHash("sha256").update(credential).digest("hex") as SessionId,
+    issuedAt,
+    expiresAt,
+  });
+};
