@@ -1,3 +1,5 @@
+import { classifyUrl } from "./urlAcquisition/classifyUrl";
+
 export type UrlSource = "youtube" | "tiktok" | "instagram" | "x" | "unknown";
 
 export function detectUrlSource(url: string): UrlSource {
@@ -5,6 +7,10 @@ export function detectUrlSource(url: string): UrlSource {
 
   if (!value) {
     return "unknown";
+  }
+
+  if (classifyUrl(value).kind === "SUPPORTED_YOUTUBE") {
+    return "youtube";
   }
 
   try {
@@ -15,10 +21,6 @@ export function detectUrlSource(url: string): UrlSource {
     const hostname = new URL(normalizedUrl).hostname
       .toLowerCase()
       .replace(/^www\./, "");
-
-    if (hostname === "youtu.be" || hostname === "youtube.com" || hostname.endsWith(".youtube.com")) {
-      return "youtube";
-    }
 
     if (hostname === "tiktok.com" || hostname.endsWith(".tiktok.com")) {
       return "tiktok";

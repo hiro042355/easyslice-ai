@@ -1,10 +1,9 @@
 import { execFile } from "node:child_process";
 import { stat } from "node:fs/promises";
 import { promisify } from "node:util";
+import { classifyUrl } from "../urlAcquisition/classifyUrl";
 
 const execFileAsync = promisify(execFile);
-const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
-const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]);
 
 export const MAX_INGESTED_MEDIA_BYTES = 2 * 1024 * 1024 * 1024;
 export const YOUTUBE_ACQUISITION_TIMEOUT_MS = 240_000;
@@ -19,29 +18,11 @@ export class YouTubeIngestionFailure extends Error {
 export type ValidatedYouTubeUrl = Readonly<{ videoId: string; canonicalUrl: string }>;
 
 export const validateYouTubeVideoUrl = (input: unknown): ValidatedYouTubeUrl => {
-  if (typeof input !== "string" || input.length > 2048) throw new YouTubeIngestionFailure("invalid-youtube-url");
-  let url: URL;
-  try {
-    url = new URL(input);
-  } catch {
+  const classification = classifyUrl(input);
+  if (classification.kind !== "SUPPORTED_YOUTUBE") {
     throw new YouTubeIngestionFailure("invalid-youtube-url");
   }
-  if (url.protocol !== "https:" || url.username || url.password || url.port) {
-    throw new YouTubeIngestionFailure("invalid-youtube-url");
-  }
-  const host = url.hostname.toLowerCase();
-  let videoId = "";
-  if (host === "youtu.be") {
-    if (url.pathname.split("/").filter(Boolean).length !== 1) throw new YouTubeIngestionFailure("invalid-youtube-url");
-    videoId = url.pathname.slice(1);
-  } else if (YOUTUBE_HOSTS.has(host)) {
-    if (url.pathname === "/watch") videoId = url.searchParams.get("v") ?? "";
-    else if (url.pathname.startsWith("/shorts/") && url.pathname.split("/").filter(Boolean).length === 2) {
-      videoId = url.pathname.split("/")[2] ?? "";
-    } else throw new YouTubeIngestionFailure("invalid-youtube-url");
-  } else throw new YouTubeIngestionFailure("invalid-youtube-url");
-  if (!VIDEO_ID.test(videoId) || url.searchParams.has("list")) throw new YouTubeIngestionFailure("invalid-youtube-url");
-  return Object.freeze({ videoId, canonicalUrl: `https://www.youtube.com/watch?v=${videoId}` });
+  return Object.freeze({ videoId: classification.videoId, canonicalUrl: classification.normalizedUrl });
 };
 
 export const createYouTubeAcquisitionArguments = (
