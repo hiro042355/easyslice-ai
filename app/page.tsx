@@ -194,7 +194,6 @@ const updateClip = (
 };
   const [video, setVideo] = useState<File | null>(null);
   const [durableMedia, setDurableMedia] = useState<DurableMediaReference | null>(null);
-  const [youtubeUrl, setYoutubeUrl] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
  const setStartFromCurrent = () => {
   if (!videoRef.current) return;
@@ -225,9 +224,9 @@ useEffect(() => {
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState("");
   const [cutVideoUrl, setCutVideoUrl] = useState("");
-const [videoTitle, setVideoTitle] = useState("");
+const [videoTitle] = useState("");
 const [videoDuration, setVideoDuration] = useState(0);
-const [thumbnail, setThumbnail] = useState("");
+const [thumbnail] = useState("");
 const [videoSrc, setVideoSrc] = useState("");
 const contextualizeCandidates = (
   candidates: readonly UnifiedClipCandidateV1[],
@@ -287,125 +286,6 @@ setCutVideoUrl(url);
 setProgress(100);
 clearInterval(interval);
 setLoading(false);
-};
- const handleFetchYoutube = async () => {
-  if (!youtubeUrl) {
-    alert("YouTube URL を入力してね");
-    return;
-  }
-
-  setLoading(true);
-  setProgress(0);
-
-  const interval = setInterval(() => {
-    setProgress((prev) => {
-      if (prev >= 90) return prev;
-      return prev + 5;
-    });
-  }, 500);
-
-  try {
-    const infoRes = await fetch("/api/youtube-info", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: youtubeUrl,
-      }),
-    });
-
-    const info = await infoRes.json();
-
-    console.log(info);
-
-    setVideoTitle(info.title || "");
-    setVideoDuration(info.duration || 0);
-    setThumbnail(info.thumbnail || "");
-    setYoutubeSourceMetadata(
-      typeof info.sourceId === "string" && info.sourceId
-        ? { sourceId: info.sourceId, ...(typeof info.description === "string" && info.description ? { description: info.description } : {}), ...(Array.isArray(info.chapters) ? { chapters: info.chapters } : {}) }
-        : null
-    );
-
-    const downloadRes = await fetch("/api/youtube-download", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    url: youtubeUrl,
-  }),
-});
-
-const result = await downloadRes.json();
-
-console.log(result);
-
-if (!downloadRes.ok || !result.success) {
-  throw new Error(result.error || "動画ダウンロードに失敗しました");
-}
-
-setVideo(null);
-setDurableMedia(null);
-setVideoSrc(`/api/video?t=${Date.now()}`);
-setCurrentYoutubeUrl(youtubeUrl);
-setClips([
-  {
-    start: "",
-    end: "",
-    reason: "",
-    title: "",
-    score: 0,
-  },
-]);
-
-setSuccessMessage("");
-setZipFileName("");
-setGeneratedClipCount(0);
-setPreviewEnd(null);
-setActivePreviewIndex(null);
-setDownloadUrl("");
-setCutVideoUrl("");
-setSummary("");
-setFullText("");
-setSubtitles([]);
-setStart("0");
-setEnd("");
-setProgress(100);
-setErrorMessage("");
-        alert("ダウンロード完了");
-    } catch (err) {
-    console.error(err);
-
-    const message =
-      err instanceof Error
-        ? err.message
-        : "";
-
-    const isYoutubeBlocked =
-      message.includes("Sign in to confirm") ||
-      message.includes("not a bot") ||
-      message.includes("HTTP Error 403") ||
-      message.includes("HTTP Error 429") ||
-      message.includes("Too Many Requests");
-
-    if (isYoutubeBlocked) {
-      setErrorMessage(
-        "YouTubeから動画を取得できませんでした。\n\n" +
-          "YouTube側の制限により、取得がブロックされた可能性があります。\n\n" +
-          "動画ファイルをダウンロードしてから、動画アップロード機能を使ってください。"
-      );
-    } else {
-      setErrorMessage(
-        message ||
-          "YouTubeから動画を取得できませんでした。動画アップロード機能を使ってください。"
-      );
-    }
-  } finally {
-    clearInterval(interval);
-    setLoading(false);
-  }
 };
 const handleMultiCut = async () => {
   const durationLimit =
@@ -1581,39 +1461,7 @@ const downloadThumbnail = async (clipIndex: number) => {
 </div>
 {currentStep === 1 && (
   <div id="step-upload">
-    <div className={enableYoutube ? "grid gap-4 lg:grid-cols-2 lg:items-stretch" : "grid gap-4"}>
-      {enableYoutube && (
-        <div className="rounded-xl border border-white/10 bg-zinc-950/60 p-4">
-          <h2 className="mb-3 text-lg font-semibold text-cyan-300">
-            YouTubeから取得
-          </h2>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold">YouTube URL</label>
-            <input
-              type="text"
-              value={youtubeUrl}
-              onChange={(e) => setYoutubeUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=xxxx"
-              className="w-full p-2 rounded bg-white/20 border border-white/30"
-            />
-          </div>
-
-          <p className="mt-2 mb-4 text-xs text-yellow-300">
-            YouTube取得はローカル環境向けの実験機能です。公開版では動画アップロードを推奨します。
-          </p>
-
-          <button
-            type="button"
-            onClick={handleFetchYoutube}
-            disabled={loading}
-            className="w-full py-3 rounded-lg font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 transition-all duration-300 shadow-lg hover:shadow-red-500/40"
-          >
-            YouTubeから動画を取得
-          </button>
-        </div>
-      )}
-
+    <div className="grid gap-4">
       <div className="rounded-xl border border-cyan-500/20 bg-zinc-950/60 p-4">
         <h2 className="mb-3 text-lg font-semibold text-cyan-300">
           動画をアップロード

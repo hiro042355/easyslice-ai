@@ -141,7 +141,7 @@ test("workspace projects the durable response into the same durableMedia state",
   assert.match(workspace, /setVideoSrc\(`\/api\/media\/\$\{result\.jobId\}\/\$\{result\.mediaId\}`\)/);
   const handler = workspace.slice(workspace.indexOf("const handleFetchYoutube"), workspace.indexOf("const handleSubtitleFileUpload"));
   assert.doesNotMatch(handler, /\/api\/youtube-info|\/api\/youtube-download|\/api\/video/);
-  assert.match(rootPage, /\/api\/youtube-(?:info|download)/);
+  assert.doesNotMatch(rootPage, /\/api\/youtube-(?:info|download)/);
 });
 
 test("preview validates owner-scoped Job and Media before DB-derived GCS streaming", () => {

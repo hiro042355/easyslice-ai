@@ -115,9 +115,17 @@ test("context engine performs no network, LLM, embedding, clock, random, or data
   assert.doesNotMatch(source, /fetch\(|OpenAI|LLM|embedding|Date\.now|new Date|Math\.random|database|postgres/i);
 });
 
-test("existing YouTube info request preserves context metadata without adding a provider call", async () => {
-  const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../../app/api/youtube-info/route.ts", import.meta.url), "utf8"));
-  for (const field of ["sourceId", "description", "chapters", "duration", "title"]) assert.match(source, new RegExp(field));
-  assert.equal((source.match(/\bexec\s*\(/gu) ?? []).length, 1);
-  assert.equal((source.match(/\bfetch\s*\(/gu) ?? []).length, 0);
+test("legacy YouTube routes and root UI are retired without execution authority", async () => {
+  const fs = await import("node:fs/promises");
+  const [info, download, root] = await Promise.all([
+    fs.readFile(new URL("../../app/api/youtube-info/route.ts", import.meta.url), "utf8"),
+    fs.readFile(new URL("../../app/api/youtube-download/route.ts", import.meta.url), "utf8"),
+    fs.readFile(new URL("../../app/page.tsx", import.meta.url), "utf8"),
+  ]);
+  for (const route of [info, download]) {
+    assert.match(route, /legacy-youtube-route-retired/);
+    assert.match(route, /status:\s*410/);
+    assert.doesNotMatch(route, /child_process|\bexec(?:File)?\s*\(|\bspawn\s*\(|yt-dlp|\bfetch\s*\(|node:fs|from\s+["']fs["']|node:os|from\s+["']os["']|stderr|tmpdir|downloaded\.mp4/);
+  }
+  assert.doesNotMatch(root, /\/api\/youtube-info|\/api\/youtube-download/);
 });
