@@ -274,19 +274,24 @@ export default function WorkspaceFlowPage() {
       resetUploadResult();
       setProgress(20);
 
-      const ingestRes = await fetch("/api/youtube/ingest", {
+      const csrfRes = await fetch("/api/v1/workflows/csrf", { method: "POST" });
+      const csrf = await csrfRes.json() as { token?: string };
+      if (!csrfRes.ok || !csrf.token) throw new Error("セキュリティ確認に失敗しました");
+      const ingestRes = await fetch("/api/v1/assets/import", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedUrl }),
+        headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID(), "X-CSRF-Token": csrf.token },
+        body: JSON.stringify({ requestVersion: "1.0", sourceUrl: trimmedUrl }),
       });
-      const result = await ingestRes.json() as { jobId?: string; mediaId?: string; durationSeconds?: number; error?: string };
-      if (!ingestRes.ok || !result.jobId || !result.mediaId) throw new Error(result.error || "動画取得に失敗しました");
+      const result = await ingestRes.json() as { jobId?: string; mediaId?: string; durationSeconds?: number; message?: string };
+      if (!ingestRes.ok || !result.jobId || !result.mediaId || !Number.isFinite(result.durationSeconds) || result.durationSeconds! <= 0) {
+        throw new Error(result.message || "動画取得に失敗しました");
+      }
 
       setVideo(null);
       setDurableMedia({ jobId: result.jobId, mediaId: result.mediaId });
       setVideoSrc(`/api/media/${result.jobId}/${result.mediaId}`);
       setVideoTitle("YouTube動画");
-      setVideoDuration(result.durationSeconds || 0);
+      setVideoDuration(result.durationSeconds!);
       setThumbnail("");
       setCurrentYoutubeUrl(trimmedUrl);
       setProgress(100);
@@ -294,7 +299,7 @@ export default function WorkspaceFlowPage() {
       trackEvent("upload_youtube", {
         workspace: "creator_flow",
         hasTitle: false,
-        duration: result.durationSeconds || 0,
+        duration: result.durationSeconds!,
       });
       setClips([]);
       setAnalyzeMessage("");

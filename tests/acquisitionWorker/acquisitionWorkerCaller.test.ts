@@ -137,39 +137,27 @@ test("caller preserves AbortSignal and safely classifies timeout without exposin
   assert.equal(seen[0]?.aborted, true);
 });
 
-test("Owner E2E surface is fixed, server-issued, strict, and disconnected from normal traffic", () => {
+test("Owner E2E surface is retired before any production acquisition side effect", () => {
   const route = readFileSync("app/api/internal/acquisition-worker-owner-e2e/route.ts", "utf8");
   const client = readFileSync("lib/server/acquisitionWorkerTrust/client.ts", "utf8");
   const ingestion = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
   const workspace = readFileSync("app/workspace-flow/page.tsx", "utf8");
   const aiMv = readFileSync("app/api/ai-mv/route.ts", "utf8");
-  assert.match(route, /requireAuthenticatedRequest\(request\)/);
-  assert.match(route, /validateYouTubeVideoUrl/);
-  assert.match(route, /randomUUID\(\)/);
-  assert.match(route, /maxDuration = 300/);
-  assert.match(route, /Object\.keys\(value\)\.length !== 1/);
-  assert.match(route, /diagnostic:\s*invocation\.diagnostic/);
-  assert.doesNotMatch(route, /result\.acquisitionId|result\.artifactReference/);
-  assert.doesNotMatch(route, /acquisitionId.*(?:request|value)|workerUrl|audience|cookie|storageKey|userId/i);
+  assert.match(route, /status:\s*"retired"/);
+  assert.match(route, /status: 410/);
+  assert.doesNotMatch(route, /invokeProductionAcquisitionWorker|randomUUID|request\.json|sourceUrl/);
   assert.match(client, /ACQUISITION_PATH = "\/v1\/acquisitions"/);
   assert.match(client, /ACQUISITION_REQUEST_TIMEOUT_MS = 270_000/);
   assert.doesNotMatch(`${ingestion}\n${workspace}\n${aiMv}`, /invokeProductionAcquisitionWorker|acquisition-worker-owner-e2e/);
 });
 
-test("Environment B Owner E2E surface is fixed, single-attempt capable, and safely projected", () => {
+test("Environment B Owner E2E surface is retired before any production acquisition side effect", () => {
   const route = readFileSync("app/api/internal/environment-b-owner-youtube-e2e/route.ts", "utf8");
   const ingestion = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
   const workspace = readFileSync("app/workspace-flow/page.tsx", "utf8");
   const aiMv = readFileSync("app/api/ai-mv/route.ts", "utf8");
-  assert.match(route, /requireAuthenticatedRequest\(request\)/);
-  assert.match(route, /ENVIRONMENT_B_PROOF_DESTINATIONS\.worker/);
-  assert.match(route, /validateYouTubeVideoUrl\("https:\/\/youtu\.be\/DaxWpqigjrs"\)/);
-  assert.match(route, /randomUUID\(\)/);
-  assert.match(route, /maxDuration = 300/);
-  assert.doesNotMatch(route, /request\.json|request\.text|request\.formData/);
-  assert.doesNotMatch(route, /result\.acquisitionId|result\.artifactReference|sourceUrl:\s*await/);
-  assert.doesNotMatch(route, /cookie|storageKey|userId|authorization/i);
-  assert.match(route, /httpStatus/);
-  assert.match(route, /diagnostic:\s*invocation\.diagnostic/);
+  assert.match(route, /status:\s*"retired"/);
+  assert.match(route, /status: 410/);
+  assert.doesNotMatch(route, /invokeProductionAcquisitionWorkerAt|randomUUID|request\.json|sourceUrl/);
   assert.doesNotMatch(`${ingestion}\n${workspace}\n${aiMv}`, /environment-b-owner-youtube-e2e/);
 });

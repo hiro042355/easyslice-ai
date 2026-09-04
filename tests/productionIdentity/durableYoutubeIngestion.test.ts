@@ -17,7 +17,10 @@ import {
 } from "../../lib/server/youtubeIngestion";
 
 const execFileAsync = promisify(execFile);
-const route = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
+const route = readFileSync("app/api/v1/assets/import/route.ts", "utf8");
+const legacyRoute = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
+const importer = readFileSync("lib/server/assetImport/directYouTubeImporter.ts", "utf8");
+const service = readFileSync("lib/server/assetImport/service.ts", "utf8");
 const preview = readFileSync("app/api/media/[jobId]/[mediaId]/route.ts", "utf8");
 const workspace = readFileSync("app/workspace-flow/page.tsx", "utf8");
 const rootPage = readFileSync("app/page.tsx", "utf8");
@@ -67,24 +70,13 @@ test("yt-dlp invocation is deterministic, single-video, and server-output contro
   assert.doesNotMatch(JSON.stringify(args), /cookies|username|password|netrc|playlist-items/i);
 });
 
-test("route preserves auth, validation, server IDs, acquisition, validation, GCS, DB, response, cleanup order", () => {
+test("single command authority composes security before request parsing and service execution", () => {
   const ordered = [
+    "validateSameOriginMutation(request)",
     "requireAuthenticatedRequest(request)",
-    "isSameOrigin(request)",
-    "validateYouTubeVideoUrl(await readUrl(request))",
-    "const jobId = randomUUID()",
-    "const mediaId = randomUUID()",
-    "createJobTempDirectories(jobId)",
-    "probePackagedYtDlpVersion()",
-    "runPackagedYtDlp(",
-    "inspectIngestedVideo(resolvePackagedFfmpeg(), inputPath)",
-    "createReadStream(inputPath)",
-    "transaction.query(\"BEGIN\")",
-    "repository.createJobWithId(jobId, ownerUid)",
-    "repository.createMediaWithId(mediaId, jobId, ownerUid",
-    "transaction.query(\"COMMIT\")",
-    "NextResponse.json({ jobId, mediaId",
-    "cleanupJobTempRoot(jobId)",
+    "validateAssetImportCsrf(request, authentication.context)",
+    "readAssetImportRequest(request)",
+    "executeAssetImport({ ownerUid: authentication.context.identity.userId",
   ];
   let previous = -1;
   for (const marker of ordered) {
@@ -94,54 +86,42 @@ test("route preserves auth, validation, server IDs, acquisition, validation, GCS
   }
 });
 
-test("route accepts no client authority beyond URL and leaks no storage authority", () => {
-  assert.match(route, /Object\.keys\(value\)\.length !== 1/);
-  assert.doesNotMatch(route, /(?:body|value)\.(?:uid|userId|ownerUid|jobId|mediaId|storageKey|filename|path)/);
-  assert.match(route, /createMediaStorageKey\(jobId, mediaId, "input", VIDEO_MIME\)/);
-  assert.match(route, /NextResponse\.json\(\{ jobId, mediaId, durationSeconds:/);
-  assert.doesNotMatch(route, /NextResponse\.json\([^\n]*(?:ownerUid|storageKey|inputPath|canonicalUrl)/);
+test("route owns no acquisition, storage, or client-supplied owner authority", () => {
+  assert.doesNotMatch(route, /runPackagedYtDlp|createMediaStorageKey|createReadStream|ownerUid:\s*parsed/);
+  assert.match(route, /ownerUid: authentication\.context\.identity\.userId/);
   assert.doesNotMatch(route, /cookies\.txt|browser-cookies|--cookies|--username|--password|--netrc/);
 });
 
-test("route uses packaged binaries, safe runner, and route-scoped tracing only", () => {
-  assert.match(route, /runPackagedYtDlp/);
-  assert.match(route, /resolvePackagedFfmpeg/);
-  assert.doesNotMatch(route, /spawn\(["']yt-dlp|exec\(|shell:\s*true|\bPATH\b/);
-  assert.match(nextConfig, /"\/api\/youtube\/ingest": \[[\s\S]*\.nexcut-runtime\/yt-dlp\/yt-dlp[\s\S]*\.nexcut-runtime\/ffmpeg\/ffmpeg\*/);
+test("extracted importer preserves packaged binaries and safe runner", () => {
+  assert.match(importer, /runPackagedYtDlp/);
+  assert.match(importer, /resolvePackagedFfmpeg/);
+  assert.doesNotMatch(importer, /spawn\(["']yt-dlp|exec\(|shell:\s*true|\bPATH\b/);
+  assert.match(nextConfig, /"\/api\/v1\/assets\/import": \[[\s\S]*\.nexcut-runtime\/yt-dlp\/yt-dlp[\s\S]*\.nexcut-runtime\/ffmpeg\/ffmpeg\*/);
   assert.doesNotMatch(nextConfig, /"\/api\/ai-mv"[\s\S]*yt-dlp|"\/api\/\*"[\s\S]*yt-dlp|"\/\*"[\s\S]*yt-dlp/);
 });
 
-test("route projects only classified yt-dlp failure metadata and never raw stderr", () => {
-  assert.match(route, /error: error\.reason/);
-  assert.match(route, /exitCode: error\.diagnostic\.exitCode/);
-  assert.match(route, /signal: error\.diagnostic\.signal/);
-  assert.match(route, /runtimeVersionVerified/);
-  assert.match(route, /stderrSignature: error\.diagnostic\.stderrSignature/);
-  assert.doesNotMatch(route, /error\.stderr|console\.(?:log|error|warn).*stderr|canonicalUrl.*NextResponse/);
-});
-
-test("route emits one allowlisted failure event only for a yt-dlp process failure", () => {
-  assert.equal(route.match(/console\.error\(/g)?.length, 1);
-  assert.match(route, /if \(error instanceof YtDlpProcessFailure\) \{\s*console\.error\(createSafeYtDlpFailureLog\(error, runtimeVersionVerified\)\)/);
-  assert.doesNotMatch(route, /console\.(?:log|info|warn|error)\([^\n]*(?:validated|canonicalUrl|ownerUid|jobId|mediaId|storageKey|inputPath|request)/);
-  assert.match(route, /return NextResponse\.json\(\{\s*error: error\.reason,\s*exitCode: error\.diagnostic\.exitCode,\s*signal: error\.diagnostic\.signal,\s*runtimeVersionVerified,\s*stderrSignature: error\.diagnostic\.stderrSignature,/);
+test("service maps process failures to closed public classes without raw diagnostics", () => {
+  assert.match(service, /error instanceof YtDlpProcessFailure/);
+  assert.doesNotMatch(service + route, /error\.stderr|stderrSignature|diagnostic\.(?:exitCode|signal)|console\.(?:log|error|warn)/);
 });
 
 test("GCS and DB failures compensate object and transaction without partial authority", () => {
-  assert.match(route, /uploaded = true[\s\S]*pipeline\(/);
-  assert.match(route, /query\("ROLLBACK"\)\.catch/);
-  assert.match(route, /if \(uploaded && !completed\) await object\.delete\(\{ ignoreNotFound: true \}\)/);
-  assert.match(route, /finally \{[\s\S]*cleanupJobTempRoot\(jobId\)/);
-  assert.doesNotMatch(route, /predefinedAcl|makePublic|makePrivate|\.acl\b/);
+  assert.match(importer, /uploaded = true[\s\S]*pipeline\(/);
+  assert.match(importer, /query\("ROLLBACK"\)\.catch/);
+  assert.match(importer, /if \(uploaded\) await input\.bucket\.file\(storageKey\)\.delete\(\{ ignoreNotFound: true \}\)/);
+  assert.match(importer, /finally \{ await cleanupJobTempRoot\(input\.jobId\); \}/);
+  assert.doesNotMatch(importer, /predefinedAcl|makePublic|makePrivate|\.acl\b/);
 });
 
 test("workspace projects the durable response into the same durableMedia state", () => {
-  assert.match(workspace, /fetch\("\/api\/youtube\/ingest"/);
+  assert.match(workspace, /fetch\("\/api\/v1\/assets\/import"/);
   assert.match(workspace, /setDurableMedia\(\{ jobId: result\.jobId, mediaId: result\.mediaId \}\)/);
   assert.match(workspace, /setVideoSrc\(`\/api\/media\/\$\{result\.jobId\}\/\$\{result\.mediaId\}`\)/);
   const handler = workspace.slice(workspace.indexOf("const handleFetchYoutube"), workspace.indexOf("const handleSubtitleFileUpload"));
   assert.doesNotMatch(handler, /\/api\/youtube-info|\/api\/youtube-download|\/api\/video/);
   assert.doesNotMatch(rootPage, /\/api\/youtube-(?:info|download)/);
+  assert.match(legacyRoute, /status:\s*"retired"/);
+  assert.match(legacyRoute, /status: 410/);
 });
 
 test("preview validates owner-scoped Job and Media before DB-derived GCS streaming", () => {
