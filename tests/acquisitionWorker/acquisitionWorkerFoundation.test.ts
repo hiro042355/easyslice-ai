@@ -336,7 +336,7 @@ test("production route and protected workflows remain disconnected and unchanged
   assert.doesNotMatch(aiMv, /acquisitionWorker|AcquisitionWorkerCore/);
 });
 
-test("Production Terraform grants only private invocation and prefix-scoped control-object authority", () => {
+test("Production Terraform grants private invocation and separately scoped control and temporary handoff authority", () => {
   const service = readFileSync("infra/production/gcp/acquisition-worker.tf", "utf8");
   const identities = readFileSync("infra/production/gcp/identities.tf", "utf8");
   const wif = readFileSync("infra/production/gcp/vercel-wif.tf", "utf8");
@@ -355,6 +355,13 @@ test("Production Terraform grants only private invocation and prefix-scoped cont
   assert.match(storage, /acquisition_worker_control_object_user[\s\S]*roles\/storage\.objectUser/);
   assert.match(storage, /resource\.type == 'storage\.googleapis\.com\/Object'/);
   assert.match(storage, /objects\/acquisition-control\/v1\//);
+  assert.match(storage, /acquisition_worker_handoff_object_creator[\s\S]*roles\/storage\.objectCreator/);
+  assert.match(storage, /objects\/acquisition-handoff\/v1\//);
+  assert.match(storage, /age\s*=\s*7[\s\S]*matches_prefix\s*=\s*\["acquisition-handoff\/v1\/"\]/);
+  assert.match(service, /ACQUISITION_HANDOFF_BUCKET[\s\S]*google_storage_bucket\.production_media\.name/);
+  assert.match(service, /ACQUISITION_HANDOFF_PREFIX[\s\S]*acquisition-handoff\/v1\//);
+  assert.match(service, /ACQUISITION_HANDOFF_TTL_DAYS[\s\S]*value\s*=\s*"7"/);
+  assert.doesNotMatch(storage, /acquisition_worker_handoff_object_creator[\s\S]*roles\/storage\.(?:objectUser|objectViewer|objectAdmin)/i);
   assert.doesNotMatch(storage, /acquisition_worker[\s\S]*roles\/storage\.(?:admin|objectAdmin)/i);
   assert.doesNotMatch(infrastructure, /allUsers|allAuthenticatedUsers/);
   assert.doesNotMatch(service, /roles\/(?:storage|cloudsql|firebase|editor|owner)/i);

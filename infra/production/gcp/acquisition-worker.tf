@@ -73,6 +73,21 @@ resource "google_cloud_run_v2_service" "acquisition_worker" {
       }
 
       env {
+        name  = "ACQUISITION_HANDOFF_BUCKET"
+        value = google_storage_bucket.production_media.name
+      }
+
+      env {
+        name  = "ACQUISITION_HANDOFF_PREFIX"
+        value = "acquisition-handoff/v1/"
+      }
+
+      env {
+        name  = "ACQUISITION_HANDOFF_TTL_DAYS"
+        value = "7"
+      }
+
+      env {
         name  = "MEDIA_BUCKET_NAME"
         value = google_storage_bucket.production_media.name
       }
