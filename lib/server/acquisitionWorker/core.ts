@@ -3,14 +3,16 @@ import type { AcquisitionIdempotencyStore } from "./idempotency";
 import type { AcquisitionRuntime, PoTokenProvider } from "./sourceAdapter";
 import { SourceAdapterRegistry } from "./sourceAdapter";
 import { cleanupAcquisitionWorkspace, createAcquisitionWorkspace } from "./workspace";
-import { AcquisitionWorkerFailure, type AcquisitionMediaMetadata, type AcquisitionRequest, type AcquisitionResult } from "./types";
+import { AcquisitionWorkerFailure, type AcquisitionArtifactHandoff, type AcquisitionMediaMetadata, type AcquisitionRequest, type AcquisitionResult } from "./types";
 import { AcquisitionTelemetryCollector, type AcquisitionSafeTelemetry } from "./telemetry";
 
-export type AcquisitionArtifactConsumer = (artifact: Readonly<{
+export interface ArtifactHandoffStore {
+  create(artifact: Readonly<{
   acquisitionId: string;
   path: string;
   media: AcquisitionMediaMetadata;
-}>) => Promise<string>;
+  }>): Promise<AcquisitionArtifactHandoff>;
+}
 
 export type AcquisitionMediaInspector = (path: string, runtime: AcquisitionRuntime, maxBytes: number) => Promise<AcquisitionMediaMetadata>;
 
@@ -21,7 +23,7 @@ export class AcquisitionWorkerCore {
     runtime: AcquisitionRuntime;
     authorityRoot: string;
     inspectMedia: AcquisitionMediaInspector;
-    consumeArtifact: AcquisitionArtifactConsumer;
+    handoffStore: ArtifactHandoffStore;
     provider?: PoTokenProvider;
     telemetryRuntime?: Readonly<{ pluginArtifact: boolean; nodeConfigured: boolean; nodeExecutable: boolean; nodeVersionMatch: boolean; ejsAvailable: boolean }>;
     retainTelemetry?(acquisitionId: string, telemetry: AcquisitionSafeTelemetry): void;
@@ -55,8 +57,10 @@ export class AcquisitionWorkerCore {
           await adapter.acquire({ request, workspace, runtime: this.dependencies.runtime, provider: this.dependencies.provider,
             telemetry, signal: executionSignal });
           const media = await this.dependencies.inspectMedia(workspace.mediaPath, this.dependencies.runtime, request.maxBytes);
-          const artifactReference = await this.dependencies.consumeArtifact({ acquisitionId: request.acquisitionId, path: workspace.mediaPath, media });
-          return Object.freeze({ acquisitionId: request.acquisitionId, status: "succeeded", artifactReference, media });
+          const handoff = await this.dependencies.handoffStore.create({ acquisitionId: request.acquisitionId,
+            path: workspace.mediaPath, media });
+          return Object.freeze({ acquisitionId: request.acquisitionId, status: "succeeded",
+            artifactReference: handoff.artifactReference, media, handoff });
         } catch (error) {
           const failure = error instanceof AcquisitionWorkerFailure ? error : new AcquisitionWorkerFailure("unknown-acquisition-failure");
           telemetry.failure(failure.code);
@@ -71,5 +75,9 @@ export class AcquisitionWorkerCore {
       const failure = error instanceof AcquisitionWorkerFailure ? error : new AcquisitionWorkerFailure("unknown-acquisition-failure");
       return Object.freeze({ acquisitionId: request.acquisitionId, status: "failed", errorCode: failure.code, retryable: failure.retryable });
     });
+  }
+
+  lookup(acquisitionId: string): Promise<AcquisitionResult | undefined> {
+    return this.dependencies.idempotency.lookup(acquisitionId);
   }
 }

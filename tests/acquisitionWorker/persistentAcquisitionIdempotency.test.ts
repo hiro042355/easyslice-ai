@@ -37,8 +37,11 @@ import { AcquisitionWorkerStartupTelemetry, type AwsSessionTokenBoundaryKey,
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const ID2 = "223e4567-e89b-42d3-a456-426614174000";
 const success = (id = ID): AcquisitionResult => Object.freeze({ acquisitionId: id, status: "succeeded",
-  artifactReference: `acquisition:${id}`, media: Object.freeze({ contentType: "video/mp4", byteSize: 4,
-    durationSeconds: 10, hasVideo: true, hasAudio: true }) });
+  artifactReference: `handoff:v1:${id}:${"a".repeat(64)}`, media: Object.freeze({ contentType: "video/mp4", byteSize: 4,
+    durationSeconds: 10, hasVideo: true, hasAudio: true }), handoff: Object.freeze({
+    artifactReference: `handoff:v1:${id}:${"a".repeat(64)}`, contentType: "video/mp4", byteSize: 4,
+    sha256: "a".repeat(64), workerObservedDurationSeconds: 10, videoPresent: true, audioPresent: true,
+    expiresAt: "2099-01-01T00:00:00.000Z" }) });
 const failure = (id: string, code: "youtube-bot-check" | "network-failure", retryable: boolean): AcquisitionResult =>
   Object.freeze({ acquisitionId: id, status: "failed", errorCode: code, retryable });
 
@@ -97,30 +100,43 @@ test("terminal bot-check is replayed while retryable failure requires an explici
   assert.deepEqual(await store(objects).execute(ID2, "b", async () => success(ID2)), transient);
 });
 
-test("expired lease takeover is atomic and fences the stale owner terminal write", async () => {
+test("expired running state is atomically closed for reconciliation without executing acquisition", async () => {
   const objects = new FakeObjects();
   const name = acquisitionControlObjectName(ID);
   const old = validateAcquisitionControlRecord({ schemaVersion: "1.0", acquisitionId: ID,
-    requestFingerprint: "a".repeat(64), state: "running", leaseOwner: ID2, fenceToken: 1,
+    requestFingerprint: createHash("sha256").update("a").digest("hex"), state: "running", leaseOwner: ID2, fenceToken: 1,
     leaseExpiresAt: "2000-01-01T00:00:00.000Z", createdAt: "2000-01-01T00:00:00.000Z",
     updatedAt: "2000-01-01T00:00:00.000Z" });
   const created = await objects.create(name, old);
   assert.equal(created.status, "created");
-  const contenderA = store(objects).execute(ID, "not-the-seeded-fingerprint", async () => success());
-  await assert.rejects(contenderA, /idempotency-conflict/);
-
-  const current = objects.values.get(name)!;
-  const staleTerminal = validateAcquisitionControlRecord({ schemaVersion: "1.0", acquisitionId: ID,
-    requestFingerprint: old.requestFingerprint, state: "failed", fenceToken: 1,
-    createdAt: old.createdAt, updatedAt: new Date().toISOString(), result: failure(ID, "network-failure", true) });
-  const takeover = validateAcquisitionControlRecord({ ...old, leaseOwner: crypto.randomUUID(), fenceToken: 2,
-    leaseExpiresAt: new Date(Date.now() + 90_000).toISOString(), updatedAt: new Date().toISOString() });
-  const won = await objects.replace(name, current.generation, takeover);
-  assert.equal(won.status, "updated");
-  assert.deepEqual(await objects.replace(name, current.generation, staleTerminal), { status: "precondition-failed" });
+  let operations = 0;
+  const result = await store(objects).execute(ID, "a", async () => { operations += 1; return success(); });
+  assert.deepEqual(result, { acquisitionId: ID, status: "failed",
+    errorCode: "acquisition-reconciliation-required", retryable: false });
+  assert.equal(operations, 0);
+  assert.equal(objects.values.get(name)!.record.state, "reconciliation-required");
 });
 
-test("two stale-takeover contenders allow one operation and replay its result", async () => {
+test("live running replay waits without executing a second acquisition", async () => {
+  const objects = new FakeObjects();
+  const fingerprint = "live-running";
+  const now = Date.now();
+  await objects.create(acquisitionControlObjectName(ID), validateAcquisitionControlRecord({
+    schemaVersion: "1.0", acquisitionId: ID,
+    requestFingerprint: createHash("sha256").update(fingerprint).digest("hex"), state: "running",
+    leaseOwner: ID2, fenceToken: 1, leaseExpiresAt: new Date(now + 90_000).toISOString(),
+    createdAt: new Date(now).toISOString(), updatedAt: new Date(now).toISOString(),
+  }));
+  let operations = 0;
+  const abort = new AbortController();
+  const clock = { now: () => now, ownerToken: () => crypto.randomUUID(),
+    sleep: async () => { abort.abort(); } };
+  await assert.rejects(new PersistentAcquisitionIdempotencyStore(objects, clock, 90_000, 30_000, 1)
+    .execute(ID, fingerprint, async () => { operations += 1; return success(); }, abort.signal), /acquisition-cancelled/);
+  assert.equal(operations, 0);
+});
+
+test("two expired-running replays converge on reconciliation without executing acquisition", async () => {
   const objects = new FakeObjects();
   const fingerprint = "canonical-request";
   const old = validateAcquisitionControlRecord({ schemaVersion: "1.0", acquisitionId: ID,
@@ -129,11 +145,12 @@ test("two stale-takeover contenders allow one operation and replay its result", 
     createdAt: "2000-01-01T00:00:00.000Z", updatedAt: "2000-01-01T00:00:00.000Z" });
   await objects.create(acquisitionControlObjectName(ID), old);
   let operations = 0;
-  const operation = async () => { operations += 1; await new Promise((resolve) => setTimeout(resolve, 20)); return success(); };
+  const operation = async () => { operations += 1; return success(); };
   const results = await Promise.all([store(objects).execute(ID, fingerprint, operation), store(objects).execute(ID, fingerprint, operation)]);
-  assert.deepEqual(results, [success(), success()]);
-  assert.equal(operations, 1);
-  assert.equal(objects.values.get(acquisitionControlObjectName(ID))!.record.fenceToken, 2);
+  const reconciled = { acquisitionId: ID, status: "failed", errorCode: "acquisition-reconciliation-required", retryable: false };
+  assert.deepEqual(results, [reconciled, reconciled]);
+  assert.equal(operations, 0);
+  assert.equal(objects.values.get(acquisitionControlObjectName(ID))!.record.state, "reconciliation-required");
 });
 
 test("lease heartbeat renews and lease-loss abort reaches the operation", async () => {
@@ -157,7 +174,7 @@ test("lease heartbeat renews and lease-loss abort reaches the operation", async 
   })), (error: unknown) => error instanceof AcquisitionWorkerFailure && error.code === "acquisition-cancelled");
 });
 
-test("retryable terminal failure is reclaimed only after explicit delay", async () => {
+test("retryable terminal failure never automatically reacquires after elapsed time", async () => {
   const objects = new FakeObjects();
   let now = 1_800_000_000_000;
   const clock = { now: () => now, ownerToken: () => crypto.randomUUID(),
@@ -167,7 +184,9 @@ test("retryable terminal failure is reclaimed only after explicit delay", async 
   assert.deepEqual(await persistent.execute(ID, "retry", async () => transient), transient);
   assert.deepEqual(await persistent.execute(ID, "retry", async () => success()), transient);
   now += 61_000;
-  assert.deepEqual(await persistent.execute(ID, "retry", async () => success()), success());
+  let operations = 0;
+  assert.deepEqual(await persistent.execute(ID, "retry", async () => { operations += 1; return success(); }), transient);
+  assert.equal(operations, 0);
 });
 
 test("record and object naming persist no raw URL, UID, token, path, or listing authority", () => {
@@ -307,7 +326,7 @@ test("explicit project authority carries the offline full composition past getCl
   const accepted: StartupEvidence[] = [];
   const base = new Gaxios();
   base.request = (async (options) => {
-    if (String(options.url).includes("cloudresourcemanager.googleapis.com")) crmRequests += 1;
+    if (String(options?.url).includes("cloudresourcemanager.googleapis.com")) crmRequests += 1;
     throw new Error("must-not-contact-external-authority");
   }) as typeof base.request;
   const auth = createAcquisitionGoogleAuth(undefined, base);

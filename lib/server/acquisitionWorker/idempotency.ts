@@ -7,6 +7,7 @@ export interface AcquisitionIdempotencyStore {
     operation: (leaseSignal: AbortSignal) => Promise<AcquisitionResult>,
     callerSignal?: AbortSignal,
   ): Promise<AcquisitionResult>;
+  lookup(acquisitionId: string): Promise<AcquisitionResult | undefined>;
 }
 
 export class InMemoryAcquisitionIdempotencyStore implements AcquisitionIdempotencyStore {
@@ -32,5 +33,9 @@ export class InMemoryAcquisitionIdempotencyStore implements AcquisitionIdempoten
     const result = operation(lease.signal).finally(() => callerSignal?.removeEventListener("abort", abort));
     this.#entries.set(acquisitionId, Object.freeze({ fingerprint, result }));
     return result;
+  }
+
+  async lookup(acquisitionId: string): Promise<AcquisitionResult | undefined> {
+    return this.#entries.get(acquisitionId)?.result;
   }
 }

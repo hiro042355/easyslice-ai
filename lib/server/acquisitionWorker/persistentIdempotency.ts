@@ -9,7 +9,6 @@ export const ACQUISITION_CONTROL_PREFIX = "acquisition-control/v1/" as const;
 export const ACQUISITION_LEASE_MS = 90_000;
 export const ACQUISITION_HEARTBEAT_MS = 30_000;
 const DEFAULT_POLL_MS = 1_000;
-const RETRY_DELAY_MS = 60_000;
 
 type RunningRecord = Readonly<{
   schemaVersion: "1.0";
@@ -26,7 +25,7 @@ type TerminalRecord = Readonly<{
   schemaVersion: "1.0";
   acquisitionId: string;
   requestFingerprint: string;
-  state: "succeeded" | "failed";
+  state: "succeeded" | "failed" | "reconciliation-required";
   fenceToken: number;
   createdAt: string;
   updatedAt: string;
@@ -59,7 +58,6 @@ const defaultClock: Clock = Object.freeze({
   }),
 });
 
-const retryable = (result: AcquisitionResult): boolean => result.status === "failed" && result.retryable;
 const iso = (value: number): string => new Date(value).toISOString();
 const fingerprintDigest = (fingerprint: string): string => createHash("sha256").update(fingerprint).digest("hex");
 
@@ -88,7 +86,7 @@ export const validateAcquisitionControlRecord = (value: unknown): AcquisitionCon
       || typeof record.leaseExpiresAt !== "string" || !Number.isFinite(Date.parse(record.leaseExpiresAt))) {
       throw new Error("invalid-acquisition-control-record");
     }
-  } else if ((record.state !== "succeeded" && record.state !== "failed")
+  } else if ((record.state !== "succeeded" && record.state !== "failed" && record.state !== "reconciliation-required")
     || (record.retryNotBefore !== undefined
       && (typeof record.retryNotBefore !== "string" || !Number.isFinite(Date.parse(record.retryNotBefore))))) {
     throw new Error("invalid-acquisition-control-record");
@@ -140,22 +138,23 @@ export class PersistentAcquisitionIdempotencyStore implements AcquisitionIdempot
       if (current.status === "missing") continue;
       const record = validateAcquisitionControlRecord(current.object.record);
       if (record.requestFingerprint !== requestFingerprint) throw new AcquisitionWorkerFailure("idempotency-conflict");
-      if (record.state === "succeeded") return record.result;
-      if (record.state === "failed") {
-        if (!retryable(record.result)) return record.result;
-        if (record.retryNotBefore && Date.parse(record.retryNotBefore) > this.clock.now()) return record.result;
-        const takeover = await this.takeover(objectName, current.object, owner);
-        if (takeover) return this.runClaim(objectName, takeover, operation, callerSignal);
-        continue;
-      }
+      if (record.state === "succeeded" || record.state === "reconciliation-required") return record.result;
+      if (record.state === "failed") return record.result;
       if (record.state !== "running") throw new Error("invalid-acquisition-control-record");
       if (Date.parse(record.leaseExpiresAt) <= this.clock.now()) {
-        const takeover = await this.takeover(objectName, current.object, owner);
-        if (takeover) return this.runClaim(objectName, takeover, operation, callerSignal);
+        const reconciled = await this.reconcileExpired(objectName, current.object);
+        if (reconciled) return reconciled;
         continue;
       }
       await this.clock.sleep(this.pollMs, callerSignal);
     }
+  }
+
+  async lookup(acquisitionId: string): Promise<AcquisitionResult | undefined> {
+    const current = await this.objects.read(acquisitionControlObjectName(acquisitionId));
+    if (current.status === "missing") return undefined;
+    const record = validateAcquisitionControlRecord(current.object.record);
+    return record.state === "running" ? undefined : record.result;
   }
 
   private async tryCreate(name: string, id: string, fingerprint: string, owner: string): Promise<AcquisitionControlObject | undefined> {
@@ -167,15 +166,17 @@ export class PersistentAcquisitionIdempotencyStore implements AcquisitionIdempot
     return result.status === "created" ? Object.freeze({ generation: result.generation, record }) : undefined;
   }
 
-  private async takeover(name: string, current: AcquisitionControlObject, owner: string): Promise<AcquisitionControlObject | undefined> {
+  private async reconcileExpired(name: string, current: AcquisitionControlObject): Promise<AcquisitionResult | undefined> {
     const now = this.clock.now();
     const record = current.record;
+    if (record.state !== "running") return undefined;
+    const result = Object.freeze({ acquisitionId: record.acquisitionId, status: "failed",
+      errorCode: "acquisition-reconciliation-required", retryable: false } satisfies AcquisitionResult);
     const replacement = Object.freeze({ schemaVersion: "1.0", acquisitionId: record.acquisitionId,
-      requestFingerprint: record.requestFingerprint, state: "running", leaseOwner: owner,
-      fenceToken: record.fenceToken + 1, leaseExpiresAt: iso(now + this.leaseMs),
-      createdAt: record.createdAt, updatedAt: iso(now) } satisfies RunningRecord);
+      requestFingerprint: record.requestFingerprint, state: "reconciliation-required",
+      fenceToken: record.fenceToken, createdAt: record.createdAt, updatedAt: iso(now), result } satisfies TerminalRecord);
     const updated = await this.objects.replace(name, current.generation, replacement);
-    return updated.status === "updated" ? Object.freeze({ generation: updated.generation, record: replacement }) : undefined;
+    return updated.status === "updated" ? result : undefined;
   }
 
   private async runClaim(
@@ -216,9 +217,9 @@ export class PersistentAcquisitionIdempotencyStore implements AcquisitionIdempot
     }
     const now = this.clock.now();
     const terminal = Object.freeze({ schemaVersion: "1.0", acquisitionId: record.acquisitionId,
-      requestFingerprint: record.requestFingerprint, state: result.status === "succeeded" ? "succeeded" : "failed",
-      fenceToken: record.fenceToken, createdAt: record.createdAt, updatedAt: iso(now), result,
-      ...(retryable(result) ? { retryNotBefore: iso(now + RETRY_DELAY_MS) } : {}) } satisfies TerminalRecord);
+      requestFingerprint: record.requestFingerprint, state: result.status === "succeeded" ? "succeeded"
+        : result.errorCode === "handoff-outcome-ambiguous" ? "reconciliation-required" : "failed",
+      fenceToken: record.fenceToken, createdAt: record.createdAt, updatedAt: iso(now), result } satisfies TerminalRecord);
     const persisted = await this.objects.replace(name, generation, terminal);
     if (persisted.status !== "updated") throw new AcquisitionWorkerFailure("acquisition-cancelled", true);
     return result;

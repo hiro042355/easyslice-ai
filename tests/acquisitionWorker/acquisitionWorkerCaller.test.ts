@@ -22,6 +22,14 @@ const environment = Object.freeze({
 });
 const configuration = readAcquisitionWorkerTrustConfiguration(environment);
 const acquisitionId = "123e4567-e89b-42d3-a456-426614174000";
+const sha256 = "a".repeat(64);
+const successfulResult = Object.freeze({ acquisitionId, status: "succeeded",
+  artifactReference: `handoff:v1:${acquisitionId}:${sha256}`,
+  media: Object.freeze({ contentType: "video/mp4", byteSize: 1024, durationSeconds: 10, hasVideo: true, hasAudio: true }),
+  handoff: Object.freeze({ artifactReference: `handoff:v1:${acquisitionId}:${sha256}`, contentType: "video/mp4",
+    byteSize: 1024, sha256, workerObservedDurationSeconds: 10, videoPresent: true, audioPresent: true,
+    expiresAt: "2099-01-01T00:00:00.000Z" }),
+});
 const request: AcquisitionRequest = Object.freeze({
   requestVersion: ACQUISITION_REQUEST_VERSION,
   acquisitionId,
@@ -56,8 +64,7 @@ test("caller uses one short-lived token, fixed Worker path, exact request, and n
     async getIdToken(audience) { tokenCalls += 1; assert.equal(audience, configuration.workerUrl); return "opaque-token"; },
     async fetch(input, init) {
       calls.push({ input, init });
-      return Response.json({ acquisitionId, status: "succeeded", artifactReference: `acquisition:${acquisitionId}`,
-        media: { contentType: "video/mp4", byteSize: 1024, durationSeconds: 10, hasVideo: true, hasAudio: true } });
+      return Response.json(successfulResult);
     },
     log() { throw new Error("invoke-must-not-log"); }, now: () => 0,
   });

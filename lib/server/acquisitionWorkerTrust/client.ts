@@ -152,8 +152,7 @@ export const createAcquisitionWorkerTrustClient = (
       delete resultBody.diagnostic;
       const result = validateAcquisitionResult(resultBody);
       if (result.acquisitionId !== request.acquisitionId
-        || (response.status === 200) !== (result.status === "succeeded")
-        || (result.status === "succeeded" && result.artifactReference !== `acquisition:${request.acquisitionId}`)) {
+        || (response.status === 200) !== (result.status === "succeeded")) {
         throw new TypeError("invalid-acquisition-result");
       }
       return Object.freeze({ result, ...(diagnostic ? { diagnostic } : {}) });

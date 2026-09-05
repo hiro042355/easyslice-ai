@@ -36,9 +36,15 @@ export const ACQUISITION_FAILURE_CODES = [
   "network-failure",
   "acquisition-timeout",
   "acquisition-cancelled",
+  "acquisition-reconciliation-required",
   "output-too-large",
   "malformed-media",
   "ffmpeg-failed",
+  "handoff-configuration-failure",
+  "handoff-artifact-invalid",
+  "handoff-conflict",
+  "handoff-definitive-failure",
+  "handoff-outcome-ambiguous",
   "unknown-acquisition-failure",
 ] as const;
 
@@ -52,11 +58,23 @@ export type AcquisitionMediaMetadata = Readonly<{
   hasAudio: boolean;
 }>;
 
+export type AcquisitionArtifactHandoff = Readonly<{
+  artifactReference: string;
+  contentType: "video/mp4";
+  byteSize: number;
+  sha256: string;
+  workerObservedDurationSeconds: number;
+  videoPresent: true;
+  audioPresent: boolean;
+  expiresAt: string;
+}>;
+
 export type AcquisitionSuccess = Readonly<{
   acquisitionId: string;
   status: "succeeded";
   artifactReference: string;
   media: AcquisitionMediaMetadata;
+  handoff: AcquisitionArtifactHandoff;
 }>;
 
 export type AcquisitionFailure = Readonly<{

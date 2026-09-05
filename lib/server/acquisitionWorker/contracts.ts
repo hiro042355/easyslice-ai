@@ -15,6 +15,19 @@ const REQUEST_KEYS = new Set([
   "requestVersion", "acquisitionId", "source", "sourceUrl", "requestedOutputProfile", "maxBytes", "timeoutMs",
 ]);
 const FAILURE_CODES = new Set<string>(ACQUISITION_FAILURE_CODES);
+const SHA256 = /^[0-9a-f]{64}$/;
+const HANDOFF_REFERENCE = /^handoff:v1:([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}):([0-9a-f]{64})$/i;
+
+export const createArtifactHandoffReference = (acquisitionId: string, sha256: string): string => {
+  if (!ACQUISITION_ID.test(acquisitionId) || !SHA256.test(sha256)) throw new TypeError("invalid-acquisition-handoff-reference");
+  return `handoff:v1:${acquisitionId}:${sha256}`;
+};
+
+const parseArtifactHandoffReference = (value: string): Readonly<{ acquisitionId: string; sha256: string }> => {
+  const match = value.match(HANDOFF_REFERENCE);
+  if (!match) throw new TypeError("invalid-acquisition-result");
+  return Object.freeze({ acquisitionId: match[1]!, sha256: match[2]! });
+};
 
 export type ValidatedAcquisitionRequest = Readonly<{
   requestVersion: typeof ACQUISITION_REQUEST_VERSION;
@@ -91,8 +104,9 @@ export const validateAcquisitionResult = (input: unknown): AcquisitionResult => 
     return Object.freeze({ ...result }) as AcquisitionResult;
   }
   if (result.status === "succeeded") {
-    if (!exactKeys(result, ["acquisitionId", "status", "artifactReference", "media"])
-      || typeof result.artifactReference !== "string" || !result.media || typeof result.media !== "object") {
+    if (!exactKeys(result, ["acquisitionId", "status", "artifactReference", "media", "handoff"])
+      || typeof result.artifactReference !== "string" || !HANDOFF_REFERENCE.test(result.artifactReference)
+      || !result.media || typeof result.media !== "object" || !result.handoff || typeof result.handoff !== "object") {
       throw new TypeError("invalid-acquisition-result");
     }
     const media = result.media as Record<string, unknown>;
@@ -102,7 +116,17 @@ export const validateAcquisitionResult = (input: unknown): AcquisitionResult => 
       || typeof media.durationSeconds !== "number" || !Number.isFinite(media.durationSeconds) || media.durationSeconds <= 0) {
       throw new TypeError("invalid-acquisition-result");
     }
-    return Object.freeze({ ...result, media: Object.freeze({ ...media }) }) as AcquisitionResult;
+    const handoff = result.handoff as Record<string, unknown>;
+    const reference = parseArtifactHandoffReference(result.artifactReference);
+    if (!exactKeys(handoff, ["artifactReference", "contentType", "byteSize", "sha256",
+      "workerObservedDurationSeconds", "videoPresent", "audioPresent", "expiresAt"])
+      || handoff.artifactReference !== result.artifactReference || handoff.contentType !== media.contentType
+      || handoff.byteSize !== media.byteSize || typeof handoff.sha256 !== "string" || !SHA256.test(handoff.sha256)
+      || reference.acquisitionId !== result.acquisitionId || reference.sha256 !== handoff.sha256
+      || handoff.workerObservedDurationSeconds !== media.durationSeconds || handoff.videoPresent !== true
+      || handoff.audioPresent !== media.hasAudio || typeof handoff.expiresAt !== "string"
+      || !Number.isFinite(Date.parse(handoff.expiresAt))) throw new TypeError("invalid-acquisition-result");
+    return Object.freeze({ ...result, media: Object.freeze({ ...media }), handoff: Object.freeze({ ...handoff }) }) as AcquisitionResult;
   }
   throw new TypeError("invalid-acquisition-result");
 };

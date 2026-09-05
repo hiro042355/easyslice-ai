@@ -21,6 +21,7 @@ export type WorkerNetworkReadiness = Readonly<{
 
 export type WorkerHttpDependencies = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
+  lookup?(acquisitionId: string): Promise<AcquisitionResult | undefined>;
   readiness(signal?: AbortSignal): Promise<WorkerReadiness>;
   networkReadiness?(signal?: AbortSignal): Promise<WorkerNetworkReadiness>;
   log(event: Readonly<Record<string, string | number | boolean>>): void;
@@ -67,6 +68,12 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
       const evidence = await dependencies.networkReadiness(abort.signal);
       const success = evidence.staticEgressAuthorityConfigured && evidence.observedEgressMatchesReservedAuthority;
       return sendJson(response, success ? 200 : 503, evidence);
+    }
+    const lookup = request.method === "GET" ? request.url?.match(/^\/v1\/acquisitions\/([0-9a-f-]{36})$/i) : undefined;
+    if (lookup && dependencies.lookup) {
+      const result = await dependencies.lookup(lookup[1]!);
+      return result ? sendJson(response, 200, validateAcquisitionResult(result))
+        : sendJson(response, 404, { status: "not-found" });
     }
     if (request.method === "POST" && request.url === "/v1/acquisitions") {
       if (request.headers["content-type"]?.split(";", 1)[0]?.trim() !== "application/json") {

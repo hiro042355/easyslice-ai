@@ -42,6 +42,12 @@ const request = (overrides: Record<string, unknown> = {}) => ({
   requestedOutputProfile: "canonical-mp4",
   ...overrides,
 });
+const handoff = (acquisitionId = ID) => Object.freeze({
+  artifactReference: `handoff:v1:${acquisitionId}:${"a".repeat(64)}`,
+  contentType: "video/mp4" as const, byteSize: 128, sha256: "a".repeat(64),
+  workerObservedDurationSeconds: 1.5, videoPresent: true as const, audioPresent: false,
+  expiresAt: "2099-01-01T00:00:00.000Z",
+});
 
 const runtime: AcquisitionRuntime = Object.freeze({
   ytDlpExecutable: "/runtime/yt-dlp",
@@ -77,13 +83,24 @@ test("request bounds cannot exceed the fixed 2 GiB and 240 second policies", () 
 });
 
 test("result contract accepts only exact safe success and failure unions", () => {
-  const success = { acquisitionId: ID, status: "succeeded", artifactReference: `acquisition:${ID}`, media } as const;
+  const success = { acquisitionId: ID, status: "succeeded", artifactReference: handoff().artifactReference,
+    media, handoff: handoff() } as const;
   const failure = { acquisitionId: ID, status: "failed", errorCode: "network-failure", retryable: true } as const;
   assert.deepEqual(validateAcquisitionResult(success), success);
   assert.deepEqual(validateAcquisitionResult(failure), failure);
   assert.throws(() => validateAcquisitionResult({ ...success, outputPath: "/tmp/private" }), /invalid-acquisition-result/);
   assert.throws(() => validateAcquisitionResult({ ...failure, stderr: "raw" }), /invalid-acquisition-result/);
   assert.throws(() => validateAcquisitionResult({ ...failure, errorCode: "raw-provider-error" }), /invalid-acquisition-result/);
+  const otherId = "a2ec5299-fb88-421a-820c-7e0daf9eb27c";
+  assert.throws(() => validateAcquisitionResult({ ...success,
+    artifactReference: `handoff:v1:${otherId}:${"a".repeat(64)}`,
+    handoff: { ...success.handoff, artifactReference: `handoff:v1:${otherId}:${"a".repeat(64)}` } }), /invalid-acquisition-result/);
+  assert.throws(() => validateAcquisitionResult({ ...success,
+    artifactReference: `handoff:v1:${ID}:${"b".repeat(64)}`,
+    handoff: { ...success.handoff, artifactReference: `handoff:v1:${ID}:${"b".repeat(64)}` } }), /invalid-acquisition-result/);
+  assert.throws(() => validateAcquisitionResult({ ...success,
+    artifactReference: `handoff:v1:${ID}:malformed`,
+    handoff: { ...success.handoff, artifactReference: `handoff:v1:${ID}:malformed` } }), /invalid-acquisition-result/);
 });
 
 test("idempotency coalesces the same request and rejects conflicting reuse", async () => {
@@ -253,11 +270,11 @@ test("worker consumes a validated artifact before finally cleanup and returns on
         assert.equal((await stat(inputPath)).size, 128);
         return media;
       },
-      consumeArtifact: async ({ path: inputPath }) => {
+      handoffStore: { create: async ({ path: inputPath }) => {
         consumed += 1;
         assert.equal((await readFile(inputPath)).length, 128);
-        return `acquisition:${ID}`;
-      },
+        return handoff();
+      } },
     });
     const [first, second] = await Promise.all([core.execute(request()), core.execute(request())]);
     assert.deepEqual(first, second);
@@ -285,7 +302,7 @@ test("worker cleans only its acquisition root after failure and cancellation", a
       runtime,
       authorityRoot,
       inspectMedia: async () => media,
-      consumeArtifact: async () => "unreachable",
+      handoffStore: { create: async () => { throw new Error("unreachable"); } },
     });
     const result = await core.execute(request());
     assert.deepEqual(result, { acquisitionId: ID, status: "failed", errorCode: "acquisition-cancelled", retryable: true });

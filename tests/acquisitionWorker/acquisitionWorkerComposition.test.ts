@@ -20,12 +20,16 @@ const media: AcquisitionMediaMetadata = Object.freeze({ contentType: "video/mp4"
   durationSeconds: 10, hasVideo: true, hasAudio: true });
 const provider: PoTokenProvider = Object.freeze({ authority: "bgutil-ytdlp-pot-provider@1.3.1",
   status: async () => "available" as const, ytDlpArguments: () => ["--extractor-args", "youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416"] });
+const handoff = Object.freeze({ artifactReference: `handoff:v1:${ID}:${"a".repeat(64)}`,
+  contentType: "video/mp4" as const, byteSize: 4, sha256: "a".repeat(64), workerObservedDurationSeconds: 10,
+  videoPresent: true as const, audioPresent: true, expiresAt: "2099-01-01T00:00:00.000Z" });
+const handoffStore = Object.freeze({ create: async () => handoff });
 
 test("composition reaches Core, fixed YouTube adapter, runtime, provider, validation, and cleanup", async () => {
   const authorityRoot = await mkdtemp(path.join(os.tmpdir(), "nexcut-acquisition-composition-"));
   let inspected = false;
   const composition = await createAcquisitionWorkerComposition({ authorityRoot, resolveRuntime: async () => runtime,
-    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider,
+    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider, handoffStore,
     run: async (args, options) => {
       assert.equal(options.timeoutMs, 1_000);
       assert.equal(args.includes("node:/usr/local/bin/node"), true);
@@ -41,7 +45,7 @@ test("composition reaches Core, fixed YouTube adapter, runtime, provider, valida
       return media;
     } });
   assert.deepEqual(await composition.execute(request), { acquisitionId: ID, status: "succeeded",
-    artifactReference: `acquisition:${ID}`, media });
+    artifactReference: handoff.artifactReference, media, handoff });
   const telemetry = composition.telemetry(ID)!;
   assert.equal(telemetry.configuredPlayerClient, "MWEB");
   assert.equal(telemetry.providerPluginConfigured, "YES");
@@ -57,7 +61,7 @@ test("extractor bot-check before provider request retains Attempt 3-style closed
   const authorityRoot = await mkdtemp(path.join(os.tmpdir(), "nexcut-extractor-before-provider-"));
   const evidence = extractClosedYtDlpStageTelemetry("ERROR: [youtube] closed: Sign in to confirm you're not a bot");
   const composition = await createAcquisitionWorkerComposition({ authorityRoot, resolveRuntime: async () => runtime,
-    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider,
+    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider, handoffStore,
     run: async (_args, options) => {
       options.telemetry?.ytDlpStarted();
       throw new YtDlpProcessFailure("youtube-bot-check", { exitCode: 1, signal: null, timedOut: false,
@@ -96,7 +100,7 @@ test("provider precheck failure is retained and proves yt-dlp was not spawned", 
   const unavailable: PoTokenProvider = Object.freeze({ authority: "closed-test-provider",
     status: async () => "unavailable" as const, ytDlpArguments: () => [] });
   const composition = await createAcquisitionWorkerComposition({ authorityRoot, resolveRuntime: async () => runtime,
-    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider: unavailable,
+    idempotency: new InMemoryAcquisitionIdempotencyStore(), provider: unavailable, handoffStore,
     run: async () => { runCount += 1; } });
   const result = await composition.execute(request);
   assert.equal(result.status, "failed");

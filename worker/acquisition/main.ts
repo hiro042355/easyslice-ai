@@ -1,12 +1,19 @@
-import { createAcquisitionWorkerHttpService } from "./httpService";
-import { createAcquisitionWorkerComposition } from "./composition";
+import { createAcquisitionWorkerHttpService, type WorkerHttpDependencies } from "./httpService";
+import { createAcquisitionWorkerComposition, type AcquisitionWorkerExecution } from "./composition";
 import { probeWorkerReadiness } from "./runtimeReadiness";
 import { probeControlledEgress } from "./networkReadiness";
 import type { AcquisitionWorkerStartupTelemetrySink } from "./startupTelemetry";
 
+export const bindAcquisitionWorkerExecution = (execution: AcquisitionWorkerExecution):
+Pick<WorkerHttpDependencies, "execute" | "lookup" | "telemetry"> => Object.freeze({
+  execute: execution.execute,
+  lookup: execution.lookup,
+  telemetry: execution.telemetry,
+});
+
 export const startAcquisitionWorker = async (startupTelemetry: AcquisitionWorkerStartupTelemetrySink): Promise<void> => {
     const execution = await createAcquisitionWorkerComposition({ startupTelemetry });
-    const service = createAcquisitionWorkerHttpService({ execute: execution.execute, telemetry: execution.telemetry, readiness: probeWorkerReadiness,
+    const service = createAcquisitionWorkerHttpService({ ...bindAcquisitionWorkerExecution(execution), readiness: probeWorkerReadiness,
       networkReadiness: (signal) => probeControlledEgress(process.env.EXPECTED_EGRESS_IP, signal),
       log: (entry) => console.info(JSON.stringify(entry)) });
     startupTelemetry.enter("HTTP_BIND");

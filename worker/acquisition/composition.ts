@@ -1,4 +1,5 @@
-import { AcquisitionWorkerCore, type AcquisitionArtifactConsumer, type AcquisitionMediaInspector } from "../../lib/server/acquisitionWorker/core";
+import { AcquisitionWorkerCore, type AcquisitionMediaInspector, type ArtifactHandoffStore } from "../../lib/server/acquisitionWorker/core";
+import { createGcsArtifactHandoffStore } from "../../lib/server/acquisitionWorker/gcsArtifactHandoffStore";
 import { createAcquisitionControlStore } from "../../lib/server/acquisitionWorker/gcsControlStore";
 import type { AcquisitionIdempotencyStore } from "../../lib/server/acquisitionWorker/idempotency";
 import { inspectCanonicalMp4 } from "../../lib/server/acquisitionWorker/mediaValidation";
@@ -18,6 +19,7 @@ import type { AcquisitionWorkerStartupTelemetrySink } from "./startupTelemetry";
 const DEFAULT_AUTHORITY_ROOT = "/workspace/acquisitions";
 export type AcquisitionWorkerExecution = Readonly<{
   execute(input: unknown, signal?: AbortSignal): Promise<AcquisitionResult>;
+  lookup(acquisitionId: string): Promise<AcquisitionResult | undefined>;
   telemetry(acquisitionId: string): AcquisitionSafeTelemetry | undefined;
 }>;
 export type AcquisitionWorkerCompositionOptions = Readonly<{
@@ -25,7 +27,7 @@ export type AcquisitionWorkerCompositionOptions = Readonly<{
   resolveRuntime?: () => Promise<AcquisitionRuntime>;
   run?: AcquisitionProcessRunner;
   inspectMedia?: AcquisitionMediaInspector;
-  consumeArtifact?: AcquisitionArtifactConsumer;
+  handoffStore?: ArtifactHandoffStore;
   idempotency?: AcquisitionIdempotencyStore;
   provider?: PoTokenProvider;
   telemetryProxy?: ProviderTelemetryProxy;
@@ -55,8 +57,6 @@ export const createProductionAcquisitionRunner = (
     throw error;
   }
 };
-const ephemeralResult: AcquisitionArtifactConsumer = async ({ acquisitionId }) => `acquisition:${acquisitionId}`;
-
 export const createAcquisitionWorkerComposition = async (
   options: AcquisitionWorkerCompositionOptions = {},
 ): Promise<AcquisitionWorkerExecution> => {
@@ -99,13 +99,14 @@ export const createAcquisitionWorkerComposition = async (
     runtime,
     authorityRoot: options.authorityRoot ?? process.env.ACQUISITION_WORKSPACE_ROOT ?? DEFAULT_AUTHORITY_ROOT,
     inspectMedia: options.inspectMedia ?? inspectCanonicalMp4,
-    consumeArtifact: options.consumeArtifact ?? ephemeralResult,
+    handoffStore: options.handoffStore ?? createGcsArtifactHandoffStore(process.env),
     provider,
     telemetryRuntime: { pluginArtifact: true, nodeConfigured: true, nodeExecutable: true,
       nodeVersionMatch: runtime.nodeMajorVersion === 24, ejsAvailable: true },
     retainTelemetry(acquisitionId, telemetry) { retained.set(acquisitionId, telemetry); },
   });
   return Object.freeze({ execute: (input, signal) => core.execute(input, signal),
+    lookup: (acquisitionId) => core.lookup(acquisitionId),
     telemetry: (acquisitionId) => {
       const telemetry = retained.get(acquisitionId);
       retained.delete(acquisitionId);
