@@ -12,6 +12,7 @@ RUN npm ci
 COPY tsconfig.json ./tsconfig.json
 COPY scripts/copyRuntimeDependencyClosure.mjs ./scripts/copyRuntimeDependencyClosure.mjs
 COPY lib/server ./lib/server
+COPY lib/urlAcquisition ./lib/urlAcquisition
 COPY worker/acquisition ./worker/acquisition
 RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
  && sed -i "s/2026\\.03\\.13/${YT_DLP_VERSION}/g" worker/acquisition/dist/lib/server/packagedYtDlp.js \
