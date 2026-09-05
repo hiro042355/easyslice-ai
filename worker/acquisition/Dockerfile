@@ -31,7 +31,7 @@ RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
     else \
       ! grep -F "\"--downloader\"" worker/acquisition/dist/lib/server/youtubeIngestion.js; \
     fi \
- && node scripts/copyRuntimeDependencyClosure.mjs /src/node_modules /runtime-node-modules google-auth-library
+ && node scripts/copyRuntimeDependencyClosure.mjs /src/node_modules /runtime-node-modules google-auth-library @google-cloud/storage
 
 FROM node:24.16.0-bookworm-slim AS runtime
 
