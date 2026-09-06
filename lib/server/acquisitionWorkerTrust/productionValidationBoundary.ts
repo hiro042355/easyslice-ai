@@ -7,6 +7,8 @@ import {
   type AcquisitionResult,
 } from "../acquisitionWorker/types";
 import { validateAcquisitionSafeTelemetry, type AcquisitionSafeTelemetry } from "../acquisitionWorker/telemetry";
+import { isProductionOwner } from "../productionIdentity/productionOwnerAuthority";
+import type { UserId } from "../productionIdentity/types";
 import { AcquisitionWorkerTrustFailure, type AcquisitionWorkerInvocationResult } from "./client";
 
 export const PRODUCTION_VALIDATION_BODY_LIMIT_BYTES = 256;
@@ -120,8 +122,9 @@ export const createProductionValidationBoundary = (dependencies: ProductionValid
     const authentication = await dependencies.authenticate(request);
     if (!authentication.ok) return authentication.response;
     const environment = dependencies.environment;
-    const ownerUid = environment.NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_OWNER_UID;
-    if (!ownerUid || authentication.userId !== ownerUid) return json(403, { status: "rejected", errorCode: "owner-authorization-required" });
+    if (!isProductionOwner(authentication.userId as UserId, environment.NEXCUT_PRODUCTION_OWNER_UID)) {
+      return json(403, { status: "rejected", errorCode: "owner-authorization-required" });
+    }
     if (request.headers.get("origin") !== new URL(request.url).origin) {
       return json(403, { status: "rejected", errorCode: "invalid-origin" });
     }

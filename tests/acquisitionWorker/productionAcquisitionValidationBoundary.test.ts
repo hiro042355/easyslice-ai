@@ -22,7 +22,7 @@ const success: AcquisitionResult = Object.freeze({
 const environment = Object.freeze({
   VERCEL_ENV: "production",
   NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_ENABLED: "true",
-  NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_OWNER_UID: "owner-uid",
+  NEXCUT_PRODUCTION_OWNER_UID: "owner-uid",
   NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_ID: acquisitionId,
   NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_SOURCE_URL: sourceUrl,
 });
@@ -120,6 +120,24 @@ test("authentication, owner, origin, production, and capability gates fail close
   }
 });
 
+test("canonical production Owner authority is required independently of validation enablement", async () => {
+  for (const configuredOwnerUid of [undefined, "", " owner-uid", "owner-uid,other", "other"]) {
+    const { calls, execute } = harness({ environment: { ...environment, NEXCUT_PRODUCTION_OWNER_UID: configuredOwnerUid } });
+    assert.equal((await execute(request())).status, 403);
+    assert.equal(calls.invoke, 0);
+    assert.equal(calls.lookup, 0);
+  }
+  const { calls, execute } = harness({
+    environment: {
+      ...environment,
+      NEXCUT_PRODUCTION_OWNER_UID: "owner-uid",
+      NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_OWNER_UID: "other",
+    },
+  });
+  assert.equal((await execute(request())).status, 200);
+  assert.equal(calls.invoke, 1);
+});
+
 test("body is bounded in-stream and exact schema rejects malformed or broadened input", async () => {
   const invalid = [
     "x".repeat(PRODUCTION_VALIDATION_BODY_LIMIT_BYTES + 1),
@@ -215,4 +233,5 @@ test("implementation has no generic proxy, URL logging, GCS, AssetImport, or dir
   assert.doesNotMatch(source, /invokeProductionAcquisitionWorkerAt|\/api\/v1\/assets\/import|directYouTubeImporter/);
   assert.doesNotMatch(source, /@google-cloud\/storage|console\.|fetch\(|request\.json\(|randomUUID/);
   assert.doesNotMatch(route, /NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_SOURCE_URL|sourceUrl/);
+  assert.doesNotMatch(boundary, /NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_OWNER_UID/);
 });
