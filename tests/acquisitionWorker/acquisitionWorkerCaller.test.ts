@@ -5,6 +5,7 @@ import {
   AcquisitionWorkerTrustFailure,
   createAcquisitionWorkerTrustClient,
   readAcquisitionWorkerTrustConfiguration,
+  WORKER_RESPONSE_MAX_BYTES,
 } from "../../lib/server/acquisitionWorkerTrust/client";
 import {
   ACQUISITION_DEFAULT_TIMEOUT_MS,
@@ -39,6 +40,38 @@ const request: AcquisitionRequest = Object.freeze({
   maxBytes: ACQUISITION_MAX_BYTES,
   timeoutMs: ACQUISITION_DEFAULT_TIMEOUT_MS,
 });
+
+const streamedJsonResponse = (
+  chunks: readonly string[],
+  init: Readonly<{ status?: number; contentType?: string; contentLength?: string }> = {},
+): Response => {
+  const encoder = new TextEncoder();
+  return new Response(new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      controller.close();
+    },
+  }), {
+    status: init.status ?? 200,
+    headers: {
+      ...(init.contentType === undefined ? { "content-type": "application/json" } : init.contentType ? { "content-type": init.contentType } : {}),
+      ...(init.contentLength === undefined ? {} : { "content-length": init.contentLength }),
+    },
+  });
+};
+
+const verifyWithFirstResponse = (response: Response) => {
+  let fetchCalls = 0;
+  const client = createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: async () => "opaque",
+    async fetch() {
+      fetchCalls += 1;
+      return fetchCalls === 1 ? response : new Response(null, { status: 404 });
+    },
+    log() {}, now: () => 0,
+  });
+  return { operation: client.verify(), calls: () => fetchCalls };
+};
 const diagnostic = Object.freeze({
   acquisitionExecutionBegan: "YES", providerPrecheckOutcome: "AVAILABLE", ytDlpSpawnAttempted: "YES",
   ytDlpProcessStarted: "YES", externalRequestStageReached: "YES", has403: true, has429: false,
@@ -78,6 +111,138 @@ test("caller uses one short-lived token, fixed Worker path, exact request, and n
   assert.equal(new Headers(calls[0]?.init?.headers).get("authorization"), "Bearer opaque-token");
   assert.equal(calls[0]?.init?.signal instanceof AbortSignal, true);
   assert.doesNotMatch(JSON.stringify(result), /opaque-token|authorization|cookie|credential/i);
+});
+
+test("status lookup uses one short-lived token, fixed non-acquiring path, and no retry", async () => {
+  const calls: Array<{ input: string; init?: RequestInit }> = [];
+  let tokenCalls = 0;
+  const client = createAcquisitionWorkerTrustClient(configuration, {
+    async getIdToken(audience) { tokenCalls += 1; assert.equal(audience, configuration.workerUrl); return "opaque-token"; },
+    async fetch(input, init) { calls.push({ input, init }); return Response.json(successfulResult); },
+    log() { throw new Error("lookup-must-not-log"); }, now: () => 0,
+  });
+  assert.deepEqual(await client.lookup(acquisitionId), successfulResult);
+  assert.equal(tokenCalls, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.input, `${configuration.workerUrl}/v1/acquisitions/${acquisitionId}`);
+  assert.equal(calls[0]?.init?.method, "GET");
+  assert.equal(calls[0]?.init?.body, undefined);
+  assert.equal(new Headers(calls[0]?.init?.headers).get("authorization"), "Bearer opaque-token");
+});
+
+test("status lookup returns not-found and rejects mismatched or unsafe responses", async () => {
+  const make = (response: Response) => createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: async () => "opaque", fetch: async () => response, log() {}, now: () => 0,
+  });
+  assert.equal(await make(Response.json({ status: "not-found" }, { status: 404 })).lookup(acquisitionId), undefined);
+  await assert.rejects(make(new Response(null, { status: 404 })).lookup(acquisitionId),
+    (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-auth-rejected");
+  await assert.rejects(make(Response.json({ ...successfulResult, acquisitionId: "223e4567-e89b-42d3-a456-426614174000" })).lookup(acquisitionId),
+    (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-invalid-response");
+  await assert.rejects(make(Response.json({ ...successfulResult, raw: "private" })).lookup(acquisitionId),
+    (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-invalid-response");
+  await assert.rejects(make(new Response(null, { status: 403 })).lookup(acquisitionId),
+    (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-auth-rejected");
+});
+
+test("status lookup bounds streamed JSON and enforces its exact media type", async () => {
+  const make = (response: Response) => createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: async () => "opaque", fetch: async () => response, log() {}, now: () => 0,
+  });
+  const closed404 = '{"status":"not-found"}';
+  assert.equal(await make(streamedJsonResponse([closed404], { status: 404 })).lookup(acquisitionId), undefined);
+  const rejected = [
+    streamedJsonResponse(['{"status":"not-found","extra":true}'], { status: 404 }),
+    streamedJsonResponse(["{"], { status: 404 }),
+    streamedJsonResponse([], { status: 404 }),
+    streamedJsonResponse([closed404], { status: 404, contentType: "text/html" }),
+    streamedJsonResponse([closed404], { status: 404, contentType: "" }),
+    streamedJsonResponse([closed404], { status: 404, contentType: "application/json; foo=bar" }),
+    streamedJsonResponse([JSON.stringify({ status: "not-found", padding: "x".repeat(WORKER_RESPONSE_MAX_BYTES) })], { status: 404 }),
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES), closed404], { status: 404 }),
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES), closed404], { status: 404, contentLength: "4" }),
+    streamedJsonResponse([closed404], { status: 404, contentLength: String(WORKER_RESPONSE_MAX_BYTES + 1) }),
+  ];
+  for (const response of rejected) {
+    await assert.rejects(make(response).lookup(acquisitionId),
+      (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-auth-rejected");
+  }
+  assert.deepEqual(await make(streamedJsonResponse([JSON.stringify(successfulResult)])).lookup(acquisitionId), successfulResult);
+});
+
+test("acquisition response parsing is bounded, media-type constrained, and never retried", async () => {
+  const invokeWith = async (response: Response) => {
+    let fetchCalls = 0;
+    const client = createAcquisitionWorkerTrustClient(configuration, {
+      getIdToken: async () => "opaque",
+      async fetch() { fetchCalls += 1; return response; },
+      log() {}, now: () => 0,
+    });
+    const operation = client.invoke(request);
+    return { operation, calls: () => fetchCalls };
+  };
+  const valid = await invokeWith(streamedJsonResponse([JSON.stringify(successfulResult)]));
+  assert.deepEqual(await valid.operation, { result: successfulResult });
+  assert.equal(valid.calls(), 1);
+  const invalid = [
+    streamedJsonResponse([JSON.stringify(successfulResult), " ".repeat(WORKER_RESPONSE_MAX_BYTES)]),
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES), JSON.stringify(successfulResult)]),
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES), JSON.stringify(successfulResult)], { contentLength: "4" }),
+    streamedJsonResponse([JSON.stringify(successfulResult)], { contentType: "" }),
+    streamedJsonResponse([JSON.stringify(successfulResult)], { contentType: "text/plain" }),
+    streamedJsonResponse([JSON.stringify(successfulResult)], { contentType: "application/json; foo=bar" }),
+    streamedJsonResponse(["{"]),
+  ];
+  for (const response of invalid) {
+    const attempt = await invokeWith(response);
+    await assert.rejects(attempt.operation,
+      (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-invalid-response");
+    assert.equal(attempt.calls(), 1);
+  }
+});
+
+test("readiness verification uses the shared bounded JSON response authority", async () => {
+  const exactPrefix = '{"ready":true,"padding":"';
+  const exactSuffix = '"}';
+  const exactMaximum = `${exactPrefix}${"x".repeat(WORKER_RESPONSE_MAX_BYTES - exactPrefix.length - exactSuffix.length)}${exactSuffix}`;
+  assert.equal(new TextEncoder().encode(exactMaximum).byteLength, WORKER_RESPONSE_MAX_BYTES);
+
+  for (const response of [
+    streamedJsonResponse(['{"ready":true}']),
+    streamedJsonResponse([exactMaximum]),
+    streamedJsonResponse(['{"ready":true}'], { contentType: "Application/JSON; Charset=UTF-8" }),
+  ]) {
+    const attempt = verifyWithFirstResponse(response);
+    const result = await attempt.operation;
+    assert.equal(result.correctAudience.workerReady, true);
+    assert.equal(attempt.calls(), 3);
+  }
+});
+
+test("readiness verification fails closed at response transport boundaries without retry", async () => {
+  const invalidUtf8 = new Response(new Uint8Array([0x7b, 0x22, 0x72, 0x65, 0x61, 0x64, 0x79, 0x22, 0x3a, 0xff, 0x7d]), {
+    status: 200, headers: { "content-type": "application/json" },
+  });
+  const rejected = [
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES + 1)]),
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES), "x"]),
+    streamedJsonResponse([" ".repeat(WORKER_RESPONSE_MAX_BYTES), "x"], { contentLength: "4" }),
+    streamedJsonResponse(['{"ready":true}'], { contentType: "" }),
+    streamedJsonResponse(['{"ready":true}'], { contentType: "text/html" }),
+    streamedJsonResponse(['{"ready":true}'], { contentType: "application/json; foo=bar" }),
+    streamedJsonResponse(['{"ready":true}'], { contentType: "application/json; charset=iso-8859-1" }),
+    streamedJsonResponse(["{"]),
+    invalidUtf8,
+    streamedJsonResponse(['{"ready":false}']),
+    streamedJsonResponse(['{"status":"ready"}']),
+  ];
+  for (const response of rejected) {
+    const attempt = verifyWithFirstResponse(response);
+    await assert.rejects(attempt.operation,
+      (error: unknown) => error instanceof AcquisitionWorkerTrustFailure && error.code === "worker-unavailable"
+        && !error.message.includes("ready") && !error.message.includes("padding"));
+    assert.equal(attempt.calls(), 1);
+  }
 });
 
 test("caller accepts exact safe failure and rejects malformed, mismatched, and auth responses", async () => {
@@ -144,15 +309,17 @@ test("caller preserves AbortSignal and safely classifies timeout without exposin
   assert.equal(seen[0]?.aborted, true);
 });
 
-test("Owner E2E surface is retired before any production acquisition side effect", () => {
+test("Owner validation surface is narrow and normal production flows remain disconnected", () => {
   const route = readFileSync("app/api/internal/acquisition-worker-owner-e2e/route.ts", "utf8");
+  const boundary = readFileSync("lib/server/acquisitionWorkerTrust/productionValidationBoundary.ts", "utf8");
   const client = readFileSync("lib/server/acquisitionWorkerTrust/client.ts", "utf8");
   const ingestion = readFileSync("app/api/youtube/ingest/route.ts", "utf8");
   const workspace = readFileSync("app/workspace-flow/page.tsx", "utf8");
   const aiMv = readFileSync("app/api/ai-mv/route.ts", "utf8");
-  assert.match(route, /status:\s*"retired"/);
-  assert.match(route, /status: 410/);
-  assert.doesNotMatch(route, /invokeProductionAcquisitionWorker|randomUUID|request\.json|sourceUrl/);
+  assert.match(route, /createProductionValidationBoundary/);
+  assert.doesNotMatch(route, /invokeProductionAcquisitionWorkerAt|randomUUID|request\.json|sourceUrl/);
+  assert.match(boundary, /NEXCUT_PRODUCTION_ACQUISITION_VALIDATION_ENABLED/);
+  assert.doesNotMatch(boundary, /api\/v1\/assets\/import|directYouTubeImporter|fetch\(/);
   assert.match(client, /ACQUISITION_PATH = "\/v1\/acquisitions"/);
   assert.match(client, /ACQUISITION_REQUEST_TIMEOUT_MS = 270_000/);
   assert.doesNotMatch(`${ingestion}\n${workspace}\n${aiMv}`, /invokeProductionAcquisitionWorker|acquisition-worker-owner-e2e/);

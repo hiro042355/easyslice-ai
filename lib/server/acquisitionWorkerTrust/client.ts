@@ -6,6 +6,7 @@ const WRONG_AUDIENCE = "https://invalid-audience.nexcut.invalid";
 const REQUEST_TIMEOUT_MS = 15_000;
 const ACQUISITION_REQUEST_TIMEOUT_MS = 270_000;
 const ACQUISITION_PATH = "/v1/acquisitions" as const;
+export const WORKER_RESPONSE_MAX_BYTES = 16 * 1024;
 
 export const ACQUISITION_WORKER_AUTH_FAILURES = Object.freeze([
   "worker-auth-config-invalid",
@@ -68,6 +69,8 @@ export type AcquisitionWorkerInvocationResult = Readonly<{
   diagnostic?: AcquisitionSafeTelemetry;
 }>;
 
+export type AcquisitionWorkerLookupResult = AcquisitionResult | undefined;
+
 export class AcquisitionWorkerTrustFailure extends Error {
   constructor(readonly code: AcquisitionWorkerAuthFailureCode) {
     super(code);
@@ -96,6 +99,46 @@ export const readAcquisitionWorkerTrustConfiguration = (
 const rejected = (status: number): boolean => [401, 403, 404].includes(status);
 const elapsedBucket = (startedAt: number, now: number): number => Math.ceil(Math.max(0, now - startedAt) / 100) * 100;
 
+const isJsonContentType = (value: string | null): boolean =>
+  value !== null && /^\s*application\/json\s*(?:;\s*charset\s*=\s*(?:utf-8|"utf-8")\s*)?$/i.test(value);
+
+const readBoundedWorkerJson = async (response: Response): Promise<unknown> => {
+  if (!isJsonContentType(response.headers.get("content-type"))) throw new TypeError("invalid-worker-response");
+  const declared = response.headers.get("content-length");
+  if (declared !== null && /^\d+$/.test(declared.trim()) && Number(declared) > WORKER_RESPONSE_MAX_BYTES) {
+    throw new TypeError("invalid-worker-response");
+  }
+  if (!response.body) throw new TypeError("invalid-worker-response");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      bytes += chunk.value.byteLength;
+      if (bytes > WORKER_RESPONSE_MAX_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new TypeError("invalid-worker-response");
+      }
+      chunks.push(chunk.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const combined = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(combined));
+  } catch {
+    throw new TypeError("invalid-worker-response");
+  }
+};
+
 const fetchWorker = async (
   configuration: AcquisitionWorkerTrustConfiguration,
   dependencies: AcquisitionWorkerTrustDependencies,
@@ -120,6 +163,53 @@ export const createAcquisitionWorkerTrustClient = (
   configuration: AcquisitionWorkerTrustConfiguration,
   dependencies: AcquisitionWorkerTrustDependencies,
 ) => Object.freeze({
+  async lookup(acquisitionId: string, options: Readonly<{ signal?: AbortSignal }> = {}): Promise<AcquisitionWorkerLookupResult> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(acquisitionId)) {
+      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
+    }
+    const token = await dependencies.getIdToken(configuration.workerUrl);
+    if (!token) throw new AcquisitionWorkerTrustFailure("worker-id-token-failed");
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+    let response: Response;
+    try {
+      response = await dependencies.fetch(`${configuration.workerUrl}${ACQUISITION_PATH}/${acquisitionId}`, {
+        method: "GET",
+        headers: { authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal,
+      });
+    } catch (error) {
+      if ((error instanceof DOMException && error.name === "TimeoutError")
+        || (timeout.aborted && !options.signal?.aborted)) throw new AcquisitionWorkerTrustFailure("worker-timeout");
+      throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    }
+    if (response.status === 404) {
+      try {
+        const body = await readBoundedWorkerJson(response);
+        if (body && typeof body === "object" && !Array.isArray(body)
+          && Object.keys(body).length === 1 && (body as Record<string, unknown>).status === "not-found") return undefined;
+      } catch {
+        // A Cloud Run/IAM 404 or malformed Worker response is not a valid acquisition miss.
+      }
+      throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
+    }
+    if ([401, 403].includes(response.status)) throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
+    if (response.status !== 200) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    let body: unknown;
+    try {
+      body = await readBoundedWorkerJson(response);
+    } catch {
+      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
+    }
+    try {
+      const result = validateAcquisitionResult(body);
+      if (result.acquisitionId !== acquisitionId) throw new TypeError("invalid-acquisition-result");
+      return result;
+    } catch {
+      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
+    }
+  },
   async invoke(input: AcquisitionRequest, options: Readonly<{ signal?: AbortSignal }> = {}): Promise<AcquisitionWorkerInvocationResult> {
     const request = validateAcquisitionRequest(input);
     const token = await dependencies.getIdToken(configuration.workerUrl);
@@ -143,7 +233,12 @@ export const createAcquisitionWorkerTrustClient = (
     }
     if ([401, 403, 404].includes(response.status)) throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
     if (![200, 422].includes(response.status)) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
-    const body: unknown = await response.json().catch(() => undefined);
+    let body: unknown;
+    try {
+      body = await readBoundedWorkerJson(response);
+    } catch {
+      throw new AcquisitionWorkerTrustFailure("worker-invalid-response");
+    }
     try {
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new TypeError("invalid-acquisition-result");
       const candidate = body as Record<string, unknown>;
@@ -166,8 +261,14 @@ export const createAcquisitionWorkerTrustClient = (
     if (!correctToken) throw new AcquisitionWorkerTrustFailure("worker-id-token-failed");
     const correct = await fetchWorker(configuration, dependencies, correctToken);
     if (correct.status !== 200) throw new AcquisitionWorkerTrustFailure("worker-auth-rejected");
-    const readiness = await correct.json().catch(() => null) as { ready?: unknown } | null;
-    if (readiness?.ready !== true) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    let readiness: unknown;
+    try {
+      readiness = await readBoundedWorkerJson(correct);
+    } catch {
+      throw new AcquisitionWorkerTrustFailure("worker-unavailable");
+    }
+    const readinessResult = readiness as { ready?: unknown } | null;
+    if (readinessResult?.ready !== true) throw new AcquisitionWorkerTrustFailure("worker-unavailable");
     dependencies.log({
       event: "acquisition-worker-trust",
       trustStage: "correct-audience",

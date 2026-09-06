@@ -11,6 +11,7 @@ import {
 } from "./client";
 import type { AcquisitionRequest } from "../acquisitionWorker/types";
 import type { AcquisitionWorkerInvocationResult } from "./client";
+import type { AcquisitionWorkerLookupResult } from "./client";
 
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token";
@@ -89,6 +90,19 @@ export const invokeProductionAcquisitionWorker = async (
     log: (entry) => console.info(JSON.stringify(entry)),
     now: Date.now,
   }).invoke(request, { signal });
+};
+
+export const lookupProductionAcquisitionWorker = async (
+  acquisitionId: string,
+  signal?: AbortSignal,
+): Promise<AcquisitionWorkerLookupResult> => {
+  const configuration = readAcquisitionWorkerTrustConfiguration();
+  return createAcquisitionWorkerTrustClient(configuration, {
+    getIdToken: createProductionIdTokenAuthority(configuration),
+    fetch,
+    log: (entry) => console.info(JSON.stringify(entry)),
+    now: Date.now,
+  }).lookup(acquisitionId, { signal });
 };
 
 export const invokeProductionAcquisitionWorkerAt = async (

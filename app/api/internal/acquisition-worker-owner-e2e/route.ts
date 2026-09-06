@@ -1,7 +1,20 @@
-const HEADERS = Object.freeze({ "Cache-Control": "no-store, max-age=0",
-  "Content-Type": "application/json; charset=utf-8", "X-Content-Type-Options": "nosniff" });
+import { lookupProductionAcquisitionWorker, invokeProductionAcquisitionWorker } from "@/lib/server/acquisitionWorkerTrust/composition";
+import { createProductionValidationBoundary } from "@/lib/server/acquisitionWorkerTrust/productionValidationBoundary";
+import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
-export async function POST(): Promise<Response> {
-  return new Response(JSON.stringify({ status: "retired", code: "internal-acquisition-route-retired" }),
-    { status: 410, headers: HEADERS });
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+const handler = createProductionValidationBoundary({
+  environment: process.env,
+  async authenticate(request) {
+    const result = await requireAuthenticatedRequest(request);
+    return result.ok ? { ok: true, userId: result.context.identity.userId } : result;
+  },
+  invoke: invokeProductionAcquisitionWorker,
+  lookup: lookupProductionAcquisitionWorker,
+});
+
+export async function POST(request: Request): Promise<Response> {
+  return handler(request);
 }
