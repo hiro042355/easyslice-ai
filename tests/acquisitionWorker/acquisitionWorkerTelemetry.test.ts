@@ -64,11 +64,39 @@ test("plugin configuration remains distinct from discovery, activation, and toke
   assert.equal(configured.acquisitionProviderRequest, "NO");
 });
 
+test("closed process observations populate independently while missing evidence remains UNKNOWN", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.providerPluginConfiguration(true);
+  collector.processEvidence({
+    providerPluginDiscovered: "YES", providerPluginActivated: "UNKNOWN", observedPlayerClient: "WEB",
+    ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
+    mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "YES",
+    selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
+    http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
+  });
+  const value = collector.snapshot();
+  assert.equal(value.providerPluginConfigured, "YES");
+  assert.equal(value.providerPluginDiscovered, "YES");
+  assert.equal(value.providerPluginActivated, "UNKNOWN");
+  assert.equal(value.acquisitionProviderRequest, "NO");
+  assert.equal(value.observedPlayerClient, "WEB");
+  assert.equal(value.ejsActualUse, "YES");
+  assert.equal(value.jsChallengeObserved, "YES");
+  assert.equal(value.formatEnumerationObserved, "YES");
+  assert.equal(value.mediaRequestObserved, "YES");
+  assert.equal(value.mediaBytesObserved, "UNKNOWN");
+  assert.equal(value.tokenConsumedByYtDlp, "UNKNOWN");
+});
+
 test("explicit extractor bot-check termination closes only the pre-provider-request boundary", () => {
   const collector = new AcquisitionTelemetryCollector(runtime);
   collector.providerPluginConfiguration(true);
   collector.ytDlpStarted();
   collector.processEvidence({ tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN",
     hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
     botCheckEvidenceStage: "EXTRACTOR" });

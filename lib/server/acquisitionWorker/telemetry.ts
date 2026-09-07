@@ -192,6 +192,14 @@ export class AcquisitionTelemetryCollector {
     this.#state.tokenContext = context;
   }
   processEvidence(evidence: Readonly<{
+    providerPluginDiscovered: "YES" | "UNKNOWN";
+    providerPluginActivated: "YES" | "UNKNOWN";
+    observedPlayerClient: TelemetryPlayerClient;
+    ejsActualUse: "YES" | "UNKNOWN";
+    jsChallengeObserved: "YES" | "UNKNOWN";
+    formatEnumerationObserved: "YES" | "UNKNOWN";
+    mediaRequestObserved: "YES" | "UNKNOWN";
+    mediaBytesObserved: "YES" | "UNKNOWN";
     tokenContext: TelemetryTokenContext;
     tokenConsumedByYtDlp: TelemetryTriState;
     gvsRequestReached: TelemetryTriState;
@@ -202,6 +210,14 @@ export class AcquisitionTelemetryCollector {
     http403Stage: TelemetryHttp403Stage;
     botCheckEvidenceStage: BotCheckEvidenceStage;
   }>): void {
+    this.#state.providerPluginDiscovered = evidence.providerPluginDiscovered;
+    this.#state.providerPluginActivated = evidence.providerPluginActivated;
+    this.#state.observedPlayerClient = evidence.observedPlayerClient;
+    this.#state.ejsActualUse = evidence.ejsActualUse;
+    this.#state.jsChallengeObserved = evidence.jsChallengeObserved;
+    this.#state.formatEnumerationObserved = evidence.formatEnumerationObserved;
+    this.#state.mediaRequestObserved = evidence.mediaRequestObserved;
+    this.#state.mediaBytesObserved = evidence.mediaBytesObserved;
     this.#state.tokenContext = evidence.tokenContext;
     this.#state.tokenConsumedByYtDlp = evidence.tokenConsumedByYtDlp;
     this.#state.gvsRequestReached = evidence.gvsRequestReached;

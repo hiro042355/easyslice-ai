@@ -126,6 +126,9 @@ test("production runner merges in-process provider and closed stage evidence int
       exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
       closedStageTelemetry: { tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
+        providerPluginDiscovered: "YES", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
+        ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
+        mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
         mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
         hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", botCheckEvidenceStage: "UNKNOWN" },
     });
@@ -144,5 +147,6 @@ test("production runner merges in-process provider and closed stage evidence int
     mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure", failureStage: "UNKNOWN",
+    botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "NO",
   });
 });

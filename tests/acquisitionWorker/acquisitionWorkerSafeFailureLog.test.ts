@@ -17,6 +17,9 @@ const telemetry = (stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRA
   const collector = new AcquisitionTelemetryCollector(runtime);
   collector.providerTokenResponse(true, true, stage === "PLAYER" ? "PLAYER" : stage === "GVS" ? "GVS" : "UNKNOWN");
   collector.processEvidence({ tokenContext: stage === "GVS" ? "GVS" : stage === "PLAYER" ? "PLAYER" : "UNKNOWN",
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     tokenConsumedByYtDlp: stage === "UNKNOWN" ? "UNKNOWN" : "YES", gvsRequestReached: stage === "GVS" || stage === "MEDIA" ? "YES" : "UNKNOWN",
     mediaRequestReached: stage === "MEDIA" || stage === "HLS_FRAGMENT" ? "YES" : "UNKNOWN",
     selectedTransport: stage === "MEDIA" ? "DIRECT" : stage.startsWith("HLS_") ? "HLS" : "UNKNOWN",
@@ -67,6 +70,8 @@ test("Worker projects only the closed safe post-provider process failure evidenc
     retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure",
     failureStage: "UNKNOWN",
+    botCheckEvidenceStage: "UNKNOWN",
+    extractorTerminatedBeforeProviderRequest: "UNKNOWN",
   });
 });
 
@@ -80,8 +85,28 @@ test("Worker safe failure evidence contains no raw output or acquisition authori
     "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
     "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
     "hlsFragmentReached", "http403Stage", "retryCount",
-    "safeFailureCode", "failureStage",
+    "safeFailureCode", "failureStage", "botCheckEvidenceStage", "extractorTerminatedBeforeProviderRequest",
   ].sort());
+});
+
+test("Worker safe failure log retains closed bot stage and pre-provider termination only", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.ytDlpStarted();
+  collector.processEvidence({
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
+    selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
+    http403Stage: "UNKNOWN", botCheckEvidenceStage: "EXTRACTOR",
+  });
+  collector.processTerminated();
+  const projected = projectAcquisitionWorkerYtDlpFailure(
+    new YtDlpProcessFailure("youtube-bot-check"), collector.snapshot(),
+  );
+  assert.equal(projected.botCheckEvidenceStage, "EXTRACTOR");
+  assert.equal(projected.extractorTerminatedBeforeProviderRequest, "YES");
+  assert.doesNotMatch(JSON.stringify(projected), /stderr|youtube\.com|poToken|authorization/i);
 });
 
 test("Worker emits one single-line JSON event whose allowlisted fields are independently queryable", () => {

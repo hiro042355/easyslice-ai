@@ -226,6 +226,9 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
       stderrLimitExceeded: false,
       stderrSignature: extractSafeYtDlpStderrSignature(`ERROR: Sign in to confirm you're not a bot ${remoteId} ${token} ${tempPath}`),
       closedStageTelemetry: {
+        providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+        ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+        mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
         tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
         mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
         hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
@@ -412,8 +415,46 @@ test("bot-check evidence stage remains a closed deterministic category", () => {
   assert.equal(extractClosedYtDlpStageTelemetry("unrelated failure").botCheckEvidenceStage, "UNKNOWN");
 });
 
+test("closed process markers distinguish observation from configuration without retaining source text", () => {
+  const evidence = extractClosedYtDlpStageTelemetry([
+    "Loaded youtubepot bgutil plugin",
+    "Generating a GVS PO Token for mweb client",
+    "Using EJS to solve JavaScript challenge",
+    "Enumerating available video formats",
+    "[download] Destination: closed-media",
+    "[download] 12.5% of bounded media",
+  ].join("\n"));
+  assert.deepEqual({
+    providerPluginDiscovered: evidence.providerPluginDiscovered,
+    providerPluginActivated: evidence.providerPluginActivated,
+    observedPlayerClient: evidence.observedPlayerClient,
+    ejsActualUse: evidence.ejsActualUse,
+    jsChallengeObserved: evidence.jsChallengeObserved,
+    formatEnumerationObserved: evidence.formatEnumerationObserved,
+    mediaRequestObserved: evidence.mediaRequestObserved,
+    mediaBytesObserved: evidence.mediaBytesObserved,
+  }, {
+    providerPluginDiscovered: "YES", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
+    ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
+    mediaRequestObserved: "YES", mediaBytesObserved: "YES",
+  });
+  assert.deepEqual(extractClosedYtDlpStageTelemetry("mweb configured; bgutil configured"), {
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
+    selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
+    http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
+  });
+  assert.equal(extractClosedYtDlpStageTelemetry("client may be mweb or web").observedPlayerClient, "UNKNOWN");
+  assert.doesNotMatch(JSON.stringify(evidence), /closed-media|bounded media/i);
+});
+
 test("closed stage telemetry projects only directly evidenced provider and 403 stages", () => {
   assert.deepEqual(extractClosedYtDlpStageTelemetry("Retrieved a gvs PO Token for mweb client\nERROR: unable to download video data: HTTP Error 403"), {
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
     tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
     mediaRequestReached: "YES", selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA", botCheckEvidenceStage: "UNKNOWN",
@@ -421,6 +462,9 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: gvs request: HTTP Error 403").http403Stage, "GVS");
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: player request: HTTP Error 403").http403Stage, "PLAYER");
   assert.deepEqual(extractClosedYtDlpStageTelemetry("ERROR: HTTP Error 403"), {
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
@@ -435,10 +479,16 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
 test("closed HLS telemetry distinguishes manifest and fragment 403 without retaining authority", () => {
   const manifest = extractClosedYtDlpStageTelemetry("Downloading m3u8 information\nERROR: HLS manifest HTTP Error 403");
   assert.deepEqual(manifest, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "HLS",
     hlsManifestReached: "YES", hlsFragmentReached: "UNKNOWN", http403Stage: "HLS_MANIFEST", botCheckEvidenceStage: "UNKNOWN" });
   const fragment = extractClosedYtDlpStageTelemetry("[hlsnative] Downloading m3u8 manifest\nfragment 1 HTTP Error 403");
   assert.deepEqual(fragment, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
+    ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
+    mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "YES", mediaRequestReached: "YES", selectedTransport: "HLS",
     hlsManifestReached: "YES", hlsFragmentReached: "YES", http403Stage: "HLS_FRAGMENT", botCheckEvidenceStage: "UNKNOWN" });
   assert.equal(extractClosedYtDlpStageTelemetry("[dashsegments] Downloading MPD manifest").selectedTransport, "DASH");
