@@ -4,6 +4,7 @@ import test from "node:test";
 import { createAcquisitionWorkerHttpService, type WorkerReadiness } from "../../worker/acquisition/httpService";
 import { CONTROLLED_EGRESS_DIAGNOSTIC_DESTINATION, probeControlledEgress } from "../../worker/acquisition/networkReadiness";
 import type { AcquisitionResult } from "../../lib/server/acquisitionWorker/types";
+import { AcquisitionTelemetryCollector, validateAcquisitionSafeTelemetry, type AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const request = Object.freeze({
@@ -18,9 +19,11 @@ const withService = async (
   readiness: WorkerReadiness,
   execute: (input: unknown, signal?: AbortSignal) => Promise<AcquisitionResult>,
   operation: (origin: string, logs: readonly Readonly<Record<string, string | number | boolean>>[]) => Promise<void>,
+  telemetry?: (acquisitionId: string) => AcquisitionSafeTelemetry | undefined,
 ) => {
   const logs: Readonly<Record<string, string | number | boolean>>[] = [];
-  const service = createAcquisitionWorkerHttpService({ readiness: async () => readiness, execute, log: (event) => logs.push(event) });
+  const service = createAcquisitionWorkerHttpService({ readiness: async () => readiness, execute,
+    log: (event) => logs.push(event), ...(telemetry ? { telemetry } : {}) });
   service.listen(0, "127.0.0.1");
   await once(service, "listening");
   const address = service.address();
@@ -87,12 +90,69 @@ test("POST transport validates DTO and projects only the existing result contrac
     assert.equal(logs.length, 1);
     assert.deepEqual({ ...logs[0], elapsedBucket: undefined }, {
       event: "acquisition-completed",
+      acquisitionId: ID,
       source: "youtube",
       status: "failed",
       elapsedBucket: undefined,
       failureCode: "youtube-bot-check",
     });
     assert.equal(typeof logs[0]?.elapsedBucket, "number");
+    for (const field of ["providerPluginDiscovered", "providerPluginActivated", "observedPlayerClient",
+      "ejsActualUse", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
+      "mediaBytesObserved", "botCheckEvidenceStage", "extractorTerminatedBeforeProviderRequest"]) {
+      assert.equal(field in logs[0]!, false);
+    }
+  });
+});
+
+test("completion log correlates validated bounded telemetry without inference or sensitive material", async () => {
+  const readiness = Object.freeze({ ready: true, ytDlpVersionMatch: true, ffmpegAvailable: true, nodeSupported: true, providerHealthy: true });
+  const collector = new AcquisitionTelemetryCollector({ pluginArtifact: true, nodeConfigured: true,
+    nodeExecutable: true, nodeVersionMatch: true, ejsAvailable: true });
+  collector.providerPluginConfiguration(true);
+  const diagnostic = validateAcquisitionSafeTelemetry({ ...collector.snapshot(),
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "WEB",
+    ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
+    mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN", botCheckEvidenceStage: "EXTRACTOR",
+    extractorTerminatedBeforeProviderRequest: "YES" });
+  let executionCount = 0;
+  let telemetryReadCount = 0;
+  await withService(readiness, async (input) => {
+    executionCount += 1;
+    return Object.freeze({ acquisitionId: (input as typeof request).acquisitionId, status: "failed",
+      errorCode: "youtube-bot-check", retryable: false });
+  }, async (origin, logs) => {
+    const response = await fetch(`${origin}/v1/acquisitions`, { method: "POST",
+      headers: { "content-type": "application/json" }, body: JSON.stringify(request) });
+    assert.equal(response.status, 422);
+    assert.deepEqual(await response.json(), { acquisitionId: ID, status: "failed",
+      errorCode: "youtube-bot-check", retryable: false, diagnostic });
+    assert.equal(executionCount, 1);
+    assert.equal(telemetryReadCount, 1);
+    assert.equal(logs.length, 1);
+    const log = logs[0]!;
+    assert.deepEqual(Object.keys(log).sort(), [
+      "acquisitionId", "botCheckEvidenceStage", "ejsActualUse", "elapsedBucket", "event",
+      "extractorTerminatedBeforeProviderRequest", "failureCode", "formatEnumerationObserved",
+      "jsChallengeObserved", "mediaBytesObserved", "mediaRequestObserved", "observedPlayerClient",
+      "providerPluginActivated", "providerPluginDiscovered", "source", "status",
+    ].sort());
+    assert.equal(log.acquisitionId, ID);
+    for (const field of ["providerPluginDiscovered", "providerPluginActivated", "observedPlayerClient",
+      "ejsActualUse", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
+      "mediaBytesObserved", "botCheckEvidenceStage", "extractorTerminatedBeforeProviderRequest"] as const) {
+      assert.equal(log[field], diagnostic[field]);
+    }
+    assert.equal(log.providerPluginDiscovered, "UNKNOWN");
+    assert.equal(log.providerPluginActivated, "UNKNOWN");
+    assert.equal("providerPluginConfigured" in log, false);
+    assert.equal(log.failureCode, "youtube-bot-check");
+    assert.equal(Object.keys(log).some((key) => /sourceUrl|videoId|cookie|authorization|credential|(?:wif|id|access|provider)Token|providerBinding|rawProvider|stdout|stderr|challengePayload|mediaBytes$|signedUrl|filesystem|command|gcsCredential|secretEnvironment/i.test(key)), false);
+    assert.doesNotMatch(JSON.stringify(log), /secret-cookie|secret-authorization|secret-token|raw-provider-body|raw-stdout|raw-stderr|signed-url/i);
+  }, (acquisitionId) => {
+    telemetryReadCount += 1;
+    assert.equal(acquisitionId, ID);
+    return diagnostic;
   });
 });
 

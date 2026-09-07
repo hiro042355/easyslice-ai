@@ -81,16 +81,30 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
       }
       const input = validateAcquisitionRequest(await readJson(request));
       const result = validateAcquisitionResult(await dependencies.execute(input, abort.signal));
-      const diagnostic = dependencies.telemetry?.(input.acquisitionId);
+      const retainedTelemetry = dependencies.telemetry?.(input.acquisitionId);
+      const diagnostic = retainedTelemetry ? validateAcquisitionSafeTelemetry(retainedTelemetry) : undefined;
       dependencies.log({
         event: "acquisition-completed",
+        acquisitionId: input.acquisitionId,
         source: input.source,
         status: result.status,
         elapsedBucket: Math.ceil((Date.now() - startedAt) / 10_000) * 10,
         ...(result.status === "failed" ? { failureCode: result.errorCode } : {}),
+        ...(diagnostic ? {
+          providerPluginDiscovered: diagnostic.providerPluginDiscovered,
+          providerPluginActivated: diagnostic.providerPluginActivated,
+          observedPlayerClient: diagnostic.observedPlayerClient,
+          ejsActualUse: diagnostic.ejsActualUse,
+          jsChallengeObserved: diagnostic.jsChallengeObserved,
+          formatEnumerationObserved: diagnostic.formatEnumerationObserved,
+          mediaRequestObserved: diagnostic.mediaRequestObserved,
+          mediaBytesObserved: diagnostic.mediaBytesObserved,
+          botCheckEvidenceStage: diagnostic.botCheckEvidenceStage,
+          extractorTerminatedBeforeProviderRequest: diagnostic.extractorTerminatedBeforeProviderRequest,
+        } : {}),
       });
       return sendJson(response, result.status === "succeeded" ? 200 : 422,
-        diagnostic ? { ...result, diagnostic: validateAcquisitionSafeTelemetry(diagnostic) } : result);
+        diagnostic ? { ...result, diagnostic } : result);
     }
     return sendJson(response, 404, { status: "not-found" });
   } catch {
