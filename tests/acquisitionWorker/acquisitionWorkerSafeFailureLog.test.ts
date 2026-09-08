@@ -98,14 +98,15 @@ test("Worker safe failure log retains closed bot stage and pre-provider terminat
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
     selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
-    http403Stage: "UNKNOWN", botCheckEvidenceStage: "EXTRACTOR",
+    http403Stage: "UNKNOWN", botCheckEvidenceStage: "EXTRACTOR_LEXICAL", botCheckEvidenceKind: "LEXICAL",
   });
   collector.processTerminated();
   const projected = projectAcquisitionWorkerYtDlpFailure(
     new YtDlpProcessFailure("youtube-bot-check"), collector.snapshot(),
   );
-  assert.equal(projected.botCheckEvidenceStage, "EXTRACTOR");
-  assert.equal(projected.extractorTerminatedBeforeProviderRequest, "YES");
+  assert.equal(projected.botCheckEvidenceStage, "EXTRACTOR_LEXICAL");
+  assert.equal(projected.extractorTerminatedBeforeProviderRequest, "UNKNOWN");
+  assert.equal(collector.snapshot().extractorTerminatedWithoutObservedProviderRequest, "UNKNOWN");
   assert.doesNotMatch(JSON.stringify(projected), /stderr|youtube\.com|poToken|authorization/i);
 });
 

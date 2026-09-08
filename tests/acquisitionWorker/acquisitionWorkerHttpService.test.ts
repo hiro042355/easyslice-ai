@@ -113,8 +113,11 @@ test("completion log correlates validated bounded telemetry without inference or
   const diagnostic = validateAcquisitionSafeTelemetry({ ...collector.snapshot(),
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "WEB",
     ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
-    mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN", botCheckEvidenceStage: "EXTRACTOR",
-    extractorTerminatedBeforeProviderRequest: "YES" });
+    mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN", botCheckEvidenceStage: "EXTRACTOR_LEXICAL",
+    botCheckEvidenceKind: "LEXICAL", ytDlpProcessTerminated: "YES",
+    providerRequestObservationCoverage: "COMPLETE", providerRequestCount: "ZERO",
+    extractorTerminatedWithoutObservedProviderRequest: "YES",
+    extractorTerminatedBeforeProviderRequest: "UNKNOWN" });
   let executionCount = 0;
   let telemetryReadCount = 0;
   await withService(readiness, async (input) => {
@@ -132,22 +135,28 @@ test("completion log correlates validated bounded telemetry without inference or
     assert.equal(logs.length, 1);
     const log = logs[0]!;
     assert.deepEqual(Object.keys(log).sort(), [
-      "acquisitionId", "botCheckEvidenceStage", "ejsActualUse", "elapsedBucket", "event",
-      "extractorTerminatedBeforeProviderRequest", "failureCode", "formatEnumerationObserved",
+      "acquisitionId", "botCheckEvidenceKind", "botCheckEvidenceStage", "ejsActualUse", "elapsedBucket", "event",
+      "extractorTerminatedBeforeProviderRequest", "extractorTerminatedWithoutObservedProviderRequest",
+      "failureCode", "formatEnumerationObserved",
       "jsChallengeObserved", "mediaBytesObserved", "mediaRequestObserved", "observedPlayerClient",
-      "providerPluginActivated", "providerPluginDiscovered", "source", "status",
+      "providerPluginActivated", "providerPluginDiscovered", "providerRequestCount",
+      "providerRequestObservationCoverage", "providerRequestTemporalRelation", "providerResponseObserved",
+      "providerResponseSchemaOutcome", "providerTokenDemandObserved", "source", "status", "ytDlpProcessTerminated",
     ].sort());
     assert.equal(log.acquisitionId, ID);
     for (const field of ["providerPluginDiscovered", "providerPluginActivated", "observedPlayerClient",
       "ejsActualUse", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
-      "mediaBytesObserved", "botCheckEvidenceStage", "extractorTerminatedBeforeProviderRequest"] as const) {
+      "mediaBytesObserved", "botCheckEvidenceStage", "botCheckEvidenceKind", "ytDlpProcessTerminated",
+      "providerRequestObservationCoverage", "providerRequestCount", "providerTokenDemandObserved",
+      "providerResponseObserved", "providerResponseSchemaOutcome", "providerRequestTemporalRelation",
+      "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest"] as const) {
       assert.equal(log[field], diagnostic[field]);
     }
     assert.equal(log.providerPluginDiscovered, "UNKNOWN");
     assert.equal(log.providerPluginActivated, "UNKNOWN");
     assert.equal("providerPluginConfigured" in log, false);
     assert.equal(log.failureCode, "youtube-bot-check");
-    assert.equal(Object.keys(log).some((key) => /sourceUrl|videoId|cookie|authorization|credential|(?:wif|id|access|provider)Token|providerBinding|rawProvider|stdout|stderr|challengePayload|mediaBytes$|signedUrl|filesystem|command|gcsCredential|secretEnvironment/i.test(key)), false);
+    assert.equal(Object.keys(log).some((key) => /sourceUrl|videoId|cookie|authorization|credential|(?:wif|id|access)Token|providerToken(?!DemandObserved)|providerBinding|rawProvider|stdout|stderr|challengePayload|mediaBytes$|signedUrl|filesystem|command|gcsCredential|secretEnvironment/i.test(key)), false);
     assert.doesNotMatch(JSON.stringify(log), /secret-cookie|secret-authorization|secret-token|raw-provider-body|raw-stdout|raw-stderr|signed-url/i);
   }, (acquisitionId) => {
     telemetryReadCount += 1;

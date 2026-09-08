@@ -15,7 +15,10 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
   assert.deepEqual(diagnostic, {
     acquisitionExecutionBegan: "NO", providerPrecheckOutcome: "NOT_RUN", ytDlpSpawnAttempted: "NO",
     ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
-    has5xx: false, timeoutObserved: false,
+    ytDlpProcessTerminated: "UNKNOWN", providerRequestObservationCoverage: "NOT_STARTED",
+    providerRequestCount: "UNKNOWN", providerTokenDemandObserved: "UNKNOWN",
+    providerResponseObserved: "UNKNOWN", providerResponseSchemaOutcome: "UNKNOWN",
+    providerRequestTemporalRelation: "UNKNOWN", has5xx: false, timeoutObserved: false,
     expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
     providerHealthy: "UNKNOWN", providerPluginConfigured: "UNKNOWN", providerPluginDiscovered: "UNKNOWN",
     providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
@@ -27,7 +30,8 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
     jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
     mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN", processFailureFamily: "NONE",
-    botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+    botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+    extractorTerminatedWithoutObservedProviderRequest: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
   });
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
   const serialized = JSON.stringify(diagnostic);
@@ -73,7 +77,7 @@ test("closed process observations populate independently while missing evidence 
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "YES",
     selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
-    http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
+    http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   });
   const value = collector.snapshot();
   assert.equal(value.providerPluginConfigured, "YES");
@@ -99,15 +103,139 @@ test("explicit extractor bot-check termination closes only the pre-provider-requ
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN",
     hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
-    botCheckEvidenceStage: "EXTRACTOR" });
+    botCheckEvidenceStage: "EXTRACTOR_LEXICAL", botCheckEvidenceKind: "LEXICAL" });
+  collector.providerObservationStarted();
   collector.processTerminated();
+  collector.providerObservationComplete();
   const value = collector.snapshot();
   assert.equal(value.failureStage, "EXTRACTOR");
-  assert.equal(value.extractorTerminatedBeforeProviderRequest, "YES");
+  assert.equal(value.extractorTerminatedBeforeProviderRequest, "UNKNOWN");
+  assert.equal(value.extractorTerminatedWithoutObservedProviderRequest, "YES");
+  assert.equal(value.providerRequestTemporalRelation, "NOT_OBSERVED");
   assert.equal(value.acquisitionProviderRequest, "NO");
   assert.equal(value.externalRequestStageReached, "UNKNOWN");
   assert.equal(value.gvsRequestReached, "UNKNOWN");
   assert.equal(value.mediaRequestReached, "UNKNOWN");
+});
+
+test("provider observation projects affirmative zero only after complete coverage", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.providerObservationStarted();
+  assert.equal(collector.snapshot().providerRequestCount, "UNKNOWN");
+  assert.equal(collector.snapshot().providerTokenDemandObserved, "UNKNOWN");
+  collector.providerObservationInterrupted();
+  assert.equal(collector.snapshot().providerRequestCount, "UNKNOWN");
+  assert.equal(collector.snapshot().providerRequestTemporalRelation, "UNKNOWN");
+
+  const complete = new AcquisitionTelemetryCollector(runtime);
+  complete.providerObservationStarted();
+  complete.providerObservationComplete();
+  assert.equal(complete.snapshot().providerRequestCount, "ZERO");
+  assert.equal(complete.snapshot().providerRequestTemporalRelation, "NOT_OBSERVED");
+  assert.equal(complete.snapshot().providerResponseObserved, "UNKNOWN");
+  assert.equal(complete.snapshot().providerResponseSchemaOutcome, "NOT_OBSERVED");
+});
+
+test("provider request buckets and response schema outcomes remain independent", () => {
+  const collector = new AcquisitionTelemetryCollector(runtime);
+  collector.providerObservationStarted();
+  collector.providerRequest();
+  assert.equal(collector.snapshot().providerRequestCount, "ONE");
+  assert.equal(collector.snapshot().providerRequestTemporalRelation, "BEFORE_TERMINATION");
+  assert.equal(collector.snapshot().providerResponseObserved, "UNKNOWN");
+  collector.providerTokenResponse(true, false);
+  assert.equal(collector.snapshot().providerResponseObserved, "YES");
+  assert.equal(collector.snapshot().providerResponseSchemaOutcome, "INVALID");
+  assert.equal(collector.snapshot().tokenConsumedByYtDlp, "UNKNOWN");
+  collector.providerRequest();
+  assert.equal(collector.snapshot().providerRequestCount, "MULTIPLE");
+  collector.providerObservationComplete();
+  assert.equal(collector.snapshot().providerRequestCount, "MULTIPLE");
+
+  const failed = new AcquisitionTelemetryCollector(runtime);
+  failed.providerObservationStarted();
+  failed.providerRequest();
+  failed.providerTokenResponse(false, false);
+  assert.equal(failed.snapshot().providerResponseObserved, "NO");
+  assert.equal(failed.snapshot().providerResponseSchemaOutcome, "NOT_OBSERVED");
+  failed.providerTokenResponse(true, true);
+  assert.equal(failed.snapshot().providerResponseSchemaOutcome, "VALID");
+});
+
+test("validator rejects contradictory cross-field evidence without exposing values", () => {
+  const base = new AcquisitionTelemetryCollector(runtime).snapshot();
+  const reject = (candidate: unknown) => {
+    let message = "";
+    assert.throws(() => validateAcquisitionSafeTelemetry(candidate), (error: unknown) => {
+      message = error instanceof Error ? error.message : String(error);
+      return true;
+    });
+    assert.equal(message, "invalid-acquisition-telemetry-invariant");
+    assert.doesNotMatch(message, /private-source|secret-token|stdout|stderr|provider-body/i);
+  };
+  reject({ ...base, extractorTerminatedBeforeProviderRequest: "YES" });
+  reject({ ...base, extractorTerminatedBeforeProviderRequest: "NO" });
+  const corrected = { ...base, extractorTerminatedWithoutObservedProviderRequest: "YES",
+    ytDlpProcessTerminated: "YES", botCheckEvidenceStage: "EXTRACTOR_LEXICAL", botCheckEvidenceKind: "LEXICAL" } as const;
+  reject({ ...corrected, providerRequestObservationCoverage: "NOT_STARTED", providerRequestCount: "UNKNOWN" });
+  reject({ ...corrected, providerRequestObservationCoverage: "INTERRUPTED", providerRequestCount: "UNKNOWN" });
+  reject({ ...corrected, providerRequestObservationCoverage: "COMPLETE", providerRequestCount: "ONE",
+    acquisitionProviderRequest: "YES" });
+  reject({ ...corrected, providerRequestObservationCoverage: "COMPLETE", providerRequestCount: "ZERO",
+    botCheckEvidenceStage: "PLAYER_RESPONSE_LEXICAL" });
+  for (const coverage of ["NOT_STARTED", "INTERRUPTED", "UNKNOWN"] as const) {
+    reject({ ...base, providerRequestCount: "ZERO", providerRequestObservationCoverage: coverage });
+  }
+  const zero = { ...base, providerRequestObservationCoverage: "COMPLETE", providerRequestCount: "ZERO" } as const;
+  reject({ ...zero, providerRequestTemporalRelation: "BEFORE_TERMINATION" });
+  reject({ ...zero, providerRequestTemporalRelation: "AFTER_TERMINATION" });
+  for (const count of ["ONE", "MULTIPLE"] as const) {
+    reject({ ...base, providerRequestObservationCoverage: "COMPLETE", providerRequestCount: count,
+      acquisitionProviderRequest: "YES", providerRequestTemporalRelation: "NOT_OBSERVED" });
+  }
+  reject({ ...zero, providerResponseObserved: "YES" });
+  reject({ ...zero, providerResponseObserved: "NO" });
+  for (const schema of ["VALID", "INVALID"] as const) {
+    reject({ ...base, providerRequestObservationCoverage: "UNKNOWN", providerRequestCount: "ONE",
+      acquisitionProviderRequest: "YES", providerResponseSchemaOutcome: schema, providerResponseObserved: "UNKNOWN" });
+    reject({ ...base, providerRequestObservationCoverage: "UNKNOWN", providerRequestCount: "ONE",
+      acquisitionProviderRequest: "YES", providerResponseSchemaOutcome: schema, providerResponseObserved: "NO" });
+  }
+  reject({ ...base, providerRequestObservationCoverage: "UNKNOWN", providerRequestCount: "ONE",
+    acquisitionProviderRequest: "YES", providerResponseObserved: "YES", providerResponseSchemaOutcome: "NOT_OBSERVED" });
+  reject({ ...base, botCheckEvidenceStage: "EXTRACTOR_LEXICAL", botCheckEvidenceKind: "UNKNOWN" });
+  reject({ ...base, botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "LEXICAL" });
+  let privacyMessage = "";
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...base, arbitrary: "private-source secret-token" }), (error: unknown) => {
+    privacyMessage = error instanceof Error ? error.message : String(error);
+    return true;
+  });
+  assert.equal(privacyMessage, "invalid-acquisition-telemetry");
+  assert.doesNotMatch(privacyMessage, /private-source|secret-token/i);
+});
+
+test("validator accepts only evidence-supported cross-field combinations", () => {
+  const base = new AcquisitionTelemetryCollector(runtime).snapshot();
+  const completeZero = validateAcquisitionSafeTelemetry({ ...base, ytDlpProcessTerminated: "YES",
+    botCheckEvidenceStage: "EXTRACTOR_LEXICAL", botCheckEvidenceKind: "LEXICAL",
+    providerRequestObservationCoverage: "COMPLETE", providerRequestCount: "ZERO",
+    providerRequestTemporalRelation: "NOT_OBSERVED", providerResponseSchemaOutcome: "NOT_OBSERVED",
+    extractorTerminatedWithoutObservedProviderRequest: "YES" });
+  assert.equal(completeZero.extractorTerminatedWithoutObservedProviderRequest, "YES");
+  assert.equal(completeZero.extractorTerminatedBeforeProviderRequest, "UNKNOWN");
+
+  for (const schema of ["VALID", "INVALID"] as const) {
+    const observed = validateAcquisitionSafeTelemetry({ ...base,
+      providerRequestObservationCoverage: "UNKNOWN", providerRequestCount: "ONE",
+      acquisitionProviderRequest: "YES", providerRequestTemporalRelation: "BEFORE_TERMINATION",
+      providerResponseObserved: "YES", providerResponseSchemaOutcome: schema });
+    assert.equal(observed.providerResponseSchemaOutcome, schema);
+  }
+  const interrupted = validateAcquisitionSafeTelemetry({ ...base,
+    providerRequestObservationCoverage: "INTERRUPTED", providerRequestCount: "ONE",
+    acquisitionProviderRequest: "YES", providerRequestTemporalRelation: "BEFORE_TERMINATION" });
+  assert.equal(interrupted.providerRequestCount, "ONE");
+  assert.equal(validateAcquisitionSafeTelemetry(base).providerPluginDiscovered, "UNKNOWN");
 });
 
 test("execution, provider precheck, and process boundaries remain closed", () => {
@@ -173,6 +301,8 @@ test("proxy is localhost-only, fixed-contract, bounded, and preserves provider r
 test("closed token contexts and process stages reject arbitrary values", () => {
   for (const tokenContext of ["GVS", "PLAYER", "SUBS", "UNKNOWN"] as const) {
     const collector = new AcquisitionTelemetryCollector(runtime);
+    collector.providerObservationStarted();
+    collector.providerRequest();
     collector.providerTokenResponse(true, true, tokenContext);
     assert.equal(collector.snapshot().tokenContext, tokenContext);
   }
@@ -188,8 +318,9 @@ test("closed token contexts and process stages reject arbitrary values", () => {
   for (const http403Stage of ["HLS_MANIFEST", "HLS_FRAGMENT"] as const) {
     assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, http403Stage }).http403Stage, http403Stage);
   }
-  for (const botCheckEvidenceStage of ["PRE_EXTERNAL_REQUEST", "PLAYER_RESPONSE", "GVS_RESPONSE", "MEDIA_RESPONSE", "EXTRACTOR", "UNKNOWN"] as const) {
-    assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, botCheckEvidenceStage }).botCheckEvidenceStage, botCheckEvidenceStage);
+  for (const botCheckEvidenceStage of ["PRE_EXTERNAL_REQUEST_LEXICAL", "PLAYER_RESPONSE_LEXICAL", "GVS_RESPONSE_LEXICAL", "MEDIA_RESPONSE_LEXICAL", "EXTRACTOR_LEXICAL", "UNKNOWN"] as const) {
+    assert.equal(validateAcquisitionSafeTelemetry({ ...diagnostic, botCheckEvidenceStage,
+      botCheckEvidenceKind: botCheckEvidenceStage === "UNKNOWN" ? "UNKNOWN" : "LEXICAL" }).botCheckEvidenceStage, botCheckEvidenceStage);
   }
 });
 

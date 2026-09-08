@@ -12,9 +12,20 @@ export type AcquisitionTransport = (typeof ACQUISITION_TRANSPORTS)[number];
 export const HTTP_403_STAGES = ["PLAYER", "GVS", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN"] as const;
 export type TelemetryHttp403Stage = (typeof HTTP_403_STAGES)[number];
 export const BOT_CHECK_EVIDENCE_STAGES = [
-  "PRE_EXTERNAL_REQUEST", "PLAYER_RESPONSE", "GVS_RESPONSE", "MEDIA_RESPONSE", "EXTRACTOR", "UNKNOWN",
+  "PRE_EXTERNAL_REQUEST_LEXICAL", "PLAYER_RESPONSE_LEXICAL", "GVS_RESPONSE_LEXICAL", "MEDIA_RESPONSE_LEXICAL",
+  "EXTRACTOR_LEXICAL", "UNKNOWN",
 ] as const;
 export type BotCheckEvidenceStage = (typeof BOT_CHECK_EVIDENCE_STAGES)[number];
+export const PROVIDER_OBSERVATION_COVERAGE = ["COMPLETE", "NOT_STARTED", "INTERRUPTED", "UNKNOWN"] as const;
+export type ProviderObservationCoverage = (typeof PROVIDER_OBSERVATION_COVERAGE)[number];
+export const PROVIDER_REQUEST_COUNTS = ["ZERO", "ONE", "MULTIPLE", "UNKNOWN"] as const;
+export type ProviderRequestCount = (typeof PROVIDER_REQUEST_COUNTS)[number];
+export const PROVIDER_SCHEMA_OUTCOMES = ["VALID", "INVALID", "NOT_OBSERVED", "UNKNOWN"] as const;
+export type ProviderSchemaOutcome = (typeof PROVIDER_SCHEMA_OUTCOMES)[number];
+export const PROVIDER_TEMPORAL_RELATIONS = ["BEFORE_TERMINATION", "AFTER_TERMINATION", "NOT_OBSERVED", "UNKNOWN"] as const;
+export type ProviderTemporalRelation = (typeof PROVIDER_TEMPORAL_RELATIONS)[number];
+export const BOT_CHECK_EVIDENCE_KINDS = ["STRUCTURED", "BOUNDARY", "LEXICAL", "UNKNOWN"] as const;
+export type BotCheckEvidenceKind = (typeof BOT_CHECK_EVIDENCE_KINDS)[number];
 export const PROVIDER_PRECHECK_OUTCOMES = ["NOT_RUN", "NOT_CONFIGURED", "AVAILABLE", "UNAVAILABLE", "FAILED", "UNKNOWN"] as const;
 export type ProviderPrecheckOutcome = (typeof PROVIDER_PRECHECK_OUTCOMES)[number];
 export const PROCESS_FAILURE_FAMILIES = [
@@ -38,6 +49,13 @@ export type AcquisitionSafeTelemetry = Readonly<{
   providerPrecheckOutcome: ProviderPrecheckOutcome;
   ytDlpSpawnAttempted: TelemetryTriState;
   ytDlpProcessStarted: TelemetryTriState;
+  ytDlpProcessTerminated: "YES" | "UNKNOWN";
+  providerRequestObservationCoverage: ProviderObservationCoverage;
+  providerRequestCount: ProviderRequestCount;
+  providerTokenDemandObserved: "YES" | "UNKNOWN";
+  providerResponseObserved: TelemetryTriState;
+  providerResponseSchemaOutcome: ProviderSchemaOutcome;
+  providerRequestTemporalRelation: ProviderTemporalRelation;
   externalRequestStageReached: TelemetryTriState;
   has403: boolean;
   has429: boolean;
@@ -80,6 +98,9 @@ export type AcquisitionSafeTelemetry = Readonly<{
   safeFailureCode: AcquisitionFailureCode | "NONE";
   failureStage: TelemetryFailureStage;
   botCheckEvidenceStage: BotCheckEvidenceStage;
+  botCheckEvidenceKind: BotCheckEvidenceKind;
+  extractorTerminatedWithoutObservedProviderRequest: TelemetryTriState;
+  /** @deprecated Temporal ordering was not independently observed. Always UNKNOWN. */
   extractorTerminatedBeforeProviderRequest: TelemetryTriState;
 }>;
 
@@ -92,9 +113,17 @@ const http403Stages = new Set<string>(HTTP_403_STAGES);
 const providerPrecheckOutcomes = new Set<string>(PROVIDER_PRECHECK_OUTCOMES);
 const processFailureFamilies = new Set<string>(PROCESS_FAILURE_FAMILIES);
 const botCheckEvidenceStages = new Set<string>(BOT_CHECK_EVIDENCE_STAGES);
+const providerObservationCoverage = new Set<string>(PROVIDER_OBSERVATION_COVERAGE);
+const providerRequestCounts = new Set<string>(PROVIDER_REQUEST_COUNTS);
+const providerSchemaOutcomes = new Set<string>(PROVIDER_SCHEMA_OUTCOMES);
+const providerTemporalRelations = new Set<string>(PROVIDER_TEMPORAL_RELATIONS);
+const botCheckEvidenceKinds = new Set<string>(BOT_CHECK_EVIDENCE_KINDS);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
   "acquisitionExecutionBegan", "providerPrecheckOutcome", "ytDlpSpawnAttempted", "ytDlpProcessStarted",
+  "ytDlpProcessTerminated", "providerRequestObservationCoverage", "providerRequestCount",
+  "providerTokenDemandObserved", "providerResponseObserved", "providerResponseSchemaOutcome",
+  "providerRequestTemporalRelation",
   "externalRequestStageReached", "has403", "has429", "has5xx", "timeoutObserved", "processFailureFamily",
   "expectedPluginArtifactPresent", "runtimePluginDetection", "providerConfigured", "providerHealthy",
   "providerPluginConfigured", "providerPluginDiscovered", "providerPluginActivated",
@@ -104,8 +133,8 @@ const keys = [
   "hlsFragmentReached", "http403Stage", "retryCount",
   "nodeExecutable", "nodeVersionMatch", "ejsAvailable", "ejsActualUse", "configuredPlayerClient",
   "observedPlayerClient", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
-  "mediaBytesObserved", "safeFailureCode", "failureStage", "botCheckEvidenceStage",
-  "extractorTerminatedBeforeProviderRequest",
+  "mediaBytesObserved", "safeFailureCode", "failureStage", "botCheckEvidenceStage", "botCheckEvidenceKind",
+  "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest",
 ] as const;
 
 export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSafeTelemetry => {
@@ -138,17 +167,58 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !stages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "botCheckEvidenceStage") {
       if (typeof item !== "string" || !botCheckEvidenceStages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "providerRequestObservationCoverage") {
+      if (typeof item !== "string" || !providerObservationCoverage.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "providerRequestCount") {
+      if (typeof item !== "string" || !providerRequestCounts.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "providerResponseSchemaOutcome") {
+      if (typeof item !== "string" || !providerSchemaOutcomes.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "providerRequestTemporalRelation") {
+      if (typeof item !== "string" || !providerTemporalRelations.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "botCheckEvidenceKind") {
+      if (typeof item !== "string" || !botCheckEvidenceKinds.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (typeof item !== "string" || !tri.has(item)) throw new TypeError("invalid-acquisition-telemetry");
   }
+  const invalid = (): never => { throw new TypeError("invalid-acquisition-telemetry-invariant"); };
+  const positiveRequestCount = value.providerRequestCount === "ONE" || value.providerRequestCount === "MULTIPLE";
+  if (value.extractorTerminatedBeforeProviderRequest !== "UNKNOWN") invalid();
+  if (value.extractorTerminatedWithoutObservedProviderRequest === "YES" && !(
+    value.ytDlpProcessTerminated === "YES"
+    && value.botCheckEvidenceStage === "EXTRACTOR_LEXICAL"
+    && value.providerRequestObservationCoverage === "COMPLETE"
+    && value.providerRequestCount === "ZERO"
+  )) invalid();
+  if (value.extractorTerminatedWithoutObservedProviderRequest === "NO" && !positiveRequestCount) invalid();
+  if (value.providerRequestCount === "ZERO" && value.providerRequestObservationCoverage !== "COMPLETE") invalid();
+  if (positiveRequestCount && (value.providerRequestObservationCoverage === "NOT_STARTED"
+    || value.acquisitionProviderRequest !== "YES")) invalid();
+  if ((value.providerRequestTemporalRelation === "BEFORE_TERMINATION"
+    || value.providerRequestTemporalRelation === "AFTER_TERMINATION") && !positiveRequestCount) invalid();
+  if (value.providerRequestTemporalRelation === "NOT_OBSERVED" && !(
+    value.providerRequestObservationCoverage === "COMPLETE" && value.providerRequestCount === "ZERO"
+  )) invalid();
+  if ((value.providerResponseObserved === "YES" || value.providerResponseObserved === "NO") && !positiveRequestCount) invalid();
+  if ((value.providerResponseSchemaOutcome === "VALID" || value.providerResponseSchemaOutcome === "INVALID")
+    && value.providerResponseObserved !== "YES") invalid();
+  if (value.providerResponseSchemaOutcome === "NOT_OBSERVED" && value.providerResponseObserved === "YES") invalid();
+  const lexicalStage = typeof value.botCheckEvidenceStage === "string"
+    && value.botCheckEvidenceStage !== "UNKNOWN" && value.botCheckEvidenceStage.endsWith("_LEXICAL");
+  if (lexicalStage !== (value.botCheckEvidenceKind === "LEXICAL")) invalid();
+  if (value.botCheckEvidenceKind === "STRUCTURED" || value.botCheckEvidenceKind === "BOUNDARY") invalid();
   return Object.freeze({ ...value }) as AcquisitionSafeTelemetry;
 };
 
 export class AcquisitionTelemetryCollector {
   readonly #state: Record<string, string | number | boolean>;
+  #providerRequestCount = 0;
   constructor(runtime: Readonly<{ pluginArtifact: boolean; nodeConfigured: boolean; nodeExecutable: boolean; nodeVersionMatch: boolean; ejsAvailable: boolean }>) {
     this.#state = {
       acquisitionExecutionBegan: "NO", providerPrecheckOutcome: "NOT_RUN", ytDlpSpawnAttempted: "NO",
-      ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
+      ytDlpProcessStarted: "NO", ytDlpProcessTerminated: "UNKNOWN",
+      providerRequestObservationCoverage: "NOT_STARTED", providerRequestCount: "UNKNOWN",
+      providerTokenDemandObserved: "UNKNOWN", providerResponseObserved: "UNKNOWN",
+      providerResponseSchemaOutcome: "UNKNOWN", providerRequestTemporalRelation: "UNKNOWN",
+      externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
       has5xx: false, timeoutObserved: false, processFailureFamily: "NONE",
       expectedPluginArtifactPresent: runtime.pluginArtifact ? "YES" : "NO", runtimePluginDetection: "UNKNOWN",
       providerConfigured: "YES", providerHealthy: "UNKNOWN", providerPluginConfigured: "UNKNOWN",
@@ -162,7 +232,8 @@ export class AcquisitionTelemetryCollector {
       ejsAvailable: runtime.ejsAvailable ? "YES" : "NO", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB",
       observedPlayerClient: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
       mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
-      botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+      botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+      extractorTerminatedWithoutObservedProviderRequest: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
     };
   }
   providerHealth(value: boolean): void { this.#state.providerHealthy = value ? "YES" : "NO"; }
@@ -180,16 +251,45 @@ export class AcquisitionTelemetryCollector {
     this.#state.has5xx = value.has5xx;
     this.#state.timeoutObserved = value.timedOut;
   }
-  providerRequest(): void { this.#state.acquisitionProviderRequest = "YES"; }
+  providerObservationStarted(): void {
+    this.#state.providerRequestObservationCoverage = "UNKNOWN";
+    this.#providerRequestCount = 0;
+    this.#state.providerRequestCount = "UNKNOWN";
+  }
+  providerObservationComplete(): void {
+    this.#state.providerRequestObservationCoverage = "COMPLETE";
+    this.#state.providerRequestCount = this.#providerRequestCount === 0 ? "ZERO"
+      : this.#providerRequestCount === 1 ? "ONE" : "MULTIPLE";
+    this.#deriveClosedProviderFacts();
+  }
+  providerObservationInterrupted(): void {
+    this.#state.providerRequestObservationCoverage = "INTERRUPTED";
+    this.#state.providerRequestCount = this.#providerRequestCount === 0 ? "UNKNOWN"
+      : this.#providerRequestCount === 1 ? "ONE" : "MULTIPLE";
+    this.#deriveClosedProviderFacts();
+  }
+  providerRequest(): void {
+    if (this.#state.providerRequestObservationCoverage === "NOT_STARTED") {
+      this.#state.providerRequestObservationCoverage = "UNKNOWN";
+    }
+    this.#state.acquisitionProviderRequest = "YES";
+    this.#providerRequestCount += 1;
+    this.#state.providerRequestCount = this.#providerRequestCount === 1 ? "ONE" : "MULTIPLE";
+    this.#state.providerRequestTemporalRelation = this.#state.ytDlpProcessTerminated === "YES"
+      ? "AFTER_TERMINATION" : "BEFORE_TERMINATION";
+  }
   providerResult(success: boolean): void {
     this.#state.acquisitionProviderSuccess = success ? "YES" : "NO";
     this.#state.acquisitionProviderFailure = success ? "NO" : "YES";
     if (!success) this.#state.failureStage = "PROVIDER_REQUEST";
   }
   providerTokenResponse(observed: boolean, schemaValid: boolean, context: TelemetryTokenContext = "UNKNOWN"): void {
+    if (observed && this.#state.acquisitionProviderRequest !== "YES") this.providerRequest();
     this.#state.providerTokenResponseObserved = observed ? "YES" : "NO";
     this.#state.providerTokenSchemaValid = observed ? (schemaValid ? "YES" : "NO") : "UNKNOWN";
     this.#state.tokenContext = context;
+    this.#state.providerResponseObserved = observed ? "YES" : "NO";
+    this.#state.providerResponseSchemaOutcome = observed ? (schemaValid ? "VALID" : "INVALID") : "NOT_OBSERVED";
   }
   processEvidence(evidence: Readonly<{
     providerPluginDiscovered: "YES" | "UNKNOWN";
@@ -208,7 +308,8 @@ export class AcquisitionTelemetryCollector {
     hlsManifestReached: TelemetryTriState;
     hlsFragmentReached: TelemetryTriState;
     http403Stage: TelemetryHttp403Stage;
-    botCheckEvidenceStage: BotCheckEvidenceStage;
+    botCheckEvidenceStage: BotCheckEvidenceStage | "PRE_EXTERNAL_REQUEST" | "PLAYER_RESPONSE" | "GVS_RESPONSE" | "MEDIA_RESPONSE" | "EXTRACTOR";
+    botCheckEvidenceKind?: BotCheckEvidenceKind;
   }>): void {
     this.#state.providerPluginDiscovered = evidence.providerPluginDiscovered;
     this.#state.providerPluginActivated = evidence.providerPluginActivated;
@@ -226,15 +327,35 @@ export class AcquisitionTelemetryCollector {
     this.#state.hlsManifestReached = evidence.hlsManifestReached;
     this.#state.hlsFragmentReached = evidence.hlsFragmentReached;
     this.#state.http403Stage = evidence.http403Stage;
-    this.#state.botCheckEvidenceStage = evidence.botCheckEvidenceStage;
-    if (evidence.botCheckEvidenceStage === "EXTRACTOR") this.#state.failureStage = "EXTRACTOR";
+    const legacyStages = {
+      PRE_EXTERNAL_REQUEST: "PRE_EXTERNAL_REQUEST_LEXICAL", PLAYER_RESPONSE: "PLAYER_RESPONSE_LEXICAL",
+      GVS_RESPONSE: "GVS_RESPONSE_LEXICAL", MEDIA_RESPONSE: "MEDIA_RESPONSE_LEXICAL", EXTRACTOR: "EXTRACTOR_LEXICAL",
+    } as const;
+    const botCheckEvidenceStage = evidence.botCheckEvidenceStage in legacyStages
+      ? legacyStages[evidence.botCheckEvidenceStage as keyof typeof legacyStages] : evidence.botCheckEvidenceStage;
+    this.#state.botCheckEvidenceStage = botCheckEvidenceStage;
+    this.#state.botCheckEvidenceKind = evidence.botCheckEvidenceKind
+      ?? (botCheckEvidenceStage === "UNKNOWN" ? "UNKNOWN" : "LEXICAL");
+    if (botCheckEvidenceStage === "EXTRACTOR_LEXICAL") this.#state.failureStage = "EXTRACTOR";
     this.#state.externalRequestStageReached = evidence.gvsRequestReached === "YES" || evidence.mediaRequestReached === "YES"
       ? "YES" : "UNKNOWN";
   }
   processTerminated(): void {
-    this.#state.extractorTerminatedBeforeProviderRequest = this.#state.ytDlpProcessStarted === "YES"
-      && this.#state.botCheckEvidenceStage === "EXTRACTOR" && this.#state.acquisitionProviderRequest === "NO"
-      ? "YES" : this.#state.acquisitionProviderRequest === "YES" ? "NO" : "UNKNOWN";
+    this.#state.ytDlpProcessTerminated = "YES";
+    this.#deriveClosedProviderFacts();
+  }
+  #deriveClosedProviderFacts(): void {
+    this.#state.extractorTerminatedBeforeProviderRequest = "UNKNOWN";
+    const complete = this.#state.providerRequestObservationCoverage === "COMPLETE";
+    const zero = this.#state.providerRequestCount === "ZERO";
+    this.#state.extractorTerminatedWithoutObservedProviderRequest = this.#state.ytDlpProcessTerminated === "YES"
+      && this.#state.botCheckEvidenceStage === "EXTRACTOR_LEXICAL" && complete && zero ? "YES"
+      : this.#state.providerRequestCount === "ONE" || this.#state.providerRequestCount === "MULTIPLE" ? "NO" : "UNKNOWN";
+    if (complete && zero) this.#state.providerRequestTemporalRelation = "NOT_OBSERVED";
+    if (complete && zero) {
+      this.#state.providerResponseObserved = "UNKNOWN";
+      this.#state.providerResponseSchemaOutcome = "NOT_OBSERVED";
+    }
   }
   failure(code: AcquisitionFailureCode): void { this.#state.safeFailureCode = code; }
   snapshot(): AcquisitionSafeTelemetry { return validateAcquisitionSafeTelemetry(this.#state); }

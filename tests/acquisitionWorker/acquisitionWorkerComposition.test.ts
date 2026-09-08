@@ -19,7 +19,11 @@ const runtime: AcquisitionRuntime = Object.freeze({ ytDlpExecutable: "/app/node_
 const media: AcquisitionMediaMetadata = Object.freeze({ contentType: "video/mp4", byteSize: 4,
   durationSeconds: 10, hasVideo: true, hasAudio: true });
 const provider: PoTokenProvider = Object.freeze({ authority: "bgutil-ytdlp-pot-provider@1.3.1",
-  status: async () => "available" as const, ytDlpArguments: () => ["--extractor-args", "youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416"] });
+  status: async () => "available" as const, ytDlpArguments: () => ["--extractor-args", "youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416"],
+  observe: async <T>(collector: AcquisitionTelemetryCollector, operation: () => Promise<T>): Promise<T> => {
+    collector.providerObservationStarted();
+    try { return await operation(); } finally { collector.providerObservationComplete(); }
+  } });
 const handoff = Object.freeze({ artifactReference: `handoff:v1:${ID}:${"a".repeat(64)}`,
   contentType: "video/mp4" as const, byteSize: 4, sha256: "a".repeat(64), workerObservedDurationSeconds: 10,
   videoPresent: true as const, audioPresent: true, expiresAt: "2099-01-01T00:00:00.000Z" });
@@ -64,6 +68,7 @@ test("extractor bot-check before provider request retains Attempt 3-style closed
     idempotency: new InMemoryAcquisitionIdempotencyStore(), provider, handoffStore,
     run: async (_args, options) => {
       options.telemetry?.ytDlpStarted();
+      options.telemetry?.processTerminated();
       throw new YtDlpProcessFailure("youtube-bot-check", { exitCode: 1, signal: null, timedOut: false,
         aborted: false, stdoutLimitExceeded: false, stderrLimitExceeded: false,
         stderrSignature: extractSafeYtDlpStderrSignature("closed bot-check"), closedStageTelemetry: evidence });
@@ -75,8 +80,9 @@ test("extractor bot-check before provider request retains Attempt 3-style closed
   assert.equal(telemetry.providerPluginDiscovered, "UNKNOWN");
   assert.equal(telemetry.providerPluginActivated, "UNKNOWN");
   assert.equal(telemetry.acquisitionProviderRequest, "NO");
-  assert.equal(telemetry.extractorTerminatedBeforeProviderRequest, "YES");
-  assert.equal(telemetry.botCheckEvidenceStage, "EXTRACTOR");
+  assert.equal(telemetry.extractorTerminatedBeforeProviderRequest, "UNKNOWN");
+  assert.equal(telemetry.extractorTerminatedWithoutObservedProviderRequest, "YES");
+  assert.equal(telemetry.botCheckEvidenceStage, "EXTRACTOR_LEXICAL");
   assert.equal(telemetry.failureStage, "EXTRACTOR");
   assert.equal(telemetry.externalRequestStageReached, "UNKNOWN");
   assert.equal(telemetry.gvsRequestReached, "UNKNOWN");
@@ -122,6 +128,7 @@ test("production runner merges in-process provider and closed stage evidence int
   const entries: unknown[] = [];
   const runner = createProductionAcquisitionRunner((entry) => entries.push(entry), async (_args, options) => {
     options.onSpawnStarted?.();
+    options.onProcessTerminated?.();
     throw new YtDlpProcessFailure("unknown-yt-dlp-failure", {
       exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
@@ -130,7 +137,8 @@ test("production runner merges in-process provider and closed stage evidence int
         ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
         mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
         mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
-        hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", botCheckEvidenceStage: "UNKNOWN" },
+        hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", botCheckEvidenceStage: "UNKNOWN",
+        botCheckEvidenceKind: "UNKNOWN" },
     });
   });
   await assert.rejects(runner([], { timeoutMs: 1_000, telemetry: collector }), YtDlpProcessFailure);
@@ -147,6 +155,6 @@ test("production runner merges in-process provider and closed stage evidence int
     mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure", failureStage: "UNKNOWN",
-    botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "NO",
+    botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
   });
 });

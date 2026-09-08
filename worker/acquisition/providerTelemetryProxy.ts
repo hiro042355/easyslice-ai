@@ -47,7 +47,10 @@ export class ProviderTelemetryProxy {
             if (responseBytes <= PROVIDER_PROXY_BODY_LIMIT) responseChunks.push(chunk);
           });
           response.on("end", () => {
-            if (responseBytes > PROVIDER_PROXY_BODY_LIMIT) { if (tokenRequest) this.#active?.providerResult(false); outgoing.writeHead(502).end(); return; }
+            if (responseBytes > PROVIDER_PROXY_BODY_LIMIT) {
+              if (tokenRequest) { this.#active?.providerResult(false); this.#active?.providerTokenResponse(true, false); }
+              outgoing.writeHead(502).end(); return;
+            }
             const responseBody = Buffer.concat(responseChunks);
             const status = response.statusCode ?? 502;
             if (tokenRequest) {
@@ -60,7 +63,10 @@ export class ProviderTelemetryProxy {
             outgoing.end(responseBody);
           });
         });
-        upstream.once("error", () => { if (tokenRequest) this.#active?.providerResult(false); if (!outgoing.headersSent) outgoing.writeHead(502); outgoing.end(); });
+        upstream.once("error", () => {
+          if (tokenRequest) { this.#active?.providerResult(false); this.#active?.providerTokenResponse(false, false); }
+          if (!outgoing.headersSent) outgoing.writeHead(502); outgoing.end();
+        });
         upstream.end(body);
       });
     });
@@ -76,7 +82,11 @@ export class ProviderTelemetryProxy {
 
   async observe<T>(collector: AcquisitionTelemetryCollector, operation: () => Promise<T>): Promise<T> {
     if (this.#active) throw new Error("provider-telemetry-concurrency-violation");
+    collector.providerObservationStarted();
     this.#active = collector;
-    try { return await operation(); } finally { this.#active = undefined; }
+    try { return await operation(); } finally {
+      this.#active = undefined;
+      collector.providerObservationComplete();
+    }
   }
 }

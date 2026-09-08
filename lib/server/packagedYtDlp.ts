@@ -50,7 +50,8 @@ export type YtDlpClosedStageTelemetry = Readonly<{
   hlsManifestReached: "YES" | "NO" | "UNKNOWN";
   hlsFragmentReached: "YES" | "NO" | "UNKNOWN";
   http403Stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRAGMENT" | "UNKNOWN";
-  botCheckEvidenceStage: "PRE_EXTERNAL_REQUEST" | "PLAYER_RESPONSE" | "GVS_RESPONSE" | "MEDIA_RESPONSE" | "EXTRACTOR" | "UNKNOWN";
+  botCheckEvidenceStage: "PRE_EXTERNAL_REQUEST_LEXICAL" | "PLAYER_RESPONSE_LEXICAL" | "GVS_RESPONSE_LEXICAL" | "MEDIA_RESPONSE_LEXICAL" | "EXTRACTOR_LEXICAL" | "UNKNOWN";
+  botCheckEvidenceKind: "LEXICAL" | "UNKNOWN";
 }>;
 
 const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
@@ -60,7 +61,7 @@ const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
   mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
   hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
-  botCheckEvidenceStage: "UNKNOWN",
+  botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
 });
 
 export type YtDlpFailureDiagnostic = Readonly<{
@@ -211,11 +212,11 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
   const botCheck = /confirm you(?:'|’)re not a bot|sign in to confirm you(?:'|’)re not a bot/i;
   const botCheckLine = stderr.split(/\r?\n/).find((line) => botCheck.test(line));
   const botCheckEvidenceStage = !botCheckLine ? "UNKNOWN"
-    : /before (?:the )?(?:first )?(?:external|youtube) request/i.test(botCheckLine) ? "PRE_EXTERNAL_REQUEST"
-      : /player[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "PLAYER_RESPONSE"
-        : /gvs[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "GVS_RESPONSE"
-          : /(?:media|video data)[^\r\n]*(?:response|request)|(?:response|request)[^\r\n]*(?:media|video data)/i.test(botCheckLine) ? "MEDIA_RESPONSE"
-            : /\[youtube(?::[^\]]+)?\]|extractor/i.test(botCheckLine) ? "EXTRACTOR" : "UNKNOWN";
+    : /before (?:the )?(?:first )?(?:external|youtube) request/i.test(botCheckLine) ? "PRE_EXTERNAL_REQUEST_LEXICAL"
+      : /player[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "PLAYER_RESPONSE_LEXICAL"
+        : /gvs[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "GVS_RESPONSE_LEXICAL"
+          : /(?:media|video data)[^\r\n]*(?:response|request)|(?:response|request)[^\r\n]*(?:media|video data)/i.test(botCheckLine) ? "MEDIA_RESPONSE_LEXICAL"
+            : /\[youtube(?::[^\]]+)?\]|extractor/i.test(botCheckLine) ? "EXTRACTOR_LEXICAL" : "UNKNOWN";
   const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : hlsManifest403 ? "HLS_MANIFEST"
     : hlsFragment403 ? "HLS_FRAGMENT" : media403 ? "MEDIA" : "UNKNOWN";
   return Object.freeze({
@@ -236,6 +237,7 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
     hlsFragmentReached: hlsFragmentMarker || hlsFragment403 ? "YES" : "UNKNOWN",
     http403Stage,
     botCheckEvidenceStage,
+    botCheckEvidenceKind: botCheckEvidenceStage === "UNKNOWN" ? "UNKNOWN" : "LEXICAL",
   });
 };
 
@@ -424,6 +426,7 @@ export const runPackagedYtDlp = async (
     spawnImpl?: YtDlpSpawn;
     outputLimitBytes?: number;
     onSpawnStarted?: () => void;
+    onProcessTerminated?: () => void;
   }>,
 ): Promise<YtDlpProcessResult> => {
   if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs <= 0) throw new TypeError("invalid-yt-dlp-timeout");
@@ -479,6 +482,7 @@ export const runPackagedYtDlp = async (
       if (settled) return;
       settled = true;
       cleanup();
+      options.onProcessTerminated?.();
       const safeDiagnostic = diagnostic(code, signal);
       if (terminationReason) return reject(new YtDlpProcessFailure(terminationReason, safeDiagnostic));
       if (code !== 0) return reject(new YtDlpProcessFailure(classifyYtDlpStderr(stderr.toString("utf8")), safeDiagnostic));

@@ -232,6 +232,7 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
         tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
         mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
         hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
+        botCheckEvidenceKind: "UNKNOWN",
       },
     });
     const projected = JSON.stringify(error);
@@ -402,11 +403,11 @@ test("classifier maps only deterministic safe stderr categories", () => {
 
 test("bot-check evidence stage remains a closed deterministic category", () => {
   const cases = [
-    ["ERROR: bot check before first external request: Sign in to confirm you're not a bot", "PRE_EXTERNAL_REQUEST"],
-    ["ERROR: player response: Sign in to confirm you're not a bot", "PLAYER_RESPONSE"],
-    ["ERROR: GVS response: Sign in to confirm you're not a bot", "GVS_RESPONSE"],
-    ["ERROR: media response: Sign in to confirm you're not a bot", "MEDIA_RESPONSE"],
-    ["ERROR: [youtube] abc: Sign in to confirm you're not a bot", "EXTRACTOR"],
+    ["ERROR: bot check before first external request: Sign in to confirm you're not a bot", "PRE_EXTERNAL_REQUEST_LEXICAL"],
+    ["ERROR: player response: Sign in to confirm you're not a bot", "PLAYER_RESPONSE_LEXICAL"],
+    ["ERROR: GVS response: Sign in to confirm you're not a bot", "GVS_RESPONSE_LEXICAL"],
+    ["ERROR: media response: Sign in to confirm you're not a bot", "MEDIA_RESPONSE_LEXICAL"],
+    ["ERROR: [youtube] abc: Sign in to confirm you're not a bot", "EXTRACTOR_LEXICAL"],
     ["Sign in to confirm you're not a bot", "UNKNOWN"],
   ] as const;
   for (const [stderr, expected] of cases) {
@@ -444,7 +445,7 @@ test("closed process markers distinguish observation from configuration without 
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
     selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
-    http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
+    http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   });
   assert.equal(extractClosedYtDlpStageTelemetry("client may be mweb or web").observedPlayerClient, "UNKNOWN");
   assert.doesNotMatch(JSON.stringify(evidence), /closed-media|bounded media/i);
@@ -457,7 +458,7 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
     tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
     mediaRequestReached: "YES", selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN",
-    hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA", botCheckEvidenceStage: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   });
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: gvs request: HTTP Error 403").http403Stage, "GVS");
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: player request: HTTP Error 403").http403Stage, "PLAYER");
@@ -467,7 +468,7 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
-    hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
+    hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   });
   const serialized = JSON.stringify(extractClosedYtDlpStageTelemetry(
     "Retrieved a subs PO Token for mweb client\nprivate URL credential filesystem path",
@@ -483,14 +484,14 @@ test("closed HLS telemetry distinguishes manifest and fragment 403 without retai
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "HLS",
-    hlsManifestReached: "YES", hlsFragmentReached: "UNKNOWN", http403Stage: "HLS_MANIFEST", botCheckEvidenceStage: "UNKNOWN" });
+    hlsManifestReached: "YES", hlsFragmentReached: "UNKNOWN", http403Stage: "HLS_MANIFEST", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN" });
   const fragment = extractClosedYtDlpStageTelemetry("[hlsnative] Downloading m3u8 manifest\nfragment 1 HTTP Error 403");
   assert.deepEqual(fragment, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "YES", mediaRequestReached: "YES", selectedTransport: "HLS",
-    hlsManifestReached: "YES", hlsFragmentReached: "YES", http403Stage: "HLS_FRAGMENT", botCheckEvidenceStage: "UNKNOWN" });
+    hlsManifestReached: "YES", hlsFragmentReached: "YES", http403Stage: "HLS_FRAGMENT", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN" });
   assert.equal(extractClosedYtDlpStageTelemetry("[dashsegments] Downloading MPD manifest").selectedTransport, "DASH");
   const serialized = JSON.stringify(fragment);
   assert.doesNotMatch(serialized, /https?:|m3u8\.example|video.?id|poToken|tokenHash|accessToken|cookie|credential|header|path|stdout|stderr/i);
