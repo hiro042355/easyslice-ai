@@ -136,12 +136,14 @@ test("completion log correlates validated bounded telemetry without inference or
     const log = logs[0]!;
     assert.deepEqual(Object.keys(log).sort(), [
       "acquisitionId", "botCheckEvidenceKind", "botCheckEvidenceStage", "ejsActualUse", "elapsedBucket", "event",
+      "botCheckRelativeToTokenAttachment", "botCheckRelativeToTokenRetrieval",
       "extractorTerminatedBeforeProviderRequest", "extractorTerminatedWithoutObservedProviderRequest",
       "failureCode", "formatEnumerationObserved",
       "jsChallengeObserved", "mediaBytesObserved", "mediaRequestObserved", "observedPlayerClient",
       "providerPluginActivated", "providerPluginDiscovered", "providerRequestCount",
       "providerRequestObservationCoverage", "providerRequestTemporalRelation", "providerResponseObserved",
-      "providerResponseSchemaOutcome", "providerTokenDemandObserved", "source", "status", "ytDlpProcessTerminated",
+      "providerResponseSchemaOutcome", "providerTokenDemandObserved", "source", "status",
+      "tokenAttachedToOutboundRequest", "tokenRetrievedByYtDlp", "ytDlpProcessTerminated",
     ].sort());
     assert.equal(log.acquisitionId, ID);
     for (const field of ["providerPluginDiscovered", "providerPluginActivated", "observedPlayerClient",
@@ -149,6 +151,8 @@ test("completion log correlates validated bounded telemetry without inference or
       "mediaBytesObserved", "botCheckEvidenceStage", "botCheckEvidenceKind", "ytDlpProcessTerminated",
       "providerRequestObservationCoverage", "providerRequestCount", "providerTokenDemandObserved",
       "providerResponseObserved", "providerResponseSchemaOutcome", "providerRequestTemporalRelation",
+      "tokenRetrievedByYtDlp", "tokenAttachedToOutboundRequest", "botCheckRelativeToTokenRetrieval",
+      "botCheckRelativeToTokenAttachment",
       "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest"] as const) {
       assert.equal(log[field], diagnostic[field]);
     }

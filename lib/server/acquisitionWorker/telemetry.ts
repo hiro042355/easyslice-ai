@@ -24,6 +24,8 @@ export const PROVIDER_SCHEMA_OUTCOMES = ["VALID", "INVALID", "NOT_OBSERVED", "UN
 export type ProviderSchemaOutcome = (typeof PROVIDER_SCHEMA_OUTCOMES)[number];
 export const PROVIDER_TEMPORAL_RELATIONS = ["BEFORE_TERMINATION", "AFTER_TERMINATION", "NOT_OBSERVED", "UNKNOWN"] as const;
 export type ProviderTemporalRelation = (typeof PROVIDER_TEMPORAL_RELATIONS)[number];
+export const TOKEN_RETRIEVAL_RELATIONS = ["BEFORE_RETRIEVAL", "AFTER_RETRIEVAL", "UNKNOWN"] as const;
+export type TokenRetrievalRelation = (typeof TOKEN_RETRIEVAL_RELATIONS)[number];
 export const BOT_CHECK_EVIDENCE_KINDS = ["STRUCTURED", "BOUNDARY", "LEXICAL", "UNKNOWN"] as const;
 export type BotCheckEvidenceKind = (typeof BOT_CHECK_EVIDENCE_KINDS)[number];
 export const PROVIDER_PRECHECK_OUTCOMES = ["NOT_RUN", "NOT_CONFIGURED", "AVAILABLE", "UNAVAILABLE", "FAILED", "UNKNOWN"] as const;
@@ -75,7 +77,11 @@ export type AcquisitionSafeTelemetry = Readonly<{
   providerTokenResponseObserved: TelemetryTriState;
   providerTokenSchemaValid: TelemetryTriState;
   tokenContext: TelemetryTokenContext;
+  tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
+  tokenAttachedToOutboundRequest: "UNKNOWN";
   tokenConsumedByYtDlp: TelemetryTriState;
+  botCheckRelativeToTokenRetrieval: TokenRetrievalRelation;
+  botCheckRelativeToTokenAttachment: "UNKNOWN";
   playerClient: TelemetryPlayerClient;
   gvsRequestReached: TelemetryTriState;
   mediaRequestReached: TelemetryTriState;
@@ -117,6 +123,7 @@ const providerObservationCoverage = new Set<string>(PROVIDER_OBSERVATION_COVERAG
 const providerRequestCounts = new Set<string>(PROVIDER_REQUEST_COUNTS);
 const providerSchemaOutcomes = new Set<string>(PROVIDER_SCHEMA_OUTCOMES);
 const providerTemporalRelations = new Set<string>(PROVIDER_TEMPORAL_RELATIONS);
+const tokenRetrievalRelations = new Set<string>(TOKEN_RETRIEVAL_RELATIONS);
 const botCheckEvidenceKinds = new Set<string>(BOT_CHECK_EVIDENCE_KINDS);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
@@ -128,7 +135,9 @@ const keys = [
   "expectedPluginArtifactPresent", "runtimePluginDetection", "providerConfigured", "providerHealthy",
   "providerPluginConfigured", "providerPluginDiscovered", "providerPluginActivated",
   "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure", "nodeConfigured",
-  "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenConsumedByYtDlp",
+  "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenRetrievedByYtDlp",
+  "tokenAttachedToOutboundRequest", "tokenConsumedByYtDlp", "botCheckRelativeToTokenRetrieval",
+  "botCheckRelativeToTokenAttachment",
   "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
   "hlsFragmentReached", "http403Stage", "retryCount",
   "nodeExecutable", "nodeVersionMatch", "ejsAvailable", "ejsActualUse", "configuredPlayerClient",
@@ -175,12 +184,17 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !providerSchemaOutcomes.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "providerRequestTemporalRelation") {
       if (typeof item !== "string" || !providerTemporalRelations.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "botCheckRelativeToTokenRetrieval") {
+      if (typeof item !== "string" || !tokenRetrievalRelations.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "botCheckEvidenceKind") {
       if (typeof item !== "string" || !botCheckEvidenceKinds.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (typeof item !== "string" || !tri.has(item)) throw new TypeError("invalid-acquisition-telemetry");
   }
   const invalid = (): never => { throw new TypeError("invalid-acquisition-telemetry-invariant"); };
   const positiveRequestCount = value.providerRequestCount === "ONE" || value.providerRequestCount === "MULTIPLE";
+  if (value.tokenAttachedToOutboundRequest !== "UNKNOWN" || value.botCheckRelativeToTokenAttachment !== "UNKNOWN") invalid();
+  if (value.tokenConsumedByYtDlp !== "UNKNOWN") invalid();
+  if (value.botCheckRelativeToTokenRetrieval !== "UNKNOWN" && value.tokenRetrievedByYtDlp !== "YES") invalid();
   if (value.extractorTerminatedBeforeProviderRequest !== "UNKNOWN") invalid();
   if (value.extractorTerminatedWithoutObservedProviderRequest === "YES" && !(
     value.ytDlpProcessTerminated === "YES"
@@ -225,7 +239,9 @@ export class AcquisitionTelemetryCollector {
       providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO",
       acquisitionProviderSuccess: "NO", acquisitionProviderFailure: "NO", nodeConfigured: runtime.nodeConfigured ? "YES" : "NO",
       providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
-      tokenConsumedByYtDlp: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
+      tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+      tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+      botCheckRelativeToTokenAttachment: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
       mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
       hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
       nodeExecutable: runtime.nodeExecutable ? "YES" : "NO", nodeVersionMatch: runtime.nodeVersionMatch ? "YES" : "NO",
@@ -301,7 +317,11 @@ export class AcquisitionTelemetryCollector {
     mediaRequestObserved: "YES" | "UNKNOWN";
     mediaBytesObserved: "YES" | "UNKNOWN";
     tokenContext: TelemetryTokenContext;
+    tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
+    tokenAttachedToOutboundRequest: "UNKNOWN";
     tokenConsumedByYtDlp: TelemetryTriState;
+    botCheckRelativeToTokenRetrieval: TokenRetrievalRelation;
+    botCheckRelativeToTokenAttachment: "UNKNOWN";
     gvsRequestReached: TelemetryTriState;
     mediaRequestReached: TelemetryTriState;
     selectedTransport: AcquisitionTransport;
@@ -320,7 +340,11 @@ export class AcquisitionTelemetryCollector {
     this.#state.mediaRequestObserved = evidence.mediaRequestObserved;
     this.#state.mediaBytesObserved = evidence.mediaBytesObserved;
     this.#state.tokenContext = evidence.tokenContext;
-    this.#state.tokenConsumedByYtDlp = evidence.tokenConsumedByYtDlp;
+    this.#state.tokenRetrievedByYtDlp = evidence.tokenRetrievedByYtDlp;
+    this.#state.tokenAttachedToOutboundRequest = evidence.tokenAttachedToOutboundRequest;
+    this.#state.tokenConsumedByYtDlp = "UNKNOWN";
+    this.#state.botCheckRelativeToTokenRetrieval = evidence.botCheckRelativeToTokenRetrieval;
+    this.#state.botCheckRelativeToTokenAttachment = evidence.botCheckRelativeToTokenAttachment;
     this.#state.gvsRequestReached = evidence.gvsRequestReached;
     this.#state.mediaRequestReached = evidence.mediaRequestReached;
     this.#state.selectedTransport = evidence.selectedTransport;

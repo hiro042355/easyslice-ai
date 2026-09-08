@@ -22,7 +22,11 @@ export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
   providerTokenResponseObserved: AcquisitionSafeTelemetry["providerTokenResponseObserved"];
   providerTokenSchemaValid: AcquisitionSafeTelemetry["providerTokenSchemaValid"];
   tokenContext: AcquisitionSafeTelemetry["tokenContext"];
+  tokenRetrievedByYtDlp: AcquisitionSafeTelemetry["tokenRetrievedByYtDlp"];
+  tokenAttachedToOutboundRequest: AcquisitionSafeTelemetry["tokenAttachedToOutboundRequest"];
   tokenConsumedByYtDlp: AcquisitionSafeTelemetry["tokenConsumedByYtDlp"];
+  botCheckRelativeToTokenRetrieval: AcquisitionSafeTelemetry["botCheckRelativeToTokenRetrieval"];
+  botCheckRelativeToTokenAttachment: AcquisitionSafeTelemetry["botCheckRelativeToTokenAttachment"];
   playerClient: AcquisitionSafeTelemetry["playerClient"];
   gvsRequestReached: AcquisitionSafeTelemetry["gvsRequestReached"];
   mediaRequestReached: AcquisitionSafeTelemetry["mediaRequestReached"];
@@ -78,7 +82,11 @@ export const projectAcquisitionWorkerYtDlpFailure = (
     providerTokenResponseObserved: telemetry.providerTokenResponseObserved,
     providerTokenSchemaValid: telemetry.providerTokenSchemaValid,
     tokenContext: telemetry.tokenContext,
+    tokenRetrievedByYtDlp: telemetry.tokenRetrievedByYtDlp,
+    tokenAttachedToOutboundRequest: telemetry.tokenAttachedToOutboundRequest,
     tokenConsumedByYtDlp: telemetry.tokenConsumedByYtDlp,
+    botCheckRelativeToTokenRetrieval: telemetry.botCheckRelativeToTokenRetrieval,
+    botCheckRelativeToTokenAttachment: telemetry.botCheckRelativeToTokenAttachment,
     playerClient: telemetry.playerClient,
     gvsRequestReached: telemetry.gvsRequestReached,
     mediaRequestReached: telemetry.mediaRequestReached,

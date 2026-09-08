@@ -24,7 +24,9 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
     acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
     providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenConsumedByYtDlp: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", retryCount: 0,
     ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
@@ -75,7 +77,9 @@ test("closed process observations populate independently while missing evidence 
     providerPluginDiscovered: "YES", providerPluginActivated: "UNKNOWN", observedPlayerClient: "WEB",
     ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "YES",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "YES",
     selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
     http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   });
@@ -97,7 +101,9 @@ test("explicit extractor bot-check termination closes only the pre-provider-requ
   const collector = new AcquisitionTelemetryCollector(runtime);
   collector.providerPluginConfiguration(true);
   collector.ytDlpStarted();
-  collector.processEvidence({ tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+  collector.processEvidence({ tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+    botCheckRelativeToTokenRetrieval: "UNKNOWN", botCheckRelativeToTokenAttachment: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",

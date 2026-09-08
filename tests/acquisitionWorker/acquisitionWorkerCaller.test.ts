@@ -74,20 +74,26 @@ const verifyWithFirstResponse = (response: Response) => {
 };
 const diagnostic = Object.freeze({
   acquisitionExecutionBegan: "YES", providerPrecheckOutcome: "AVAILABLE", ytDlpSpawnAttempted: "YES",
-  ytDlpProcessStarted: "YES", externalRequestStageReached: "YES", has403: true, has429: false,
+  ytDlpProcessStarted: "YES", ytDlpProcessTerminated: "YES", providerRequestObservationCoverage: "COMPLETE",
+  providerRequestCount: "ONE", providerTokenDemandObserved: "YES", providerResponseObserved: "YES",
+  providerResponseSchemaOutcome: "VALID", providerRequestTemporalRelation: "BEFORE_TERMINATION",
+  externalRequestStageReached: "YES", has403: true, has429: false,
   has5xx: false, timeoutObserved: false,
   expectedPluginArtifactPresent: "YES", runtimePluginDetection: "UNKNOWN", providerConfigured: "YES",
   providerHealthy: "YES", providerPluginConfigured: "YES", providerPluginDiscovered: "UNKNOWN",
   providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "YES", acquisitionProviderSuccess: "YES",
   acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
   providerTokenResponseObserved: "YES", providerTokenSchemaValid: "YES", tokenContext: "GVS",
-  tokenConsumedByYtDlp: "YES", playerClient: "MWEB", gvsRequestReached: "YES",
+  tokenRetrievedByYtDlp: "YES", tokenAttachedToOutboundRequest: "UNKNOWN",
+  tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+  botCheckRelativeToTokenAttachment: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "YES",
   mediaRequestReached: "YES", selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN",
   hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA", retryCount: 0,
   ejsAvailable: "YES", ejsActualUse: "UNKNOWN", configuredPlayerClient: "MWEB", observedPlayerClient: "UNKNOWN",
   jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN", mediaRequestObserved: "UNKNOWN",
   mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN", processFailureFamily: "youtube-bot-check",
-  botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "NO",
+  botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+  extractorTerminatedWithoutObservedProviderRequest: "NO", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
 } as const);
 
 test("caller uses one short-lived token, fixed Worker path, exact request, and no retry", async () => {

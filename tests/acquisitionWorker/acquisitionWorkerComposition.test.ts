@@ -89,6 +89,50 @@ test("extractor bot-check before provider request retains Attempt 3-style closed
   assert.equal(telemetry.mediaRequestReached, "UNKNOWN");
 });
 
+test("verbose PO-token markers distinguish provider discovery, activation, retrieval, and ordering", () => {
+  const retrieved = extractClosedYtDlpStageTelemetry([
+    "[debug] [youtube] [pot] PO Token Providers: bgutil:http-1.3.1 (external)",
+    "[youtube] [pot:bgutil:http] Generating a gvs PO Token for mweb client",
+    "[debug] [youtube] abc: Retrieved a gvs PO Token for mweb client",
+    "ERROR: [youtube] abc: Sign in to confirm you're not a bot",
+  ].join("\n"));
+  assert.equal(retrieved.providerPluginDiscovered, "YES");
+  assert.equal(retrieved.providerPluginActivated, "YES");
+  assert.equal(retrieved.tokenContext, "GVS");
+  assert.equal(retrieved.observedPlayerClient, "MWEB");
+  assert.equal(retrieved.tokenRetrievedByYtDlp, "YES");
+  assert.equal(retrieved.tokenAttachedToOutboundRequest, "UNKNOWN");
+  assert.equal(retrieved.tokenConsumedByYtDlp, "UNKNOWN");
+  assert.equal(retrieved.botCheckRelativeToTokenRetrieval, "AFTER_RETRIEVAL");
+  assert.equal(retrieved.botCheckRelativeToTokenAttachment, "UNKNOWN");
+
+  const requestedOnly = extractClosedYtDlpStageTelemetry([
+    "ERROR: [youtube] abc: Sign in to confirm you're not a bot",
+    "[youtube] [pot:bgutil:http] Requesting a player PO Token for web client",
+  ].join("\n"));
+  assert.equal(requestedOnly.providerPluginDiscovered, "UNKNOWN");
+  assert.equal(requestedOnly.providerPluginActivated, "YES");
+  assert.equal(requestedOnly.tokenContext, "PLAYER");
+  assert.equal(requestedOnly.observedPlayerClient, "WEB");
+  assert.equal(requestedOnly.tokenRetrievedByYtDlp, "UNKNOWN");
+  assert.equal(requestedOnly.botCheckRelativeToTokenRetrieval, "UNKNOWN");
+});
+
+test("verbose parsing remains closed for other clients and never retains token-shaped values", () => {
+  const telemetry = extractClosedYtDlpStageTelemetry([
+    "[debug] unrelated bgutil:http plugin message with secret=token-shaped-value",
+    "ERROR: [youtube] abc: Sign in to confirm you're not a bot",
+    "[debug] [youtube] abc: Retrieved a subs PO Token for tv_embedded client: token-shaped-value",
+  ].join("\n"));
+  assert.equal(telemetry.providerPluginDiscovered, "UNKNOWN");
+  assert.equal(telemetry.providerPluginActivated, "YES");
+  assert.equal(telemetry.tokenContext, "SUBS");
+  assert.equal(telemetry.observedPlayerClient, "OTHER");
+  assert.equal(telemetry.tokenRetrievedByYtDlp, "YES");
+  assert.equal(telemetry.botCheckRelativeToTokenRetrieval, "BEFORE_RETRIEVAL");
+  assert.doesNotMatch(JSON.stringify(telemetry), /token-shaped-value/);
+});
+
 test("Production composition uses persistent GCS store and contains no stub, cookies, paths, or generic adapter", async () => {
   const composition = await readFile("worker/acquisition/composition.ts", "utf8");
   const main = await readFile("worker/acquisition/main.ts", "utf8");
@@ -132,7 +176,9 @@ test("production runner merges in-process provider and closed stage evidence int
     throw new YtDlpProcessFailure("unknown-yt-dlp-failure", {
       exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
-      closedStageTelemetry: { tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
+      closedStageTelemetry: { tokenContext: "GVS", tokenRetrievedByYtDlp: "YES",
+        tokenAttachedToOutboundRequest: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+        botCheckRelativeToTokenRetrieval: "UNKNOWN", botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "YES",
         providerPluginDiscovered: "YES", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
         ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
         mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
@@ -151,7 +197,9 @@ test("production runner merges in-process provider and closed stage evidence int
     safeFailureFamily: "unknown-yt-dlp-failure", has403: true, has429: false, has5xx: false,
     requestedFormatFailure: false, ffmpegFailure: false, writeFailure: false, permissionFailure: false,
     networkFailure: false, providerTokenResponseObserved: "YES", providerTokenSchemaValid: "YES",
-    tokenContext: "GVS", tokenConsumedByYtDlp: "YES", playerClient: "MWEB", gvsRequestReached: "YES",
+    tokenContext: "GVS", tokenRetrievedByYtDlp: "YES", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "YES",
     mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure", failureStage: "UNKNOWN",

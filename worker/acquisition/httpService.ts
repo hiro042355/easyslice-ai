@@ -93,6 +93,10 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
         ...(diagnostic ? {
           providerPluginDiscovered: diagnostic.providerPluginDiscovered,
           providerPluginActivated: diagnostic.providerPluginActivated,
+          tokenRetrievedByYtDlp: diagnostic.tokenRetrievedByYtDlp,
+          tokenAttachedToOutboundRequest: diagnostic.tokenAttachedToOutboundRequest,
+          botCheckRelativeToTokenRetrieval: diagnostic.botCheckRelativeToTokenRetrieval,
+          botCheckRelativeToTokenAttachment: diagnostic.botCheckRelativeToTokenAttachment,
           observedPlayerClient: diagnostic.observedPlayerClient,
           ejsActualUse: diagnostic.ejsActualUse,
           jsChallengeObserved: diagnostic.jsChallengeObserved,

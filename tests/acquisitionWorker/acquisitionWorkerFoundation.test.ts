@@ -137,7 +137,8 @@ test("YouTube arguments explicitly bind Node EJS and mweb, preserve canonical pr
   } satisfies SourceAcquisitionContext;
   const args = createYouTubeWorkerArguments(context);
   assert.deepEqual(args.slice(0, 3), ["--no-js-runtimes", "--js-runtimes", "node:/runtime/node"]);
-  assert.deepEqual(args.slice(3, 5), ["--extractor-args", "youtube:player_client=mweb;fetch_pot=always"]);
+  assert.deepEqual(args.slice(3, 6), ["--verbose", "--extractor-args", "youtube:player_client=mweb;fetch_pot=always"]);
+  assert.equal(args.filter((value) => value === "--verbose").length, 1);
   assert.equal(args.filter((value) => value === "youtube:player_client=mweb;fetch_pot=always").length, 1);
   assert.equal(args.some((value) => /player_client=(?!mweb(?:;|$))/.test(value)), false);
   assert.ok(args.includes("--no-playlist"));

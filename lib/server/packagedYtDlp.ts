@@ -43,7 +43,11 @@ export type YtDlpClosedStageTelemetry = Readonly<{
   mediaRequestObserved: "YES" | "UNKNOWN";
   mediaBytesObserved: "YES" | "UNKNOWN";
   tokenContext: "GVS" | "PLAYER" | "SUBS" | "UNKNOWN";
+  tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
+  tokenAttachedToOutboundRequest: "UNKNOWN";
   tokenConsumedByYtDlp: "YES" | "NO" | "UNKNOWN";
+  botCheckRelativeToTokenRetrieval: "BEFORE_RETRIEVAL" | "AFTER_RETRIEVAL" | "UNKNOWN";
+  botCheckRelativeToTokenAttachment: "UNKNOWN";
   gvsRequestReached: "YES" | "NO" | "UNKNOWN";
   mediaRequestReached: "YES" | "NO" | "UNKNOWN";
   selectedTransport: "HLS" | "DIRECT" | "DASH" | "UNKNOWN";
@@ -58,7 +62,9 @@ const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
   ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
   mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
-  tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
+  tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+  tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+  botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN",
   mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
   hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
   botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
@@ -186,9 +192,20 @@ const EMPTY_FAILURE_DIAGNOSTIC: YtDlpFailureDiagnostic = Object.freeze({
 });
 
 export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedStageTelemetry => {
-  const contextMatch = stderr.match(/(?:generating|retrieved)\s+(?:a\s+)?(gvs|player|subs)\s+po token/i);
-  const context = contextMatch?.[1]?.toUpperCase() as YtDlpClosedStageTelemetry["tokenContext"] | undefined;
-  const consumed = /retrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token/i.test(stderr) ? "YES" : "UNKNOWN";
+  const lines = stderr.split(/\r?\n/);
+  const providerListLine = lines.find((line) => /^\s*\[debug\]\s+\[youtube\]\s+\[pot\]\s+(?:TRACE:\s+)?PO Token Providers:/i.test(line));
+  const providerPluginDiscovered = providerListLine
+    ? /\bbgutil:http(?:-[0-9A-Za-z._-]+)?\s+\(external\)(?:\s*,|\s*$)/i.test(providerListLine)
+    : false;
+  const tokenEventPattern = /\b(?:generating|requesting|retrieved)\s+(?:a\s+)?(gvs|player|subs)\s+po token for\s+([0-9A-Za-z_-]+)\s+client\b/i;
+  const requestIndex = lines.findIndex((line) => /\b(?:generating|requesting)\s+(?:a\s+)?(?:gvs|player|subs)\s+po token for\s+[0-9A-Za-z_-]+\s+client\b/i.test(line));
+  const retrievalIndex = lines.findIndex((line) => /\bretrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token for\s+[0-9A-Za-z_-]+\s+client\b/i.test(line));
+  const eventLine = retrievalIndex >= 0 ? lines[retrievalIndex] : requestIndex >= 0 ? lines[requestIndex] : undefined;
+  const eventMatch = eventLine?.match(tokenEventPattern);
+  const context = eventMatch?.[1]?.toUpperCase() as YtDlpClosedStageTelemetry["tokenContext"] | undefined;
+  const rawClient = eventMatch?.[2]?.toLowerCase();
+  const observedPlayerClient = rawClient === "mweb" ? "MWEB" : rawClient === "web" ? "WEB"
+    : rawClient ? "OTHER" : "UNKNOWN";
   const player403 = /player[^\r\n]*http error 403|http error 403[^\r\n]*player/i.test(stderr);
   const gvs403 = /gvs[^\r\n]*http error 403|http error 403[^\r\n]*gvs/i.test(stderr);
   const hlsManifestMarker = /(?:downloading|downloaded|extracting)[^\r\n]*(?:m3u8|hls)[^\r\n]*(?:manifest|information)|(?:m3u8|hls)[^\r\n]*(?:manifest|information)/i.test(stderr);
@@ -201,16 +218,16 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
     ? "HLS" : dashMarker ? "DASH" : directMarker ? "DIRECT" : "UNKNOWN";
   const media403 = !hlsFragment403 && /unable to download video data[^\r\n]*403|403[^\r\n]*video data/i.test(stderr);
   const mediaReached = media403 || hlsFragmentMarker || hlsFragment403 || /\[download\]\s+destination:|downloading\s+video\s+format/i.test(stderr);
-  const providerPluginDiscovered = /(?:loaded|found|discovered)[^\r\n]*(?:bgutil|youtubepot)/i.test(stderr);
-  const providerPluginActivated = /(?:generating|retrieved)\s+(?:a\s+)?(?:gvs|player|subs)\s+po token/i.test(stderr);
-  const observedClient = stderr.match(/(?:player[_ -]?client|client)\s*(?:=|:|is)?\s*(mweb|web)\b|for\s+(mweb|web)\s+client/i);
-  const observedPlayerClient = (observedClient?.[1] ?? observedClient?.[2])?.toUpperCase() as "MWEB" | "WEB" | undefined;
+  const providerPluginActivated = requestIndex >= 0 || retrievalIndex >= 0;
   const ejsActualUse = /(?:executing|solving|using)[^\r\n]*(?:\bejs\b|external javascript)/i.test(stderr);
   const jsChallengeObserved = /\b(?:js|javascript)\s+challenge\b/i.test(stderr);
   const formatEnumerationObserved = /(?:enumerating|available)\s+(?:video\s+)?formats?|format\s+code\s+extension/i.test(stderr);
   const mediaBytesObserved = /\[download\]\s+(?:[1-9]\d*(?:\.\d+)?%|[1-9]\d*\s+bytes?\b)|downloaded\s+[1-9]\d*\s+bytes?\b/i.test(stderr);
   const botCheck = /confirm you(?:'|’)re not a bot|sign in to confirm you(?:'|’)re not a bot/i;
-  const botCheckLine = stderr.split(/\r?\n/).find((line) => botCheck.test(line));
+  const botCheckIndex = lines.findIndex((line) => botCheck.test(line));
+  const botCheckLine = botCheckIndex >= 0 ? lines[botCheckIndex] : undefined;
+  const botCheckRelativeToTokenRetrieval = botCheckIndex < 0 || retrievalIndex < 0 ? "UNKNOWN"
+    : botCheckIndex < retrievalIndex ? "BEFORE_RETRIEVAL" : "AFTER_RETRIEVAL";
   const botCheckEvidenceStage = !botCheckLine ? "UNKNOWN"
     : /before (?:the )?(?:first )?(?:external|youtube) request/i.test(botCheckLine) ? "PRE_EXTERNAL_REQUEST_LEXICAL"
       : /player[^\r\n]*(?:response|request)/i.test(botCheckLine) ? "PLAYER_RESPONSE_LEXICAL"
@@ -222,14 +239,18 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
   return Object.freeze({
     providerPluginDiscovered: providerPluginDiscovered ? "YES" : "UNKNOWN",
     providerPluginActivated: providerPluginActivated ? "YES" : "UNKNOWN",
-    observedPlayerClient: observedPlayerClient ?? "UNKNOWN",
+    observedPlayerClient,
     ejsActualUse: ejsActualUse ? "YES" : "UNKNOWN",
     jsChallengeObserved: jsChallengeObserved ? "YES" : "UNKNOWN",
     formatEnumerationObserved: formatEnumerationObserved ? "YES" : "UNKNOWN",
     mediaRequestObserved: mediaReached ? "YES" : "UNKNOWN",
     mediaBytesObserved: mediaBytesObserved ? "YES" : "UNKNOWN",
     tokenContext: context ?? "UNKNOWN",
-    tokenConsumedByYtDlp: consumed,
+    tokenRetrievedByYtDlp: retrievalIndex >= 0 ? "YES" : "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN",
+    botCheckRelativeToTokenRetrieval,
+    botCheckRelativeToTokenAttachment: "UNKNOWN",
     gvsRequestReached: gvs403 || mediaReached ? "YES" : "UNKNOWN",
     mediaRequestReached: mediaReached ? "YES" : "UNKNOWN",
     selectedTransport,
