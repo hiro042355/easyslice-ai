@@ -54,7 +54,7 @@ export const createYouTubeWorkerArguments = (
 ): readonly string[] => Object.freeze([
   "--no-js-runtimes",
   "--js-runtimes", nodeJsRuntimeArgument(context.runtime.nodeExecutable),
-  "--extractor-args", "youtube:player_client=mweb",
+  "--extractor-args", "youtube:player_client=mweb;fetch_pot=always",
   ...(context.provider?.ytDlpArguments() ?? []),
   ...controlledExperimentRetryArguments(environment),
   ...createYouTubeAcquisitionArguments(context.request.sourceUrl, context.workspace.mediaPath),

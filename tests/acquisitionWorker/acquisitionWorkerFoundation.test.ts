@@ -137,8 +137,9 @@ test("YouTube arguments explicitly bind Node EJS and mweb, preserve canonical pr
   } satisfies SourceAcquisitionContext;
   const args = createYouTubeWorkerArguments(context);
   assert.deepEqual(args.slice(0, 3), ["--no-js-runtimes", "--js-runtimes", "node:/runtime/node"]);
-  assert.deepEqual(args.slice(3, 5), ["--extractor-args", "youtube:player_client=mweb"]);
-  assert.equal(args.filter((value) => value === "youtube:player_client=mweb").length, 1);
+  assert.deepEqual(args.slice(3, 5), ["--extractor-args", "youtube:player_client=mweb;fetch_pot=always"]);
+  assert.equal(args.filter((value) => value === "youtube:player_client=mweb;fetch_pot=always").length, 1);
+  assert.equal(args.some((value) => /player_client=(?!mweb(?:;|$))/.test(value)), false);
   assert.ok(args.includes("--no-playlist"));
   assert.ok(args.includes("--merge-output-format"));
   assert.ok(args.includes(context.workspace.mediaPath));
@@ -178,7 +179,7 @@ test("controlled EXPERIMENT mode explicitly disables every applicable yt-dlp ret
     assert.equal(controlledArgs.filter((value) => value === option).length, 1);
   }
   assert.equal(controlledArgs.filter((value) => value === "--abort-on-unavailable-fragments").length, 1);
-  assert.equal(controlledArgs.filter((value) => value === "youtube:player_client=mweb").length, 1);
+  assert.equal(controlledArgs.filter((value) => value === "youtube:player_client=mweb;fetch_pot=always").length, 1);
   assert.equal(controlledArgs.at(-1), URL);
 
   let processInvocations = 0;
