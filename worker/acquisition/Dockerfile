@@ -70,3 +70,8 @@ ENV NODE_ENV=production \
 USER 10001:10001
 EXPOSE 8080
 CMD ["node", "/app/dist/worker/acquisition/bootstrap.js"]
+
+FROM runtime AS experiment-control
+CMD ["node", "/app/dist/worker/acquisition/experimentControlBootstrap.js"]
+
+FROM runtime AS production

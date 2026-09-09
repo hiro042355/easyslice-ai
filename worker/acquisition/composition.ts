@@ -35,6 +35,12 @@ export type AcquisitionWorkerCompositionOptions = Readonly<{
   startupTelemetry?: AcquisitionWorkerStartupTelemetrySink;
 }>;
 
+const EXPERIMENT_DISABLED_PROVIDER: PoTokenProvider = Object.freeze({
+  authority: "experiment-control-provider-disabled",
+  status: async () => "not-configured" as const,
+  ytDlpArguments: () => Object.freeze([]),
+});
+
 export const createProductionAcquisitionRunner = (
   log: (entry: AcquisitionWorkerSafeYtDlpFailureLog) => void,
   run: typeof runPackagedYtDlp = runPackagedYtDlp,
@@ -113,3 +119,15 @@ export const createAcquisitionWorkerComposition = async (
       return telemetry;
     } });
 };
+
+export type ProviderDisabledExperimentCompositionOptions = Omit<
+  AcquisitionWorkerCompositionOptions,
+  "provider" | "telemetryProxy"
+>;
+
+export const createProviderDisabledExperimentComposition = (
+  options: ProviderDisabledExperimentCompositionOptions = {},
+): Promise<AcquisitionWorkerExecution> => createAcquisitionWorkerComposition({
+  ...options,
+  provider: EXPERIMENT_DISABLED_PROVIDER,
+});

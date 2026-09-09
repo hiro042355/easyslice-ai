@@ -4,6 +4,10 @@ import { probeWorkerReadiness } from "./runtimeReadiness";
 import { probeControlledEgress } from "./networkReadiness";
 import type { AcquisitionWorkerStartupTelemetrySink } from "./startupTelemetry";
 
+export type AcquisitionWorkerExecutionFactory = (
+  startupTelemetry: AcquisitionWorkerStartupTelemetrySink,
+) => Promise<AcquisitionWorkerExecution>;
+
 export const bindAcquisitionWorkerExecution = (execution: AcquisitionWorkerExecution):
 Pick<WorkerHttpDependencies, "execute" | "lookup" | "telemetry"> => Object.freeze({
   execute: execution.execute,
@@ -11,8 +15,11 @@ Pick<WorkerHttpDependencies, "execute" | "lookup" | "telemetry"> => Object.freez
   telemetry: execution.telemetry,
 });
 
-export const startAcquisitionWorker = async (startupTelemetry: AcquisitionWorkerStartupTelemetrySink): Promise<void> => {
-    const execution = await createAcquisitionWorkerComposition({ startupTelemetry });
+export const startAcquisitionWorkerWithFactory = async (
+  startupTelemetry: AcquisitionWorkerStartupTelemetrySink,
+  createExecution: AcquisitionWorkerExecutionFactory,
+): Promise<void> => {
+    const execution = await createExecution(startupTelemetry);
     const service = createAcquisitionWorkerHttpService({ ...bindAcquisitionWorkerExecution(execution), readiness: probeWorkerReadiness,
       networkReadiness: (signal) => probeControlledEgress(process.env.EXPECTED_EGRESS_IP, signal),
       log: (entry) => console.info(JSON.stringify(entry)) });
@@ -33,3 +40,10 @@ export const startAcquisitionWorker = async (startupTelemetry: AcquisitionWorker
     process.once("SIGTERM", shutdown);
     process.once("SIGINT", shutdown);
 };
+
+export const startAcquisitionWorker = (
+  startupTelemetry: AcquisitionWorkerStartupTelemetrySink,
+): Promise<void> => startAcquisitionWorkerWithFactory(
+  startupTelemetry,
+  (telemetry) => createAcquisitionWorkerComposition({ startupTelemetry: telemetry }),
+);
