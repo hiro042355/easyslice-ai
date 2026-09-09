@@ -73,6 +73,7 @@ const verifyWithFirstResponse = (response: Response) => {
   return { operation: client.verify(), calls: () => fetchCalls };
 };
 const diagnostic = Object.freeze({
+  stderrCaptureComplete: "YES",
   acquisitionExecutionBegan: "YES", providerPrecheckOutcome: "AVAILABLE", ytDlpSpawnAttempted: "YES",
   ytDlpProcessStarted: "YES", ytDlpProcessTerminated: "YES", providerRequestObservationCoverage: "COMPLETE",
   providerRequestCount: "ONE", providerTokenDemandObserved: "YES", providerResponseObserved: "YES",
@@ -94,6 +95,7 @@ const diagnostic = Object.freeze({
   mediaBytesObserved: "UNKNOWN", safeFailureCode: "youtube-bot-check", failureStage: "UNKNOWN", processFailureFamily: "youtube-bot-check",
   botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   extractorTerminatedWithoutObservedProviderRequest: "NO", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+  postRetrievalExternalRequestStage: "UNKNOWN",
 } as const);
 
 test("caller uses one short-lived token, fixed Worker path, exact request, and no retry", async () => {

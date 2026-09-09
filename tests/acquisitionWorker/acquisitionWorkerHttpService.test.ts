@@ -140,7 +140,7 @@ test("completion log correlates validated bounded telemetry without inference or
       "extractorTerminatedBeforeProviderRequest", "extractorTerminatedWithoutObservedProviderRequest",
       "failureCode", "formatEnumerationObserved",
       "jsChallengeObserved", "mediaBytesObserved", "mediaRequestObserved", "observedPlayerClient",
-      "postRetrievalExternalRequestStage",
+      "postRetrievalExternalRequestStage", "stderrCaptureComplete",
       "providerPluginActivated", "providerPluginDiscovered", "providerRequestCount",
       "providerRequestObservationCoverage", "providerRequestTemporalRelation", "providerResponseObserved",
       "providerResponseSchemaOutcome", "providerTokenDemandObserved", "source", "status",
@@ -153,7 +153,7 @@ test("completion log correlates validated bounded telemetry without inference or
       "providerRequestObservationCoverage", "providerRequestCount", "providerTokenDemandObserved",
       "providerResponseObserved", "providerResponseSchemaOutcome", "providerRequestTemporalRelation",
       "tokenRetrievedByYtDlp", "tokenAttachedToOutboundRequest", "botCheckRelativeToTokenRetrieval",
-      "botCheckRelativeToTokenAttachment", "postRetrievalExternalRequestStage",
+      "botCheckRelativeToTokenAttachment", "postRetrievalExternalRequestStage", "stderrCaptureComplete",
       "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest"] as const) {
       assert.equal(log[field], diagnostic[field]);
     }
@@ -161,7 +161,7 @@ test("completion log correlates validated bounded telemetry without inference or
     assert.equal(log.providerPluginActivated, "UNKNOWN");
     assert.equal("providerPluginConfigured" in log, false);
     assert.equal(log.failureCode, "youtube-bot-check");
-    assert.equal(Object.keys(log).some((key) => /sourceUrl|videoId|cookie|authorization|credential|(?:wif|id|access)Token|providerToken(?!DemandObserved)|providerBinding|rawProvider|stdout|stderr|challengePayload|mediaBytes$|signedUrl|filesystem|command|gcsCredential|secretEnvironment/i.test(key)), false);
+    assert.equal(Object.keys(log).some((key) => /sourceUrl|videoId|cookie|authorization|credential|(?:wif|id|access)Token|providerToken(?!DemandObserved)|providerBinding|rawProvider|stdout|rawStderr|stderr(?:Fragment|Line|Text)|challengePayload|mediaBytes$|signedUrl|filesystem|command|gcsCredential|secretEnvironment/i.test(key)), false);
     assert.doesNotMatch(JSON.stringify(log), /secret-cookie|secret-authorization|secret-token|raw-provider-body|raw-stdout|raw-stderr|signed-url/i);
   }, (acquisitionId) => {
     telemetryReadCount += 1;

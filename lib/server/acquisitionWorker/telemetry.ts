@@ -51,6 +51,7 @@ export const FAILURE_STAGES = [
 export type TelemetryFailureStage = (typeof FAILURE_STAGES)[number];
 
 export type AcquisitionSafeTelemetry = Readonly<{
+  stderrCaptureComplete: TelemetryTriState;
   acquisitionExecutionBegan: TelemetryTriState;
   providerPrecheckOutcome: ProviderPrecheckOutcome;
   ytDlpSpawnAttempted: TelemetryTriState;
@@ -133,6 +134,7 @@ const botCheckEvidenceKinds = new Set<string>(BOT_CHECK_EVIDENCE_KINDS);
 const postRetrievalExternalRequestStages = new Set<string>(POST_RETRIEVAL_EXTERNAL_REQUEST_STAGES);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
+  "stderrCaptureComplete",
   "acquisitionExecutionBegan", "providerPrecheckOutcome", "ytDlpSpawnAttempted", "ytDlpProcessStarted",
   "ytDlpProcessTerminated", "providerRequestObservationCoverage", "providerRequestCount",
   "providerTokenDemandObserved", "providerResponseObserved", "providerResponseSchemaOutcome",
@@ -237,6 +239,7 @@ export class AcquisitionTelemetryCollector {
   #providerRequestCount = 0;
   constructor(runtime: Readonly<{ pluginArtifact: boolean; nodeConfigured: boolean; nodeExecutable: boolean; nodeVersionMatch: boolean; ejsAvailable: boolean }>) {
     this.#state = {
+      stderrCaptureComplete: "UNKNOWN",
       acquisitionExecutionBegan: "NO", providerPrecheckOutcome: "NOT_RUN", ytDlpSpawnAttempted: "NO",
       ytDlpProcessStarted: "NO", ytDlpProcessTerminated: "UNKNOWN",
       providerRequestObservationCoverage: "NOT_STARTED", providerRequestCount: "UNKNOWN",
@@ -319,6 +322,7 @@ export class AcquisitionTelemetryCollector {
     this.#state.providerResponseSchemaOutcome = observed ? (schemaValid ? "VALID" : "INVALID") : "NOT_OBSERVED";
   }
   processEvidence(evidence: Readonly<{
+    stderrCaptureComplete?: TelemetryTriState;
     providerPluginDiscovered: "YES" | "UNKNOWN";
     providerPluginActivated: "YES" | "UNKNOWN";
     observedPlayerClient: TelemetryPlayerClient;
@@ -343,6 +347,7 @@ export class AcquisitionTelemetryCollector {
     botCheckEvidenceKind?: BotCheckEvidenceKind;
     postRetrievalExternalRequestStage?: PostRetrievalExternalRequestStage;
   }>): void {
+    this.#state.stderrCaptureComplete = evidence.stderrCaptureComplete ?? "UNKNOWN";
     this.#state.providerPluginDiscovered = evidence.providerPluginDiscovered;
     this.#state.providerPluginActivated = evidence.providerPluginActivated;
     this.#state.observedPlayerClient = evidence.observedPlayerClient;

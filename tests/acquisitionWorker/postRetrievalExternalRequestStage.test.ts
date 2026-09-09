@@ -1,8 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractClosedYtDlpStageTelemetry } from "../../lib/server/packagedYtDlp";
+import { createYtDlpBoundedEventProjector, extractClosedYtDlpStageTelemetry } from "../../lib/server/packagedYtDlp";
 
 const retrieval = "[debug] [youtube] abc: Retrieved a player PO Token for mweb client";
+
+test("stderr capture completeness is a bounded tri-state", () => {
+  assert.equal(extractClosedYtDlpStageTelemetry("", { outputComplete: true }).stderrCaptureComplete, "YES");
+  assert.equal(extractClosedYtDlpStageTelemetry("", { outputComplete: false }).stderrCaptureComplete, "NO");
+  assert.equal(extractClosedYtDlpStageTelemetry("").stderrCaptureComplete, "UNKNOWN");
+});
+
+test("streaming projector retains only closed state across line observations", () => {
+  const projector = createYtDlpBoundedEventProjector();
+  projector.observeLine(`${retrieval}: private-token-value`);
+  projector.observeLine("[youtube] abc: Downloading mweb player API JSON");
+  const projected = projector.snapshot(true);
+  assert.deepEqual(projected, {
+    tokenRetrievedByYtDlp: "YES",
+    postRetrievalExternalRequestStage: "PLAYER_API",
+    stderrCaptureComplete: "YES",
+  });
+  assert.doesNotMatch(JSON.stringify(projected), /private-token-value|youtube|url|header|cookie|credential/i);
+});
 
 test("retrieval followed by one authoritative stage projects its bounded enum", () => {
   const cases = [
@@ -68,7 +87,7 @@ test("projection never retains token-shaped text, URLs, identifiers, or raw stde
   ].join("\n"));
   assert.equal(evidence.postRetrievalExternalRequestStage, "MEDIA");
   const serialized = JSON.stringify(evidence);
-  assert.doesNotMatch(serialized, /token-shaped|private-value|https-youtube|video-id|Destination|stderr/i);
+  assert.doesNotMatch(serialized, /token-shaped|private-value|https-youtube|video-id|Destination/i);
   assert.equal(evidence.tokenAttachedToOutboundRequest, "UNKNOWN");
   assert.equal(evidence.tokenConsumedByYtDlp, "UNKNOWN");
 });

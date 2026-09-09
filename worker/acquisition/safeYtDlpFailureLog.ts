@@ -6,6 +6,7 @@ import {
 import type { AcquisitionSafeTelemetry } from "../../lib/server/acquisitionWorker/telemetry";
 
 export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
+  stderrCaptureComplete: AcquisitionSafeTelemetry["stderrCaptureComplete"];
   severity: "ERROR";
   event: "acquisition-process-failure";
   exitCode: number | null;
@@ -67,6 +68,7 @@ export const projectAcquisitionWorkerYtDlpFailure = (
 ): AcquisitionWorkerSafeYtDlpFailureLog => {
   const safe = createSafeYtDlpFailureLog(error, true);
   return Object.freeze({
+    stderrCaptureComplete: telemetry.stderrCaptureComplete,
     severity: "ERROR",
     event: "acquisition-process-failure",
     exitCode: projectExitCode(safe.exitCode),

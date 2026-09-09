@@ -34,6 +34,7 @@ export type YtDlpProcessFailureReason =
   | "yt-dlp-version-mismatch";
 
 export type YtDlpClosedStageTelemetry = Readonly<{
+  stderrCaptureComplete: "YES" | "NO" | "UNKNOWN";
   providerPluginDiscovered: "YES" | "UNKNOWN";
   providerPluginActivated: "YES" | "UNKNOWN";
   observedPlayerClient: "WEB" | "MWEB" | "OTHER" | "UNKNOWN";
@@ -60,6 +61,7 @@ export type YtDlpClosedStageTelemetry = Readonly<{
 }>;
 
 const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
+  stderrCaptureComplete: "UNKNOWN",
   providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
   ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
   mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
@@ -71,6 +73,52 @@ const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
   postRetrievalExternalRequestStage: "UNKNOWN",
 });
+
+export const YT_DLP_BOUNDED_EVENTS = [
+  "TOKEN_RETRIEVED", "PLAYER_API", "GVS_ERROR", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT",
+] as const;
+export type YtDlpBoundedEvent = (typeof YT_DLP_BOUNDED_EVENTS)[number];
+
+const TOKEN_RETRIEVED_LINE = /\bretrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token for\s+[0-9A-Za-z_-]+\s+client\b/i;
+const classifyBoundedExternalEvent = (line: string): Exclude<YtDlpBoundedEvent, "TOKEN_RETRIEVED"> | undefined => {
+  if (/^\s*\[youtube\]\s+\S+:\s+Downloading\s+mweb\s+player API JSON\s*$/i.test(line)) return "PLAYER_API";
+  if (/^\s*ERROR:\s+gvs request:\s+HTTP Error 403(?:\s|$)/i.test(line)) return "GVS_ERROR";
+  if (/^\s*\[download\]\s+Destination:/i.test(line)) return "MEDIA";
+  if (/^\s*(?:\[youtube\]\s+\S+:\s+)?Downloading\s+m3u8 information\s*$/i.test(line)
+    || /^\s*\[hlsnative\]\s+Downloading\s+m3u8 manifest\s*$/i.test(line)) return "HLS_MANIFEST";
+  if (/^\s*(?:ERROR:\s+)?(?:HLS\s+)?fragment\s+\d+[^\r\n]*HTTP Error 403\s*$/i.test(line)) return "HLS_FRAGMENT";
+  return undefined;
+};
+
+export const createYtDlpBoundedEventProjector = () => {
+  let retrievalCount = 0;
+  const postRetrievalStages = new Set<Exclude<YtDlpBoundedEvent, "TOKEN_RETRIEVED">>();
+  return Object.freeze({
+    observeLine(line: string): void {
+      if (TOKEN_RETRIEVED_LINE.test(line)) {
+        retrievalCount += 1;
+        return;
+      }
+      if (retrievalCount !== 1) return;
+      const event = classifyBoundedExternalEvent(line);
+      if (event) postRetrievalStages.add(event);
+    },
+    snapshot(captureComplete?: boolean): Readonly<{
+      tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
+      postRetrievalExternalRequestStage: YtDlpClosedStageTelemetry["postRetrievalExternalRequestStage"];
+      stderrCaptureComplete: YtDlpClosedStageTelemetry["stderrCaptureComplete"];
+    }> {
+      const stderrCaptureComplete = captureComplete === true ? "YES" : captureComplete === false ? "NO" : "UNKNOWN";
+      const postRetrievalExternalRequestStage = captureComplete === false || retrievalCount !== 1
+        || postRetrievalStages.size !== 1 ? "UNKNOWN" : [...postRetrievalStages][0]!;
+      return Object.freeze({
+        tokenRetrievedByYtDlp: retrievalCount === 1 ? "YES" : "UNKNOWN",
+        postRetrievalExternalRequestStage,
+        stderrCaptureComplete,
+      });
+    },
+  });
+};
 
 export type YtDlpFailureDiagnostic = Readonly<{
   exitCode: number | null;
@@ -198,6 +246,9 @@ export const extractClosedYtDlpStageTelemetry = (
   options: Readonly<{ outputComplete?: boolean }> = {},
 ): YtDlpClosedStageTelemetry => {
   const lines = stderr.split(/\r?\n/);
+  const boundedEvents = createYtDlpBoundedEventProjector();
+  for (const line of lines) boundedEvents.observeLine(line);
+  const boundedSnapshot = boundedEvents.snapshot(options.outputComplete);
   const providerListLine = lines.find((line) => /^\s*\[debug\]\s+\[youtube\]\s+\[pot\]\s+(?:TRACE:\s+)?PO Token Providers:/i.test(line));
   const providerPluginDiscovered = providerListLine
     ? /\bbgutil:http(?:-[0-9A-Za-z._-]+)?\s+\(external\)(?:\s*,|\s*$)/i.test(providerListLine)
@@ -243,21 +294,8 @@ export const extractClosedYtDlpStageTelemetry = (
             : /\[youtube(?::[^\]]+)?\]|extractor/i.test(botCheckLine) ? "EXTRACTOR_LEXICAL" : "UNKNOWN";
   const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : hlsManifest403 ? "HLS_MANIFEST"
     : hlsFragment403 ? "HLS_FRAGMENT" : media403 ? "MEDIA" : "UNKNOWN";
-  const postRetrievalStages = retrievalIndex < 0 || options.outputComplete === false ? [] : [...new Set(
-    lines.flatMap((line, index) => {
-      if (index <= retrievalIndex) return [];
-      if (/^\s*\[youtube\]\s+\S+:\s+Downloading\s+mweb\s+player API JSON\s*$/i.test(line)) return ["PLAYER_API" as const];
-      if (/^\s*ERROR:\s+gvs request:\s+HTTP Error 403(?:\s|$)/i.test(line)) return ["GVS_ERROR" as const];
-      if (/^\s*\[download\]\s+Destination:/i.test(line)) return ["MEDIA" as const];
-      if (/^\s*(?:\[youtube\]\s+\S+:\s+)?Downloading\s+m3u8 information\s*$/i.test(line)
-        || /^\s*\[hlsnative\]\s+Downloading\s+m3u8 manifest\s*$/i.test(line)) return ["HLS_MANIFEST" as const];
-      if (/^\s*(?:ERROR:\s+)?(?:HLS\s+)?fragment\s+\d+[^\r\n]*HTTP Error 403\s*$/i.test(line)) return ["HLS_FRAGMENT" as const];
-      return [];
-    }),
-  )];
-  const postRetrievalExternalRequestStage = postRetrievalStages.length === 1
-    ? postRetrievalStages[0]! : "UNKNOWN";
   return Object.freeze({
+    stderrCaptureComplete: boundedSnapshot.stderrCaptureComplete,
     providerPluginDiscovered: providerPluginDiscovered ? "YES" : "UNKNOWN",
     providerPluginActivated: providerPluginActivated ? "YES" : "UNKNOWN",
     observedPlayerClient,
@@ -280,7 +318,7 @@ export const extractClosedYtDlpStageTelemetry = (
     http403Stage,
     botCheckEvidenceStage,
     botCheckEvidenceKind: botCheckEvidenceStage === "UNKNOWN" ? "UNKNOWN" : "LEXICAL",
-    postRetrievalExternalRequestStage,
+    postRetrievalExternalRequestStage: boundedSnapshot.postRetrievalExternalRequestStage,
   });
 };
 
@@ -488,6 +526,17 @@ export const runPackagedYtDlp = async (
     let terminationReason: YtDlpProcessFailureReason | undefined;
     let stdoutLimitExceeded = false;
     let stderrLimitExceeded = false;
+    const boundedEvents = createYtDlpBoundedEventProjector();
+    let projectedStderrCharacterOffset = 0;
+    const observeRetainedStderr = (complete: boolean) => {
+      const text = stderr.toString("utf8");
+      const end = complete ? text.length : text.lastIndexOf("\n") + 1;
+      if (end <= projectedStderrCharacterOffset) return;
+      const lines = text.slice(projectedStderrCharacterOffset, end).split(/\r?\n/);
+      if (!complete && lines.at(-1) === "") lines.pop();
+      for (const line of lines) boundedEvents.observeLine(line);
+      projectedStderrCharacterOffset = end;
+    };
     const terminate = (reason: YtDlpProcessFailureReason) => {
       if (terminationReason) return;
       terminationReason = reason;
@@ -504,8 +553,9 @@ export const runPackagedYtDlp = async (
       stdoutLimitExceeded,
       stderrLimitExceeded,
       stderrSignature: extractSafeYtDlpStderrSignature(stderr.toString("utf8")),
-      closedStageTelemetry: extractClosedYtDlpStageTelemetry(stderr.toString("utf8"), {
-        outputComplete: !stderrLimitExceeded,
+      closedStageTelemetry: Object.freeze({
+        ...extractClosedYtDlpStageTelemetry(stderr.toString("utf8"), { outputComplete: !stderrLimitExceeded }),
+        ...boundedEvents.snapshot(!stderrLimitExceeded),
       }),
     });
     const append = (current: Buffer, chunk: Buffer, stream: "stdout" | "stderr") => {
@@ -518,7 +568,10 @@ export const runPackagedYtDlp = async (
       return next.subarray(0, outputLimit);
     };
     child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr = append(stderr, chunk, "stderr");
+      observeRetainedStderr(false);
+    });
     child.once("spawn", () => options.onSpawnStarted?.());
     child.once("error", () => {
       if (!settled) { settled = true; cleanup(); reject(new YtDlpProcessFailure("yt-dlp-spawn-failed")); }
@@ -526,6 +579,7 @@ export const runPackagedYtDlp = async (
     child.once("close", (code, signal) => {
       if (settled) return;
       settled = true;
+      observeRetainedStderr(true);
       cleanup();
       options.onProcessTerminated?.();
       const safeDiagnostic = diagnostic(code, signal);

@@ -91,6 +91,7 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
         elapsedBucket: Math.ceil((Date.now() - startedAt) / 10_000) * 10,
         ...(result.status === "failed" ? { failureCode: result.errorCode } : {}),
         ...(diagnostic ? {
+          stderrCaptureComplete: diagnostic.stderrCaptureComplete,
           providerPluginDiscovered: diagnostic.providerPluginDiscovered,
           providerPluginActivated: diagnostic.providerPluginActivated,
           tokenRetrievedByYtDlp: diagnostic.tokenRetrievedByYtDlp,

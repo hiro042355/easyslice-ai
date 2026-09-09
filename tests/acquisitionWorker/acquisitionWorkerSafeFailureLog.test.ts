@@ -45,6 +45,7 @@ test("Worker projects only the closed safe post-provider process failure evidenc
     ),
   });
   assert.deepEqual(projectAcquisitionWorkerYtDlpFailure(error, telemetry()), {
+    stderrCaptureComplete: "UNKNOWN",
     severity: "ERROR",
     event: "acquisition-process-failure",
     exitCode: 1,
@@ -85,9 +86,9 @@ test("Worker projects only the closed safe post-provider process failure evidenc
 test("Worker safe failure evidence contains no raw output or acquisition authority", () => {
   const projected = projectAcquisitionWorkerYtDlpFailure(new YtDlpProcessFailure("extractor-failure"), telemetry());
   const serialized = JSON.stringify(projected);
-  assert.doesNotMatch(serialized, /https?:|youtu|video.?id|uid|poToken|tokenHash|tokenLength|cookie|credential|authorization|stdout|stderr|command|filesystem|path|gcs/i);
+  assert.doesNotMatch(serialized, /https?:|youtu|video.?id|uid|poToken|tokenHash|tokenLength|cookie|credential|authorization|stdout|rawStderr|command|filesystem|path|gcs/i);
   assert.deepEqual(Object.keys(projected).sort(), [
-    "event", "exitCode", "ffmpegFailure", "has403", "has429", "has5xx", "networkFailure",
+    "event", "exitCode", "ffmpegFailure", "has403", "has429", "has5xx", "networkFailure", "stderrCaptureComplete",
     "permissionFailure", "requestedFormatFailure", "safeFailureFamily", "severity", "signal", "writeFailure",
     "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenRetrievedByYtDlp",
     "tokenAttachedToOutboundRequest", "tokenConsumedByYtDlp", "botCheckRelativeToTokenRetrieval",
@@ -119,7 +120,7 @@ test("Worker safe failure log retains closed bot stage and pre-provider terminat
   assert.equal(projected.botCheckEvidenceStage, "EXTRACTOR_LEXICAL");
   assert.equal(projected.extractorTerminatedBeforeProviderRequest, "UNKNOWN");
   assert.equal(collector.snapshot().extractorTerminatedWithoutObservedProviderRequest, "UNKNOWN");
-  assert.doesNotMatch(JSON.stringify(projected), /stderr|youtube\.com|poToken|authorization/i);
+  assert.doesNotMatch(JSON.stringify(projected), /rawStderr|youtube\.com|poToken|authorization/i);
 });
 
 test("Worker emits one single-line JSON event whose allowlisted fields are independently queryable", () => {

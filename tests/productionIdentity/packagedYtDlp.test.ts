@@ -226,13 +226,16 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
       stderrLimitExceeded: false,
       stderrSignature: extractSafeYtDlpStderrSignature(`ERROR: Sign in to confirm you're not a bot ${remoteId} ${token} ${tempPath}`),
       closedStageTelemetry: {
+        stderrCaptureComplete: "YES",
         providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
         ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
         mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
-        tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
+        tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+        tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+        botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN",
         mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
         hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN",
-        botCheckEvidenceKind: "UNKNOWN",
+        botCheckEvidenceKind: "UNKNOWN", postRetrievalExternalRequestStage: "UNKNOWN",
       },
     });
     const projected = JSON.stringify(error);
@@ -435,17 +438,21 @@ test("closed process markers distinguish observation from configuration without 
     mediaRequestObserved: evidence.mediaRequestObserved,
     mediaBytesObserved: evidence.mediaBytesObserved,
   }, {
-    providerPluginDiscovered: "YES", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
+    providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
     ejsActualUse: "YES", jsChallengeObserved: "YES", formatEnumerationObserved: "YES",
     mediaRequestObserved: "YES", mediaBytesObserved: "YES",
   });
   assert.deepEqual(extractClosedYtDlpStageTelemetry("mweb configured; bgutil configured"), {
+    stderrCaptureComplete: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
     selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
     http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN",
   });
   assert.equal(extractClosedYtDlpStageTelemetry("client may be mweb or web").observedPlayerClient, "UNKNOWN");
   assert.doesNotMatch(JSON.stringify(evidence), /closed-media|bounded media/i);
@@ -453,22 +460,30 @@ test("closed process markers distinguish observation from configuration without 
 
 test("closed stage telemetry projects only directly evidenced provider and 403 stages", () => {
   assert.deepEqual(extractClosedYtDlpStageTelemetry("Retrieved a gvs PO Token for mweb client\nERROR: unable to download video data: HTTP Error 403"), {
+    stderrCaptureComplete: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
-    tokenContext: "GVS", tokenConsumedByYtDlp: "YES", gvsRequestReached: "YES",
+    tokenContext: "GVS", tokenRetrievedByYtDlp: "YES", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "YES",
     mediaRequestReached: "YES", selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "MEDIA", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN",
   });
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: gvs request: HTTP Error 403").http403Stage, "GVS");
   assert.equal(extractClosedYtDlpStageTelemetry("ERROR: player request: HTTP Error 403").http403Stage, "PLAYER");
   assert.deepEqual(extractClosedYtDlpStageTelemetry("ERROR: HTTP Error 403"), {
+    stderrCaptureComplete: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
-    tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN", gvsRequestReached: "UNKNOWN",
+    tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
     hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN",
   });
   const serialized = JSON.stringify(extractClosedYtDlpStageTelemetry(
     "Retrieved a subs PO Token for mweb client\nprivate URL credential filesystem path",
@@ -479,22 +494,79 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
 
 test("closed HLS telemetry distinguishes manifest and fragment 403 without retaining authority", () => {
   const manifest = extractClosedYtDlpStageTelemetry("Downloading m3u8 information\nERROR: HLS manifest HTTP Error 403");
-  assert.deepEqual(manifest, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+  assert.deepEqual(manifest, { stderrCaptureComplete: "UNKNOWN", tokenContext: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN", selectedTransport: "HLS",
-    hlsManifestReached: "YES", hlsFragmentReached: "UNKNOWN", http403Stage: "HLS_MANIFEST", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN" });
+    hlsManifestReached: "YES", hlsFragmentReached: "UNKNOWN", http403Stage: "HLS_MANIFEST", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN" });
   const fragment = extractClosedYtDlpStageTelemetry("[hlsnative] Downloading m3u8 manifest\nfragment 1 HTTP Error 403");
-  assert.deepEqual(fragment, { tokenContext: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
+  assert.deepEqual(fragment, { stderrCaptureComplete: "UNKNOWN", tokenContext: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
+    botCheckRelativeToTokenAttachment: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
     gvsRequestReached: "YES", mediaRequestReached: "YES", selectedTransport: "HLS",
-    hlsManifestReached: "YES", hlsFragmentReached: "YES", http403Stage: "HLS_FRAGMENT", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN" });
+    hlsManifestReached: "YES", hlsFragmentReached: "YES", http403Stage: "HLS_FRAGMENT", botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN" });
   assert.equal(extractClosedYtDlpStageTelemetry("[dashsegments] Downloading MPD manifest").selectedTransport, "DASH");
   const serialized = JSON.stringify(fragment);
-  assert.doesNotMatch(serialized, /https?:|m3u8\.example|video.?id|poToken|tokenHash|accessToken|cookie|credential|header|path|stdout|stderr/i);
+  assert.doesNotMatch(serialized, /https?:|m3u8\.example|video.?id|poToken|tokenHash|accessToken|cookie|credential|header|path|stdout|rawStderr/i);
+});
+
+test("runner projects authoritative markers split inside multiple stderr chunks", async () => {
+  const root = await createRoot();
+  try {
+    await materializeFixture(root);
+    const secret = "private-token-value";
+    const split = fakeSpawn((child) => {
+      child.stderr.write("[debug] [youtube] abc: Retrie");
+      child.stderr.write(`ved a player PO Token for mweb client: ${secret}\n[youtube] abc: Down`);
+      child.stderr.end("loading mweb player API JSON\n");
+      child.emit("close", 1);
+    });
+    const error = await captureFailure(runPackagedYtDlp([], {
+      projectRoot: root, timeoutMs: 100, spawnImpl: split.spawnImpl,
+    }));
+    assert.equal(error.diagnostic.closedStageTelemetry?.stderrCaptureComplete, "YES");
+    assert.equal(error.diagnostic.closedStageTelemetry?.tokenRetrievedByYtDlp, "YES");
+    assert.equal(error.diagnostic.closedStageTelemetry?.postRetrievalExternalRequestStage, "PLAYER_API");
+    assert.equal(error.diagnostic.closedStageTelemetry?.tokenAttachedToOutboundRequest, "UNKNOWN");
+    assert.equal(error.diagnostic.closedStageTelemetry?.tokenConsumedByYtDlp, "UNKNOWN");
+    assert.doesNotMatch(JSON.stringify(error), /private-token-value|Downloading mweb player API JSON/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("runner flushes an authoritative final stderr marker without a trailing newline", async () => {
+  const root = await createRoot();
+  try {
+    await materializeFixture(root);
+    const secret = "private-output-name";
+    const tail = fakeSpawn((child) => {
+      child.stderr.write("[debug] [youtube] abc: Retrieved a player PO Token for mweb client\n");
+      child.stderr.end(`[download] Destination: ${secret}`);
+      child.emit("close", 1);
+    });
+    const error = await captureFailure(runPackagedYtDlp([], {
+      projectRoot: root, timeoutMs: 100, spawnImpl: tail.spawnImpl,
+    }));
+    assert.equal(error.diagnostic.closedStageTelemetry?.stderrCaptureComplete, "YES");
+    assert.equal(error.diagnostic.closedStageTelemetry?.tokenRetrievedByYtDlp, "YES");
+    assert.equal(error.diagnostic.closedStageTelemetry?.postRetrievalExternalRequestStage, "MEDIA");
+    assert.equal(error.diagnostic.closedStageTelemetry?.tokenAttachedToOutboundRequest, "UNKNOWN");
+    assert.equal(error.diagnostic.closedStageTelemetry?.tokenConsumedByYtDlp, "UNKNOWN");
+    assert.doesNotMatch(JSON.stringify(error), /private-output-name|Destination:/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("runner distinguishes timeout, abort, stdout limit, and stderr limit diagnostics", async () => {
@@ -517,11 +589,14 @@ test("runner distinguishes timeout, abort, stdout limit, and stderr limit diagno
     const stdoutLimited = await captureFailure(runPackagedYtDlp([], { projectRoot: root, timeoutMs: 100, outputLimitBytes: 8, spawnImpl: stdout.spawnImpl }));
     assert.equal(stdoutLimited.diagnostic.stdoutLimitExceeded, true);
     assert.equal(stdoutLimited.diagnostic.stderrLimitExceeded, false);
+    assert.equal(stdoutLimited.diagnostic.closedStageTelemetry?.stderrCaptureComplete, "YES");
 
     const stderr = fakeSpawn((child) => child.stderr.write(Buffer.alloc(9)));
     const stderrLimited = await captureFailure(runPackagedYtDlp([], { projectRoot: root, timeoutMs: 100, outputLimitBytes: 8, spawnImpl: stderr.spawnImpl }));
     assert.equal(stderrLimited.diagnostic.stdoutLimitExceeded, false);
     assert.equal(stderrLimited.diagnostic.stderrLimitExceeded, true);
+    assert.equal(stderrLimited.diagnostic.closedStageTelemetry?.stderrCaptureComplete, "NO");
+    assert.equal(stderrLimited.diagnostic.closedStageTelemetry?.postRetrievalExternalRequestStage, "UNKNOWN");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -13,6 +13,7 @@ const runtime = Object.freeze({ pluginArtifact: true, nodeConfigured: true, node
 test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () => {
   const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
   assert.deepEqual(diagnostic, {
+    stderrCaptureComplete: "UNKNOWN",
     acquisitionExecutionBegan: "NO", providerPrecheckOutcome: "NOT_RUN", ytDlpSpawnAttempted: "NO",
     ytDlpProcessStarted: "NO", externalRequestStageReached: "UNKNOWN", has403: false, has429: false,
     ytDlpProcessTerminated: "UNKNOWN", providerRequestObservationCoverage: "NOT_STARTED",
@@ -38,7 +39,7 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
   });
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
   const serialized = JSON.stringify(diagnostic);
-  assert.doesNotMatch(serialized, /https?:|youtu|video.?id|uid|ip.?address|poToken|tokenHash|cookie|credential|authorization|stdout|stderr|command|filesystem|path/i);
+  assert.doesNotMatch(serialized, /https?:|youtu|video.?id|uid|ip.?address|poToken|tokenHash|cookie|credential|authorization|stdout|rawStderr|command|filesystem|path/i);
 });
 
 test("health is separate while token request success/failure is observable", () => {

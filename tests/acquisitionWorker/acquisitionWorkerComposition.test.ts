@@ -176,7 +176,7 @@ test("production runner merges in-process provider and closed stage evidence int
     throw new YtDlpProcessFailure("unknown-yt-dlp-failure", {
       exitCode: 1, signal: null, timedOut: false, aborted: false, stdoutLimitExceeded: false,
       stderrLimitExceeded: false, stderrSignature: extractSafeYtDlpStderrSignature("ERROR: HTTP Error 403"),
-      closedStageTelemetry: { tokenContext: "GVS", tokenRetrievedByYtDlp: "YES",
+      closedStageTelemetry: { stderrCaptureComplete: "YES", tokenContext: "GVS", tokenRetrievedByYtDlp: "YES",
         tokenAttachedToOutboundRequest: "UNKNOWN", tokenConsumedByYtDlp: "UNKNOWN",
         botCheckRelativeToTokenRetrieval: "UNKNOWN", botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "YES",
         providerPluginDiscovered: "YES", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
@@ -193,6 +193,7 @@ test("production runner merges in-process provider and closed stage evidence int
   assert.equal(collector.snapshot().has403, true);
   assert.equal(collector.snapshot().processFailureFamily, "unknown-yt-dlp-failure");
   assert.deepEqual(entries[0], {
+    stderrCaptureComplete: "YES",
     severity: "ERROR", event: "acquisition-process-failure", exitCode: 1, signal: null,
     safeFailureFamily: "unknown-yt-dlp-failure", has403: true, has429: false, has5xx: false,
     requestedFormatFailure: false, ffmpegFailure: false, writeFailure: false, permissionFailure: false,
