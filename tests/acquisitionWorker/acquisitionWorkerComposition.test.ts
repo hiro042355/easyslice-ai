@@ -184,7 +184,7 @@ test("production runner merges in-process provider and closed stage evidence int
         mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
         mediaRequestReached: "NO", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
         hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", botCheckEvidenceStage: "UNKNOWN",
-        botCheckEvidenceKind: "UNKNOWN" },
+        botCheckEvidenceKind: "UNKNOWN", postRetrievalExternalRequestStage: "GVS_ERROR" },
     });
   });
   await assert.rejects(runner([], { timeoutMs: 1_000, telemetry: collector }), YtDlpProcessFailure);
@@ -204,5 +204,6 @@ test("production runner merges in-process provider and closed stage evidence int
     hlsFragmentReached: "UNKNOWN", http403Stage: "GVS", retryCount: 0,
     safeFailureCode: "unknown-acquisition-failure", failureStage: "UNKNOWN",
     botCheckEvidenceStage: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+    postRetrievalExternalRequestStage: "GVS_ERROR",
   });
 });

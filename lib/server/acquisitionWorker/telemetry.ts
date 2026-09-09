@@ -28,6 +28,10 @@ export const TOKEN_RETRIEVAL_RELATIONS = ["BEFORE_RETRIEVAL", "AFTER_RETRIEVAL",
 export type TokenRetrievalRelation = (typeof TOKEN_RETRIEVAL_RELATIONS)[number];
 export const BOT_CHECK_EVIDENCE_KINDS = ["STRUCTURED", "BOUNDARY", "LEXICAL", "UNKNOWN"] as const;
 export type BotCheckEvidenceKind = (typeof BOT_CHECK_EVIDENCE_KINDS)[number];
+export const POST_RETRIEVAL_EXTERNAL_REQUEST_STAGES = [
+  "PLAYER_API", "GVS_ERROR", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN",
+] as const;
+export type PostRetrievalExternalRequestStage = (typeof POST_RETRIEVAL_EXTERNAL_REQUEST_STAGES)[number];
 export const PROVIDER_PRECHECK_OUTCOMES = ["NOT_RUN", "NOT_CONFIGURED", "AVAILABLE", "UNAVAILABLE", "FAILED", "UNKNOWN"] as const;
 export type ProviderPrecheckOutcome = (typeof PROVIDER_PRECHECK_OUTCOMES)[number];
 export const PROCESS_FAILURE_FAMILIES = [
@@ -108,6 +112,7 @@ export type AcquisitionSafeTelemetry = Readonly<{
   extractorTerminatedWithoutObservedProviderRequest: TelemetryTriState;
   /** @deprecated Temporal ordering was not independently observed. Always UNKNOWN. */
   extractorTerminatedBeforeProviderRequest: TelemetryTriState;
+  postRetrievalExternalRequestStage: PostRetrievalExternalRequestStage;
 }>;
 
 const tri = new Set<string>(TELEMETRY_TRI_STATES);
@@ -125,6 +130,7 @@ const providerSchemaOutcomes = new Set<string>(PROVIDER_SCHEMA_OUTCOMES);
 const providerTemporalRelations = new Set<string>(PROVIDER_TEMPORAL_RELATIONS);
 const tokenRetrievalRelations = new Set<string>(TOKEN_RETRIEVAL_RELATIONS);
 const botCheckEvidenceKinds = new Set<string>(BOT_CHECK_EVIDENCE_KINDS);
+const postRetrievalExternalRequestStages = new Set<string>(POST_RETRIEVAL_EXTERNAL_REQUEST_STAGES);
 const safeFailureCodes = new Set<string>([...ACQUISITION_FAILURE_CODES, "NONE"]);
 const keys = [
   "acquisitionExecutionBegan", "providerPrecheckOutcome", "ytDlpSpawnAttempted", "ytDlpProcessStarted",
@@ -144,6 +150,7 @@ const keys = [
   "observedPlayerClient", "jsChallengeObserved", "formatEnumerationObserved", "mediaRequestObserved",
   "mediaBytesObserved", "safeFailureCode", "failureStage", "botCheckEvidenceStage", "botCheckEvidenceKind",
   "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest",
+  "postRetrievalExternalRequestStage",
 ] as const;
 
 export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSafeTelemetry => {
@@ -188,6 +195,8 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !tokenRetrievalRelations.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "botCheckEvidenceKind") {
       if (typeof item !== "string" || !botCheckEvidenceKinds.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "postRetrievalExternalRequestStage") {
+      if (typeof item !== "string" || !postRetrievalExternalRequestStages.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (typeof item !== "string" || !tri.has(item)) throw new TypeError("invalid-acquisition-telemetry");
   }
   const invalid = (): never => { throw new TypeError("invalid-acquisition-telemetry-invariant"); };
@@ -196,6 +205,7 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
   if (value.tokenConsumedByYtDlp !== "UNKNOWN") invalid();
   if (value.botCheckRelativeToTokenRetrieval !== "UNKNOWN" && value.tokenRetrievedByYtDlp !== "YES") invalid();
   if (value.extractorTerminatedBeforeProviderRequest !== "UNKNOWN") invalid();
+  if (value.postRetrievalExternalRequestStage !== "UNKNOWN" && value.tokenRetrievedByYtDlp !== "YES") invalid();
   if (value.extractorTerminatedWithoutObservedProviderRequest === "YES" && !(
     value.ytDlpProcessTerminated === "YES"
     && value.botCheckEvidenceStage === "EXTRACTOR_LEXICAL"
@@ -250,6 +260,7 @@ export class AcquisitionTelemetryCollector {
       mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN",
       botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
       extractorTerminatedWithoutObservedProviderRequest: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+      postRetrievalExternalRequestStage: "UNKNOWN",
     };
   }
   providerHealth(value: boolean): void { this.#state.providerHealthy = value ? "YES" : "NO"; }
@@ -330,6 +341,7 @@ export class AcquisitionTelemetryCollector {
     http403Stage: TelemetryHttp403Stage;
     botCheckEvidenceStage: BotCheckEvidenceStage | "PRE_EXTERNAL_REQUEST" | "PLAYER_RESPONSE" | "GVS_RESPONSE" | "MEDIA_RESPONSE" | "EXTRACTOR";
     botCheckEvidenceKind?: BotCheckEvidenceKind;
+    postRetrievalExternalRequestStage?: PostRetrievalExternalRequestStage;
   }>): void {
     this.#state.providerPluginDiscovered = evidence.providerPluginDiscovered;
     this.#state.providerPluginActivated = evidence.providerPluginActivated;
@@ -360,6 +372,7 @@ export class AcquisitionTelemetryCollector {
     this.#state.botCheckEvidenceStage = botCheckEvidenceStage;
     this.#state.botCheckEvidenceKind = evidence.botCheckEvidenceKind
       ?? (botCheckEvidenceStage === "UNKNOWN" ? "UNKNOWN" : "LEXICAL");
+    this.#state.postRetrievalExternalRequestStage = evidence.postRetrievalExternalRequestStage ?? "UNKNOWN";
     if (botCheckEvidenceStage === "EXTRACTOR_LEXICAL") this.#state.failureStage = "EXTRACTOR";
     this.#state.externalRequestStageReached = evidence.gvsRequestReached === "YES" || evidence.mediaRequestReached === "YES"
       ? "YES" : "UNKNOWN";

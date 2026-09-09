@@ -56,6 +56,7 @@ export type YtDlpClosedStageTelemetry = Readonly<{
   http403Stage: "PLAYER" | "GVS" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRAGMENT" | "UNKNOWN";
   botCheckEvidenceStage: "PRE_EXTERNAL_REQUEST_LEXICAL" | "PLAYER_RESPONSE_LEXICAL" | "GVS_RESPONSE_LEXICAL" | "MEDIA_RESPONSE_LEXICAL" | "EXTRACTOR_LEXICAL" | "UNKNOWN";
   botCheckEvidenceKind: "LEXICAL" | "UNKNOWN";
+  postRetrievalExternalRequestStage: "PLAYER_API" | "GVS_ERROR" | "MEDIA" | "HLS_MANIFEST" | "HLS_FRAGMENT" | "UNKNOWN";
 }>;
 
 const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
@@ -68,6 +69,7 @@ const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
   hlsFragmentReached: "UNKNOWN", http403Stage: "UNKNOWN",
   botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
+  postRetrievalExternalRequestStage: "UNKNOWN",
 });
 
 export type YtDlpFailureDiagnostic = Readonly<{
@@ -191,7 +193,10 @@ const EMPTY_FAILURE_DIAGNOSTIC: YtDlpFailureDiagnostic = Object.freeze({
   closedStageTelemetry: EMPTY_CLOSED_STAGE_TELEMETRY,
 });
 
-export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedStageTelemetry => {
+export const extractClosedYtDlpStageTelemetry = (
+  stderr: string,
+  options: Readonly<{ outputComplete?: boolean }> = {},
+): YtDlpClosedStageTelemetry => {
   const lines = stderr.split(/\r?\n/);
   const providerListLine = lines.find((line) => /^\s*\[debug\]\s+\[youtube\]\s+\[pot\]\s+(?:TRACE:\s+)?PO Token Providers:/i.test(line));
   const providerPluginDiscovered = providerListLine
@@ -199,7 +204,9 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
     : false;
   const tokenEventPattern = /\b(?:generating|requesting|retrieved)\s+(?:a\s+)?(gvs|player|subs)\s+po token for\s+([0-9A-Za-z_-]+)\s+client\b/i;
   const requestIndex = lines.findIndex((line) => /\b(?:generating|requesting)\s+(?:a\s+)?(?:gvs|player|subs)\s+po token for\s+[0-9A-Za-z_-]+\s+client\b/i.test(line));
-  const retrievalIndex = lines.findIndex((line) => /\bretrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token for\s+[0-9A-Za-z_-]+\s+client\b/i.test(line));
+  const retrievalIndexes = lines.flatMap((line, index) =>
+    /\bretrieved\s+(?:a\s+)?(?:gvs|player|subs)\s+po token for\s+[0-9A-Za-z_-]+\s+client\b/i.test(line) ? [index] : []);
+  const retrievalIndex = retrievalIndexes.length === 1 ? retrievalIndexes[0]! : -1;
   const eventLine = retrievalIndex >= 0 ? lines[retrievalIndex] : requestIndex >= 0 ? lines[requestIndex] : undefined;
   const eventMatch = eventLine?.match(tokenEventPattern);
   const context = eventMatch?.[1]?.toUpperCase() as YtDlpClosedStageTelemetry["tokenContext"] | undefined;
@@ -236,6 +243,20 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
             : /\[youtube(?::[^\]]+)?\]|extractor/i.test(botCheckLine) ? "EXTRACTOR_LEXICAL" : "UNKNOWN";
   const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : hlsManifest403 ? "HLS_MANIFEST"
     : hlsFragment403 ? "HLS_FRAGMENT" : media403 ? "MEDIA" : "UNKNOWN";
+  const postRetrievalStages = retrievalIndex < 0 || options.outputComplete === false ? [] : [...new Set(
+    lines.flatMap((line, index) => {
+      if (index <= retrievalIndex) return [];
+      if (/^\s*\[youtube\]\s+\S+:\s+Downloading\s+mweb\s+player API JSON\s*$/i.test(line)) return ["PLAYER_API" as const];
+      if (/^\s*ERROR:\s+gvs request:\s+HTTP Error 403(?:\s|$)/i.test(line)) return ["GVS_ERROR" as const];
+      if (/^\s*\[download\]\s+Destination:/i.test(line)) return ["MEDIA" as const];
+      if (/^\s*(?:\[youtube\]\s+\S+:\s+)?Downloading\s+m3u8 information\s*$/i.test(line)
+        || /^\s*\[hlsnative\]\s+Downloading\s+m3u8 manifest\s*$/i.test(line)) return ["HLS_MANIFEST" as const];
+      if (/^\s*(?:ERROR:\s+)?(?:HLS\s+)?fragment\s+\d+[^\r\n]*HTTP Error 403\s*$/i.test(line)) return ["HLS_FRAGMENT" as const];
+      return [];
+    }),
+  )];
+  const postRetrievalExternalRequestStage = postRetrievalStages.length === 1
+    ? postRetrievalStages[0]! : "UNKNOWN";
   return Object.freeze({
     providerPluginDiscovered: providerPluginDiscovered ? "YES" : "UNKNOWN",
     providerPluginActivated: providerPluginActivated ? "YES" : "UNKNOWN",
@@ -259,6 +280,7 @@ export const extractClosedYtDlpStageTelemetry = (stderr: string): YtDlpClosedSta
     http403Stage,
     botCheckEvidenceStage,
     botCheckEvidenceKind: botCheckEvidenceStage === "UNKNOWN" ? "UNKNOWN" : "LEXICAL",
+    postRetrievalExternalRequestStage,
   });
 };
 
@@ -482,7 +504,9 @@ export const runPackagedYtDlp = async (
       stdoutLimitExceeded,
       stderrLimitExceeded,
       stderrSignature: extractSafeYtDlpStderrSignature(stderr.toString("utf8")),
-      closedStageTelemetry: extractClosedYtDlpStageTelemetry(stderr.toString("utf8")),
+      closedStageTelemetry: extractClosedYtDlpStageTelemetry(stderr.toString("utf8"), {
+        outputComplete: !stderrLimitExceeded,
+      }),
     });
     const append = (current: Buffer, chunk: Buffer, stream: "stdout" | "stderr") => {
       const next = Buffer.concat([current, chunk]);

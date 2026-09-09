@@ -34,6 +34,7 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     mediaBytesObserved: "UNKNOWN", safeFailureCode: "NONE", failureStage: "UNKNOWN", processFailureFamily: "NONE",
     botCheckEvidenceStage: "UNKNOWN", botCheckEvidenceKind: "UNKNOWN",
     extractorTerminatedWithoutObservedProviderRequest: "UNKNOWN", extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN",
   });
   assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, arbitrary: "private" }));
   const serialized = JSON.stringify(diagnostic);
@@ -95,6 +96,7 @@ test("closed process observations populate independently while missing evidence 
   assert.equal(value.mediaRequestObserved, "YES");
   assert.equal(value.mediaBytesObserved, "UNKNOWN");
   assert.equal(value.tokenConsumedByYtDlp, "UNKNOWN");
+  assert.equal(value.postRetrievalExternalRequestStage, "UNKNOWN");
 });
 
 test("explicit extractor bot-check termination closes only the pre-provider-request boundary", () => {

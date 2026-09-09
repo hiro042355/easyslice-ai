@@ -114,6 +114,7 @@ export const createAcquisitionWorkerHttpService = (dependencies: WorkerHttpDepen
           providerRequestTemporalRelation: diagnostic.providerRequestTemporalRelation,
           extractorTerminatedWithoutObservedProviderRequest: diagnostic.extractorTerminatedWithoutObservedProviderRequest,
           extractorTerminatedBeforeProviderRequest: diagnostic.extractorTerminatedBeforeProviderRequest,
+          postRetrievalExternalRequestStage: diagnostic.postRetrievalExternalRequestStage,
         } : {}),
       });
       return sendJson(response, result.status === "succeeded" ? 200 : 422,

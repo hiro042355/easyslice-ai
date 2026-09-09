@@ -78,6 +78,7 @@ test("Worker projects only the closed safe post-provider process failure evidenc
     failureStage: "UNKNOWN",
     botCheckEvidenceStage: "UNKNOWN",
     extractorTerminatedBeforeProviderRequest: "UNKNOWN",
+    postRetrievalExternalRequestStage: "UNKNOWN",
   });
 });
 
@@ -94,6 +95,7 @@ test("Worker safe failure evidence contains no raw output or acquisition authori
     "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
     "hlsFragmentReached", "http403Stage", "retryCount",
     "safeFailureCode", "failureStage", "botCheckEvidenceStage", "extractorTerminatedBeforeProviderRequest",
+    "postRetrievalExternalRequestStage",
   ].sort());
 });
 

@@ -140,6 +140,7 @@ test("completion log correlates validated bounded telemetry without inference or
       "extractorTerminatedBeforeProviderRequest", "extractorTerminatedWithoutObservedProviderRequest",
       "failureCode", "formatEnumerationObserved",
       "jsChallengeObserved", "mediaBytesObserved", "mediaRequestObserved", "observedPlayerClient",
+      "postRetrievalExternalRequestStage",
       "providerPluginActivated", "providerPluginDiscovered", "providerRequestCount",
       "providerRequestObservationCoverage", "providerRequestTemporalRelation", "providerResponseObserved",
       "providerResponseSchemaOutcome", "providerTokenDemandObserved", "source", "status",
@@ -152,7 +153,7 @@ test("completion log correlates validated bounded telemetry without inference or
       "providerRequestObservationCoverage", "providerRequestCount", "providerTokenDemandObserved",
       "providerResponseObserved", "providerResponseSchemaOutcome", "providerRequestTemporalRelation",
       "tokenRetrievedByYtDlp", "tokenAttachedToOutboundRequest", "botCheckRelativeToTokenRetrieval",
-      "botCheckRelativeToTokenAttachment",
+      "botCheckRelativeToTokenAttachment", "postRetrievalExternalRequestStage",
       "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest"] as const) {
       assert.equal(log[field], diagnostic[field]);
     }

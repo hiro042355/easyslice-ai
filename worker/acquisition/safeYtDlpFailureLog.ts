@@ -39,6 +39,7 @@ export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
   failureStage: AcquisitionSafeTelemetry["failureStage"];
   botCheckEvidenceStage: AcquisitionSafeTelemetry["botCheckEvidenceStage"];
   extractorTerminatedBeforeProviderRequest: AcquisitionSafeTelemetry["extractorTerminatedBeforeProviderRequest"];
+  postRetrievalExternalRequestStage: AcquisitionSafeTelemetry["postRetrievalExternalRequestStage"];
 }>;
 
 const ALLOWED_SIGNALS = new Set<NodeJS.Signals>([
@@ -99,6 +100,7 @@ export const projectAcquisitionWorkerYtDlpFailure = (
     failureStage: telemetry.failureStage,
     botCheckEvidenceStage: telemetry.botCheckEvidenceStage,
     extractorTerminatedBeforeProviderRequest: telemetry.extractorTerminatedBeforeProviderRequest,
+    postRetrievalExternalRequestStage: telemetry.postRetrievalExternalRequestStage,
   });
 };
 
