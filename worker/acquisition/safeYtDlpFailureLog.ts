@@ -24,6 +24,15 @@ export type AcquisitionWorkerSafeYtDlpFailureLog = Readonly<{
   providerTokenSchemaValid: AcquisitionSafeTelemetry["providerTokenSchemaValid"];
   tokenContext: AcquisitionSafeTelemetry["tokenContext"];
   tokenRetrievedByYtDlp: AcquisitionSafeTelemetry["tokenRetrievedByYtDlp"];
+  tokenSelectionObserved: AcquisitionSafeTelemetry["tokenSelectionObserved"];
+  tokenSelectionCoverage: AcquisitionSafeTelemetry["tokenSelectionCoverage"];
+  tokenApplicationObserved: AcquisitionSafeTelemetry["tokenApplicationObserved"];
+  tokenApplicationCoverage: AcquisitionSafeTelemetry["tokenApplicationCoverage"];
+  tokenApplicationTarget: AcquisitionSafeTelemetry["tokenApplicationTarget"];
+  tokenApplicationTemporalRelation: AcquisitionSafeTelemetry["tokenApplicationTemporalRelation"];
+  relevantOutboundRequestObserved: AcquisitionSafeTelemetry["relevantOutboundRequestObserved"];
+  relevantOutboundRequestCoverage: AcquisitionSafeTelemetry["relevantOutboundRequestCoverage"];
+  tokenAppliedToRelevantOutboundRequest: AcquisitionSafeTelemetry["tokenAppliedToRelevantOutboundRequest"];
   tokenAttachedToOutboundRequest: AcquisitionSafeTelemetry["tokenAttachedToOutboundRequest"];
   tokenConsumedByYtDlp: AcquisitionSafeTelemetry["tokenConsumedByYtDlp"];
   botCheckRelativeToTokenRetrieval: AcquisitionSafeTelemetry["botCheckRelativeToTokenRetrieval"];
@@ -86,6 +95,15 @@ export const projectAcquisitionWorkerYtDlpFailure = (
     providerTokenSchemaValid: telemetry.providerTokenSchemaValid,
     tokenContext: telemetry.tokenContext,
     tokenRetrievedByYtDlp: telemetry.tokenRetrievedByYtDlp,
+    tokenSelectionObserved: telemetry.tokenSelectionObserved,
+    tokenSelectionCoverage: telemetry.tokenSelectionCoverage,
+    tokenApplicationObserved: telemetry.tokenApplicationObserved,
+    tokenApplicationCoverage: telemetry.tokenApplicationCoverage,
+    tokenApplicationTarget: telemetry.tokenApplicationTarget,
+    tokenApplicationTemporalRelation: telemetry.tokenApplicationTemporalRelation,
+    relevantOutboundRequestObserved: telemetry.relevantOutboundRequestObserved,
+    relevantOutboundRequestCoverage: telemetry.relevantOutboundRequestCoverage,
+    tokenAppliedToRelevantOutboundRequest: telemetry.tokenAppliedToRelevantOutboundRequest,
     tokenAttachedToOutboundRequest: telemetry.tokenAttachedToOutboundRequest,
     tokenConsumedByYtDlp: telemetry.tokenConsumedByYtDlp,
     botCheckRelativeToTokenRetrieval: telemetry.botCheckRelativeToTokenRetrieval,

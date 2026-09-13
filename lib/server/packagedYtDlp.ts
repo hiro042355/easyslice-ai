@@ -45,7 +45,16 @@ export type YtDlpClosedStageTelemetry = Readonly<{
   mediaBytesObserved: "YES" | "UNKNOWN";
   tokenContext: "GVS" | "PLAYER" | "SUBS" | "UNKNOWN";
   tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
-  tokenAttachedToOutboundRequest: "UNKNOWN";
+  tokenSelectionObserved?: "YES" | "NO" | "UNKNOWN";
+  tokenSelectionCoverage?: "COMPLETE" | "INCOMPLETE" | "NOT_STARTED" | "UNKNOWN";
+  tokenApplicationObserved?: "YES" | "NO" | "UNKNOWN";
+  tokenApplicationCoverage?: "COMPLETE" | "INCOMPLETE" | "NOT_STARTED" | "UNKNOWN";
+  tokenApplicationTarget?: "PLAYER" | "GVS" | "MEDIA" | "OTHER" | "UNKNOWN";
+  tokenApplicationTemporalRelation?: "BEFORE_BOT_CHECK" | "AFTER_BOT_CHECK" | "NOT_OBSERVED" | "UNKNOWN";
+  relevantOutboundRequestObserved?: "YES" | "NO" | "UNKNOWN";
+  relevantOutboundRequestCoverage?: "COMPLETE" | "INCOMPLETE" | "NOT_STARTED" | "UNKNOWN";
+  tokenAppliedToRelevantOutboundRequest?: "YES" | "NO" | "UNKNOWN";
+  tokenAttachedToOutboundRequest: "YES" | "NO" | "UNKNOWN";
   tokenConsumedByYtDlp: "YES" | "NO" | "UNKNOWN";
   botCheckRelativeToTokenRetrieval: "BEFORE_RETRIEVAL" | "AFTER_RETRIEVAL" | "UNKNOWN";
   botCheckRelativeToTokenAttachment: "UNKNOWN";
@@ -65,7 +74,12 @@ const EMPTY_CLOSED_STAGE_TELEMETRY: YtDlpClosedStageTelemetry = Object.freeze({
   providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
   ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
   mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
-  tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+  tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN",
+  tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+  tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+  tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+  relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+  tokenAttachedToOutboundRequest: "UNKNOWN",
   tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
   botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN",
   mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
@@ -294,6 +308,110 @@ export const extractClosedYtDlpStageTelemetry = (
             : /\[youtube(?::[^\]]+)?\]|extractor/i.test(botCheckLine) ? "EXTRACTOR_LEXICAL" : "UNKNOWN";
   const http403Stage = player403 ? "PLAYER" : gvs403 ? "GVS" : hlsManifest403 ? "HLS_MANIFEST"
     : hlsFragment403 ? "HLS_FRAGMENT" : media403 ? "MEDIA" : "UNKNOWN";
+  type InstrumentedEvent = Readonly<{
+    index: number;
+    phase: "SELECTION" | "APPLICATION" | "REQUEST_PRE_DISPATCH"
+      | "SELECTION_COVERAGE_TERMINAL" | "APPLICATION_COVERAGE_TERMINAL" | "REQUEST_COVERAGE_TERMINAL";
+    context: "PLAYER" | "GVS" | "SUBS" | "UNKNOWN";
+    target: "PLAYER" | "GVS" | "MEDIA" | "OTHER" | "UNKNOWN";
+    coverage: "COMPLETE" | "INCOMPLETE" | "NOT_STARTED" | "UNKNOWN";
+    observed: "YES" | "NO" | "UNKNOWN";
+    applied: "YES" | "NO" | "UNKNOWN";
+  }>;
+  const eventPrefixPattern = /^\s*\[debug\]\s+NEXCUT_POT_EVENT\b/;
+  const eventPattern = /^\s*\[debug\]\s+NEXCUT_POT_EVENT phase=(SELECTION|APPLICATION|REQUEST_PRE_DISPATCH|SELECTION_COVERAGE_TERMINAL|APPLICATION_COVERAGE_TERMINAL|REQUEST_COVERAGE_TERMINAL) context=(PLAYER|GVS|SUBS|UNKNOWN) target=(PLAYER|GVS|MEDIA|OTHER|UNKNOWN) coverage=(COMPLETE|INCOMPLETE|NOT_STARTED|UNKNOWN) observed=(YES|NO|UNKNOWN) applied=(YES|NO|UNKNOWN)\s*$/;
+  let malformedInstrumentedEvent = false;
+  const instrumentedEvents = lines.flatMap((line, index): InstrumentedEvent[] => {
+    const match = line.match(eventPattern);
+    if (!match) {
+      if (eventPrefixPattern.test(line)) malformedInstrumentedEvent = true;
+      return [];
+    }
+    return [{ index, phase: match[1]!, context: match[2]!, target: match[3]!, coverage: match[4]!, observed: match[5]!, applied: match[6]! } as InstrumentedEvent];
+  });
+  const byPhase = (phase: InstrumentedEvent["phase"]) => instrumentedEvents.filter((event) => event.phase === phase);
+  const eventIdentity = (event: InstrumentedEvent) => [
+    event.phase, event.context, event.target, event.coverage, event.observed, event.applied,
+  ].join("|");
+  const unique = (events: InstrumentedEvent[]) => [
+    ...new Map(events.map((event) => [eventIdentity(event), event])).values(),
+  ];
+  type DomainProjection = Readonly<{
+    events: InstrumentedEvent[];
+    coverage: InstrumentedEvent["coverage"];
+    observed: "YES" | "NO" | "UNKNOWN";
+    invalid: boolean;
+  }>;
+  const projectDomain = (
+    positivePhase: "SELECTION" | "APPLICATION" | "REQUEST_PRE_DISPATCH",
+    terminalPhase: "SELECTION_COVERAGE_TERMINAL" | "APPLICATION_COVERAGE_TERMINAL" | "REQUEST_COVERAGE_TERMINAL",
+    validPositive: (event: InstrumentedEvent) => boolean,
+  ): DomainProjection => {
+    const events = unique(byPhase(positivePhase));
+    const terminalEvents = byPhase(terminalPhase);
+    const terminals = unique(terminalEvents);
+    const terminal = terminals.length === 1 ? terminals[0] : undefined;
+    const validTerminal = !terminal || (
+      terminal.context === "UNKNOWN" && terminal.target === "UNKNOWN"
+      && (terminal.coverage === "COMPLETE" || terminal.coverage === "INCOMPLETE")
+      && terminal.observed === "UNKNOWN" && terminal.applied === "UNKNOWN"
+    );
+    const eventAfterClosure = Boolean(terminal && events.some((event) => event.index > terminal.index));
+    const invalid = malformedInstrumentedEvent || terminals.length > 1 || !validTerminal
+      || eventAfterClosure || events.some((event) => !validPositive(event));
+    const coverage = invalid || !terminal ? "UNKNOWN" : terminal.coverage;
+    const observed = invalid ? "UNKNOWN" : events.length > 0 ? "YES"
+      : coverage === "COMPLETE" ? "NO" : "UNKNOWN";
+    return { events, coverage, observed, invalid };
+  };
+  const selection = projectDomain(
+    "SELECTION", "SELECTION_COVERAGE_TERMINAL",
+    (event) => event.coverage === "UNKNOWN" && event.observed === "YES" && event.applied === "UNKNOWN"
+      && ((event.context === "PLAYER" && event.target === "PLAYER")
+        || (event.context === "GVS" && event.target === "GVS")),
+  );
+  let application = projectDomain(
+    "APPLICATION", "APPLICATION_COVERAGE_TERMINAL",
+    (event) => event.coverage === "UNKNOWN" && event.observed === "YES" && event.applied === "YES"
+      && ((event.context === "PLAYER" && event.target === "PLAYER")
+        || (event.context === "GVS" && event.target === "MEDIA")),
+  );
+  const selectionBeforeApplication = application.events.every((applicationEvent) =>
+    selection.events.some((selectionEvent) => selectionEvent.context === applicationEvent.context
+      && selectionEvent.index < applicationEvent.index));
+  const conflictingApplicationTarget = ["PLAYER", "GVS"].some((context) =>
+    new Set(application.events.filter((event) => event.context === context).map((event) => event.target)).size > 1);
+  if ((selection.invalid && application.events.length > 0)
+    || !selectionBeforeApplication || conflictingApplicationTarget) {
+    application = { ...application, coverage: "UNKNOWN", observed: "UNKNOWN", invalid: true };
+  }
+  let request = projectDomain(
+    "REQUEST_PRE_DISPATCH", "REQUEST_COVERAGE_TERMINAL",
+    (event) => event.coverage === "UNKNOWN" && event.observed === "YES"
+      && (event.applied === "YES" || event.applied === "NO")
+      && ((event.context === "PLAYER" && event.target === "PLAYER")
+        || (event.context === "GVS" && event.target === "MEDIA")),
+  );
+  const applicationBeforeAppliedRequest = request.events.every((requestEvent) => requestEvent.applied !== "YES"
+    || application.events.some((applicationEvent) => applicationEvent.context === requestEvent.context
+      && applicationEvent.target === requestEvent.target && applicationEvent.index < requestEvent.index));
+  if ((application.invalid && request.events.some((event) => event.applied === "YES"))
+    || !applicationBeforeAppliedRequest) {
+    request = { ...request, coverage: "UNKNOWN", observed: "UNKNOWN", invalid: true };
+  }
+  const applicationTargets = new Set(application.events.map((event) => event.target));
+  const tokenApplicationTarget = application.invalid || application.events.length === 0 ? "UNKNOWN"
+    : applicationTargets.size === 1 ? [...applicationTargets][0]! : "OTHER";
+  const firstApplicationIndex = application.invalid || application.events.length === 0
+    ? -1 : Math.min(...application.events.map((event) => event.index));
+  const tokenApplicationTemporalRelation = application.invalid ? "UNKNOWN" : firstApplicationIndex < 0
+    ? (application.coverage === "COMPLETE" ? "NOT_OBSERVED" : "UNKNOWN")
+    : botCheckIndex < 0 ? "UNKNOWN"
+      : firstApplicationIndex < botCheckIndex ? "BEFORE_BOT_CHECK" : "AFTER_BOT_CHECK";
+  const requestAppliedEvents = request.events.filter((event) => event.applied === "YES");
+  const tokenAppliedToRelevantOutboundRequest = request.invalid ? "UNKNOWN"
+    : requestAppliedEvents.length > 0 ? "YES"
+      : request.coverage === "COMPLETE" ? "NO" : "UNKNOWN";
   return Object.freeze({
     stderrCaptureComplete: boundedSnapshot.stderrCaptureComplete,
     providerPluginDiscovered: providerPluginDiscovered ? "YES" : "UNKNOWN",
@@ -306,7 +424,16 @@ export const extractClosedYtDlpStageTelemetry = (
     mediaBytesObserved: mediaBytesObserved ? "YES" : "UNKNOWN",
     tokenContext: context ?? "UNKNOWN",
     tokenRetrievedByYtDlp: retrievalIndex >= 0 ? "YES" : "UNKNOWN",
-    tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenSelectionObserved: selection.observed,
+    tokenSelectionCoverage: selection.coverage,
+    tokenApplicationObserved: application.observed,
+    tokenApplicationCoverage: application.coverage,
+    tokenApplicationTarget,
+    tokenApplicationTemporalRelation,
+    relevantOutboundRequestObserved: request.observed,
+    relevantOutboundRequestCoverage: request.coverage,
+    tokenAppliedToRelevantOutboundRequest,
+    tokenAttachedToOutboundRequest: tokenAppliedToRelevantOutboundRequest,
     tokenConsumedByYtDlp: "UNKNOWN",
     botCheckRelativeToTokenRetrieval,
     botCheckRelativeToTokenAttachment: "UNKNOWN",

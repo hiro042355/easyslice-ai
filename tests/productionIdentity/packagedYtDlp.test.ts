@@ -230,7 +230,12 @@ test("runner preserves safe exit metadata and classifies bounded stderr without 
         providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
         ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
         mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
-        tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+        tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN",
+        tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+        tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+        tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+        relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+        tokenAttachedToOutboundRequest: "UNKNOWN",
         tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
         botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN",
         mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
@@ -447,7 +452,11 @@ test("closed process markers distinguish observation from configuration without 
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+    tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+    tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+    relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
     botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN", mediaRequestReached: "UNKNOWN",
     selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN", hlsFragmentReached: "UNKNOWN",
@@ -464,7 +473,11 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "YES", observedPlayerClient: "MWEB",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "YES", mediaBytesObserved: "UNKNOWN",
-    tokenContext: "GVS", tokenRetrievedByYtDlp: "YES", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenContext: "GVS", tokenRetrievedByYtDlp: "YES", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+    tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+    tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+    relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
     botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "YES",
     mediaRequestReached: "YES", selectedTransport: "DIRECT", hlsManifestReached: "UNKNOWN",
@@ -478,7 +491,11 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
     ejsActualUse: "UNKNOWN", jsChallengeObserved: "UNKNOWN", formatEnumerationObserved: "UNKNOWN",
     mediaRequestObserved: "UNKNOWN", mediaBytesObserved: "UNKNOWN",
-    tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenContext: "UNKNOWN", tokenRetrievedByYtDlp: "UNKNOWN", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+    tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+    tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+    relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
     botCheckRelativeToTokenAttachment: "UNKNOWN", gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
@@ -495,7 +512,11 @@ test("closed stage telemetry projects only directly evidenced provider and 403 s
 test("closed HLS telemetry distinguishes manifest and fragment 403 without retaining authority", () => {
   const manifest = extractClosedYtDlpStageTelemetry("Downloading m3u8 information\nERROR: HLS manifest HTTP Error 403");
   assert.deepEqual(manifest, { stderrCaptureComplete: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+    tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+    tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+    relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
     botCheckRelativeToTokenAttachment: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
@@ -506,7 +527,11 @@ test("closed HLS telemetry distinguishes manifest and fragment 403 without retai
     postRetrievalExternalRequestStage: "UNKNOWN" });
   const fragment = extractClosedYtDlpStageTelemetry("[hlsnative] Downloading m3u8 manifest\nfragment 1 HTTP Error 403");
   assert.deepEqual(fragment, { stderrCaptureComplete: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+    tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+    tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+    relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
     botCheckRelativeToTokenAttachment: "UNKNOWN",
     providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", observedPlayerClient: "UNKNOWN",
@@ -518,6 +543,147 @@ test("closed HLS telemetry distinguishes manifest and fragment 403 without retai
   assert.equal(extractClosedYtDlpStageTelemetry("[dashsegments] Downloading MPD manifest").selectedTransport, "DASH");
   const serialized = JSON.stringify(fragment);
   assert.doesNotMatch(serialized, /https?:|m3u8\.example|video.?id|poToken|tokenHash|accessToken|cookie|credential|header|path|stdout|rawStderr/i);
+});
+
+test("instrumented PO-token events require terminal coverage and preserve partial authority", () => {
+  const event = (phase: string, context = "UNKNOWN", target = "UNKNOWN", coverage = "UNKNOWN", observed = "UNKNOWN", applied = "UNKNOWN") =>
+    `[debug] NEXCUT_POT_EVENT phase=${phase} context=${context} target=${target} coverage=${coverage} observed=${observed} applied=${applied}`;
+  const terminal = (domain: "SELECTION" | "APPLICATION" | "REQUEST", coverage: "COMPLETE" | "INCOMPLETE") =>
+    event(`${domain}_COVERAGE_TERMINAL`, "UNKNOWN", "UNKNOWN", coverage);
+
+  const missingSelectionTerminal = extractClosedYtDlpStageTelemetry("");
+  assert.equal(missingSelectionTerminal.tokenSelectionObserved, "UNKNOWN");
+  assert.equal(missingSelectionTerminal.tokenSelectionCoverage, "UNKNOWN");
+  const noSelection = extractClosedYtDlpStageTelemetry(terminal("SELECTION", "COMPLETE"));
+  assert.equal(noSelection.tokenSelectionObserved, "NO");
+  assert.equal(noSelection.tokenSelectionCoverage, "COMPLETE");
+  const partialSelection = extractClosedYtDlpStageTelemetry(terminal("SELECTION", "INCOMPLETE"));
+  assert.equal(partialSelection.tokenSelectionObserved, "UNKNOWN");
+  assert.equal(partialSelection.tokenSelectionCoverage, "INCOMPLETE");
+
+  const selectedWithoutApplication = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "PLAYER", "PLAYER", "UNKNOWN", "YES"),
+    terminal("SELECTION", "COMPLETE"),
+    terminal("APPLICATION", "COMPLETE"),
+  ].join("\n"));
+  assert.equal(selectedWithoutApplication.tokenSelectionObserved, "YES");
+  assert.equal(selectedWithoutApplication.tokenApplicationObserved, "NO");
+
+  const selectedWithoutCompleteApplicationCoverage = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "PLAYER", "PLAYER", "UNKNOWN", "YES"),
+    terminal("SELECTION", "COMPLETE"),
+    terminal("APPLICATION", "INCOMPLETE"),
+  ].join("\n"));
+  assert.equal(selectedWithoutCompleteApplicationCoverage.tokenSelectionObserved, "YES");
+  assert.equal(selectedWithoutCompleteApplicationCoverage.tokenApplicationObserved, "UNKNOWN");
+
+  assert.equal(extractClosedYtDlpStageTelemetry("").tokenApplicationObserved, "UNKNOWN");
+  const noApplication = extractClosedYtDlpStageTelemetry(terminal("APPLICATION", "COMPLETE"));
+  assert.equal(noApplication.tokenApplicationObserved, "NO");
+  assert.equal(noApplication.tokenApplicationTemporalRelation, "NOT_OBSERVED");
+  assert.equal(extractClosedYtDlpStageTelemetry("").relevantOutboundRequestObserved, "UNKNOWN");
+  assert.equal(
+    extractClosedYtDlpStageTelemetry(terminal("REQUEST", "COMPLETE")).relevantOutboundRequestObserved,
+    "NO",
+  );
+
+  const beforeBotCheck = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "PLAYER", "PLAYER", "UNKNOWN", "YES"),
+    event("APPLICATION", "PLAYER", "PLAYER", "UNKNOWN", "YES", "YES"),
+    event("REQUEST_PRE_DISPATCH", "PLAYER", "PLAYER", "UNKNOWN", "YES", "YES"),
+    terminal("SELECTION", "COMPLETE"), terminal("APPLICATION", "COMPLETE"), terminal("REQUEST", "INCOMPLETE"),
+    "ERROR: [youtube] Sign in to confirm you're not a bot",
+  ].join("\n"));
+  assert.equal(beforeBotCheck.tokenSelectionObserved, "YES");
+  assert.equal(beforeBotCheck.tokenApplicationObserved, "YES");
+  assert.equal(beforeBotCheck.tokenApplicationTarget, "PLAYER");
+  assert.equal(beforeBotCheck.tokenApplicationTemporalRelation, "BEFORE_BOT_CHECK");
+  assert.equal(beforeBotCheck.relevantOutboundRequestObserved, "YES");
+  assert.equal(beforeBotCheck.tokenAppliedToRelevantOutboundRequest, "YES");
+  assert.equal(beforeBotCheck.tokenAttachedToOutboundRequest, "YES");
+});
+
+test("instrumented event conflicts, impossible order, and malformed values fail closed", () => {
+  const event = (phase: string, context = "UNKNOWN", target = "UNKNOWN", coverage = "UNKNOWN", observed = "UNKNOWN", applied = "UNKNOWN") =>
+    `[debug] NEXCUT_POT_EVENT phase=${phase} context=${context} target=${target} coverage=${coverage} observed=${observed} applied=${applied}`;
+  const terminal = (domain: "SELECTION" | "APPLICATION" | "REQUEST", coverage: "COMPLETE" | "INCOMPLETE" = "COMPLETE") =>
+    event(`${domain}_COVERAGE_TERMINAL`, "UNKNOWN", "UNKNOWN", coverage);
+
+  const conflictingSelection = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "GVS", "GVS", "UNKNOWN", "YES"),
+    event("SELECTION", "GVS", "GVS", "UNKNOWN", "NO"),
+    terminal("SELECTION"),
+  ].join("\n"));
+  assert.equal(conflictingSelection.tokenSelectionObserved, "UNKNOWN");
+  assert.equal(conflictingSelection.tokenSelectionCoverage, "UNKNOWN");
+  const selectionConflictPropagation = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "GVS", "GVS", "UNKNOWN", "YES"),
+    event("SELECTION", "GVS", "GVS", "UNKNOWN", "NO"),
+    event("APPLICATION", "GVS", "MEDIA", "UNKNOWN", "YES", "YES"),
+    event("REQUEST_PRE_DISPATCH", "GVS", "MEDIA", "UNKNOWN", "YES", "YES"),
+    terminal("SELECTION"), terminal("APPLICATION"), terminal("REQUEST", "INCOMPLETE"),
+  ].join("\n"));
+  assert.equal(selectionConflictPropagation.tokenApplicationObserved, "UNKNOWN");
+  assert.equal(selectionConflictPropagation.tokenAppliedToRelevantOutboundRequest, "UNKNOWN");
+
+  const conflictingTargets = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "PLAYER", "PLAYER", "UNKNOWN", "YES"),
+    event("APPLICATION", "PLAYER", "PLAYER", "UNKNOWN", "YES", "YES"),
+    event("APPLICATION", "PLAYER", "GVS", "UNKNOWN", "YES", "YES"),
+    terminal("APPLICATION"),
+  ].join("\n"));
+  assert.equal(conflictingTargets.tokenApplicationObserved, "UNKNOWN");
+  assert.equal(conflictingTargets.tokenApplicationTarget, "UNKNOWN");
+
+  const identicalDuplicate = extractClosedYtDlpStageTelemetry([
+    event("SELECTION", "GVS", "GVS", "UNKNOWN", "YES"),
+    event("APPLICATION", "GVS", "MEDIA", "UNKNOWN", "YES", "YES"),
+    event("APPLICATION", "GVS", "MEDIA", "UNKNOWN", "YES", "YES"),
+    terminal("APPLICATION"),
+  ].join("\n"));
+  assert.equal(identicalDuplicate.tokenApplicationObserved, "YES");
+  assert.equal(identicalDuplicate.tokenApplicationTarget, "MEDIA");
+
+  const afterClosure = extractClosedYtDlpStageTelemetry([
+    terminal("SELECTION"), event("SELECTION", "PLAYER", "PLAYER", "UNKNOWN", "YES"),
+  ].join("\n"));
+  assert.equal(afterClosure.tokenSelectionObserved, "UNKNOWN");
+  const impossibleOrder = extractClosedYtDlpStageTelemetry([
+    event("APPLICATION", "PLAYER", "PLAYER", "UNKNOWN", "YES", "YES"),
+    event("SELECTION", "PLAYER", "PLAYER", "UNKNOWN", "YES"),
+    terminal("APPLICATION"),
+  ].join("\n"));
+  assert.equal(impossibleOrder.tokenApplicationObserved, "UNKNOWN");
+
+  const malformedAndUnknown = extractClosedYtDlpStageTelemetry([
+    "[debug] NEXCUT_POT_EVENT phase=APPLICATION context=GVS target=MEDIA coverage=UNKNOWN observed=YES applied=secret-value",
+    "[debug] NEXCUT_POT_EVENT phase=UNRECOGNIZED context=GVS target=MEDIA coverage=UNKNOWN observed=YES applied=YES",
+    event("SELECTION", "GVS", "GVS", "UNKNOWN", "YES"),
+    terminal("SELECTION"),
+  ].join("\n"));
+  assert.equal(malformedAndUnknown.tokenSelectionObserved, "UNKNOWN");
+  assert.equal(malformedAndUnknown.tokenApplicationObserved, "UNKNOWN");
+  assert.doesNotMatch(JSON.stringify(malformedAndUnknown), /secret-value|UNRECOGNIZED/);
+});
+
+test("instrumentation patch places events only at authoritative lifecycle boundaries", () => {
+  const patch = readFileSync("worker/acquisition/yt-dlp-token-observation.patch", "utf8");
+  const playerAssignment = patch.indexOf("yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}");
+  const playerApplication = patch.indexOf("'APPLICATION', 'PLAYER', 'PLAYER'", playerAssignment);
+  const finalPlayerContext = patch.indexOf("encrypted_context=encrypted_context))", playerApplication);
+  const playerPreDispatch = patch.indexOf("'REQUEST_PRE_DISPATCH', 'PLAYER', 'PLAYER'", finalPlayerContext);
+  const playerDispatch = patch.indexOf("return self._extract_response(", playerPreDispatch);
+  assert.ok(playerAssignment >= 0 && playerAssignment < playerApplication);
+  assert.ok(playerApplication < finalPlayerContext && finalPlayerContext < playerPreDispatch);
+  assert.ok(playerPreDispatch < playerDispatch);
+
+  const directStart = patch.indexOf("fmt_url = update_url_query(fmt_url, {'pot': po_token})");
+  const directEnd = patch.indexOf("fmt['url'] = fmt_url", directStart);
+  assert.ok(directStart >= 0 && directEnd > directStart);
+  assert.doesNotMatch(patch.slice(directStart, directEnd), /REQUEST_PRE_DISPATCH/);
+  assert.match(patch, /REQUEST_COVERAGE_TERMINAL[^\n]*'UNKNOWN', 'UNKNOWN', 'INCOMPLETE'/);
+  assert.match(patch, /SELECTION_COVERAGE_TERMINAL[^\n]*'UNKNOWN', 'UNKNOWN', 'COMPLETE'/);
+  assert.match(patch, /APPLICATION_COVERAGE_TERMINAL[^\n]*'UNKNOWN', 'UNKNOWN', 'COMPLETE'/);
 });
 
 test("runner projects authoritative markers split inside multiple stderr chunks", async () => {

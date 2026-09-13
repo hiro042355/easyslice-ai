@@ -143,7 +143,10 @@ test("completion log correlates validated bounded telemetry without inference or
       "postRetrievalExternalRequestStage", "stderrCaptureComplete",
       "providerPluginActivated", "providerPluginDiscovered", "providerRequestCount",
       "providerRequestObservationCoverage", "providerRequestTemporalRelation", "providerResponseObserved",
-      "providerResponseSchemaOutcome", "providerTokenDemandObserved", "source", "status",
+      "providerResponseSchemaOutcome", "providerTokenDemandObserved", "relevantOutboundRequestCoverage",
+      "relevantOutboundRequestObserved", "source", "status", "tokenApplicationCoverage",
+      "tokenApplicationObserved", "tokenApplicationTarget", "tokenApplicationTemporalRelation",
+      "tokenAppliedToRelevantOutboundRequest", "tokenSelectionCoverage", "tokenSelectionObserved",
       "tokenAttachedToOutboundRequest", "tokenRetrievedByYtDlp", "ytDlpProcessTerminated",
     ].sort());
     assert.equal(log.acquisitionId, ID);
@@ -152,7 +155,10 @@ test("completion log correlates validated bounded telemetry without inference or
       "mediaBytesObserved", "botCheckEvidenceStage", "botCheckEvidenceKind", "ytDlpProcessTerminated",
       "providerRequestObservationCoverage", "providerRequestCount", "providerTokenDemandObserved",
       "providerResponseObserved", "providerResponseSchemaOutcome", "providerRequestTemporalRelation",
-      "tokenRetrievedByYtDlp", "tokenAttachedToOutboundRequest", "botCheckRelativeToTokenRetrieval",
+      "tokenRetrievedByYtDlp", "tokenSelectionObserved", "tokenSelectionCoverage", "tokenApplicationObserved",
+      "tokenApplicationCoverage", "tokenApplicationTarget", "tokenApplicationTemporalRelation",
+      "relevantOutboundRequestObserved", "relevantOutboundRequestCoverage", "tokenAppliedToRelevantOutboundRequest",
+      "tokenAttachedToOutboundRequest", "botCheckRelativeToTokenRetrieval",
       "botCheckRelativeToTokenAttachment", "postRetrievalExternalRequestStage", "stderrCaptureComplete",
       "extractorTerminatedWithoutObservedProviderRequest", "extractorTerminatedBeforeProviderRequest"] as const) {
       assert.equal(log[field], diagnostic[field]);

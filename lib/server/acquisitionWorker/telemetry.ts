@@ -7,6 +7,12 @@ export const PLAYER_CLIENTS = ["DEFAULT", "WEB", "MWEB", "OTHER", "UNKNOWN"] as 
 export type TelemetryPlayerClient = (typeof PLAYER_CLIENTS)[number];
 export const TOKEN_CONTEXTS = ["GVS", "PLAYER", "SUBS", "UNKNOWN"] as const;
 export type TelemetryTokenContext = (typeof TOKEN_CONTEXTS)[number];
+export const TOKEN_OBSERVATION_COVERAGE = ["COMPLETE", "INCOMPLETE", "NOT_STARTED", "UNKNOWN"] as const;
+export type TokenObservationCoverage = (typeof TOKEN_OBSERVATION_COVERAGE)[number];
+export const TOKEN_APPLICATION_TARGETS = ["PLAYER", "GVS", "MEDIA", "OTHER", "UNKNOWN"] as const;
+export type TokenApplicationTarget = (typeof TOKEN_APPLICATION_TARGETS)[number];
+export const TOKEN_APPLICATION_RELATIONS = ["BEFORE_BOT_CHECK", "AFTER_BOT_CHECK", "NOT_OBSERVED", "UNKNOWN"] as const;
+export type TokenApplicationRelation = (typeof TOKEN_APPLICATION_RELATIONS)[number];
 export const ACQUISITION_TRANSPORTS = ["HLS", "DIRECT", "DASH", "UNKNOWN"] as const;
 export type AcquisitionTransport = (typeof ACQUISITION_TRANSPORTS)[number];
 export const HTTP_403_STAGES = ["PLAYER", "GVS", "MEDIA", "HLS_MANIFEST", "HLS_FRAGMENT", "UNKNOWN"] as const;
@@ -83,7 +89,16 @@ export type AcquisitionSafeTelemetry = Readonly<{
   providerTokenSchemaValid: TelemetryTriState;
   tokenContext: TelemetryTokenContext;
   tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
-  tokenAttachedToOutboundRequest: "UNKNOWN";
+  tokenSelectionObserved: TelemetryTriState;
+  tokenSelectionCoverage: TokenObservationCoverage;
+  tokenApplicationObserved: TelemetryTriState;
+  tokenApplicationCoverage: TokenObservationCoverage;
+  tokenApplicationTarget: TokenApplicationTarget;
+  tokenApplicationTemporalRelation: TokenApplicationRelation;
+  relevantOutboundRequestObserved: TelemetryTriState;
+  relevantOutboundRequestCoverage: TokenObservationCoverage;
+  tokenAppliedToRelevantOutboundRequest: TelemetryTriState;
+  tokenAttachedToOutboundRequest: TelemetryTriState;
   tokenConsumedByYtDlp: TelemetryTriState;
   botCheckRelativeToTokenRetrieval: TokenRetrievalRelation;
   botCheckRelativeToTokenAttachment: "UNKNOWN";
@@ -120,6 +135,9 @@ const tri = new Set<string>(TELEMETRY_TRI_STATES);
 const players = new Set<string>(PLAYER_CLIENTS);
 const stages = new Set<string>(FAILURE_STAGES);
 const tokenContexts = new Set<string>(TOKEN_CONTEXTS);
+const tokenObservationCoverage = new Set<string>(TOKEN_OBSERVATION_COVERAGE);
+const tokenApplicationTargets = new Set<string>(TOKEN_APPLICATION_TARGETS);
+const tokenApplicationRelations = new Set<string>(TOKEN_APPLICATION_RELATIONS);
 const transports = new Set<string>(ACQUISITION_TRANSPORTS);
 const http403Stages = new Set<string>(HTTP_403_STAGES);
 const providerPrecheckOutcomes = new Set<string>(PROVIDER_PRECHECK_OUTCOMES);
@@ -144,6 +162,9 @@ const keys = [
   "providerPluginConfigured", "providerPluginDiscovered", "providerPluginActivated",
   "acquisitionProviderRequest", "acquisitionProviderSuccess", "acquisitionProviderFailure", "nodeConfigured",
   "providerTokenResponseObserved", "providerTokenSchemaValid", "tokenContext", "tokenRetrievedByYtDlp",
+  "tokenSelectionObserved", "tokenSelectionCoverage", "tokenApplicationObserved", "tokenApplicationCoverage",
+  "tokenApplicationTarget", "tokenApplicationTemporalRelation", "relevantOutboundRequestObserved",
+  "relevantOutboundRequestCoverage", "tokenAppliedToRelevantOutboundRequest",
   "tokenAttachedToOutboundRequest", "tokenConsumedByYtDlp", "botCheckRelativeToTokenRetrieval",
   "botCheckRelativeToTokenAttachment",
   "playerClient", "gvsRequestReached", "mediaRequestReached", "selectedTransport", "hlsManifestReached",
@@ -167,6 +188,12 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
       if (typeof item !== "string" || !players.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "tokenContext") {
       if (typeof item !== "string" || !tokenContexts.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "tokenSelectionCoverage" || key === "tokenApplicationCoverage" || key === "relevantOutboundRequestCoverage") {
+      if (typeof item !== "string" || !tokenObservationCoverage.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "tokenApplicationTarget") {
+      if (typeof item !== "string" || !tokenApplicationTargets.has(item)) throw new TypeError("invalid-acquisition-telemetry");
+    } else if (key === "tokenApplicationTemporalRelation") {
+      if (typeof item !== "string" || !tokenApplicationRelations.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "selectedTransport") {
       if (typeof item !== "string" || !transports.has(item)) throw new TypeError("invalid-acquisition-telemetry");
     } else if (key === "http403Stage") {
@@ -203,7 +230,14 @@ export const validateAcquisitionSafeTelemetry = (input: unknown): AcquisitionSaf
   }
   const invalid = (): never => { throw new TypeError("invalid-acquisition-telemetry-invariant"); };
   const positiveRequestCount = value.providerRequestCount === "ONE" || value.providerRequestCount === "MULTIPLE";
-  if (value.tokenAttachedToOutboundRequest !== "UNKNOWN" || value.botCheckRelativeToTokenAttachment !== "UNKNOWN") invalid();
+  if (value.botCheckRelativeToTokenAttachment !== "UNKNOWN") invalid();
+  if (value.tokenSelectionObserved === "NO" && value.tokenSelectionCoverage !== "COMPLETE") invalid();
+  if (value.tokenApplicationObserved === "NO" && value.tokenApplicationCoverage !== "COMPLETE") invalid();
+  if (value.relevantOutboundRequestObserved === "NO" && value.relevantOutboundRequestCoverage !== "COMPLETE") invalid();
+  if (value.tokenAppliedToRelevantOutboundRequest === "NO" && value.relevantOutboundRequestCoverage !== "COMPLETE") invalid();
+  if (value.tokenAttachedToOutboundRequest !== value.tokenAppliedToRelevantOutboundRequest) invalid();
+  if (value.tokenApplicationTarget !== "UNKNOWN" && value.tokenApplicationObserved !== "YES") invalid();
+  if (value.tokenApplicationTemporalRelation === "NOT_OBSERVED" && value.tokenApplicationCoverage !== "COMPLETE") invalid();
   if (value.tokenConsumedByYtDlp !== "UNKNOWN") invalid();
   if (value.botCheckRelativeToTokenRetrieval !== "UNKNOWN" && value.tokenRetrievedByYtDlp !== "YES") invalid();
   if (value.extractorTerminatedBeforeProviderRequest !== "UNKNOWN") invalid();
@@ -252,7 +286,11 @@ export class AcquisitionTelemetryCollector {
       providerPluginDiscovered: "UNKNOWN", providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO",
       acquisitionProviderSuccess: "NO", acquisitionProviderFailure: "NO", nodeConfigured: runtime.nodeConfigured ? "YES" : "NO",
       providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
-      tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+      tokenRetrievedByYtDlp: "UNKNOWN", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+      tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+      tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+      relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+      tokenAttachedToOutboundRequest: "UNKNOWN",
       tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
       botCheckRelativeToTokenAttachment: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
       mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
@@ -333,7 +371,16 @@ export class AcquisitionTelemetryCollector {
     mediaBytesObserved: "YES" | "UNKNOWN";
     tokenContext: TelemetryTokenContext;
     tokenRetrievedByYtDlp: "YES" | "UNKNOWN";
-    tokenAttachedToOutboundRequest: "UNKNOWN";
+    tokenSelectionObserved?: TelemetryTriState;
+    tokenSelectionCoverage?: TokenObservationCoverage;
+    tokenApplicationObserved?: TelemetryTriState;
+    tokenApplicationCoverage?: TokenObservationCoverage;
+    tokenApplicationTarget?: TokenApplicationTarget;
+    tokenApplicationTemporalRelation?: TokenApplicationRelation;
+    relevantOutboundRequestObserved?: TelemetryTriState;
+    relevantOutboundRequestCoverage?: TokenObservationCoverage;
+    tokenAppliedToRelevantOutboundRequest?: TelemetryTriState;
+    tokenAttachedToOutboundRequest: TelemetryTriState;
     tokenConsumedByYtDlp: TelemetryTriState;
     botCheckRelativeToTokenRetrieval: TokenRetrievalRelation;
     botCheckRelativeToTokenAttachment: "UNKNOWN";
@@ -358,7 +405,16 @@ export class AcquisitionTelemetryCollector {
     this.#state.mediaBytesObserved = evidence.mediaBytesObserved;
     this.#state.tokenContext = evidence.tokenContext;
     this.#state.tokenRetrievedByYtDlp = evidence.tokenRetrievedByYtDlp;
-    this.#state.tokenAttachedToOutboundRequest = evidence.tokenAttachedToOutboundRequest;
+    this.#state.tokenSelectionObserved = evidence.tokenSelectionObserved ?? "UNKNOWN";
+    this.#state.tokenSelectionCoverage = evidence.tokenSelectionCoverage ?? "UNKNOWN";
+    this.#state.tokenApplicationObserved = evidence.tokenApplicationObserved ?? "UNKNOWN";
+    this.#state.tokenApplicationCoverage = evidence.tokenApplicationCoverage ?? "UNKNOWN";
+    this.#state.tokenApplicationTarget = evidence.tokenApplicationTarget ?? "UNKNOWN";
+    this.#state.tokenApplicationTemporalRelation = evidence.tokenApplicationTemporalRelation ?? "UNKNOWN";
+    this.#state.relevantOutboundRequestObserved = evidence.relevantOutboundRequestObserved ?? "UNKNOWN";
+    this.#state.relevantOutboundRequestCoverage = evidence.relevantOutboundRequestCoverage ?? "UNKNOWN";
+    this.#state.tokenAppliedToRelevantOutboundRequest = evidence.tokenAppliedToRelevantOutboundRequest ?? "UNKNOWN";
+    this.#state.tokenAttachedToOutboundRequest = evidence.tokenAppliedToRelevantOutboundRequest ?? evidence.tokenAttachedToOutboundRequest;
     this.#state.tokenConsumedByYtDlp = "UNKNOWN";
     this.#state.botCheckRelativeToTokenRetrieval = evidence.botCheckRelativeToTokenRetrieval;
     this.#state.botCheckRelativeToTokenAttachment = evidence.botCheckRelativeToTokenAttachment;

@@ -1,0 +1,128 @@
+diff --git a/yt_dlp/extractor/youtube/_video.py b/yt_dlp/extractor/youtube/_video.py
+index 04510da25..88ac74356 100644
+--- a/yt_dlp/extractor/youtube/_video.py
++++ b/yt_dlp/extractor/youtube/_video.py
+@@ -2710,6 +2710,28 @@ def _generate_player_context(cls, sts=None, use_ad_playback_context=False, encry
+             **cls._get_checkok_params(),
+         }
+ 
++    def _nexcut_pot_event(self, phase, context, target, coverage, observed, applied='UNKNOWN'):
++        allowed = {
++            'phase': {
++                'SELECTION', 'APPLICATION', 'REQUEST_PRE_DISPATCH',
++                'SELECTION_COVERAGE_TERMINAL', 'APPLICATION_COVERAGE_TERMINAL',
++                'REQUEST_COVERAGE_TERMINAL',
++            },
++            'context': {'PLAYER', 'GVS', 'SUBS', 'UNKNOWN'},
++            'target': {'PLAYER', 'GVS', 'MEDIA', 'OTHER', 'UNKNOWN'},
++            'coverage': {'COMPLETE', 'INCOMPLETE', 'NOT_STARTED', 'UNKNOWN'},
++            'observed': {'YES', 'NO', 'UNKNOWN'},
++            'applied': {'YES', 'NO', 'UNKNOWN'},
++        }
++        values = {
++            'phase': phase, 'context': context, 'target': target,
++            'coverage': coverage, 'observed': observed, 'applied': applied,
++        }
++        if any(value not in allowed[key] for key, value in values.items()):
++            return
++        self.write_debug('NEXCUT_POT_EVENT ' + ' '.join(
++            f'{key}={values[key]}' for key in ('phase', 'context', 'target', 'coverage', 'observed', 'applied')))
++
+     def _get_config_po_token(self, client: str, context: _PoTokenContext):
+         po_token_strs = self._configuration_arg('po_token', [], ie_key=YoutubeIE, casesense=True)
+         for token_str in po_token_strs:
+@@ -2933,6 +2955,8 @@ def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg
+ 
+         if po_token:
+             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
++            self._nexcut_pot_event(
++                'APPLICATION', 'PLAYER', 'PLAYER', 'UNKNOWN', 'YES', 'YES')
+ 
+         sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
+ 
+@@ -2954,6 +2978,8 @@ def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg
+                 use_ad_playback_context=use_ad_playback_context,
+                 encrypted_context=encrypted_context))
+ 
++        self._nexcut_pot_event(
++            'REQUEST_PRE_DISPATCH', 'PLAYER', 'PLAYER', 'UNKNOWN', 'YES', 'YES' if po_token else 'NO')
+         return self._extract_response(
+             item_id=video_id, ep='player', query=yt_query,
+             ytcfg=player_ytcfg, headers=headers, fatal=True,
+@@ -3093,6 +3119,9 @@ def append_client(*client_names):
+             player_po_token = None if pr else self.fetch_po_token(
+                 context=_PoTokenContext.PLAYER, **fetch_po_token_args,
+                 required=player_pot_policy.required or player_pot_policy.recommended)
++            if player_po_token:
++                self._nexcut_pot_event(
++                    'SELECTION', 'PLAYER', 'PLAYER', 'UNKNOWN', 'YES')
+ 
+             fetch_gvs_po_token_func = functools.partial(
+                 self.fetch_po_token, context=_PoTokenContext.GVS, **fetch_po_token_args)
+@@ -3509,6 +3538,9 @@ def process_https_formats():
+                     po_token = (
+                         gvs_pots.get(client_name)
+                         or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
++                    if po_token:
++                        self._nexcut_pot_event(
++                            'SELECTION', 'GVS', 'GVS', 'UNKNOWN', 'YES')
+                     if po_token:
+                         if client_name not in gvs_pots:
+                             gvs_pots[client_name] = po_token
+@@ -3570,6 +3602,8 @@ def process_https_formats():
+ 
+                     if po_token:
+                         fmt_url = update_url_query(fmt_url, {'pot': po_token})
++                        self._nexcut_pot_event(
++                            'APPLICATION', 'GVS', 'MEDIA', 'UNKNOWN', 'YES', 'YES')
+ 
+                     fmt['url'] = fmt_url
+ 
+@@ -3687,11 +3721,17 @@ def process_manifest_format(f, proto, client_name, itag, missing_pot):
+                     manifest_path = manifest_path.rstrip('/') + f'/pot/{po_token}'
+                     if client_name not in gvs_pots:
+                         gvs_pots[client_name] = po_token
++                    self._nexcut_pot_event(
++                        'SELECTION', 'GVS', 'GVS', 'UNKNOWN', 'YES')
++                    self._nexcut_pot_event(
++                        'APPLICATION', 'GVS', 'MEDIA', 'UNKNOWN', 'YES', 'YES')
+ 
+                 if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                     self._report_pot_format_skipped(video_id, client_name, 'hls')
+                 elif solved_n or not n_challenge:
+                     hls_manifest_url = update_url(hls_manifest_url, path=f'{manifest_path}{manifest_suffix}')
++                    self._nexcut_pot_event(
++                        'REQUEST_PRE_DISPATCH', 'GVS', 'MEDIA', 'UNKNOWN', 'YES', 'YES' if po_token else 'NO')
+                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                         hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
+                     for sub in traverse_obj(subs, (..., ..., {dict})):
+@@ -3725,11 +3765,17 @@ def process_manifest_format(f, proto, client_name, itag, missing_pot):
+                     manifest_path = manifest_path.rstrip('/') + f'/pot/{po_token}'
+                     if client_name not in gvs_pots:
+                         gvs_pots[client_name] = po_token
++                    self._nexcut_pot_event(
++                        'SELECTION', 'GVS', 'GVS', 'UNKNOWN', 'YES')
++                    self._nexcut_pot_event(
++                        'APPLICATION', 'GVS', 'MEDIA', 'UNKNOWN', 'YES', 'YES')
+ 
+                 if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
+                     self._report_pot_format_skipped(video_id, client_name, 'dash')
+                 elif solved_n or not n_challenge:
+                     dash_manifest_url = update_url(dash_manifest_url, path=manifest_path)
++                    self._nexcut_pot_event(
++                        'REQUEST_PRE_DISPATCH', 'GVS', 'MEDIA', 'UNKNOWN', 'YES', 'YES' if po_token else 'NO')
+                     formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                     for sub in traverse_obj(subs, (..., ..., {dict})):
+                         # TODO: If DASH video requires a PO Token, do the subs also require pot?
+@@ -4570,4 +4616,11 @@ def set_audio_lang_from_orig_subs_lang(lang_code):
+ 
+         self.mark_watched(video_id, player_responses)
+ 
++        self._nexcut_pot_event(
++            'SELECTION_COVERAGE_TERMINAL', 'UNKNOWN', 'UNKNOWN', 'COMPLETE', 'UNKNOWN')
++        self._nexcut_pot_event(
++            'APPLICATION_COVERAGE_TERMINAL', 'UNKNOWN', 'UNKNOWN', 'COMPLETE', 'UNKNOWN')
++        self._nexcut_pot_event(
++            'REQUEST_COVERAGE_TERMINAL', 'UNKNOWN', 'UNKNOWN', 'INCOMPLETE', 'UNKNOWN')
++
+         return info

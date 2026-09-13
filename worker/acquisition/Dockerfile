@@ -1,3 +1,28 @@
+FROM python:3.13.11-bookworm@sha256:b3ad23176613a34fcd715a28da314a0cbbd230dcc68798efb80ec30292b2a683 AS yt-dlp-build
+
+ARG YT_DLP_BASE_VERSION=2026.03.13
+ARG YT_DLP_COMMIT=990fdf36dd985403cb171e4b92d1d7f01a4e273d
+ENV SOURCE_DATE_EPOCH=1773391500 \
+    PYTHONHASHSEED=0
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git \
+ && rm -rf /var/lib/apt/lists/* \
+ && git clone --filter=blob:none --no-checkout https://github.com/yt-dlp/yt-dlp.git /src/yt-dlp \
+ && git -C /src/yt-dlp checkout --detach "${YT_DLP_COMMIT}" \
+ && test "$(git -C /src/yt-dlp rev-parse HEAD)" = "${YT_DLP_COMMIT}" \
+ && test "$(cat /src/yt-dlp/yt_dlp/version.py | grep -F "__version__ = '${YT_DLP_BASE_VERSION}'")" != ""
+
+COPY worker/acquisition/yt-dlp-token-observation.patch /src/yt-dlp-token-observation.patch
+COPY worker/acquisition/yt-dlp-build-requirements.lock /src/yt-dlp-build-requirements.lock
+RUN git -C /src/yt-dlp apply --check /src/yt-dlp-token-observation.patch \
+ && git -C /src/yt-dlp apply /src/yt-dlp-token-observation.patch \
+ && git -C /src/yt-dlp diff --check \
+ && python -m pip install --no-cache-dir --require-hashes --no-deps --requirement /src/yt-dlp-build-requirements.lock \
+ && cd /src/yt-dlp \
+ && python devscripts/make_lazy_extractors.py \
+ && python -m bundle.pyinstaller
+
 FROM node:24.16.0-bookworm-slim AS build
 
 ARG YT_DLP_VERSION=2026.03.13
@@ -36,7 +61,6 @@ RUN ./node_modules/.bin/tsc -p worker/acquisition/tsconfig.json \
 FROM node:24.16.0-bookworm-slim AS runtime
 
 ARG YT_DLP_VERSION=2026.03.13
-ARG YT_DLP_SHA256=b15210c7791b8d473f8373f150a014194dbd7702ec4dd507e565411096a3284c
 ARG BGUTIL_PLUGIN_VERSION=1.3.1
 ARG BGUTIL_PLUGIN_SHA256=b8ceec7f76143da172aaf5ebeec0c2d218e5680c063b931586bca48567069b38
 
@@ -51,11 +75,9 @@ COPY --from=build /src/worker/acquisition/dist ./dist
 COPY --from=build /runtime-node-modules ./node_modules
 COPY --from=build /src/node_modules/ffmpeg-static/ffmpeg /app/node_modules/.nexcut-runtime/ffmpeg/ffmpeg
 
-RUN mkdir -p /app/node_modules/.nexcut-runtime/yt-dlp /home/worker/.config/yt-dlp/plugins /workspace/acquisitions \
- && curl --fail --location --silent --show-error \
-      "https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}/yt-dlp_linux" \
-      --output /app/node_modules/.nexcut-runtime/yt-dlp/yt-dlp \
- && echo "${YT_DLP_SHA256}  /app/node_modules/.nexcut-runtime/yt-dlp/yt-dlp" | sha256sum --check --strict \
+RUN mkdir -p /app/node_modules/.nexcut-runtime/yt-dlp /home/worker/.config/yt-dlp/plugins /workspace/acquisitions
+COPY --from=yt-dlp-build /src/yt-dlp/dist/yt-dlp_linux /app/node_modules/.nexcut-runtime/yt-dlp/yt-dlp
+RUN /app/node_modules/.nexcut-runtime/yt-dlp/yt-dlp --version | grep -Fx "${YT_DLP_VERSION}" \
  && curl --fail --location --silent --show-error \
       "https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/${BGUTIL_PLUGIN_VERSION}/bgutil-ytdlp-pot-provider.zip" \
       --output /home/worker/.config/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip \

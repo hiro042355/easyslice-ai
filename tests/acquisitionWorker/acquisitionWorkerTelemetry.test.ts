@@ -25,7 +25,11 @@ test("telemetry is exact, closed, tri-state, and absence remains UNKNOWN", () =>
     providerPluginActivated: "UNKNOWN", acquisitionProviderRequest: "NO", acquisitionProviderSuccess: "NO",
     acquisitionProviderFailure: "NO", nodeConfigured: "YES", nodeExecutable: "YES", nodeVersionMatch: "YES",
     providerTokenResponseObserved: "NO", providerTokenSchemaValid: "UNKNOWN", tokenContext: "UNKNOWN",
-    tokenRetrievedByYtDlp: "UNKNOWN", tokenAttachedToOutboundRequest: "UNKNOWN",
+    tokenRetrievedByYtDlp: "UNKNOWN", tokenSelectionObserved: "UNKNOWN", tokenSelectionCoverage: "UNKNOWN",
+    tokenApplicationObserved: "UNKNOWN", tokenApplicationCoverage: "UNKNOWN", tokenApplicationTarget: "UNKNOWN",
+    tokenApplicationTemporalRelation: "UNKNOWN", relevantOutboundRequestObserved: "UNKNOWN",
+    relevantOutboundRequestCoverage: "UNKNOWN", tokenAppliedToRelevantOutboundRequest: "UNKNOWN",
+    tokenAttachedToOutboundRequest: "UNKNOWN",
     tokenConsumedByYtDlp: "UNKNOWN", botCheckRelativeToTokenRetrieval: "UNKNOWN",
     botCheckRelativeToTokenAttachment: "UNKNOWN", playerClient: "MWEB", gvsRequestReached: "UNKNOWN",
     mediaRequestReached: "UNKNOWN", selectedTransport: "UNKNOWN", hlsManifestReached: "UNKNOWN",
@@ -362,4 +366,30 @@ test("provider schema validation is exact without projecting response material",
   assert.equal(validateProviderTokenResponseSchema(valid), true);
   assert.equal(validateProviderTokenResponseSchema(Buffer.from('{"poToken":""}')), false);
   assert.equal(validateProviderTokenResponseSchema(Buffer.from("not-json")), false);
+});
+
+test("token observation NO requires complete coverage and safe enums remain closed", () => {
+  const diagnostic = new AcquisitionTelemetryCollector(runtime).snapshot();
+  assert.throws(() => validateAcquisitionSafeTelemetry({
+    ...diagnostic, tokenSelectionObserved: "NO", tokenSelectionCoverage: "INCOMPLETE",
+  }));
+  assert.throws(() => validateAcquisitionSafeTelemetry({
+    ...diagnostic, tokenApplicationObserved: "NO", tokenApplicationCoverage: "UNKNOWN",
+  }));
+  assert.throws(() => validateAcquisitionSafeTelemetry({
+    ...diagnostic, tokenAppliedToRelevantOutboundRequest: "NO", tokenAttachedToOutboundRequest: "NO",
+    relevantOutboundRequestCoverage: "NOT_STARTED",
+  }));
+  const closed = validateAcquisitionSafeTelemetry({
+    ...diagnostic,
+    tokenSelectionObserved: "NO", tokenSelectionCoverage: "COMPLETE",
+    tokenApplicationObserved: "NO", tokenApplicationCoverage: "COMPLETE",
+    tokenApplicationTemporalRelation: "NOT_OBSERVED",
+    relevantOutboundRequestObserved: "NO", relevantOutboundRequestCoverage: "COMPLETE",
+    tokenAppliedToRelevantOutboundRequest: "NO", tokenAttachedToOutboundRequest: "NO",
+  });
+  assert.equal(closed.tokenSelectionObserved, "NO");
+  assert.equal(closed.tokenApplicationObserved, "NO");
+  assert.equal(closed.tokenAppliedToRelevantOutboundRequest, "NO");
+  assert.throws(() => validateAcquisitionSafeTelemetry({ ...diagnostic, tokenApplicationTarget: "URL" }));
 });
