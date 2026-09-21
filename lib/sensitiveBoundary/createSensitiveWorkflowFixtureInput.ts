@@ -1,4 +1,4 @@
-import type { Sensitive } from "@/lib/assets/types";
+import type { ResolvedAsset, Sensitive } from "@/lib/assets/types";
 import { validateReferenceMusicInput } from "@/lib/providers/referenceMusicAdapter";
 import { validateReferenceMVInput } from "@/lib/providers/referenceMVAdapter";
 import { validateReferenceVocalInput } from "@/lib/providers/referenceVocalAdapter";
@@ -12,15 +12,77 @@ import type {
   ReferenceMusicWorkflowInput,
   ReferenceMVWorkflowInput,
   ReferenceVocalWorkflowInput,
-} from "@/lib/workflows/types";
+} from "@/lib/workflows/referenceWorkflowTypes";
 
 const INVALID = Object.freeze({
   status: "invalid" as const,
   issues: Object.freeze([{ reasonCode: "sensitive-construction-invalid" as const }]),
 });
 
+const READY_ASSET_KINDS = new Set([
+  "audio", "voice", "image", "video", "character", "brand", "melody",
+]);
+const READY_ASSET_USAGES = new Set([
+  "audio-conditioning", "reference-image", "reference-video", "character-identity",
+  "location-reference", "guide-vocal", "guide-melody", "lyrics-input",
+  "preview-source", "export-source",
+]);
+const READY_ASSET_METADATA_TYPES = new Set(["audio", "video", "image"]);
+
 function markSensitiveInternal<T>(value: T): Sensitive<T> {
   return value as Sensitive<T>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value) &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === "string";
+}
+
+function isOptionalFiniteNumber(value: unknown): boolean {
+  return value === undefined || typeof value === "number" && Number.isFinite(value);
+}
+
+function isValidReadyAssetAccess(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.mode === "signed-url") {
+    return typeof value.url === "string" && typeof value.expiresAt === "string";
+  }
+  if (value.mode === "internal-stream") {
+    return typeof value.streamToken === "string" && typeof value.expiresAt === "string";
+  }
+  if (value.mode === "provider-upload") {
+    return typeof value.uploadSourceToken === "string" && typeof value.expiresAt === "string";
+  }
+  if (value.mode === "provider-native-asset") {
+    return typeof value.handle === "string" && isOptionalString(value.expiresAt);
+  }
+  return false;
+}
+
+function isValidReadyAsset(value: unknown): value is ResolvedAsset {
+  if (!isRecord(value) || !isRecord(value.assetRef) || !isRecord(value.metadata) ||
+      !isRecord(value.integrity)) return false;
+  const assetRef = value.assetRef;
+  const metadata = value.metadata;
+  const integrity = value.integrity;
+  return typeof assetRef.assetId === "string" && assetRef.assetId.length > 0 &&
+    typeof assetRef.kind === "string" && READY_ASSET_KINDS.has(assetRef.kind) &&
+    isOptionalString(assetRef.mimeType) && isOptionalFiniteNumber(assetRef.durationSeconds) &&
+    isOptionalFiniteNumber(assetRef.width) && isOptionalFiniteNumber(assetRef.height) &&
+    isOptionalString(assetRef.checksum) &&
+    typeof value.usage === "string" && READY_ASSET_USAGES.has(value.usage) &&
+    (value.requirement === "required" || value.requirement === "optional") &&
+    isValidReadyAssetAccess(value.access) &&
+    typeof value.sizeBytes === "number" && Number.isSafeInteger(value.sizeBytes) && value.sizeBytes >= 0 &&
+    typeof metadata.type === "string" && READY_ASSET_METADATA_TYPES.has(metadata.type) &&
+    typeof metadata.durationPresent === "boolean" && typeof metadata.dimensionsPresent === "boolean" &&
+    typeof integrity.checksumVerified === "boolean" &&
+    (integrity.checksumAlgorithm === undefined || integrity.checksumAlgorithm === "sha256") &&
+    typeof integrity.sizeVerified === "boolean";
 }
 
 function isPlainOwnedData(value: unknown, seen: WeakSet<object>): boolean {
@@ -100,4 +162,18 @@ export function createSensitiveCanonicalMVWorkflowInput(
   return create(value, (candidate) => candidate.operation === "generate-mv" &&
     validCommon(candidate) && validateReferenceMVInput(candidate.adapterInput).status !== "invalid" &&
     validateReferenceMVInput(candidate.adapterInput).status !== "unsupported");
+}
+
+export function createSensitiveReadyAssetsCollection(
+  values: readonly Sensitive<ResolvedAsset>[],
+): SensitiveConstructionResult<readonly ResolvedAsset[]> {
+  try {
+    if (!Array.isArray(values) || !isPlainOwnedData(values, new WeakSet()) ||
+        !values.every(isValidReadyAsset)) return INVALID;
+    const owned: readonly ResolvedAsset[] = [...values];
+    if (!isPlainOwnedData(owned, new WeakSet()) || !owned.every(isValidReadyAsset)) return INVALID;
+    return { status: "created", value: markSensitiveInternal<readonly ResolvedAsset[]>(owned) };
+  } catch {
+    return INVALID;
+  }
 }

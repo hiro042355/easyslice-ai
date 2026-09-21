@@ -1,0 +1,4 @@
+import type { ProviderOperation } from "@/lib/providerClients/types";
+import { copy } from "./workflowIntegrationUtils";
+export type ReferenceIntegrationReconciliationRecord={recordVersion:"1.0";operation:ProviderOperation;boundary:"active-reference-journal-incomplete"|"poll-outcome-unknown"|"poll-cas-conflict"|"resume-claim-cas-conflict"|"materializer-journal-failed"|"generation-acceptance-unknown"|"generation-journal-failed"|"ingestion-provenance-failed"|"final-result-write-failed"|"late-completion";status:"required";revision?:number;itemIndex?:number};
+export class ReferenceIntegrationReconciliationStore{private values:ReferenceIntegrationReconciliationRecord[]=[];record(value:ReferenceIntegrationReconciliationRecord){this.values.push(copy(value));return{status:"recorded" as const}}list(){return copy(this.values)}}

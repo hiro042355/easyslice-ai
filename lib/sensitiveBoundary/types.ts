@@ -3,7 +3,7 @@ import type {
   ReferenceMusicWorkflowInput,
   ReferenceMVWorkflowInput,
   ReferenceVocalWorkflowInput,
-} from "@/lib/workflows/types";
+} from "@/lib/workflows/referenceWorkflowTypes";
 
 export type SensitiveConstructionIssue = {
   reasonCode: "sensitive-construction-invalid";

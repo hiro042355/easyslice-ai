@@ -1,0 +1,15 @@
+import type { WorkflowApiCommand } from "@/lib/workflowApi/types";
+import type { ReferenceWorkflowAuthReason,ReferenceWorkflowBrowserAuthFixture,ReferenceWorkflowTestPrincipal } from "@/lib/workflowAuthTest/types";
+
+export type ReferenceWorkflowSessionCreateInput={createKey:string;fixtureIdentity:string;principal:ReferenceWorkflowTestPrincipal;baselineTime:string;expiresAt:string};
+export type ReferenceWorkflowSessionCreateResult={status:"created"|"existing";cookieToken:string;sessionIdentity:string;expiresAt:string}|{status:"conflict"|"invalid"};
+export type ReferenceWorkflowSessionReadResult={status:"found";sessionIdentity:string;principal:ReferenceWorkflowTestPrincipal;expiresAt:string}|{status:"missing"|"expired"|"revoked"|"invalid"};
+export interface ReferenceWorkflowAuthSessionStore{create(input:ReferenceWorkflowSessionCreateInput):ReferenceWorkflowSessionCreateResult;read(cookieToken:string,baselineTime:string):ReferenceWorkflowSessionReadResult;readByIdentity(sessionIdentity:string,baselineTime:string):ReferenceWorkflowSessionReadResult;revoke(sessionIdentity:string):"revoked"|"missing";delete(sessionIdentity:string):"deleted"|"missing";}
+export type ReferenceWorkflowAuthenticationResult={status:"authenticated";reason:"authentication-succeeded";principal:ReferenceWorkflowTestPrincipal;sessionIdentity:string}|{status:"unauthenticated"|"expired"|"revoked"|"malformed"|"unavailable";reason:ReferenceWorkflowAuthReason};
+export interface ReferenceWorkflowAuthenticationAdapter{authenticate(input:{cookieHeader?:string;baselineTime:string}):ReferenceWorkflowAuthenticationResult}
+export type ReferenceWorkflowCsrfIssueResult={status:"issued"|"existing";csrfToken:string;expiresAt:string}|{status:"invalid"|"conflict"};
+export type ReferenceWorkflowCsrfValidationResult={status:"valid";reason:"csrf-valid"}|{status:"missing"|"invalid"|"expired"|"revoked"|"conflict";reason:ReferenceWorkflowAuthReason};
+export interface ReferenceWorkflowCsrfStore{issueForSession(input:{sessionIdentity:string;baselineTime:string;expiresAt:string}):ReferenceWorkflowCsrfIssueResult;validateForSession(input:{sessionIdentity:string;csrfToken?:string;baselineTime:string}):ReferenceWorkflowCsrfValidationResult;rotateForSession(input:{sessionIdentity:string;baselineTime:string;expiresAt:string}):ReferenceWorkflowCsrfIssueResult;revokeForSession(sessionIdentity:string):"revoked"|"missing";}
+export interface WorkflowApiSecurityAdapter{authenticate(input:{cookieHeader?:string;baselineTime:string}):ReferenceWorkflowAuthenticationResult;validateCsrf(input:{sessionIdentity:string;csrfHeader?:string;command:WorkflowApiCommand;baselineTime:string}):ReferenceWorkflowCsrfValidationResult}
+export type ReferenceWorkflowSecurityFactoryResult={status:"created";adapter:WorkflowApiSecurityAdapter;capability:{capabilityVersion:"1.0";enabled:true;mode:"reference-test-only";productionReady:false}}|{status:"denied";reason:"reference-auth-disabled"|"reference-auth-production-denied"};
+export type ReferenceWorkflowBrowserFixtureResult={status:"created";fixture:ReferenceWorkflowBrowserAuthFixture}|{status:"invalid"};

@@ -17,7 +17,7 @@ import type {
   CanonicalWorkflowFixtureResult,
   CanonicalWorkflowFixtureSeed,
 } from "@/lib/workflowFixtures/types";
-import type { ReferenceMusicWorkflowInput, ReferenceMVWorkflowInput, ReferenceVocalWorkflowInput } from "@/lib/workflows/types";
+import type { ReferenceMusicWorkflowInput, ReferenceMVWorkflowInput, ReferenceVocalWorkflowInput } from "@/lib/workflows/referenceWorkflowTypes";
 
 export const CANONICAL_WORKFLOW_FIXTURE_SEED: Readonly<CanonicalWorkflowFixtureSeed> = Object.freeze({
   fixtureVersion: "1.0", story: "A traveler leaves a quiet room and walks toward sunrise.",

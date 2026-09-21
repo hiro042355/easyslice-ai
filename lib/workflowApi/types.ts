@@ -1,5 +1,5 @@
 import type { AssetKind } from "@/lib/mvContracts";
-import type { ReferenceWorkflowInput } from "@/lib/workflows/types";
+import type { ReferenceWorkflowInput } from "@/lib/workflows/referenceWorkflowTypes";
 
 export type WorkflowApiContractVersion = "1.0";
 export type WorkflowApiOperation = "generate-vocal" | "generate-music" | "generate-mv";

@@ -18,6 +18,10 @@ test("Operation Pipeline Contract remains type-only and dependency-closed", asyn
     source,
     /(?:fetch\s*\(|XMLHttpRequest|WebSocket|process\.env|Date\.now|Math\.random|randomUUID|setTimeout|setInterval)/,
   );
+  assert.doesNotMatch(
+    source,
+    /(?:OperationResumePipeline|ReferenceTransport|RestrictedAdapterRequest|ReadyAssetProjection|Sensitive|ProviderOperation|ResolvedAsset)/,
+  );
 
   for (const publicType of [
     "OperationIdentity",

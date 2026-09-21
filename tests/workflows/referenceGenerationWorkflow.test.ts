@@ -3,10 +3,16 @@ import test from "node:test";
 import type { OperationPipelineResult, OperationPipelineRetryRecommendation } from "../../lib/operationPipelines/types";
 import {
   ReferenceGenerationWorkflow,
+  runReferenceGenerationWorkflow,
   type ReferenceWorkflowCancellation,
   type ReferenceWorkflowPipelineCapability,
 } from "../../lib/workflows/referenceGenerationWorkflow";
-import type { WorkflowDefinition, WorkflowInput, WorkflowPipelineReference } from "../../lib/workflows/types";
+import type { ReferenceWorkflowInput } from "../../lib/workflows/referenceWorkflowTypes";
+import type { ReferenceWorkflowResult, WorkflowDefinition, WorkflowInput, WorkflowPipelineReference } from "../../lib/workflows/types";
+import { runReferenceVocalWorkflow } from "../../lib/workflows/referenceVocalWorkflow";
+import { runReferenceMusicWorkflow } from "../../lib/workflows/referenceMusicWorkflow";
+import { runReferenceMVWorkflow } from "../../lib/workflows/referenceMVWorkflow";
+import { createCanonicalMusicWorkflowFixture, createCanonicalMVWorkflowFixture, createCanonicalVocalWorkflowFixture } from "../../lib/workflowFixtures/canonicalWorkflowFixtures";
 
 const workflowIdentity = { workflowId: "reference-workflow", workflowVersion: "1.0" } as const;
 const pipelineReference = (stageId: string): WorkflowPipelineReference => ({
@@ -192,3 +198,93 @@ test("fails safely when a pipeline reference cannot be resolved", async () => {
   assert.equal(result.status, "failed");
   assert.deepEqual(result.audit.reasonCodes, ["pipeline-reference-unresolved"]);
 });
+
+const facadeInput = {
+  contractVersion: "1.0",
+  operation: "generate-music",
+  providerId: "reference-provider",
+  providerApiVersion: "reference-api-v1",
+  durationSeconds: 30,
+  adapterInput: { prompt: "safe" },
+  assets: [],
+  context: {
+    contextVersion: "1.0",
+    operationRef: "safe-operation",
+    baselineTime: "2026-01-01T00:00:00.000Z",
+    attempt: 1,
+    scenario: "success",
+  },
+} as unknown as ReferenceWorkflowInput;
+
+const safeAccepted: ReferenceWorkflowResult = {
+  resultVersion: "1.0",
+  operation: "generate-music",
+  status: "accepted",
+  acceptedKind: "generation-job",
+  reference: { referenceVersion: "1.0", kind: "generation-job", reference: "opaque-safe-reference" },
+  audit: { auditVersion: "1.0", status: "accepted", operation: "generate-music", finalStage: "workflow-orchestration", reasonCodes: [] },
+};
+
+test("delegates deterministic intent through the injected orchestration capability", async () => {
+  const calls: unknown[] = [];
+  const result = await runReferenceGenerationWorkflow(
+    facadeInput,
+    { build: () => ({ status: "ready", request: { prompt: "safe" } }), projectAssets: () => [] },
+    { orchestration: { async execute(value) { calls.push(value); return safeAccepted; } } },
+  );
+  assert.deepEqual(result, safeAccepted);
+  assert.equal(calls.length, 1);
+  const projected = calls[0] as { operation: string; scenario: string; integrationBinding: { providerClientId: string }; logicalAssets: unknown[] };
+  assert.equal(projected.operation, "generate-music");
+  assert.equal(projected.scenario, "success");
+  assert.equal(projected.integrationBinding.providerClientId, "reference-provider-client-v1");
+  assert.deepEqual(projected.logicalAssets, []);
+});
+
+test("fails safely without orchestration and never falls back to asyncRuntime", async () => {
+  let asyncRuntimeUsed = false;
+  const result = await runReferenceGenerationWorkflow(
+    facadeInput,
+    { build: () => ({ status: "ready", request: { prompt: "safe" } }), projectAssets: () => [] },
+    { asyncRuntime: { runtimeVersion: "1.0", supportedOperations: [], async startAccepted() { asyncRuntimeUsed = true; throw new Error("must not run"); }, entryPoints: {} } as never },
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(asyncRuntimeUsed, false);
+});
+
+test("rejects non-success caller scenario before invoking orchestration", async () => {
+  let invoked = false;
+  const inputWithCallerScenario = structuredClone(facadeInput) as unknown as { context: { scenario: string } };
+  inputWithCallerScenario.context.scenario = "caller-selected";
+  const result = await runReferenceGenerationWorkflow(
+    inputWithCallerScenario as unknown as ReferenceWorkflowInput,
+    { build: () => ({ status: "ready", request: { prompt: "safe" } }), projectAssets: () => [] },
+    { orchestration: { async execute() { invoked = true; return safeAccepted; } } },
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(invoked, false);
+  assert.doesNotMatch(JSON.stringify(result), /credential|secret|providerResponse|databaseId|providerJobId|pending|job/);
+});
+
+for (const wrapperCase of [
+  ["generate-vocal", createCanonicalVocalWorkflowFixture, runReferenceVocalWorkflow],
+  ["generate-music", createCanonicalMusicWorkflowFixture, runReferenceMusicWorkflow],
+  ["generate-mv", createCanonicalMVWorkflowFixture, runReferenceMVWorkflow],
+] as const) {
+  test(`${wrapperCase[0]} wrapper delegates through orchestration capability`, async () => {
+    const fixture = wrapperCase[1]();
+    assert.equal(fixture.status, "ready");
+    if (fixture.status !== "ready") return;
+    let observedOperation = "";
+    const result = await wrapperCase[2](fixture.input as never, {
+      orchestration: {
+        async execute(value) {
+          observedOperation = value.operation;
+          return { ...safeAccepted, operation: value.operation, audit: { ...safeAccepted.audit, operation: value.operation } } as ReferenceWorkflowResult;
+        },
+      },
+    });
+    assert.equal(result.status, "accepted");
+    assert.equal(observedOperation, wrapperCase[0]);
+  });
+}

@@ -1,45 +1,94 @@
-import type { AssetReference } from "@/lib/mvContracts";
-import type { ReferenceMusicAdapterInput } from "@/lib/providers/referenceMusicAdapter";
-import type { ReferenceMVAdapterInput } from "@/lib/providers/referenceMVAdapter";
-import type { ReferenceVocalAdapterInput } from "@/lib/providers/referenceVocalAdapter";
+export type ReferenceWorkflowScenario = "success";
+
+export type ReferenceWorkflowOperation =
+  | "generate-vocal"
+  | "generate-music"
+  | "generate-mv";
+
+export type ReferenceWorkflowResultReference = Readonly<{
+  referenceVersion: "1.0";
+  kind: "workflow-result";
+  reference: string;
+}>;
+
+export type ReferenceWorkflowPendingReference = Readonly<{
+  referenceVersion: "1.0";
+  kind: "upload-pending" | "generation-job";
+  reference: string;
+}>;
+
+export type ReferenceWorkflowSafeAsset = Readonly<{
+  assetId: string;
+  kind: string;
+  role: string;
+  mimeType: string;
+}>;
+
+export type ReferenceWorkflowSafeIssue = Readonly<{
+  stage: string;
+  reasonCode: string;
+  classification: "invalid" | "unauthorized" | "expired" | "conflict" | "failed" | "cancelled" | "degraded" | "internal";
+  retryable: boolean;
+}>;
+
+export type ReferenceWorkflowSafeAudit = Readonly<{
+  auditVersion: "1.0";
+  status: "completed" | "degraded" | "partial" | "accepted" | "failed" | "cancelled";
+  operation: ReferenceWorkflowOperation;
+  finalStage: string;
+  reasonCodes: readonly string[];
+}>;
+
+type ReferenceWorkflowResultBase = Readonly<{
+  resultVersion: "1.0";
+  operation: ReferenceWorkflowOperation;
+  audit: ReferenceWorkflowSafeAudit;
+}>;
+
+export type ReferenceWorkflowResult =
+  | (ReferenceWorkflowResultBase & Readonly<{
+      status: "completed" | "degraded";
+      reference: ReferenceWorkflowResultReference;
+      assets: readonly ReferenceWorkflowSafeAsset[];
+      requiredOutputsComplete: true;
+    }>)
+  | (ReferenceWorkflowResultBase & Readonly<{
+      status: "partial";
+      reference: ReferenceWorkflowResultReference;
+      assets: readonly ReferenceWorkflowSafeAsset[];
+      requiredOutputsComplete: boolean;
+      issues: readonly ReferenceWorkflowSafeIssue[];
+    }>)
+  | (ReferenceWorkflowResultBase & Readonly<{
+      status: "accepted";
+      acceptedKind: "provider-upload";
+      reference: ReferenceWorkflowPendingReference & Readonly<{ kind: "upload-pending" }>;
+    }>)
+  | (ReferenceWorkflowResultBase & Readonly<{
+      status: "accepted";
+      acceptedKind: "generation-job";
+      reference: ReferenceWorkflowPendingReference & Readonly<{ kind: "generation-job" }>;
+    }>)
+  | (ReferenceWorkflowResultBase & Readonly<{
+      status: "failed";
+      reference?: ReferenceWorkflowResultReference;
+      failureStage: string;
+      issues: readonly ReferenceWorkflowSafeIssue[];
+    }>)
+  | (ReferenceWorkflowResultBase & Readonly<{
+      status: "cancelled";
+      reference?: ReferenceWorkflowResultReference;
+      issues: readonly ReferenceWorkflowSafeIssue[];
+    }>);
 
 export type ReferenceWorkflowContext = Readonly<{
   contextVersion: "1.0";
   operationRef: string;
   baselineTime: string;
   attempt: number;
-  scenario: string;
+  scenario: ReferenceWorkflowScenario;
   idempotencyKeyRef?: string;
 }>;
-
-type ReferenceWorkflowInputBase = Readonly<{
-  contractVersion: "1.0";
-  providerId: string;
-  providerApiVersion: string;
-  durationSeconds: number;
-  context: ReferenceWorkflowContext;
-  assets: readonly AssetReference[];
-}>;
-
-export type ReferenceVocalWorkflowInput = ReferenceWorkflowInputBase & Readonly<{
-  operation: "generate-vocal";
-  adapterInput: ReferenceVocalAdapterInput;
-}>;
-
-export type ReferenceMusicWorkflowInput = ReferenceWorkflowInputBase & Readonly<{
-  operation: "generate-music";
-  adapterInput: ReferenceMusicAdapterInput;
-}>;
-
-export type ReferenceMVWorkflowInput = ReferenceWorkflowInputBase & Readonly<{
-  operation: "generate-mv";
-  adapterInput: ReferenceMVAdapterInput;
-}>;
-
-export type ReferenceWorkflowInput =
-  | ReferenceVocalWorkflowInput
-  | ReferenceMusicWorkflowInput
-  | ReferenceMVWorkflowInput;
 
 export type WorkflowVersion = string;
 

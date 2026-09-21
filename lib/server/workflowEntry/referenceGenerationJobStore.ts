@@ -1,0 +1,18 @@
+// Server-only directory boundary. Do not re-export from client-safe modules.
+import { createHash } from "node:crypto";
+import type { ProviderJobReference } from "@/lib/providerClients/types";
+import type { ReferenceGenerationJobRecord, ReferenceGenerationJobStore, ReferenceGenerationJobStoreResult } from "@/lib/workflowEntry/types";
+import { copy, validIso } from "@/lib/workflowEntry/workflowEntryUtils";
+const terminal = new Set(["completed","failed","cancelled","expired"]);
+const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+export class ReferenceGenerationJobRecordStore implements ReferenceGenerationJobStore {
+  private values = new Map<string, ReferenceGenerationJobRecord>();
+  private identities = new Map<string, string>();
+  private key(reference: ProviderJobReference) { return digest([reference.providerId,reference.providerApiVersion,reference.operation,reference.clientVersion,reference.jobReference]); }
+  async createIfAbsent(identity: string, record: ReferenceGenerationJobRecord): Promise<ReferenceGenerationJobStoreResult> { if (!identity || !validIso(record?.expiresAt) || record.revision !== 1) return {status:"failed"}; const identityKey=digest(identity), oldKey=this.identities.get(identityKey); if(oldKey){const old=this.values.get(oldKey)!; return JSON.stringify(old.jobReference)===JSON.stringify(record.jobReference)?{status:"found",record:copy(old),revision:old.revision}:{status:"conflict"};} const key=this.key(record.jobReference); if(this.values.has(key))return{status:"conflict"}; this.values.set(key,copy(record));this.identities.set(identityKey,key);return{status:"created",record:copy(record),revision:1}; }
+  async read(reference: ProviderJobReference, baselineTime: string): Promise<ReferenceGenerationJobStoreResult> { if(!validIso(baselineTime))return{status:"failed"};const value=this.values.get(this.key(reference));if(!value)return{status:"missing"};if(baselineTime>=value.expiresAt)return{status:"expired"};return{status:"found",record:copy(value),revision:value.revision}; }
+  async compareAndSet(reference: ProviderJobReference, expectedRevision: number, record: ReferenceGenerationJobRecord): Promise<ReferenceGenerationJobStoreResult> { const key=this.key(reference),old=this.values.get(key);if(!old)return{status:"missing"};if(old.revision!==expectedRevision||record.revision!==expectedRevision||terminal.has(old.status))return{status:"conflict"};const next=copy({...record,revision:expectedRevision+1}) as ReferenceGenerationJobRecord;this.values.set(key,next);return{status:"updated",record:copy(next),revision:next.revision}; }
+  private async mark(reference:ProviderJobReference,expectedRevision:number,status:ReferenceGenerationJobRecord["status"]){const read=await this.read(reference,"1970-01-01T00:00:00.000Z");if(read.status!=="found")return read;return this.compareAndSet(reference,expectedRevision,copy({...read.record,status,lifecycle:status==="pending"?"generation-pending":status==="completed"?"ingesting":"terminal",revision:expectedRevision}) as ReferenceGenerationJobRecord);}
+  markPending=(r:ProviderJobReference,v:number)=>this.mark(r,v,"pending"); markCompleted=(r:ProviderJobReference,v:number)=>this.mark(r,v,"completed"); markFailed=(r:ProviderJobReference,v:number)=>this.mark(r,v,"failed"); markCancelled=(r:ProviderJobReference,v:number)=>this.mark(r,v,"cancelled"); markExpired=(r:ProviderJobReference,v:number)=>this.mark(r,v,"expired");
+  async delete(reference:ProviderJobReference):Promise<ReferenceGenerationJobStoreResult>{const key=this.key(reference);return this.values.delete(key)?{status:"deleted"}:{status:"missing"};}
+}

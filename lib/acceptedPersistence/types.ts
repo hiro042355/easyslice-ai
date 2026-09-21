@@ -1,0 +1,43 @@
+import type { AssetRequirement, AssetUsage, ResolvedAsset, Sensitive } from "@/lib/assets/types";
+import type { ProviderOperation } from "@/lib/providerClients/types";
+import type { ProviderUploadGateAssetBundle, ProviderUploadGatePlan, ProviderUploadPendingState } from "@/lib/providerUploadGate/types";
+import type { ProviderUploadSession } from "@/lib/providerUploads/types";
+import type { ProviderUploadPendingReference } from "@/lib/pendingUploads/types";
+import type { ResolvedAssetSourceSnapshot, WorkflowResumeSeed } from "@/lib/workflowResume/types";
+
+export type ProviderUploadPendingAcceptedItemV2=Sensitive<{itemVersion:"2.0";status:"accepted";itemIndex:number;assetIndex:number;usage:AssetUsage;requirement:AssetRequirement;sourceSnapshot:ResolvedAssetSourceSnapshot;session:Sensitive<ProviderUploadSession>;completedAsset?:never}>;
+export type ProviderUploadPendingCompletedItemV2=Sensitive<{itemVersion:"2.0";status:"completed";itemIndex:number;assetIndex:number;usage:AssetUsage;requirement:AssetRequirement;sourceSnapshot:ResolvedAssetSourceSnapshot;session?:never;completedAsset:Sensitive<ResolvedAsset>}>;
+export type ProviderUploadPendingStateItemV2=ProviderUploadPendingAcceptedItemV2|ProviderUploadPendingCompletedItemV2;
+export type ProviderUploadPendingStateV2=Sensitive<{stateVersion:"2.0";planFingerprint:string;providerId:string;providerApiVersion:string;operation:ProviderOperation;items:readonly ProviderUploadPendingStateItemV2[];attempt:number}>;
+export type GatePendingStateV2Outcome={itemIndex:number;assetIndex:number;status:"accepted";session:Sensitive<ProviderUploadSession>}|{itemIndex:number;assetIndex:number;status:"completed";completedAsset:Sensitive<ResolvedAsset>};
+export type GatePendingStateV2BuildInput={contractVersion:"1.0";plan:ProviderUploadGatePlan;bundle:Sensitive<ProviderUploadGateAssetBundle>;planFingerprint:string;outcomes:readonly GatePendingStateV2Outcome[]};
+export type GatePendingStateV2BuildResult={status:"created";state:ProviderUploadPendingStateV2}|{status:"invalid"|"unsupported"|"conflict";issues:readonly AcceptedPersistenceIssue[]};
+export type GatePendingStateV1MigrationInput={contractVersion:"1.0";state:Sensitive<ProviderUploadPendingState>;plan:ProviderUploadGatePlan;bundle:Sensitive<ProviderUploadGateAssetBundle>};
+
+export type AcceptanceIdempotencyKey=Sensitive<string>;
+export type AcceptedPersistencePolicy={policyVersion:"1.0";referenceExpiresAt:string;pendingStateExpiresAt:string;resumeRecordExpiresAt:string;journalExpiresAt:string;region:string};
+export type AcceptedPersistenceContext={contextVersion:"1.0";baselineTime:string;attempt:number;operationRef:string};
+export type AcceptedPersistenceAuthorization={authorizationVersion:"1.0";actorType:"internal-workflow-service"|"system";tenantRef:string;region:string;operation:ProviderOperation;permission:"persist-accepted-upload";workflowOwnershipVerified:true;deletionState:"active"|"deletion-pending"|"deleted";legalHold:boolean};
+export type OriginalWorkflowInputRecord=Sensitive<{recordVersion:"1.0";operation:ProviderOperation;contentKind:"vocal"|"music"|"mv";encryptedPayloadRef:string;schemaFingerprint:string;tenantRef:string;region:string;expiresAt:string}>;
+export type RestrictedAdapterRequestRecord=Sensitive<{recordVersion:"1.0";operation:ProviderOperation;adapterId:string;adapterVersion:string;requestSchemaVersion:string;encryptedRequestRef:string;requestFingerprint:string;tenantRef:string;region:string;expiresAt:string}>;
+export type AcceptedPendingStateRecord=Sensitive<{recordVersion:"1.0";state:ProviderUploadPendingStateV2;expiresAt:string}>;
+export type PendingStateStoreKey=Sensitive<{keyVersion:"1.0";internalKey:string}>;
+export type OriginalInputRecordKey=Sensitive<{keyVersion:"1.0";internalKey:string}>;
+export type AdapterRequestRecordKey=Sensitive<{keyVersion:"1.0";internalKey:string}>;
+export type AcceptedWorkflowResumeRecordKey=Sensitive<{keyVersion:"1.0";internalKey:string}>;
+export type AcceptedWorkflowResumeRecord=Sensitive<{recordVersion:"1.0";workflowSchemaVersion:string;workflowEngineVersion:string;providerId:string;providerApiVersion:string;operation:ProviderOperation;pendingStateStoreKeyRef:PendingStateStoreKey;originalInputRecordKeyRef:OriginalInputRecordKey;adapterRequestRecordKeyRef:AdapterRequestRecordKey;materializerBindingId:string;generationClientBindingId:string;outputIngestionBindingId:string;gatePlanFingerprint:string;adapterFingerprint:string;tenantRef:string;region:string;resumeStatus:"waiting-upload";revision:1;expiresAt:string}>;
+export type PendingReferenceStatus="reserved"|"active"|"expired"|"revoked"|"deleted";
+export type PendingReferenceRecord=Sensitive<{recordVersion:"1.0";referenceDigest:string;pendingStateStoreKeyRef?:PendingStateStoreKey;status:PendingReferenceStatus;expiresAt:string;revision:number}>;
+export type PendingReferenceReservationResult={status:"reserved"|"existing";pendingReference:ProviderUploadPendingReference;record:PendingReferenceRecord}|{status:"conflict"|"failed"};
+
+export type AcceptanceJournalStage="reserved"|"pending-state-created"|"input-record-created"|"adapter-record-created"|"resume-record-created"|"reference-activated"|"committed"|"rollback-required"|"reconciliation-required";
+export type AcceptanceJournalEntry=Sensitive<{journalVersion:"1.0";acceptanceFingerprint:string;stage:AcceptanceJournalStage;revision:number;expiresAt:string}>;
+export type AcceptanceJournalResult={status:"created"|"found"|"updated";entry:AcceptanceJournalEntry}|{status:"missing"|"conflict"|"expired"|"failed"};
+export type AcceptedPersistenceStatus="committed"|"conflict"|"failed"|"reconciliation-required";
+export type AcceptedPersistenceReasonCode="unsupported-contract-version"|"input-shape-invalid"|"gate-state-invalid"|"gate-state-version-unsupported"|"item-index-missing"|"item-index-duplicate"|"item-mapping-conflict"|"completed-asset-mapping-missing"|"source-snapshot-invalid"|"resume-seed-invalid"|"original-input-record-invalid"|"adapter-request-record-invalid"|"binding-mismatch"|"tenant-mismatch"|"region-mismatch"|"acceptance-idempotency-conflict"|"reference-reservation-failed"|"pending-state-write-failed"|"resume-record-write-failed"|"input-record-write-failed"|"adapter-record-write-failed"|"reference-activation-failed"|"journal-write-failed"|"cross-record-mismatch"|"rollback-required"|"cleanup-required"|"reconciliation-required"|"persistence-committed";
+export type AcceptedPersistenceIssue={reasonCode:AcceptedPersistenceReasonCode;classification:"invalid"|"conflict"|"failed"|"blocked"|"internal";retryable:boolean};
+export type AcceptedPersistenceAudit={auditVersion:"1.0";status:AcceptedPersistenceStatus;operation:ProviderOperation;persistedRecordCount:number;rollbackRequired:boolean;reasonCodes:readonly AcceptedPersistenceReasonCode[]};
+export type AcceptedPersistenceResult={status:"committed";pendingReference:ProviderUploadPendingReference;audit:AcceptedPersistenceAudit}|{status:"conflict"|"failed"|"reconciliation-required";issues:readonly AcceptedPersistenceIssue[];audit:AcceptedPersistenceAudit};
+export type PendingUploadAcceptedPersistenceInput={contractVersion:"1.0";acceptanceIdempotencyKey:AcceptanceIdempotencyKey;gateState:ProviderUploadPendingStateV2;workflowResumeSeed:WorkflowResumeSeed;originalInputRecord:OriginalWorkflowInputRecord;adapterRequestRecord:RestrictedAdapterRequestRecord;policy:AcceptedPersistencePolicy;context:AcceptedPersistenceContext;authorization:AcceptedPersistenceAuthorization};
+export type AcceptedPersistenceCoordinator={persistAcceptedUpload(input:PendingUploadAcceptedPersistenceInput):Promise<AcceptedPersistenceResult>};
+export type AcceptedPersistenceDescriptor={descriptorVersion:"1.0";coordinatorId:string;pendingStateStoreId:string;referenceStoreId:string;resumeRecordStoreId:string;inputStoreId:string;adapterRequestStoreId:string;journalId:string;supportedOperations:readonly ProviderOperation[];contractVersion:"1.0";gateStateVersion:"2.0";availability:"available"|"disabled"};

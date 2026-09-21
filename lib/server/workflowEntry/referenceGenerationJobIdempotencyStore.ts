@@ -1,0 +1,6 @@
+// Server-only directory boundary.
+import { createHash } from "node:crypto";
+import type { ReferenceWorkflowEntryResult } from "@/lib/workflowEntry/types";
+import { copy } from "@/lib/workflowEntry/workflowEntryUtils";
+type Entry={identity:string;status:"in-flight"|"completed"|"outcome-unknown";result?:ReferenceWorkflowEntryResult};
+export class ReferenceGenerationJobIdempotencyStore { private values=new Map<string,Entry>(); private key(value:string){return createHash("sha256").update(`generation-poll:${value}`).digest("hex");} async reserve(key:string,identity:string){if(!key||!identity)return{status:"conflict" as const};const index=this.key(key),old=this.values.get(index);if(old)return old.identity===identity?{status:"existing" as const,record:copy(old)}:{status:"conflict" as const};const entry:Entry={identity,status:"in-flight"};this.values.set(index,entry);return{status:"reserved" as const,record:copy(entry)}} async complete(key:string,identity:string,status:"completed"|"outcome-unknown",result:ReferenceWorkflowEntryResult){const index=this.key(key),old=this.values.get(index);if(!old||old.identity!==identity)return"conflict" as const;this.values.set(index,copy({identity,status,result}));return"updated" as const;} }
