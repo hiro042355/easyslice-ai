@@ -94,6 +94,34 @@ type RouteDependencies = Readonly<{
 }>;
 const reply = (status: number, body: unknown) => Response.json(body, { status,
   headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" } });
+export const BODY_STREAM_TIMEOUT_MS = 1000;
+const MAX_EMPTY_CHUNKS = 16;
+
+// A zero-byte Node-adapted POST may have a stream. Exact Production rejection
+// branch remains NOT_PROVEN; this validates bytes, not stream presence.
+export async function isSemanticEmptyBody(request: Request): Promise<boolean> {
+  if (request.body === null) return true;
+  if (request.bodyUsed || request.body.locked) return false;
+  let reader: ReadableStreamDefaultReader<Uint8Array>;
+  try { reader = request.body.getReader(); } catch { return false; }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), BODY_STREAM_TIMEOUT_MS); });
+  try {
+    for (let count = 0; count < MAX_EMPTY_CHUNKS; count++) {
+      const chunk = await Promise.race([reader.read(), timeout]);
+      if (chunk === null) return false;
+      if (chunk.done) return true;
+      if (!(chunk.value instanceof Uint8Array) || chunk.value.byteLength > 0) return false;
+    }
+    return false;
+  } catch { return false; }
+  finally {
+    if (timer !== undefined) clearTimeout(timer);
+    // Cancellation may itself stall: initiate it, never await untrusted cleanup.
+    try { void reader.cancel().catch(() => undefined); } catch { /* fail closed */ }
+    try { reader.releaseLock(); } catch { /* cancellation is already requested */ }
+  }
+}
 export function createProbeRoute(deps: RouteDependencies) {
   // Operational one manual invocation; NOT technical exactly-once. No retries/latch.
   return async (request: Request): Promise<Response> => {
@@ -105,8 +133,7 @@ export function createProbeRoute(deps: RouteDependencies) {
       if (url.search || request.headers.has("transfer-encoding")) return reply(400, { error: "REQUEST_REJECTED" });
       const length = request.headers.get("content-length");
       if (length !== null && !/^0+$/.test(length)) return reply(400, { error: "REQUEST_REJECTED" });
-      // No body stream is accepted, so a slow/malicious stream cannot stall auth.
-      if (request.body !== null) return reply(400, { error: "REQUEST_REJECTED" });
+      if (!(await isSemanticEmptyBody(request))) return reply(400, { error: "REQUEST_REJECTED" });
       if (!request.headers.get("cookie")?.split(";").some(part => {
         const value = part.trim();
         return value.startsWith("__Host-nexcut_session=") && value.length > "__Host-nexcut_session=".length;

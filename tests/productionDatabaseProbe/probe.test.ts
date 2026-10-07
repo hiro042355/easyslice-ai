@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createProbeRoute, runProbe, PROBE_SQL, PROBE_ORIGIN, type ProbeConnection } from "../../lib/server/productionDatabaseProbe/probeCore";
+import { createRequire } from "node:module";
+import { Readable } from "node:stream";
+import { createProbeRoute, runProbe, PROBE_SQL, PROBE_ORIGIN, isSemanticEmptyBody, BODY_STREAM_TIMEOUT_MS, type ProbeConnection } from "../../lib/server/productionDatabaseProbe/probeCore";
 import type { AuthenticatedContext, UserId, SessionId } from "../../lib/server/productionIdentity/types";
 const context = (owner = "synthetic-owner"): AuthenticatedContext => ({ contextVersion: "1.0", requestId: "synthetic",
   identity: { identityVersion: "1.0", userId: owner as UserId, sessionId: "synthetic-session" as SessionId,
@@ -92,4 +94,61 @@ test("unexpected failure and logging do not expose raw errors", async () => {
 });
 test("operational one-shot policy does not pretend a process latch exists", async () => {
   const h = harness(); await h.handler(request()); await h.handler(request()); assert.equal(h.count(), 2);
+});
+
+function streamed(body: ReadableStream<Uint8Array>): Request {
+  const init: RequestInit & { duplex: "half" } = { method: "POST", body, duplex: "half",
+    headers: { origin: PROBE_ORIGIN, cookie: "__Host-nexcut_session=synthetic-cookie" } };
+  return new Request(PROBE_ORIGIN + "/api/internal/production-db-authority-probe", init);
+}
+test("installed Next.js Node adapter accepts browser-equivalent zero-byte POST", async () => {
+  const require = createRequire(import.meta.url);
+  const { NodeNextRequest } = require("next/dist/server/base-http/node") as { NodeNextRequest: new (input: Readable) => unknown };
+  const { NextRequestAdapter } = require("next/dist/server/web/spec-extension/adapters/next-request") as {
+    NextRequestAdapter: { fromNodeNextRequest(input: unknown, signal: AbortSignal): Request };
+  };
+  const incoming = Object.assign(Readable.from([]), { method: "POST", url: PROBE_ORIGIN + "/api/internal/production-db-authority-probe",
+    headers: { origin: PROBE_ORIGIN, "content-length": "0", cookie: "__Host-nexcut_session=synthetic-cookie" } });
+  const adapted = NextRequestAdapter.fromNodeNextRequest(new NodeNextRequest(incoming), new AbortController().signal);
+  assert.notEqual(adapted.body, null);
+  assert.equal((await adapted.clone().arrayBuffer()).byteLength, 0);
+  const h = harness(); assert.equal((await h.handler(adapted)).status, 200); assert.equal(h.count(), 1);
+  // This proves a defect/reproduction, NOT the first historical Production branch.
+});
+test("null body and zero-byte EOF are semantically empty", async () => {
+  assert.equal(await isSemanticEmptyBody(request()), true);
+  assert.equal(await isSemanticEmptyBody(streamed(new ReadableStream({ start(c) { c.close(); } }))), true);
+});
+for (const size of [1, 1024 * 1024]) test(`non-empty ${size}-byte first chunk rejects without buffering`, async () => {
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(new Uint8Array(size)); }, cancel() { cancelled = true; } });
+  const h = harness(); assert.equal((await h.handler(streamed(body))).status, 400); assert.equal(h.count(), 0); assert.equal(cancelled, true);
+});
+for (const [name, value] of [["content-length", "1"], ["content-length", "garbage"], ["transfer-encoding", "chunked"]]) {
+  test(`preserved header rejection ${name}=${value}`, async () => {
+    const req = request(); req.headers.set(name, value); const h = harness();
+    assert.equal((await h.handler(req)).status, 400); assert.equal(h.count(), 0);
+  });
+}
+test("read failure rejects without leaking or reaching service", async () => {
+  const req = streamed(new ReadableStream({ start(c) { c.error(new Error("RAW_SECRET_READ")); } }));
+  const h = harness(); const response = await h.handler(req); assert.equal(response.status, 400); assert.equal(h.count(), 0);
+  assert.deepEqual(await response.json(), { error: "REQUEST_REJECTED" });
+});
+test("stalled stream and stalled cancellation reject within the deadline", async () => {
+  let cancelled = false;
+  const req = streamed(new ReadableStream({ cancel() { cancelled = true; return new Promise<void>(() => undefined); } }));
+  const h = harness(); const began = performance.now();
+  assert.equal((await h.handler(req)).status, 400); const duration = performance.now() - began;
+  assert.ok(duration >= BODY_STREAM_TIMEOUT_MS - 50 && duration < BODY_STREAM_TIMEOUT_MS + 1500);
+  assert.equal(h.count(), 0); assert.equal(cancelled, true);
+});
+test("locked, consumed, malformed chunk and excessive zero chunks reject", async () => {
+  const locked = streamed(new ReadableStream({ start(c) { c.close(); } }));
+  const reader = locked.body!.getReader(); assert.equal(await isSemanticEmptyBody(locked), false); reader.releaseLock();
+  const consumed = request({ body: "x" }); await consumed.arrayBuffer(); assert.equal(await isSemanticEmptyBody(consumed), false);
+  const malformed = streamed(new ReadableStream({ start(c) { c.enqueue("invalid" as unknown as Uint8Array); c.close(); } }));
+  assert.equal(await isSemanticEmptyBody(malformed), false);
+  const many = streamed(new ReadableStream({ pull(c) { c.enqueue(new Uint8Array(0)); } }));
+  assert.equal(await isSemanticEmptyBody(many), false);
 });
