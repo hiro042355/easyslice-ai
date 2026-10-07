@@ -25,14 +25,14 @@ const cookie = (request: Request): string | undefined => {
 export const createAuthenticatedRouteGuard = (verifier: FirebaseCredentialVerifier) => async (
   request: Request,
 ): Promise<RouteAuthenticationResult> => {
-  const sessionCookie = cookie(request);
-  const idToken = sessionCookie ? undefined : bearer(request);
-  const credential = sessionCookie ?? idToken;
-  if (!credential) return Object.freeze({
-    ok: false,
-    response: NextResponse.json({ success: false, error: "authentication-required" }, { status: 401 }),
-  });
   try {
+    const sessionCookie = cookie(request);
+    const idToken = sessionCookie ? undefined : bearer(request);
+    const credential = sessionCookie ?? idToken;
+    if (!credential) return Object.freeze({
+      ok: false,
+      response: NextResponse.json({ success: false, error: "authentication-required" }, { status: 401 }),
+    });
     const decoded = sessionCookie
       ? await verifier.verifySessionCookie(sessionCookie, true)
       : await verifier.verifyIdToken(idToken!, true);
