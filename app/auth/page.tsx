@@ -1,4 +1,5 @@
 import { GoogleIdentitySignInButton } from "@/components/GoogleIdentitySignInButton";
+import Link from "next/link";
 
 export default function AuthPage() {
   return (
@@ -88,6 +89,10 @@ export default function AuthPage() {
 
                 <p>Open Beta v1.0 RC / Build 0.x</p>
               </div>
+              <nav aria-label="Legal" className="mt-4 flex gap-5 text-xs text-gray-400">
+                <Link href="/terms" className="hover:text-cyan-300">Terms of Service</Link>
+                <Link href="/privacy" className="hover:text-cyan-300">Privacy Policy</Link>
+              </nav>
             </div>
           </div>
         </div>
