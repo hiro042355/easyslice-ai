@@ -1,0 +1,67 @@
+{
+  "baseline": "060229fcb4a3d2aed6e3bf2921fb27eb5e8d47a2",
+  "files": [
+    {
+      "path": "docs/mission06/CHANGED_FILES.json",
+      "change": "created",
+      "selfHashExcluded": true
+    },
+    {
+      "path": "docs/mission06/LIVE_GATE_MATRIX.md",
+      "sha256": "84a8d461039e849724db53e82a8c7afda5358c979444fb0551378fcdcba0d516",
+      "change": "created"
+    },
+    {
+      "path": "docs/mission06/MEDIA_CONSENT_RETENTION.md",
+      "sha256": "badb89faa86cd5ab7df55a5b51f067f81a556bb13c556c6311ae3ce909e92780",
+      "change": "created"
+    },
+    {
+      "path": "docs/mission06/OBSERVED_EVIDENCE.json",
+      "sha256": "dbb585a530b16bfd308284155fca65989e1c12213c876b0609066971484ac9f8",
+      "change": "created"
+    },
+    {
+      "path": "docs/mission06/QUALIFICATION_REPORT.md",
+      "sha256": "68d29f2ffa79933df6d4be200f83ae3c1877f4738926b59c3e05680c1a57b06a",
+      "change": "created"
+    },
+    {
+      "path": "lib/server/tiktokIntegration/providerCallback.ts",
+      "sha256": "f731e00858b3f33f532cebd01bf4c2ec0c767e00940dc90f0e98a32c167e2d9b",
+      "change": "created"
+    },
+    {
+      "path": "lib/server/tiktokIntegration/service.ts",
+      "sha256": "89d4a96dc51c706174bd2ce7c232a4affde4d92ee961dd37add61b82a5393fbd",
+      "change": "modified"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/full.test.tsx",
+      "sha256": "bb955a54f251e8c11c17f66a03840a37ada379865a097ef79f5525ee2cac1af0",
+      "change": "modified"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "sha256": "f29dd4cffda611cdbf60161b45870da9b3f42d5358702294208efe4deed39688",
+      "change": "modified"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "sha256": "b3cd89c9b8809b76ca2ec5abe577df53b379bf16cc1ad6926dd1bb2ffc8d9fe7",
+      "change": "modified"
+    },
+    {
+      "path": "tests/tiktokHardening/callback.test.ts",
+      "sha256": "4847a4f1d81919baf8bb2e4b3bcf4d2d5d2a3cde6ff3e16314650519c2532d09",
+      "change": "created"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "sha256": "bdbf9a7d57fd43a12c2539bf0686584ba8acf5575d417d4f1ceacfcc96d63626",
+      "change": "modified"
+    }
+  ],
+  "externalWrites": 0,
+  "fileCount": 12
+}

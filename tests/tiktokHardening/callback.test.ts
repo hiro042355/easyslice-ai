@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {test} from "node:test";
+import {parseProviderCallback} from "../../lib/server/tiktokIntegration/providerCallback";
+const url=(query:string)=>new URL("https://www.nexcutai.com/api/tiktok/oauth/callback?state=synthetic&"+query);
+test("documented scopes echo is accepted without becoming authority",()=>{assert.equal(parseProviderCallback(url("code=fixture&scopes=user.info.basic,video.publish")).denied,false);});
+test("scope order is immaterial",()=>{assert.equal(parseProviderCallback(url("code=fixture&scopes=video.publish,user.info.basic")).denied,false);});
+test("scope omission preserves provider compatibility",()=>{assert.equal(parseProviderCallback(url("code=fixture")).denied,false);});
+test("documented denial description is discarded and not reflected",()=>{const result=parseProviderCallback(url("error=access_denied&error_description=synthetic-sensitive-detail"));assert.equal(result.denied,true);assert.doesNotMatch(JSON.stringify(result),/synthetic-sensitive-detail/);});
+for(const scope of ["user.info.basic","video.upload","user.info.basic,video.publish,video.publish",""])test(`invalid echoed scopes ${scope}`,()=>{assert.equal(parseProviderCallback(url("code=fixture&scopes="+scope)).denied,true);});
+test("duplicate query values are rejected",()=>{assert.throws(()=>parseProviderCallback(url("code=fixture&scopes=video.publish&scopes=user.info.basic")));});
+test("success cannot carry provider error text or arbitrary redirect",()=>{assert.throws(()=>parseProviderCallback(url("code=fixture&error_description=detail")));assert.throws(()=>parseProviderCallback(url("code=fixture&redirect=https://evil.invalid")));});

@@ -1,0 +1,64 @@
+{
+  "observedDate": "2026-10-09",
+  "kms": {
+    "tokenSymmetricKeyInInspectedKeyring": "NOT_OBSERVED",
+    "versionState": "ENABLED",
+    "inspectedDeclaredKeyringPurposes": [
+      "MAC"
+    ],
+    "otherKeyrings": "NOT_INSPECTED",
+    "api": "ENABLED",
+    "versionAlgorithm": "HMAC_SHA256",
+    "productionEnvironmentValues": "NOT_READ"
+  },
+  "productionMetadata": {
+    "iamAuthentication": "on",
+    "migratorCloudSqlInstanceUserBinding": true,
+    "postgresqlDdlAuthority": "UNKNOWN",
+    "registeredIamUserClasses": [
+      "MIGRATOR",
+      "RUNTIME",
+      "BOOTSTRAP"
+    ],
+    "migratorCloudSqlClientBinding": true,
+    "databaseVersion": "POSTGRES_18",
+    "region": "asia-northeast1",
+    "migrationHistoryAuthority": "UNKNOWN",
+    "instanceState": "RUNNABLE",
+    "connectorEnforcement": "REQUIRED",
+    "finalVersion": "UNKNOWN"
+  },
+  "portal": {
+    "current": "UNVERIFIED",
+    "existingAccessiblePortalTabs": 0,
+    "priorUserEvidence": [
+      "LOGIN_KIT_CONFIGURED",
+      "CONTENT_POSTING_CONFIGURED",
+      "DIRECT_POST_OFF",
+      "PRODUCTION_DRAFT",
+      "SANDBOX_LIMITED"
+    ]
+  },
+  "staging": {
+    "iamDatabaseQualification": "UNKNOWN",
+    "serviceAccounts": [
+      "RUNTIME_ENABLED",
+      "DEPLOYER_ENABLED",
+      "ROTATOR_ENABLED"
+    ],
+    "projectId": "nexcut-staging",
+    "apiInspectionExit": 0,
+    "instance": "UNKNOWN_NOT_QUERIED",
+    "lifecycleState": "ACTIVE",
+    "migratorAccountInInspectedList": "NOT_OBSERVED",
+    "sqlAdminApi": "DISABLED"
+  },
+  "externalMutations": 0,
+  "access": {
+    "credentialFileOverride": false,
+    "productionDbQueries": 0,
+    "newCredentialsCreated": 0,
+    "gcloudConfiguredImpersonation": false,
+    "productionDbPath": "ABSENT_AFTER_APPROVED_CLEANUP"
+  }
+}
