@@ -1,0 +1,2 @@
+/** Fixed guidance only. It cannot grant a connection or publication capability. */
+export function TikTokPermissionNotice(){return <aside aria-label="TikTok permissions and posting readiness" className="mt-4 rounded-xl border border-white/10 p-4 text-sm text-white/70"><p>必要な権限: user.info.basic / video.publish</p><p className="mt-2">権限が不足している場合や接続期限が切れた場合は、承認された環境で再認証が必要です。</p><p className="mt-2">アカウント連携だけでは投稿を実行できません。投稿設定・動画の確認・明示的な同意が必要です。</p><p className="mt-2">現在の本番環境では TikTok 接続・投稿は無効です。</p></aside>;}

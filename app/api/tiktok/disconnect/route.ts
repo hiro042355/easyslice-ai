@@ -1,3 +1,3 @@
-import { unavailableRoute } from "../../../../lib/server/localTikTok/routes";
-// Deployment default is inert: local services cannot be activated by flags or request input.
-export function POST(){ return unavailableRoute(); }
+import {dispatchInstalledTikTokApplication} from "../../../../lib/server/tiktokApplication/request";
+export const runtime="nodejs";
+export function POST(request:Request){return dispatchInstalledTikTokApplication("disconnect",request);}

@@ -9,7 +9,7 @@ import { IntegrationPgStore, type Claim, type Connection, type Envelope } from "
 import type { Tokens } from "../localTikTok/custody";
 import { IntegrationTokenVault } from "./vault";
 export interface TokenVaultPort { encrypt(tokens:Tokens,c:Omit<Connection,"envelope">):Envelope|Promise<Envelope>;decrypt(c:Connection):Tokens|Promise<Tokens>;startup?():Promise<{status:"READY"}>;resolve(session:Session,store:IntegrationPgStore):Promise<{connection:Connection;tokens:Tokens}> }
-/** Explicit injected local composition only. Native Next routes remain unavailable. */
+/** Accepted OAuth service; application composition supplies approved runtime ports. */
 export class FirebaseHttpIntegration {
  readonly vault:TokenVaultPort;
  constructor(readonly store:IntegrationPgStore,keys:KeyProvider|TokenVaultPort,readonly login:TikTokLoginAdapter,readonly verifier:RequestSessionVerifier,readonly execution:RuntimeExecution){validateRuntimeExecution(execution);if(!sameRuntimeExecution(execution,store.execution))reject("RUNTIME_SCOPE_REQUIRED");if(execution!=="LOCAL_TEST"&&(store.profile.app!==login.appBinding.clientKey||store.profile.redirect!==login.appBinding.redirectUri))reject("APP_BINDING_REQUIRED");if(execution!=="LOCAL_TEST"&&(!(verifier instanceof CanonicalFirebaseSessionVerifier)||!(keys instanceof ManagedTokenVault)||keys.configuredExecution!==(store.environment==="production"?"PRODUCTION":"LOCAL_TEST")))reject("PRODUCTION_KEYS_REQUIRED");this.vault="encrypt" in keys?keys:new IntegrationTokenVault(keys);}

@@ -59,12 +59,12 @@ test("Sandbox and Production remain distinct; unknown mode rejected", () => {
   assert.notDeepEqual(sandbox.authority, validateTikTokServerEnvironment(fixture()).authority);
   assert.throws(() => validateTikTokServerEnvironment({ ...fixture(), NEXCUT_TIKTOK_OAUTH_MODE: "preview" }), /mode-invalid/);
 });
-test("callback is explicit 501 with no query echo, cookies, redirect or network", async () => {
-  const response = GET();
-  assert.equal(response.status, 501);
+test("callback is unavailable by default with no query echo, cookies, redirect or network", async () => {
+  const response = await GET(new Request(TIKTOK_REDIRECT_URI+"?state=synthetic&code=synthetic"));
+  assert.equal(response.status, 503);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.equal(response.headers.get("set-cookie"), null);
   assert.equal(response.headers.get("location"), null);
-  assert.deepEqual(await response.json(), { success: false, error: "tiktok-oauth-not-implemented" });
+  assert.deepEqual(await response.json(), {version:"1",status:"UNAVAILABLE",error:"APPLICATION_NOT_READY"});
 });
