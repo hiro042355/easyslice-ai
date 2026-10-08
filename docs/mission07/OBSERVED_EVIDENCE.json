@@ -1,0 +1,160 @@
+{
+  "observed": "2026-10-09",
+  "baseline": "212adf64bd6555301f1500f53b9012709aa25a7e",
+  "mission06Parent": "060229fcb4a3d2aed6e3bf2921fb27eb5e8d47a2",
+  "mission06Tree": "46aaa3605b6d785d42b0db8cf7426639a5f877a2",
+  "remote": "https://github.com/hiro042355/easyslice-ai.git",
+  "branch": "codex/tiktok-integration-mission-07",
+  "initialRemotePreservation": "212adf64bd6555301f1500f53b9012709aa25a7e",
+  "main": "f3873fb294bbc11974ca180dea10fa711c49d436",
+  "staging": {
+    "project": "nexcut-staging",
+    "state": "ACTIVE",
+    "sqlAdminApi": "DISABLED",
+    "instanceExists": "UNKNOWN",
+    "accountClasses": [
+      "RUNTIME",
+      "DEPLOYER",
+      "ROTATOR"
+    ],
+    "effectiveIam": "UNVERIFIED",
+    "metadataRequests": 3
+  },
+  "production": {
+    "dbConnections": 0,
+    "readOnlyQueries": 0,
+    "historyAuthority": "UNKNOWN",
+    "ddlAuthority": "UNKNOWN",
+    "finalMigrationVersion": "UNKNOWN"
+  },
+  "tests": {
+    "host": 359,
+    "additionalChunkBoundary": 4,
+    "postgresql": 96,
+    "operatorFirstOptInDisabled": {
+      "pass": 113,
+      "skip": 10
+    },
+    "operatorEnabledFirst": {
+      "pass": 122,
+      "fail": 1,
+      "skip": 0,
+      "failure": "TRANSPORT_FAILED during unchanged localAuthority Docker image inspection before acquisition"
+    },
+    "operatorSelectedRecheck": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0
+    },
+    "distinctCasesEventuallyPassed": 582,
+    "requiredCasesUnexecuted": 0,
+    "underlyingDockerError": "UNKNOWN; raw subprocess errors deliberately discarded"
+  },
+  "typecheck": "PASS",
+  "focusedStrictES2017": "PASS",
+  "build": "PASS_SANITIZED_ENVIRONMENT",
+  "lint": {
+    "errors": 30,
+    "warnings": 48,
+    "baselineUnchanged": true
+  },
+  "secretScanBeforePreservation": {
+    "commits": 14,
+    "distinctBlobs": 1401,
+    "highConfidenceFindings": 0
+  },
+  "originalWork": {
+    "modified": 29,
+    "untracked": 334,
+    "hashMismatches": 0,
+    "inventoryDifference": 0
+  },
+  "externalActions": {
+    "productionMutations": 0,
+    "migrations": 0,
+    "secretsRetrieved": 0,
+    "newProductionPaths": 0,
+    "cloudResourceChanges": 0,
+    "iamChanges": 0,
+    "terraform": 0,
+    "vercelSettingChanges": 0,
+    "manualDeployments": 0,
+    "tiktokApiCalls": 0,
+    "oauth": 0,
+    "uploads": 0,
+    "publications": 0,
+    "portalChanges": 0,
+    "reviewSubmissions": 0,
+    "productionDeletion": 0
+  },
+  "logs": [
+    {
+      "file": "nexcut-mission07-host.log",
+      "sha256": "884807a14a8c59bbc49f281ffec39288b903fb5a475d01821866f44ae41ad387"
+    },
+    {
+      "file": "nexcut-mission07-postgresql.log",
+      "sha256": "29544a00a268e9a43eb84f16ff459bfa470c24ba9db526221d12a8744acefc77"
+    },
+    {
+      "file": "nexcut-mission07-typecheck-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "nexcut-mission07-build.log",
+      "sha256": "fa12d444bdb0d3269331a16b57a0b4fa2c2d953bced1ae002477c1a3a47f73fb"
+    },
+    {
+      "file": "nexcut-mission07-migration.log",
+      "sha256": "eae5b9b22058973a69f8f8bd21b5b5a39663049cb3007af666c732d1a8aa09c9"
+    },
+    {
+      "file": "nexcut-mission07-migration-real.log",
+      "sha256": "262e962cba30202e611aec9db2044152df3b77ce6d1120be2bc7153c0b910512"
+    },
+    {
+      "file": "nexcut-mission07-migration-recheck.log",
+      "sha256": "15f83de7c56f9d2c814b64aa6f566242a6ed33f831d5bd2cb2c89ef5e03a757c"
+    },
+    {
+      "file": "nexcut-mission07-lint.json",
+      "sha256": "4260181a35e13fece0cd29c90bcd183ba3069a9352ddca9b7973f0867728c261"
+    }
+  ],
+  "hostCommand": [
+    "node",
+    "node_modules/tsx/dist/cli.mjs",
+    "--test",
+    "--test-concurrency=1",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokOAuth\\foundation.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokConnection\\connectionUi.test.tsx",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokFirebase\\auth.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokHttp\\adapter.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokHardening\\callback.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokHardening\\keys.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokHardening\\publisher.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokHardening\\serialization.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokHardening\\transport.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\authenticatedAccountControl.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\betaAuthorization.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableCutOwnership.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableMediaAdmissionClient.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableMediaAnalyze.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableMediaOwnership.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableMultiCut.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableReviewExport.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableSubtitleBurn.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableTranscript.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\durableYoutubeIngestion.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\googleIdentitySignIn.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\packagedYtDlp.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\productionDurableStorageInfrastructure.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\productionIdentityFoundation.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\productionMediaRuntimeAdapters.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\productionOwnerUidProofRoute.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\restoredServerSession.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\sessionLifecycleFakeE2E.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\productionIdentity\\vercelWifCredential.test.ts",
+    "C:\\Users\\hirom\\AppData\\Local\\Temp\\nexcut-tiktok-integration-07-20261009\\tests\\tiktokIntegration\\client.test.tsx"
+  ]
+}

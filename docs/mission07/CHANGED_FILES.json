@@ -1,0 +1,127 @@
+{
+  "baseline": "212adf64bd6555301f1500f53b9012709aa25a7e",
+  "modified": 5,
+  "created": 15,
+  "deleted": 0,
+  "files": [
+    {
+      "path": "lib/server/tiktokIntegration/vault.ts",
+      "status": "modified",
+      "purpose": "Protect decrypted credentials and explicitly serialize fields for re-encryption",
+      "sha256": "e61869fbd8e8614908058f20549b4b8d50810659fd949b8465bbeda909c2ab01"
+    },
+    {
+      "path": "lib/server/tiktokKeys/managedVault.ts",
+      "status": "modified",
+      "purpose": "Protect returned decrypted credentials while preserving managed envelope behavior",
+      "sha256": "4c18e82f708c1b3436f143ed2dad94dc4fd3eedcd90b06c9a05f958569ae3e79"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Compile Mission07/new tests with strict ES2017 and pinned B7 verification",
+      "sha256": "734c375de8dd0d7e569ba2a5f7edf7696852f28c8d13efffd3aa6806c7945bae"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Use Mission07-owned compilation path/resource labels in private local PostgreSQL rehearsal",
+      "sha256": "a2d8e437b805e4188a16a05ef91a0d2957108d552a50c9c7578626ecf4311a4a"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "status": "modified",
+      "purpose": "Allow only explicit Mission07 isolated root in guarded sanitized build",
+      "sha256": "df63b31eb3461342725cefebc946a0eddf6b686aa9a54359bc990858783c8c79"
+    },
+    {
+      "path": "docs/mission07/ACCEPTANCE_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 ACCEPTANCE REPORT.md",
+      "sha256": "d158bc074f8a734898179820d2aa89326d00549a5e475b5a9eb0dd841ffed074"
+    },
+    {
+      "path": "docs/mission07/CONTENT_POSTING_API_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 CONTENT POSTING API READINESS REPORT.md",
+      "sha256": "60e04f0c6ff2f171595e16172b27b5a123183787312722bd8497e1274ed96137"
+    },
+    {
+      "path": "docs/mission07/DATA_RETENTION_AND_DELETION_POLICY_PROPOSAL.md",
+      "status": "created",
+      "purpose": "Mission07 DATA RETENTION AND DELETION POLICY PROPOSAL.md",
+      "sha256": "c8f01563c841951cad1f9e48c21802481fae9fb99a54a5b4f22cca78e7de19c9"
+    },
+    {
+      "path": "docs/mission07/MIGRATION_INVENTORY.json",
+      "status": "created",
+      "purpose": "Mission07 MIGRATION INVENTORY.json",
+      "sha256": "185aff37b51c733e5940ab3d0c2cb3806a793ae9fd478b748c4e002fc5ffccdd"
+    },
+    {
+      "path": "docs/mission07/OBSERVED_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission07 OBSERVED EVIDENCE.json",
+      "sha256": "0d16b2cd0d8f5736f44f19af3d88162b838e5c7abcb802ada99fb95fe3e23d28"
+    },
+    {
+      "path": "docs/mission07/PRODUCTION_DB_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 PRODUCTION DB READINESS REPORT.md",
+      "sha256": "d913ed08035e806d54bfe43dd10bb2028d84eddbf774b039b0e72eb471e86b0b"
+    },
+    {
+      "path": "docs/mission07/STAGING_CLOUD_SQL_COST_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 STAGING CLOUD SQL COST REPORT.md",
+      "sha256": "758cce5bc77f8a6bb602ff911314e26d23a966078c21b7859736f2abd522ea54"
+    },
+    {
+      "path": "docs/mission07/STAGING_CLOUD_SQL_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 STAGING CLOUD SQL READINESS REPORT.md",
+      "sha256": "3933ad58170a879308b884d29b0ed5df21b10f660972641bec073a6273252058"
+    },
+    {
+      "path": "docs/mission07/TIKTOK_DEVELOPER_REVIEW_DEMO_PLAN.md",
+      "status": "created",
+      "purpose": "Mission07 TIKTOK DEVELOPER REVIEW DEMO PLAN.md",
+      "sha256": "8bc87470d33222caee937474099725ecfb3ac75386d2a89509b00f00abd8c4d3"
+    },
+    {
+      "path": "docs/mission07/TIKTOK_SANDBOX_OAUTH_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 TIKTOK SANDBOX OAUTH READINESS REPORT.md",
+      "sha256": "2cd020fbebed4092f46eff529683a52508e5bfcbf08077a48d588319e1d12443"
+    },
+    {
+      "path": "docs/mission07/TOKEN_ENCRYPTION_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission07 TOKEN ENCRYPTION READINESS REPORT.md",
+      "sha256": "ed6e7199d07ac88ad3b3f5c65fc0255f79edb020efc60c54379a07047f927024"
+    },
+    {
+      "path": "lib/server/tiktokKeys/tokenSecrets.ts",
+      "status": "created",
+      "purpose": "Redact decrypted tokens during ordinary JSON serialization and diagnostic inspection",
+      "sha256": "2280e110875f401cc504fcf8b770788ee287e59bbe832198328269eda0075097"
+    },
+    {
+      "path": "tests/tiktokHardening/chunkBoundary.test.ts",
+      "status": "created",
+      "purpose": "Four tests executing accepted B7 chunk layout, final tail, invalid plan and failure boundaries",
+      "sha256": "02b20d7629524ec2c467572421758d2e190fa84bda251999783c84d7c67bca8a"
+    },
+    {
+      "path": "tests/tiktokHardening/serialization.test.ts",
+      "status": "created",
+      "purpose": "Eight synthetic token confidentiality, immutability and re-encryption regressions",
+      "sha256": "8c461de2f8b2d3d1816b60717be84e74c8cdfa7d51f266fbc3d28db9ec4829c6"
+    },
+    {
+      "path": "docs/mission07/CHANGED_FILES.json",
+      "status": "created",
+      "purpose": "Exact authored file inventory with hashes; self-hash excluded"
+    }
+  ]
+}

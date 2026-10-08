@@ -1,0 +1,109 @@
+{
+  "observed": "2026-10-09",
+  "productionHistory": "UNKNOWN",
+  "finalVersion": "UNKNOWN",
+  "committed": [
+    {
+      "path": "db/workflow/migrations/V000001__initialize_slice_a_workflow_schema.sql",
+      "sha256": "94568f9fcb675f6c169f1a9fa1f0e5ad96d1011eec380d33451747bc855b10a9"
+    },
+    {
+      "path": "db/workflow/migrations/V000002__add_workflow_reconciliation_schema.sql",
+      "sha256": "6388977db66e4b2a5493ad1465046e873616d6e345e12aa91fe8a4d2e464749c"
+    },
+    {
+      "path": "db/workflow/migrations/V000003__align_reconciliation_store_schema.sql",
+      "sha256": "4524b96c9ce7e4010fae2d8e56c865e37fb7cee4d2f27f925a702d986d899bdd"
+    },
+    {
+      "path": "db/workflow/migrations/V000004__add_multi_cut_replay_postgresql_foundation.sql",
+      "sha256": "f83b3ba51d9a150e8367d8c6b97a2c178a44349771fc46f47605266858c5cd04"
+    },
+    {
+      "path": "db/workflow/migrations/V000005__add_workflow_completion_state.sql",
+      "sha256": "0d98e304b0959ed0cdbc7564ddcd7cf6c30726332230a8ba9a7399d6190820c9"
+    },
+    {
+      "path": "db/workflow/migrations/V000006__add_durable_media_ownership.sql",
+      "sha256": "2e916235606fe89cce08e7077547d84b99c3bc7bf572b6bdf1228803b814f408"
+    },
+    {
+      "path": "db/workflow/migrations/V000007__add_production_workflow_api_csrf_authority.sql",
+      "sha256": "a6e8a2956831a8b488f34f1b1992dfb7fef8e113b0cf54ebcf85aabe85e1c95f"
+    },
+    {
+      "path": "db/workflow/migrations/V000008__add_asset_import_idempotency.sql",
+      "sha256": "58ed4942beedb6c45bccd148c884fdb4220fdef6e5e1fe15d68a8075ca3352aa"
+    }
+  ],
+  "originalUntracked": [
+    {
+      "path": "db/workflow/migrations/V000009__add_workflow_api_idempotency.sql",
+      "sha256": "22a50df00a95cf632a5aea751c174b8032b32aaf790cd515dded90cc828ede19"
+    },
+    {
+      "path": "db/workflow/migrations/V000010__add_workflow_api_reference_vault.sql",
+      "sha256": "6c50d35538ec8e04cb9eeb8830abea6400147188e378220e9290f1dc3d779abf"
+    },
+    {
+      "path": "db/workflow/migrations/V000011__add_reference_workflow_lifecycle_authority.sql",
+      "sha256": "305bf93cdedcb819ac20e20b8cb749a6d7df4c8d2fc5933d7867b36107430662"
+    },
+    {
+      "path": "db/workflow/migrations/V000012__add_workflow_ingestion_cleanup_claim_authority.sql",
+      "sha256": "b77158e7893e270f00cc9771acc156baa85e867157b535269dd9ccc63a90c69b"
+    },
+    {
+      "path": "db/workflow/migrations/V000013__add_workflow_restricted_input_authority.sql",
+      "sha256": "80ba5828b8cd1bcc5f0856e7d38a8480aa23c143589757459435d040d5e0dc16"
+    },
+    {
+      "path": "db/workflow/migrations/V000014__add_provider_binding_snapshot_and_reconciliation_projection.sql",
+      "sha256": "702d56ed27a8e35cf3717efadb142af2cfc0710659a31183690beee0c1afe113"
+    },
+    {
+      "path": "db/workflow/migrations/V000015__add_workflow_api_result_token_recovery_authority.sql",
+      "sha256": "3f88f25298daad6797c5fac349b99bc02dccef14640894a9c1beb7470ac09f66"
+    },
+    {
+      "path": "db/workflow/migrations/V000016__bind_provider_generation_job_lower_operation.sql",
+      "sha256": "26f14f84d048eae3a5566d1c6da03078e09de14a3b2cf1605575e32e16d575a1"
+    },
+    {
+      "path": "db/workflow/migrations/V000017__add_provider_terminal_authorization_authority.sql",
+      "sha256": "46f11f6a07f86d07ba476a9bf6503f5952a5438a8e7b8d4d2eaa5111145fda50"
+    },
+    {
+      "path": "db/workflow/migrations/V000018__enforce_provider_terminal_authorization_revision_relation.sql",
+      "sha256": "ed8a77b9c925bb134b698d9507c52e4300e0e2fe864ca1dc63b3db31d29c00a6"
+    },
+    {
+      "path": "db/workflow/migrations/V000019__retain_operation_terminal_authorized_owner.sql",
+      "sha256": "b85cecd35d195cd9d70fc75d1470b85e44eb7f848f0edfe59d0be59e7c0daf00"
+    },
+    {
+      "path": "db/workflow/migrations/V000020__add_durable_workflow_cancellation_authority.sql",
+      "sha256": "3c8e0da685fbd5dba5573377b16810705b7a406084081be701f72aeb65f1d6f2"
+    },
+    {
+      "path": "db/workflow/migrations/V000021__harden_cancellation_authority_immutability.sql",
+      "sha256": "7a1af8ea0b71bd49c5ddfa304c060b498b7981e5de18992016902dfe10cd34c4"
+    },
+    {
+      "path": "db/workflow/migrations/V000022__add_generation_job_cancel_authority.sql",
+      "sha256": "3a403464a315ddb8b7caafffdd223c0e1895216e19e89febb1b1f39acff47799"
+    },
+    {
+      "path": "db/workflow/migrations/V000023__harden_generation_job_cancel_authority.sql",
+      "sha256": "cf877443aa15e73708a4eb4d40977cd1c153a90ffa1633e82fa7a95d7c58d86c"
+    },
+    {
+      "path": "db/workflow/migrations/V000024__correct_generation_job_cancel_live_lease_time.sql",
+      "sha256": "ce7eeb69d56aabc5a6b6b51e0b8475d26d5454656e60b26aef8b0b016ce9109a"
+    },
+    {
+      "path": "db/workflow/migrations/V000025__set_workflow_schema_metadata_migration_head.sql",
+      "sha256": "3f0b089671c44ab8f10ae5feef02b5d9392908aa152ec0a66b19abd762a81f7d"
+    }
+  ]
+}
