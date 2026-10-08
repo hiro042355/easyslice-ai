@@ -31,7 +31,8 @@ export default function WorkspaceHomePage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent" />
 
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-5 py-10 sm:px-8 lg:px-10">
-        <div className="mb-8 flex justify-end">
+        <div className="mb-8 flex flex-wrap items-center justify-end gap-4">
+          <a href="/settings/connections" className="text-sm font-semibold text-cyan-300 hover:text-cyan-200">アカウント連携</a>
           <AuthenticatedAccountControl />
         </div>
 
