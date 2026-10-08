@@ -1,0 +1,30 @@
+{
+  "manifestVersion": 1,
+  "sourceBaseline": "7bce9af4474fcb638a72c8fa84c1db3da380fe99",
+  "custody": "AES-256-GCM + KMS-wrapped per-message DEK for version 2",
+  "configuration": {
+    "outOfOrder": false,
+    "lockRetryCount": 0,
+    "baselineOnMigrate": false,
+    "createSchemas": false,
+    "ignoreMigrationPatterns": "*:pending",
+    "connectRetries": 0,
+    "validateOnMigrate": true,
+    "cleanDisabled": true
+  },
+  "productionApplied": false,
+  "candidatePath": "tests/tiktokProductionMigration/NONDEPLOYABLE_oauth_candidate.sql",
+  "publisherCorrelationImmutable": true,
+  "testOnlyVersion": 1,
+  "productionDeployable": false,
+  "sha256": "c0d68be3b4086a3da940cbc3103b50e2fe77487476769422beb600da59392bf8",
+  "flywayImage": "sha256:876479697e6f272e7897f9cebc5d43090e4e7ba164de9eb11e07767bff075011",
+  "tokenEnvelopeVersions": [
+    1,
+    2
+  ],
+  "finalMigrationVersion": "UNKNOWN",
+  "migrationIdentityAuthority": "UNKNOWN",
+  "postgresqlImage": "sha256:c2d42a104eb6b37b286a2d9c5cf83f349de4d6516d513d00a2bd9610e2c2e5e4",
+  "productionHistoryAuthority": "UNKNOWN"
+}

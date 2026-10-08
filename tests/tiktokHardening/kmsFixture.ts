@@ -1,0 +1,4 @@
+import {createCipheriv,createDecipheriv,randomBytes} from "node:crypto";
+import type {EnvelopeKmsClient} from "../../lib/server/tiktokKeys/managedVault";
+export const fixtureKmsVersion="projects/synthetic-local/locations/global/keyRings/fixture/cryptoKeys/token/cryptoKeyVersions/1";
+export function syntheticKmsClient():EnvelopeKmsClient {const key=randomBytes(32);return {version:async name=>({name,state:"ENABLED",algorithm:"GOOGLE_SYMMETRIC_ENCRYPTION"}),wrap:async(name,dek,aad)=>{const nonce=randomBytes(12),cipher=createCipheriv("aes-256-gcm",key,nonce);cipher.setAAD(aad);const ciphertext=Buffer.concat([cipher.update(dek),cipher.final()]);return {name,ciphertext:Buffer.concat([nonce,ciphertext,cipher.getAuthTag()])};},unwrap:async(_name,bytes,aad)=>{const cipher=createDecipheriv("aes-256-gcm",key,bytes.subarray(0,12));cipher.setAAD(aad);cipher.setAuthTag(bytes.subarray(-16));return Buffer.concat([cipher.update(bytes.subarray(12,-16)),cipher.final()]);}};}

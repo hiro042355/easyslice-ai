@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -22,6 +23,7 @@ async function cleanup(){
   console.log("LOCAL_CLEANUP",JSON.stringify({containersRemaining:0,networksRemaining:0,publishedPorts:0,credentialMounts:0,persistentVolumes:0}));
 }
 try{
+  const manifest=JSON.parse(await readFile(new URL("./manifest.json",import.meta.url),"utf8"));const bytes=await readFile(new URL("./NONDEPLOYABLE_oauth_candidate.sql",import.meta.url));if(manifest.finalMigrationVersion!=="UNKNOWN"||manifest.productionDeployable!==false||createHash("sha256").update(bytes).digest("hex")!==manifest.sha256||manifest.configuration.createSchemas!==false||manifest.configuration.baselineOnMigrate!==false||manifest.configuration.cleanDisabled!==true||manifest.configuration.outOfOrder!==false||manifest.configuration.validateOnMigrate!==true)throw new Error("MANIFEST_REJECTED");
   if(process.argv.length!==2 || process.env.DOCKER_CONFIG || (process.env.DOCKER_HOST && process.env.DOCKER_HOST!==endpoint) || (process.env.DOCKER_CONTEXT && process.env.DOCKER_CONTEXT!=="desktop-linux"))throw new Error("LOCAL_DOCKER_REQUIRED");
   const profile={USERPROFILE:process.env.USERPROFILE??""};if(ok(await docker(["context","show"],profile,undefined,60_000,false))!=="desktop-linux" || ok(await docker(["context","inspect","desktop-linux","--format","{{.Endpoints.docker.Host}}"],profile,undefined,60_000,false))!==endpoint || ok(await docker(["info","--format","{{.OSType}}|{{.OperatingSystem}}"] ))!=="linux|Docker Desktop")throw new Error("LOCAL_DOCKER_REQUIRED");
   for(const image of [pgImage,nodeImage]){const meta=JSON.parse(ok(await docker(["image","inspect",image])))[0];if(meta.Os!=="linux" || meta.Architecture!=="amd64" || !meta.RepoDigests.some(v=>v.endsWith(`@${image}`)))throw new Error("ARTIFACT_MISMATCH");}
@@ -44,7 +46,7 @@ try{
   const race=await Promise.all([1,2].map(()=>sql("UPDATE tiktok_oauth.states SET status='CLAIMED',claim_id='00000000-0000-0000-0000-000000000099' WHERE id='00000000-0000-0000-0000-000000000001' AND uid='fixture-user' AND session_id=repeat('b',64) AND status='PENDING' AND expires_at>statement_timestamp() RETURNING 'winner';")));
   if(race.filter(v=>v.includes("winner")).length!==1)throw new Error("CONCURRENT_CLAIM_FAILED");
   console.log("CANDIDATE_CONCURRENT_CLAIM=PASS");
-  await sql("UPDATE tiktok_oauth.states SET status='CONSUMED'; DO $$ BEGIN BEGIN UPDATE tiktok_oauth.states SET status='PENDING',claim_id=NULL; RAISE EXCEPTION 'state replay accepted'; EXCEPTION WHEN check_violation THEN NULL; END; END $$;"); console.log("CANDIDATE_STATE_REPLAY=PASS");
+  await sql("UPDATE tiktok_oauth.states SET status='CONSUMED' WHERE id='00000000-0000-0000-0000-000000000001'; DO $$ BEGIN BEGIN UPDATE tiktok_oauth.states SET status='PENDING',claim_id=NULL; RAISE EXCEPTION 'state replay accepted'; EXCEPTION WHEN check_violation THEN NULL; END; END $$;"); console.log("CANDIDATE_STATE_REPLAY=PASS");
   const rerun=await docker(["start","--attach",nodeName]);if(rerun.code!==0)throw new Error("IDEMPOTENT_FLYWAY_FAILED");
   console.log("CANDIDATE_FLYWAY_IDEMPOTENCY=PASS");
   await sql("UPDATE rehearsal_history.flyway_schema_history SET checksum=checksum+1 WHERE version='1';");

@@ -1,0 +1,460 @@
+{
+  "fileCount": 75,
+  "baseline": "7bce9af4474fcb638a72c8fa84c1db3da380fe99",
+  "modifiedCount": 14,
+  "createdCount": 61,
+  "productionOperations": 0,
+  "files": [
+    {
+      "sha256": "c04a6ad996cbed0407e53c6867d50276e1e1aba76a61b0f1801f3be7c090a939",
+      "path": "docs/TIKTOK_DEVELOPER_REVIEW_PACKAGE.md",
+      "change": "modified",
+      "purpose": "F/H: review and release documentation"
+    },
+    {
+      "path": "docs/TIKTOK_MISSION_04_CHANGED_FILES.json",
+      "selfHashExcluded": true,
+      "change": "created",
+      "purpose": "F/H: review and release documentation"
+    },
+    {
+      "sha256": "1be4d3598871383b5323116d4c88b4e9e192a7e71c0fc6c0ee845f9ed6d1bac3",
+      "path": "docs/TIKTOK_MISSION_04_HANDOFF.md",
+      "change": "created",
+      "purpose": "F/H: review and release documentation"
+    },
+    {
+      "sha256": "d9f59d4cb331134f1237836c66d1945555f24a24ddcdc5aaf984e3517348bd83",
+      "path": "docs/TIKTOK_MISSION_04_KEYS_AND_TRANSPORT.md",
+      "change": "created",
+      "purpose": "F/H: review and release documentation"
+    },
+    {
+      "sha256": "74549119fd94d1c4c9001ab185e9b788fefd8a9c9e47a29e5ae99bb4e68dd7b3",
+      "path": "eslint.config.mjs",
+      "change": "modified",
+      "purpose": "G: isolated build/regression tooling"
+    },
+    {
+      "sha256": "1bdb999a5e6d61932615e76435c96990bd6237178489a6adba1e2c11c5f75029",
+      "path": "lib/server/tiktokHttp/adapter.ts",
+      "change": "modified",
+      "purpose": "B: native HTTP transport"
+    },
+    {
+      "sha256": "883ac2796f210695dc1cf7f4a8c77799abe745104da2065440b66fa265976585",
+      "path": "lib/server/tiktokHttp/index.ts",
+      "change": "modified",
+      "purpose": "B: native HTTP transport"
+    },
+    {
+      "sha256": "2ad8fd1d8f02a7fd0af7ee818654aa594e8c88b37259923d81731150abc35f81",
+      "path": "lib/server/tiktokHttp/nativeTransport.ts",
+      "change": "created",
+      "purpose": "B: native HTTP transport"
+    },
+    {
+      "sha256": "7cf129fe1453da6c937d5d5e37b601546e0e21ba34bb77847c061dcfeb1271fe",
+      "path": "lib/server/tiktokHttp/transportRegistry.ts",
+      "change": "created",
+      "purpose": "B: native HTTP transport"
+    },
+    {
+      "sha256": "d68ede08039b310b435d37b501d487cb11cf95b5ffa85a0ab092775fc4d9e2a3",
+      "path": "lib/server/tiktokIntegration/index.ts",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "52a92e1a005c66aff6e42076322e7f8ae5db348259693bd2ca8c5f3e16625b71",
+      "path": "lib/server/tiktokIntegration/publisher.ts",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "d72e0e0e9f16e84f1d7d9c65cdc6528f2254c49922b37648ef584d3ae56894d3",
+      "path": "lib/server/tiktokIntegration/runtimePolicy.ts",
+      "change": "created",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "4eb39b7965d01986866fc25e6fdc823c8bdcc5c55f10a817f29228ab7ce93ba0",
+      "path": "lib/server/tiktokIntegration/service.ts",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "0abb63c457eff226cb6e7a5f4973d889730febe69510419493752bea4e1284d5",
+      "path": "lib/server/tiktokIntegration/store.ts",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "5df794f00a7fe42074a5a7d6df72413e4790e551a41c3851d7ef87df37ee5ae6",
+      "path": "lib/server/tiktokKeys/configuration.ts",
+      "change": "created",
+      "purpose": "A: managed token key custody"
+    },
+    {
+      "sha256": "e7be029ffafc56c03d32cab47313f90cdb1da5a6d562dc2e6e813a7559f35961",
+      "path": "lib/server/tiktokKeys/index.ts",
+      "change": "created",
+      "purpose": "A: managed token key custody"
+    },
+    {
+      "sha256": "6236ba2b5a60117f69d46a344fb0d1998045901fce3fe687cdab7c1d73f86e30",
+      "path": "lib/server/tiktokKeys/managedVault.ts",
+      "change": "created",
+      "purpose": "A: managed token key custody"
+    },
+    {
+      "sha256": "e118cdc1648353c8d5038a3664b9710e580db18056ae3987ad0f2cc74afcc87d",
+      "path": "lib/server/tiktokPublisherB7/artifact/export/ExportConsent.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "224e4aedc9670acda00c996a5e68a6b30bbd582a9e0ad97164fa6d6e9fcaa29c",
+      "path": "lib/server/tiktokPublisherB7/artifact/export/ExportConsent.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "aaaab03fcb55836c980a7a2bf616032fa1f86dbf3a50f0d89bd75f154251af81",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/client/TikTokEndpoints.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "27c9382bb2061665fb5d1ffbf4d8015d8c94f4c3f1978fdc8fbd8110ade33bb8",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/client/TikTokEndpoints.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "82e8f5a56c70e3b813d4ce496477635e78e9676d446c28eaa5860d4dc129866c",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/client/TikTokWireSerializer.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "1f185e620ad45703446b8c60e96362887944a6b1cad043b844ff39d24060fb11",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/client/TikTokWireSerializer.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "a30cb190019b2b57e8750eccb145d288d6c8a19b8d41d0d5194d89f7ad442d06",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/DirectPostContracts.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "38419abb6bf29eaef41050072f78f4d63a15b9e3c0af2c475cc5162aa3633910",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/DirectPostContracts.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "213a3375e519d9f86f8570b6c6084096b09ddfef6288796d8a36010d59277e9b",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokCreatorInfoParser.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "e25b84048eed0a5f6b3dc7cac0cb48da9cf6a05ac6852a68d7010ec019318fab",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokCreatorInfoParser.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "7c118501b141e79540adb9c7856d68df0e14a7bc811514846903e752c8aa3d4a",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokInitResponseParser.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "8c2e0b093fd2602e3262a48574206c318fb2fb22b12b01211f018d35e2fd797c",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokInitResponseParser.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "09deaa3f6bab9df7da6cfc3672ad5a6702932db26c259e28c3a3dc501e7c5c4c",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokSourceMode.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "e05319c0502d4eed31001c2364019da2ef58dce1a5a0f635be3a913f11882d9c",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokSourceMode.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "d6692c69dd108d07167b57710bd8b56ed82a0083c98c942ee3b4c26f681848c2",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokStatusContracts.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "28cd77011144b2764d4fc61e6f2eb6c9d6f68bc756f97668207c67638f11d913",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/contracts/TikTokStatusContracts.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "c8b7b52aad9869340520a71cee72a9534a7f62e3e72335857615aa890968f8b8",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/AuthenticatedTikTokTransport.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "2fe89a12d64c24cc92111f4aa690efe1161e8fbcfcca67247340c612d6f7000f",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/AuthenticatedTikTokTransport.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "8cc96a346f1116846804c94f497c7eb30d2e908cc6a698ae511cc5b2fc03b5f2",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/HttpExecutor.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "9295726236868ad3aaf2776975951d70ffb10c5af379f878b0c6e98be390456d",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/HttpExecutor.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "8c31efced1681d805a71c6c7a99f4106e5123eca43376bf64e9b868c0507e05f",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokAuthProvider.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "47629aef5875d8a808b530a543486d8abd0f50c9a762d41e438186e6f7471e1c",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokAuthProvider.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "378d48c1c186ab3d6cee3bdab8e654a5a3e5a4361f075663fdcc0e8ff32cb518",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokCreatorInfoAdapter.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "e1893cc4945d842a2314edbb4709c47995d1cec5327a1ee8a529da570c310772",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokCreatorInfoAdapter.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "45e83b7ff3747546f2b0d86e8641f1512419b9275f30b1e924835e8375a5252e",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokDirectPostInitAdapter.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "9611cfcf2cfcea602ed99ced46b5efb0f39146d9a4318938cde0601028a38ffd",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokDirectPostInitAdapter.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "d8bd4056a19959959aaf436393c92b55598a85ea104383cec13bca2a74e39a68",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokDirectPostWorkflowOrchestrator.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "3137fe024d1e5ff6aeba1945132d209705eb7baf8f687d9a1856136d090104b6",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokDirectPostWorkflowOrchestrator.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "cdf8f9b21a97960a3416177b3f86944fe902acd3d30531d2ae5c1f4cec9793bd",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokMediaTransferBoundary.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "4aa9c2a476de23f1d954791b4cb2889ee89a7e32469641b838a8852c697a2bdd",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokMediaTransferBoundary.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "745cc197e704941b0ddfb4200993a2d1cd13cbad5c3d6122f160de30d81a6fe4",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokProviderConfig.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "bde6ee6d9ccdfdbe115460988f81efd0cef86f0eb1ca352c441bcd3bd6cd2ae3",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokProviderConfig.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "e4244cdb99485a090424ca49896f9fd1d544f8bca8f2a06e4026f22704e350ff",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokPublishStatusAdapter.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "d33cb0abc268966e4ac78766d60acaf4fdaf37d785438b03f4b1526d0c04e0a5",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokPublishStatusAdapter.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "571aa4103804a27c27e0175db6657b1333707c0ebc1d86ad7cf05022731bd04b",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokRealProviderComposition.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "16ef606f2e5bd05797c179298fa999da18e4db3b58dc4859520a1a78ea573153",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/TikTokRealProviderComposition.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "00e2fb71a7a126135833c826b7b4cd2033cc081d4b17fd05c9b53480e6cc6b54",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/UploadExecutor.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "79ec8dfae6dac481acd5994e319d7f626f2d96656352ef1c940e31bfc28e1b63",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/real/UploadExecutor.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "b9fc925ee4ef814f0c7752cd067abac1bec0d1cc33d09f0dab95267124278d52",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/validation/B2RequestValidator.d.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "cc20c1a45dfff0ce0c7f282312fadb3ca9920510160b21729ca27a3351394356",
+      "path": "lib/server/tiktokPublisherB7/artifact/tiktok/validation/B2RequestValidator.js",
+      "change": "created",
+      "purpose": "C: accepted B7 generated dependency"
+    },
+    {
+      "sha256": "fa9a8b543862bdc057e7f5d144104f6a2b36bad7b79bfbee5086cfb1d14cc653",
+      "path": "lib/server/tiktokPublisherB7/binding.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 binding/integrity"
+    },
+    {
+      "sha256": "371fbf535c3f91a62cdb7dec6eeaae791af9a452a86923c302c0529496867333",
+      "path": "lib/server/tiktokPublisherB7/index.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 binding/integrity"
+    },
+    {
+      "sha256": "83989abe91ed8a793101b53c2629cd7c4219d0797ac04d0a4c3646c8e4cbd41a",
+      "path": "lib/server/tiktokPublisherB7/manifest.json",
+      "change": "created",
+      "purpose": "C: accepted B7 binding/integrity"
+    },
+    {
+      "sha256": "54f7710eee550af0ea402560ab0998d7141d50a814837c9b8740be7f2856c4f5",
+      "path": "lib/server/tiktokPublisherB7/status.ts",
+      "change": "created",
+      "purpose": "C: accepted B7 binding/integrity"
+    },
+    {
+      "sha256": "db3900fbaa33dd503c8ec30ae0b8f31ad16bc9c08f0de572d76dc25f8098c91c",
+      "path": "scripts/verifyTikTokB7Artifact.mjs",
+      "change": "created",
+      "purpose": "C: accepted B7 binding/integrity"
+    },
+    {
+      "sha256": "55e727a2ac1c318198d74d989880be65aa1bad29a546643a30031269b9386e6f",
+      "path": "tests/tiktokFullIntegration/full.test.tsx",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "a59f2b14ee41e7ab8cadea0af9dc3b2c6ce944ddada0c09c23d8ea776757f91d",
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "507343ac9e6777da9ca1d88bf30217df6a3206a5b171543f0c50ceba1fd97145",
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "change": "modified",
+      "purpose": "C/E: gated canonical integration/security"
+    },
+    {
+      "sha256": "840bdd7163ab6e293ed77c1f05b963ce17fe9e6818988d76f797e8cee41f5cce",
+      "path": "tests/tiktokHardening/buildNetworkGuard.cjs",
+      "change": "created",
+      "purpose": "G: isolated build/regression tooling"
+    },
+    {
+      "sha256": "43254006be18912ad7ef6e62a3602b19593d575ab5ec876f844fea4dacfc96b4",
+      "path": "tests/tiktokHardening/keys.test.ts",
+      "change": "created",
+      "purpose": "A: managed token key custody"
+    },
+    {
+      "sha256": "8bde8d48bc10cdb920bbb26cb0e34730104a9445f73e7b35543bd9f570904701",
+      "path": "tests/tiktokHardening/kmsFixture.ts",
+      "change": "created",
+      "purpose": "A: managed token key custody"
+    },
+    {
+      "sha256": "16037829b9fb4d4f294f004ae968199d41016de7f0baee16602ad1bf9cdf9a60",
+      "path": "tests/tiktokHardening/publisher.test.ts",
+      "change": "created",
+      "purpose": "F/H: review and release documentation"
+    },
+    {
+      "sha256": "31e4df5a41b59e51bc862af068a46cfe96b4fd52fc077b4ceb33cfd89cdf68ce",
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "change": "created",
+      "purpose": "G: isolated build/regression tooling"
+    },
+    {
+      "sha256": "c0ce6b2ba89d5865b7b39d8affe4e394e24344c3c58eafba57e4a065c510a2c4",
+      "path": "tests/tiktokHardening/transport.test.ts",
+      "change": "created",
+      "purpose": "B: native HTTP transport"
+    },
+    {
+      "sha256": "8ee275d1053cce77dab2c10e94847d903cbd0243333652252deba38b5fa4ccb9",
+      "path": "tests/tiktokProductionMigration/assertions.sql",
+      "change": "modified",
+      "purpose": "D: nondeployable migration candidate/acceptance"
+    },
+    {
+      "sha256": "5aaa6e99a30b88bad145333be90a1772d3196e2d05a1171a3ebdb16edf1c628e",
+      "path": "tests/tiktokProductionMigration/manifest.json",
+      "change": "created",
+      "purpose": "D: nondeployable migration candidate/acceptance"
+    },
+    {
+      "sha256": "c0d68be3b4086a3da940cbc3103b50e2fe77487476769422beb600da59392bf8",
+      "path": "tests/tiktokProductionMigration/NONDEPLOYABLE_oauth_candidate.sql",
+      "change": "modified",
+      "purpose": "D: nondeployable migration candidate/acceptance"
+    },
+    {
+      "sha256": "26b514b11b32649f1ddc4ef8bd3582eaadc13c3da2ed9a12f3702fca650737d3",
+      "path": "tests/tiktokProductionMigration/runCandidate.mjs",
+      "change": "modified",
+      "purpose": "D: nondeployable migration candidate/acceptance"
+    }
+  ],
+  "scope": "TIKTOK_ONLY"
+}

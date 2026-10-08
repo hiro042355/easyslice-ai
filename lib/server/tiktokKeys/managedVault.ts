@@ -1,0 +1,26 @@
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import type { Connection, Envelope, IntegrationPgStore } from "../tiktokIntegration/store";
+import type { Tokens } from "../localTikTok/custody";
+import { identity, type Session } from "../localTikTok/security";
+export interface EnvelopeKmsClient {
+ version(name:string):Promise<Readonly<{name:string;state:"ENABLED"|"DISABLED"|"DESTROYED";algorithm:string}>>;
+ wrap(name:string,dek:Buffer,aad:Buffer):Promise<Readonly<{name:string;ciphertext:Buffer}>>;
+ unwrap(name:string,ciphertext:Buffer,aad:Buffer):Promise<Buffer>;
+}
+export type KeyConfiguration=Readonly<{execution:"LOCAL_TEST"|"PRODUCTION";activeVersion:string;readableVersions:readonly string[]}>;
+const version=/^projects\/[a-z][a-z0-9-]{4,62}\/locations\/[a-z0-9-]+\/keyRings\/[A-Za-z0-9_-]+\/cryptoKeys\/[A-Za-z0-9_-]+\/cryptoKeyVersions\/[1-9][0-9]*$/;
+function rejected():never {throw new Error("KEY_CUSTODY_UNAVAILABLE");}
+const binding=(c:Omit<Connection,"envelope">,key:string)=>Buffer.from(JSON.stringify([2,c.uid,c.app,c.environment,c.openId,c.generation,c.scopes,c.expiresAt,key]));
+/** Envelope encryption: managed KEK never leaves KMS; independent random AES-256 DEK per message. */
+export class ManagedTokenVault {
+ readonly #configuration:KeyConfiguration;readonly #client:EnvelopeKmsClient;
+ constructor(configuration:KeyConfiguration,client:EnvelopeKmsClient,private readonly audit:(event:Readonly<{provider:"KMS_ENVELOPE";status:"READY"|"UNAVAILABLE"}>)=>void=()=>{}){if(!configuration||!["LOCAL_TEST","PRODUCTION"].includes(configuration.execution)||!version.test(configuration.activeVersion)||!configuration.readableVersions.includes(configuration.activeVersion)||new Set(configuration.readableVersions).size!==configuration.readableVersions.length||configuration.readableVersions.length>20||configuration.readableVersions.some(v=>!version.test(v)||v.split("/cryptoKeyVersions/")[0]!==configuration.activeVersion.split("/cryptoKeyVersions/")[0])||!client)rejected();this.#configuration=Object.freeze({...configuration,readableVersions:Object.freeze([...configuration.readableVersions])});this.#client=client;}
+ #event(status:"READY"|"UNAVAILABLE"){try{this.audit(Object.freeze({provider:"KMS_ENVELOPE",status}));}catch{/* audit sink errors never expose provider/credential causes */}}
+ get configuredExecution(){return this.#configuration.execution;}
+ toJSON(){return {provider:"KMS_ENVELOPE",envelopeVersion:2,credentials:"[REDACTED]"};}
+ async #available(name:string){try{if(!this.#configuration.readableVersions.includes(name))rejected();const metadata=await this.#client.version(name);if(metadata.name!==name||metadata.state!=="ENABLED"||metadata.algorithm!=="GOOGLE_SYMMETRIC_ENCRYPTION")rejected();}catch{rejected();}}
+ async startup(){try{await this.#available(this.#configuration.activeVersion);this.#event("READY");return Object.freeze({status:"READY" as const,envelopeVersion:2});}catch{this.#event("UNAVAILABLE");return rejected();}}
+ async encrypt(tokens:Tokens,c:Omit<Connection,"envelope">):Promise<Envelope>{let dek:Buffer|undefined;try{if(!tokens.accessToken||!tokens.refreshToken||tokens.accessToken.length>8192||tokens.refreshToken.length>8192||!c.uid||c.revoked||c.expiresAt<=Date.now()||c.environment!==(this.#configuration.execution==="PRODUCTION"?"production":"staging"))rejected();const key=this.#configuration.activeVersion;await this.#available(key);dek=randomBytes(32);const aad=binding(c,key),wrapped=await this.#client.wrap(key,dek,aad);if(wrapped.name!==key||!Buffer.isBuffer(wrapped.ciphertext)||wrapped.ciphertext.length<1||wrapped.ciphertext.length>16384)rejected();const nonce=randomBytes(12),cipher=createCipheriv("aes-256-gcm",dek,nonce);cipher.setAAD(aad);return Object.freeze({formatVersion:2,keyId:key,wrappedKey:Buffer.from(wrapped.ciphertext),nonce,ciphertext:Buffer.concat([cipher.update(JSON.stringify({accessToken:tokens.accessToken,refreshToken:tokens.refreshToken}),"utf8"),cipher.final()]),tag:cipher.getAuthTag()});}catch{return rejected();}finally{dek?.fill(0);}}
+ async decrypt(c:Connection):Promise<Tokens>{let dek:Buffer|undefined;try{const e=c.envelope;if(c.environment!==(this.#configuration.execution==="PRODUCTION"?"production":"staging")||c.revoked||c.expiresAt<=Date.now()||e.formatVersion!==2||!e.wrappedKey?.length||e.wrappedKey.length>16384||e.nonce.length!==12||e.tag.length!==16||!e.ciphertext.length)rejected();await this.#available(e.keyId);const aad=binding(c,e.keyId);dek=await this.#client.unwrap(e.keyId,e.wrappedKey!,aad);if(!Buffer.isBuffer(dek)||dek.length!==32)rejected();const cipher=createDecipheriv("aes-256-gcm",dek,e.nonce);cipher.setAAD(aad);cipher.setAuthTag(e.tag);const value=JSON.parse(Buffer.concat([cipher.update(e.ciphertext),cipher.final()]).toString());if(typeof value.accessToken!=="string"||!value.accessToken||typeof value.refreshToken!=="string"||!value.refreshToken)rejected();return Object.freeze({accessToken:value.accessToken,refreshToken:value.refreshToken});}catch{return rejected();}finally{dek?.fill(0);}}
+ async resolve(session:Session,store:IntegrationPgStore){const c=await store.connection(session);if(!c||c.uid!==identity(session).uid||c.revoked||c.expiresAt<=await store.now()||!c.scopes.includes("video.publish"))rejected();return {connection:c,tokens:await this.decrypt(c)};}
+}

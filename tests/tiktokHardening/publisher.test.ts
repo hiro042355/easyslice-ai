@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {test} from "node:test";
+import {acceptedPublisherB7 as b7} from "../../lib/server/tiktokPublisherB7/binding";
+import {B7HttpExecutor,B7UploadExecutor} from "../../lib/server/tiktokHttp/adapter";
+import {NativeHttpTransport} from "../../lib/server/tiktokHttp/nativeTransport";
+import type {Selection,MediaView} from "../../lib/server/tiktokIntegration/publisher";
+const creator=b7.sanitizeCreatorView({creatorUsername:"synthetic",creatorNickname:"Synthetic",privacyLevelOptions:["SELF_ONLY"],commentDisabled:true,duetDisabled:true,stitchDisabled:true,maxVideoPostDurationSec:180},"fixture-revision",Date.now());
+const media:MediaView={sha256:"a".repeat(64),byteLength:30,durationSec:1,source:"FILE_UPLOAD"};
+const selection:Selection={privacy:"SELF_ONLY",title:"Fixture",allowComments:false,allowDuet:false,allowStitch:false,brandContent:false,brandOrganic:false,commercialDisclosureEnabled:false,isAigc:true};
+test("packaged accepted B7 creates consent from its actual exported interface",()=>{const c=b7.createConsent(selection,creator,media,Date.now(),true,true,true,false);assert.equal(b7.consentValid(c,selection,creator,media,Date.now(),true),true);});
+test("packaged B7 binds exact media checksum",()=>{const c=b7.createConsent(selection,creator,media,Date.now(),true,true,true,false);assert.equal(b7.consentValid(c,selection,creator,{...media,sha256:"b".repeat(64)},Date.now(),true),false);});
+test("packaged B7 rejects stale consent and changed Creator",()=>{const c=b7.createConsent(selection,creator,media,Date.now(),true,true,true,false);assert.equal(b7.consentValid(c,selection,creator,media,Date.now()+300001,true),false);assert.equal(b7.consentValid(c,selection,{...creator,revision:"changed"},media,Date.now(),true),false);});
+test("packaged B7 rejects unsupported permissions before transport",()=>{assert.throws(()=>b7.createConsent({...selection,allowDuet:true},creator,media,Date.now(),true,true,true,false));});
+test("actual B7 composition denies absent owned credentials before HTTP",async()=>{let calls=0;const t=new NativeHttpTransport({execution:"INJECTED_TEST"},async()=>{calls++;return Response.json({});}),http=new B7HttpExecutor(t,async()=>{throw new Error("not-owned");}),upload=new B7UploadExecutor({byteLength:30,contentType:"video/mp4",readRange:async()=>new Uint8Array(30)},t,async()=>{},()=>({url:"",expiresAt:0}));const composition=b7.compose({authProvider:{getAccessToken:async()=>{throw new Error("not-owned");},refreshToken:async()=>{throw new Error("not-owned");},isExpired:()=>true},httpExecutor:http,uploadExecutor:upload,timeoutMs:1000,retryPolicy:{maxRetries:0,initialDelayMs:0,backoffMultiplier:1,maxDelayMs:0}});await assert.rejects(()=>composition.creatorInfo.queryCreatorInfo());assert.equal(calls,0);});

@@ -7,6 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    "lib/server/tiktokPublisherB7/artifact/**", // Verified generated dependency; authored adapter is linted.
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

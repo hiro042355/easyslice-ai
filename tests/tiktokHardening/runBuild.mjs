@@ -1,0 +1,11 @@
+import {spawn} from "node:child_process";
+import {existsSync} from "node:fs";
+import {writeFile} from "node:fs/promises";
+import {join,resolve} from "node:path";
+import {fileURLToPath} from "node:url";
+const root=resolve(process.argv[2]??""),output=resolve(process.argv[3]??"");
+if(process.argv.length!==4||!["nexcut-tiktok-integration-03-20261008","nexcut-tiktok-integration-04-20261009"].some(name=>root.endsWith(name)))throw new Error("BUILD_SCOPE_REJECTED");
+for(const name of [".env",".env.local",".env.production",".env.production.local"])if(existsSync(join(root,name)))throw new Error("BUILD_ENV_FILE_REJECTED");
+const guard=fileURLToPath(new URL("./buildNetworkGuard.cjs",import.meta.url));
+const env={SystemRoot:process.env.SystemRoot,PATH:process.env.PATH,TEMP:process.env.TEMP,TMP:process.env.TMP,NODE_ENV:"production",CI:"1",NEXT_TELEMETRY_DISABLED:"1",NODE_OPTIONS:`--require=${guard}`};
+const child=spawn(process.execPath,[join(root,"node_modules/next/dist/bin/next"),"build","--webpack"],{cwd:root,env,windowsHide:true,stdio:["ignore","pipe","pipe"]});let log="";const timer=setTimeout(()=>child.kill(),300000);const append=c=>{log+=c.toString();if(Buffer.byteLength(log)>4*1024*1024)child.kill();};child.stdout.on("data",append);child.stderr.on("data",append);child.on("error",()=>{log+="BUILD_PROCESS_FAILED";});child.on("close",async code=>{clearTimeout(timer);await writeFile(output,log);console.log("LOCAL_APPLICATION_BUILD",JSON.stringify({exit:code,productionEnvironmentValues:0,prebuildDownloads:0,networkAllowed:"public-google-font-assets-only",log:output}));process.exitCode=code??1;});

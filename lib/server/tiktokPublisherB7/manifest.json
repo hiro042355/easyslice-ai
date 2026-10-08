@@ -1,0 +1,173 @@
+{
+  "files": [
+    {
+      "path": "export/ExportConsent.d.ts",
+      "sha256": "e118cdc1648353c8d5038a3664b9710e580db18056ae3987ad0f2cc74afcc87d"
+    },
+    {
+      "path": "export/ExportConsent.js",
+      "sha256": "224e4aedc9670acda00c996a5e68a6b30bbd582a9e0ad97164fa6d6e9fcaa29c"
+    },
+    {
+      "path": "tiktok/client/TikTokEndpoints.d.ts",
+      "sha256": "aaaab03fcb55836c980a7a2bf616032fa1f86dbf3a50f0d89bd75f154251af81"
+    },
+    {
+      "path": "tiktok/client/TikTokEndpoints.js",
+      "sha256": "27c9382bb2061665fb5d1ffbf4d8015d8c94f4c3f1978fdc8fbd8110ade33bb8"
+    },
+    {
+      "path": "tiktok/client/TikTokWireSerializer.d.ts",
+      "sha256": "82e8f5a56c70e3b813d4ce496477635e78e9676d446c28eaa5860d4dc129866c"
+    },
+    {
+      "path": "tiktok/client/TikTokWireSerializer.js",
+      "sha256": "1f185e620ad45703446b8c60e96362887944a6b1cad043b844ff39d24060fb11"
+    },
+    {
+      "path": "tiktok/contracts/DirectPostContracts.d.ts",
+      "sha256": "a30cb190019b2b57e8750eccb145d288d6c8a19b8d41d0d5194d89f7ad442d06"
+    },
+    {
+      "path": "tiktok/contracts/DirectPostContracts.js",
+      "sha256": "38419abb6bf29eaef41050072f78f4d63a15b9e3c0af2c475cc5162aa3633910"
+    },
+    {
+      "path": "tiktok/contracts/TikTokCreatorInfoParser.d.ts",
+      "sha256": "213a3375e519d9f86f8570b6c6084096b09ddfef6288796d8a36010d59277e9b"
+    },
+    {
+      "path": "tiktok/contracts/TikTokCreatorInfoParser.js",
+      "sha256": "e25b84048eed0a5f6b3dc7cac0cb48da9cf6a05ac6852a68d7010ec019318fab"
+    },
+    {
+      "path": "tiktok/contracts/TikTokInitResponseParser.d.ts",
+      "sha256": "7c118501b141e79540adb9c7856d68df0e14a7bc811514846903e752c8aa3d4a"
+    },
+    {
+      "path": "tiktok/contracts/TikTokInitResponseParser.js",
+      "sha256": "8c2e0b093fd2602e3262a48574206c318fb2fb22b12b01211f018d35e2fd797c"
+    },
+    {
+      "path": "tiktok/contracts/TikTokSourceMode.d.ts",
+      "sha256": "09deaa3f6bab9df7da6cfc3672ad5a6702932db26c259e28c3a3dc501e7c5c4c"
+    },
+    {
+      "path": "tiktok/contracts/TikTokSourceMode.js",
+      "sha256": "e05319c0502d4eed31001c2364019da2ef58dce1a5a0f635be3a913f11882d9c"
+    },
+    {
+      "path": "tiktok/contracts/TikTokStatusContracts.d.ts",
+      "sha256": "d6692c69dd108d07167b57710bd8b56ed82a0083c98c942ee3b4c26f681848c2"
+    },
+    {
+      "path": "tiktok/contracts/TikTokStatusContracts.js",
+      "sha256": "28cd77011144b2764d4fc61e6f2eb6c9d6f68bc756f97668207c67638f11d913"
+    },
+    {
+      "path": "tiktok/real/AuthenticatedTikTokTransport.d.ts",
+      "sha256": "c8b7b52aad9869340520a71cee72a9534a7f62e3e72335857615aa890968f8b8"
+    },
+    {
+      "path": "tiktok/real/AuthenticatedTikTokTransport.js",
+      "sha256": "2fe89a12d64c24cc92111f4aa690efe1161e8fbcfcca67247340c612d6f7000f"
+    },
+    {
+      "path": "tiktok/real/HttpExecutor.d.ts",
+      "sha256": "8cc96a346f1116846804c94f497c7eb30d2e908cc6a698ae511cc5b2fc03b5f2"
+    },
+    {
+      "path": "tiktok/real/HttpExecutor.js",
+      "sha256": "9295726236868ad3aaf2776975951d70ffb10c5af379f878b0c6e98be390456d"
+    },
+    {
+      "path": "tiktok/real/TikTokAuthProvider.d.ts",
+      "sha256": "8c31efced1681d805a71c6c7a99f4106e5123eca43376bf64e9b868c0507e05f"
+    },
+    {
+      "path": "tiktok/real/TikTokAuthProvider.js",
+      "sha256": "47629aef5875d8a808b530a543486d8abd0f50c9a762d41e438186e6f7471e1c"
+    },
+    {
+      "path": "tiktok/real/TikTokCreatorInfoAdapter.d.ts",
+      "sha256": "378d48c1c186ab3d6cee3bdab8e654a5a3e5a4361f075663fdcc0e8ff32cb518"
+    },
+    {
+      "path": "tiktok/real/TikTokCreatorInfoAdapter.js",
+      "sha256": "e1893cc4945d842a2314edbb4709c47995d1cec5327a1ee8a529da570c310772"
+    },
+    {
+      "path": "tiktok/real/TikTokDirectPostInitAdapter.d.ts",
+      "sha256": "45e83b7ff3747546f2b0d86e8641f1512419b9275f30b1e924835e8375a5252e"
+    },
+    {
+      "path": "tiktok/real/TikTokDirectPostInitAdapter.js",
+      "sha256": "9611cfcf2cfcea602ed99ced46b5efb0f39146d9a4318938cde0601028a38ffd"
+    },
+    {
+      "path": "tiktok/real/TikTokDirectPostWorkflowOrchestrator.d.ts",
+      "sha256": "d8bd4056a19959959aaf436393c92b55598a85ea104383cec13bca2a74e39a68"
+    },
+    {
+      "path": "tiktok/real/TikTokDirectPostWorkflowOrchestrator.js",
+      "sha256": "3137fe024d1e5ff6aeba1945132d209705eb7baf8f687d9a1856136d090104b6"
+    },
+    {
+      "path": "tiktok/real/TikTokMediaTransferBoundary.d.ts",
+      "sha256": "cdf8f9b21a97960a3416177b3f86944fe902acd3d30531d2ae5c1f4cec9793bd"
+    },
+    {
+      "path": "tiktok/real/TikTokMediaTransferBoundary.js",
+      "sha256": "4aa9c2a476de23f1d954791b4cb2889ee89a7e32469641b838a8852c697a2bdd"
+    },
+    {
+      "path": "tiktok/real/TikTokProviderConfig.d.ts",
+      "sha256": "745cc197e704941b0ddfb4200993a2d1cd13cbad5c3d6122f160de30d81a6fe4"
+    },
+    {
+      "path": "tiktok/real/TikTokProviderConfig.js",
+      "sha256": "bde6ee6d9ccdfdbe115460988f81efd0cef86f0eb1ca352c441bcd3bd6cd2ae3"
+    },
+    {
+      "path": "tiktok/real/TikTokPublishStatusAdapter.d.ts",
+      "sha256": "e4244cdb99485a090424ca49896f9fd1d544f8bca8f2a06e4026f22704e350ff"
+    },
+    {
+      "path": "tiktok/real/TikTokPublishStatusAdapter.js",
+      "sha256": "d33cb0abc268966e4ac78766d60acaf4fdaf37d785438b03f4b1526d0c04e0a5"
+    },
+    {
+      "path": "tiktok/real/TikTokRealProviderComposition.d.ts",
+      "sha256": "571aa4103804a27c27e0175db6657b1333707c0ebc1d86ad7cf05022731bd04b"
+    },
+    {
+      "path": "tiktok/real/TikTokRealProviderComposition.js",
+      "sha256": "16ef606f2e5bd05797c179298fa999da18e4db3b58dc4859520a1a78ea573153"
+    },
+    {
+      "path": "tiktok/real/UploadExecutor.d.ts",
+      "sha256": "00e2fb71a7a126135833c826b7b4cd2033cc081d4b17fd05c9b53480e6cc6b54"
+    },
+    {
+      "path": "tiktok/real/UploadExecutor.js",
+      "sha256": "79ec8dfae6dac481acd5994e319d7f626f2d96656352ef1c940e31bfc28e1b63"
+    },
+    {
+      "path": "tiktok/validation/B2RequestValidator.d.ts",
+      "sha256": "b9fc925ee4ef814f0c7752cd067abac1bec0d1cc33d09f0dab95267124278d52"
+    },
+    {
+      "path": "tiktok/validation/B2RequestValidator.js",
+      "sha256": "cc20c1a45dfff0ce0c7f282312fadb3ca9920510160b21729ca27a3351394356"
+    }
+  ],
+  "target": "ES2017",
+  "schemaVersion": 1,
+  "publisherCommit": "7f16aa12c75f7f20a50b88c50b4e7e5b13f11196",
+  "entrypoints": [
+    "tiktok/real/TikTokRealProviderComposition.js",
+    "export/ExportConsent.js"
+  ],
+  "publisherTree": "339cfeb1ed6dd8bb2a1082b2611ebee389ff341a",
+  "typescriptVersion": "5.9.3"
+}

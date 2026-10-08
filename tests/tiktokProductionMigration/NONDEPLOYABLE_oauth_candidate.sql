@@ -18,10 +18,12 @@ CREATE TABLE tiktok_oauth.connections (
  environment text NOT NULL CHECK(environment IN ('sandbox','staging','production')), open_id text NOT NULL CHECK(length(open_id)>0),
  generation uuid NOT NULL, display_name text NOT NULL, scopes jsonb NOT NULL CHECK(jsonb_typeof(scopes)='array'),
  expires_at timestamptz NOT NULL, key_id text NOT NULL CHECK(length(key_id)>0),
+ envelope_version integer NOT NULL DEFAULT 1 CHECK(envelope_version IN (1,2)), wrapped_key bytea NOT NULL DEFAULT ''::bytea,
  nonce bytea NOT NULL, ciphertext bytea NOT NULL, tag bytea NOT NULL, revoked boolean NOT NULL DEFAULT false,
  PRIMARY KEY(uid,app,environment), UNIQUE(app,environment,open_id),
  UNIQUE(uid,app,environment,open_id,generation),
- CHECK((NOT revoked AND octet_length(nonce)=12 AND octet_length(tag)=16 AND octet_length(ciphertext)>0)
+ CHECK((revoked AND octet_length(wrapped_key)=0) OR (NOT revoked AND ((envelope_version=1 AND octet_length(wrapped_key)=0) OR (envelope_version=2 AND octet_length(wrapped_key) BETWEEN 1 AND 16384)))),
+ CHECK((NOT revoked AND octet_length(nonce)=12 AND octet_length(tag)=16 AND octet_length(ciphertext) BETWEEN 1 AND 32768)
  OR (revoked AND octet_length(nonce)=0 AND octet_length(tag)=0 AND octet_length(ciphertext)=0))
 );
 CREATE INDEX connections_expiry ON tiktok_oauth.connections(expires_at);
@@ -30,6 +32,8 @@ CREATE TABLE tiktok_oauth.publication_grants (
  open_id text NOT NULL, generation uuid NOT NULL, binding text NOT NULL CHECK(binding ~ '^[0-9a-f]{64}$'),
  consented_at timestamptz NOT NULL DEFAULT statement_timestamp(), expires_at timestamptz NOT NULL,
  status text NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','CLAIMED','USED','FAILED')),
+ publish_id text CHECK(publish_id IS NULL OR length(publish_id) BETWEEN 1 AND 256), provider_status text NOT NULL DEFAULT 'UNKNOWN' CHECK(provider_status IN ('UNKNOWN','PROCESSING','PUBLISHED','FAILED')),
+ UNIQUE(app,environment,publish_id),
  CHECK(expires_at>consented_at AND expires_at<=consented_at+interval '5 minutes'),
  FOREIGN KEY(uid,app,environment) REFERENCES tiktok_oauth.connections(uid,app,environment) ON DELETE CASCADE
 );
@@ -46,6 +50,8 @@ BEGIN
  RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='state binding immutable'; END IF;
  END IF;
  IF TG_TABLE_NAME='publication_grants' THEN
+ IF OLD.publish_id IS NOT NULL AND NEW.publish_id IS DISTINCT FROM OLD.publish_id THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='publication correlation immutable'; END IF;
+ IF OLD.provider_status IN ('PUBLISHED','FAILED') AND NEW.provider_status<>OLD.provider_status THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='publication outcome terminal'; END IF;
  IF (NEW.uid,NEW.app,NEW.environment,NEW.open_id,NEW.generation,NEW.binding,NEW.consented_at,NEW.expires_at) IS DISTINCT FROM (OLD.uid,OLD.app,OLD.environment,OLD.open_id,OLD.generation,OLD.binding,OLD.consented_at,OLD.expires_at) THEN
  RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='consent binding immutable'; END IF;
  END IF;
