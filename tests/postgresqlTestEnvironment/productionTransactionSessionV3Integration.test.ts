@@ -14,7 +14,7 @@ test("Session V3 keeps completion participant and query capabilities atomic", as
     assert.equal(environment.flyway.migrate.succeeded, true);
     assert.equal(environment.flyway.validate.succeeded, true);
     await environment.pool.query("INSERT INTO workflow.workflow_completion_states (workflow_identity_version,workflow_identity_namespace,workflow_identity_value,state,revision) VALUES ('1.0','workflow-completion','session-v3-commit','eligible-for-completion',0),('1.0','workflow-completion','session-v3-rollback','eligible-for-completion',0)");
-    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 3, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, queryTimeoutMs: 5_000, applicationName: "workflow-session-v3", tls: { mode: "disabled" } });
+    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 3, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, queryTimeoutMs: 5_000, applicationName: "workflow-session-v3", tls: { mode: "disabled" as const } });
     assert.equal(await pool.start(), "ready");
 
     const create = async (workflow: string) => {

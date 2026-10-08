@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createProductionOwnerUidProofRoute } from "../../app/api/internal/production-owner-uid-proof/route";
+import { createProductionOwnerUidProofRoute } from "../../lib/server/productionIdentity/productionOwnerUidProofRouteCore";
 import { isProductionOwner, parseProductionOwnerUid } from "../../lib/server/productionIdentity/productionOwnerAuthority";
 import type { UserId } from "../../lib/server/productionIdentity/types";
 

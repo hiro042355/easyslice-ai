@@ -1,0 +1,42 @@
+# Mission 05 Portal configuration and controlled real-test runbook
+
+Prepared 2026-10-09. PREPARATION ONLY. No Portal action, OAuth, API, upload, publication or review submission is authorized or executed here. Product Owner evidence: Direct Post OFF; Production Draft; Sandbox Limited. These are user-provided observations, not a new authenticated Portal inspection.
+
+## Exact operator Portal checklist — each mutation needs its own approval
+
+1. Open TikTok for Developers > Manage apps > NEXCUT AI. Verify app ownership and selected environment before editing. Do not mix Sandbox credentials/eligibility with Production app/environment; keep current OFF/Draft state until explicit approval.
+2. In app/web details, use https://www.nexcutai.com/ as website, legal URLs https://www.nexcutai.com/terms and /privacy, contact nexcut.ai@gmail.com. Confirm the visible public product/audience, branding and ownership. Complete domain/URL-prefix verification using the Portal's actual method under separate approval; website ownership does not automatically verify an export-media URL prefix.
+3. Login Kit product: register exactly https://www.nexcutai.com/api/tiktok/oauth/callback as static HTTPS web redirect, with no wildcard/query/fragment. Match code/client key/environment and app ID. Do not copy a secret into this document or browser code. Secret provisioning is a separate server custody gate.
+4. Content Posting API product: confirm Direct Post eligibility/settings and request user.info.basic + video.publish. Direct Post is OFF now; an operator may enable/configure it only after explicit Product Owner authority and required product/audit prerequisites. video.upload is not the repair for Direct Post and is excluded unless a separate Inbox/Draft feature is approved.
+5. Confirm exact Sandbox test-user limits and account eligibility from the actual selected app. Sandbox Limited is not proof Direct Post is available. Use a dedicated approved, adult/eligible account controlled by the Product Owner, content rights and a privacy level actually offered by Creator Info. Never infer broad public posting rights from test access.
+6. Prepare complete product/scope justification, mature public-facing UX/legal consistency and genuine current sandbox demo. First-time review requires real sandbox evidence; do not fabricate screenshots or present mock outputs as actual posting. App review and Direct Post audit are distinct prerequisites; unaudited restrictions apply until TikTok approves the relevant capability. No approval/turnaround is assumed.
+7. Record only redacted configuration classifications and approved account/app/environment match receipt. Portal mutation, submission and account credential sharing need separate gates. No mutation is performed in Mission 05.
+
+## Real-test prerequisites and authority matrix
+
+All prerequisites must be verified before Stage 1: immutable tested source/tree and remote preservation; approved build/rollback; independently authoritative migration history/actor/final version and applied schema receipt; qualified staging/runtime IAM; approved managed keys/readable versions/explicit SDK client; app/client-key/callback/environment binding; canonical Firebase session/beta eligibility; fresh connection/consent policies; actual Portal/product/account eligibility; independent Connect/publication disable switches; per-operation runtime/native authorization callbacks and observability without secrets. Current default Next TikTok routes are unavailable and no current callback/flag enables live features. No deployment or feature activation is authorized here.
+
+| Stage | Future operator action | Required authorization | Bounded evidence / stop |
+|---|---|---|---|
+| 1 | Product Owner uses normal authenticated browser UI to authorize TikTok scopes | Exact app/account/environment/canonical callback and one OAuth attempt | Selected scopes, callback origin and outcome classification; stop on mismatch/cancel/error |
+| 2 | Server atomically claims matching state and exchanges the callback code, storing version2 encrypted custody | Explicit callback/token exchange authority and current verified Firebase session | HTTP classification, state consumed, owned connection status; no code/token/cookie/header capture; no retry |
+| 3 | Retrieve current Creator Info through accepted B7 | Separate API observation authority, owned unexpired video.publish connection | Account match, supported privacy/interactions/duration; stop on stale/denied/unknown |
+| 4 | Initialize one FILE_UPLOAD after preview/settings/music/commercial/AIGC review and consent | One account/video/checksum/settings-bound single-use execution; explicit init authority | Persist immutable publish correlation; unknown init means STOP, never another init |
+| 5 | Transfer only exact approved bytes to provider-bound allowlisted upload URL | Separate byte-transfer authority and current owner/connection/consent; cancellation supported | Byte/chunk counts and HTTP classification; no upload capability URL/token logging; partial/unknown means STOP |
+| 6 | Observe the stored publish ID through B7 status parser/correlation | Separate bounded read-only observation authority | Processing/unknown is not success; lookup/auth errors are UNKNOWN, not proof of failed posting; never resubmit |
+
+No stage executes during Mission 05. A grant for one stage does not authorize the next. No arbitrary API/base URL, public loopback service, browser tokens, auto refresh, auto retry, hidden privacy selection or blanket publication consent.
+
+## Test video and consent
+
+Use one original user-device video with proven rights, no personal/sensitive content, MP4/H.264 where supported, under the accepted B7 small-video profile (<5 MiB), measured checksum/byte length/duration from the trusted source and duration within fresh Creator Info limits. The current synthetic media seam is not evidence of actual-device provenance; the approved operator must qualify the real media adapter/preview before byte transfer. Server-stored exports require a separately scoped verified-domain PULL_FROM_URL flow, not FILE_UPLOAD misclassification.
+
+Select privacy manually from returned options. For an unaudited approved test use SELF_ONLY only if actually supported; comply with current account/test limits. Unsupported interactions stay disabled. Confirm preview/title/media checksum, music rights, commercial disclosures and AIGC labeling deliberately. Changed account/session/generation/media/settings/Creator snapshot invalidates consent and requires fresh review. No new execution after restart from lost process-scoped consent handles; fresh review/consent is required. Already initiated known publications may be observed durably without another init.
+
+## Evidence, redaction, rollback and failure recovery
+
+Keep only approved HTTP status/classification, timing/counts, source/tree/manifest hash, identity/target match booleans and bounded outcome. Never copy access/refresh tokens, authorization codes, cookies, Authorization headers, SDK credentials, DSNs, raw keys, upload capability URLs or unrestricted database/account identifiers. Normal browser/SDK authentication supplies credentials; never manually substitute them in CLI/API requests.
+
+Stop on any missing receipt, target/account/environment mismatch, missing/revoked/expired session or connection, replay/concurrent loser, missing/stale consent/Creator info, scope mismatch, checksum/byte mismatch, redirect/host/header failure, denied API, timeout/cancel or unknown outcome. Disable execution first. Observation of a known owned publish ID is a separate approved action, not an automatic retry. With no ID after unknown init, require manual account/provider reconciliation and no repost. Disconnect wipes local custody/invalidate grants, but actual provider revocation and application rollback each require separate authority. Disconnect does not delete a TikTok post. No destructive SQL/down migration/Flyway repair/clean or key destruction.
+
+Official references checked 2026-10-09: https://developers.tiktok.com/docs/en/login-kit-web, https://developers.tiktok.com/docs/en/content-posting-api-get-started, https://developers.tiktok.com/docs/en/app-review-guidelines and https://developers.tiktok.com/docs/en/content-sharing-guidelines. Existing review copy is docs/TIKTOK_DEVELOPER_REVIEW_PACKAGE.md; genuine demo remains BLOCKED_PENDING_LIVE_VERIFICATION.

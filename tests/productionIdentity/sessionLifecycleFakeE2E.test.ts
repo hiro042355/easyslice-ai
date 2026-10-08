@@ -5,7 +5,7 @@ import { createSessionHandlers } from "../../lib/server/productionIdentity/sessi
 import { createAuthenticatedRouteGuard, SESSION_COOKIE_NAME } from "../../lib/server/productionIdentity/routeGuardCore";
 import { requireBetaAuthorization } from "../../lib/server/productionIdentity/betaAuthorization";
 import { SESSION_MAX_AGE_SECONDS } from "../../lib/server/productionIdentity/sessionSecurity";
-import { createProductionOwnerUidProofRoute } from "../../app/api/internal/production-owner-uid-proof/route";
+import { createProductionOwnerUidProofRoute } from "../../lib/server/productionIdentity/productionOwnerUidProofRouteCore";
 import { restoreServerSession } from "../../lib/client/restoredServerSession";
 import { establishGoogleIdentitySession } from "../../lib/client/googleIdentitySignIn";
 

@@ -15,7 +15,7 @@ test("V000005 and same-session executor preserve CAS, visibility, commit, and ro
     assert.equal(columns.rows.find((value) => value.column_name === "state")?.is_nullable, "NO");
     const seed = async (value: string) => environment.pool.query(`INSERT INTO workflow.workflow_completion_states (workflow_identity_version,workflow_identity_namespace,workflow_identity_value,state,revision) VALUES ('1.0','workflow-completion',$1,'eligible-for-completion',0)`, [value]);
     await seed("rollback-workflow"); await seed("commit-workflow");
-    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 4, connectionTimeoutMs: 5000, idleTimeoutMs: 5000, queryTimeoutMs: 5000, applicationName: "completion-state-test", tls: { mode: "disabled" } });
+    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 4, connectionTimeoutMs: 5000, idleTimeoutMs: 5000, queryTimeoutMs: 5000, applicationName: "completion-state-test", tls: { mode: "disabled" as const } });
     assert.equal(await pool.start(), "ready");
     const run = async (workflow: string) => {
       const checkout = await pool.checkout(); if ("status" in checkout) throw new Error("checkout-failed");

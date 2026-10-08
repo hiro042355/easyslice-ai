@@ -26,7 +26,7 @@ export function checkLocalSafety(s: Safety): void {
 }
 // Closed environment: no inherited Docker override, ADC, database URL or auth settings.
 function childEnvironment(extra: Record<string,string> = {}): NodeJS.ProcessEnv {
-  return { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, TEMP: process.env.TEMP, TMP: process.env.TMP, ...extra };
+  return { NODE_ENV:"test", SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, TEMP: process.env.TEMP, TMP: process.env.TMP, ...extra };
 }
 async function docker(args: readonly string[], extra: Record<string,string> = {}, input?: string, timeout = 60_000, pin = true): Promise<Result> {
   return new Promise((resolve,reject) => {

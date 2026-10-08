@@ -57,14 +57,15 @@ test("owned media and exports are inserted only through an owner-scoped job sele
 
 test("server-selected resource IDs remain exact across durable inserts", async () => {
   const calls: Array<{ text: string; values: readonly unknown[] }> = [];
-  const client: OwnershipQueryClient = { async query(text, values) {
+  const client: OwnershipQueryClient = { async query<Row>(text:string,values:readonly unknown[]) {
     calls.push({ text, values });
     const rows = text.includes("workflow.media")
       ? [{ id: values[0], job_id: values[3], storage_key: values[1], kind: values[2] }]
       : text.includes("workflow.exports")
         ? [{ id: values[0], job_id: values[2], storage_key: values[1] }]
         : [{ id: values[0], owner_uid: values[1], status: "created" }];
-    return { rows, rowCount: 1 };
+    // Fixture rows are selected by the exact SQL branch; no Production adapter changes.
+    return { rows: rows.map(row=>row as unknown as Row), rowCount: 1 };
   } };
   const repository = createDurableMediaOwnershipRepository(client);
   await repository.createJobWithId(JOB_A, "owner-a");

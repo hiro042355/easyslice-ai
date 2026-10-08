@@ -1,0 +1,143 @@
+{
+  "files": [
+    {
+      "sha256": "f508335cfdbd5c95e83adfc1b620a6e86dbeec31770268f5de2035e4cc1b7901",
+      "change": "created",
+      "path": ".gitattributes"
+    },
+    {
+      "sha256": "57fdabfc4fd6ef79ae14bc305e930d27bc4473a9c93f1828feb8872334095102",
+      "change": "modified",
+      "path": "app/api/internal/production-owner-uid-proof/route.ts"
+    },
+    {
+      "sha256": "6306548515fa90010e96aa7a95000d8b731c59c88a7ffdd5aa77e6562ea27f3f",
+      "change": "created",
+      "path": "docs/mission05/authority-discovery.sql"
+    },
+    {
+      "sha256": "c2e413d5c3ff16c1aed8bd2fec4d72be16ed365fd38f5495c30a4abbbc5c6a0d",
+      "change": "created",
+      "path": "docs/mission05/authority-history.sql"
+    },
+    {
+      "sha256": "c54368243405d24d38ef8ec083413219b11c1fb821717a69ce9943fa88d9c02f",
+      "change": "created",
+      "path": "docs/mission05/authority-privileges.sql"
+    },
+    {
+      "change": "created",
+      "path": "docs/mission05/CHANGED_FILES.json",
+      "selfHashExcluded": true
+    },
+    {
+      "sha256": "420b664c65f9088482b37e0eb69abe9a243d1309f609bd8d9ba6aef66c4f9d49",
+      "change": "created",
+      "path": "docs/mission05/MIGRATION_AND_STAGING_RUNBOOK.md"
+    },
+    {
+      "sha256": "d3f005d7daf215060e41788680a5d73e5a970dbfddb70db4a52e0b0a4fe15599",
+      "change": "created",
+      "path": "docs/mission05/PORTAL_AND_REAL_TEST_RUNBOOK.md"
+    },
+    {
+      "sha256": "14386cbf749727bdc759fe05e4854eb02ad4275762dcfa2bd247201b2a27ca4a",
+      "change": "created",
+      "path": "docs/mission05/RELEASE_READINESS_REPORT.md"
+    },
+    {
+      "sha256": "a2e2d3998d6eb02f4ccf74fc31c694ebfbb37e4d230a1b0b0f4a75ad69d71773",
+      "change": "modified",
+      "path": "lib/productionMigrationOperator/localDockerRehearsal.ts"
+    },
+    {
+      "sha256": "5b1a5e67d111a5d6a4119c8d083756b549e4ace0f377e590ca65feadeebc3071",
+      "change": "created",
+      "path": "lib/server/productionIdentity/productionOwnerUidProofRoute.ts"
+    },
+    {
+      "sha256": "49590179df3519ceec5f4abf5ddce19286b17d989734593e3d75b24ee22efc07",
+      "change": "created",
+      "path": "lib/server/productionIdentity/productionOwnerUidProofRouteCore.ts"
+    },
+    {
+      "sha256": "b3fee0c68eb0e718cd3ef8cb3faceac40fd22d168eeb1e00c60eba4871d53548",
+      "change": "modified",
+      "path": "tests/postgresqlDriver/postgresqlDriverReal.test.ts"
+    },
+    {
+      "sha256": "578be2bd6ef53d15ed8c571e61de1ddda64c335d392c7d910b50d9c736a25fa1",
+      "change": "modified",
+      "path": "tests/postgresqlTestEnvironment/productionSessionConstructionAuthorityV3Integration.test.ts"
+    },
+    {
+      "sha256": "aa18cc5d4ff57dc11b093125025c97ca310cf9c20ff878086aba8a462090eec3",
+      "change": "modified",
+      "path": "tests/postgresqlTestEnvironment/productionTransactionSessionV3Integration.test.ts"
+    },
+    {
+      "sha256": "d96e5501fdf7f3c8043efb0b9c6773f9e997bfe1d27812e3777906601fbb1aba",
+      "change": "modified",
+      "path": "tests/postgresqlTestEnvironment/productionWorkflowApiCsrfPostgresqlAuthority.test.ts"
+    },
+    {
+      "sha256": "a25f9bf439189c6d60510a7a9a2e1d54223bc26266a4b517fc7f1e14222d745f",
+      "change": "modified",
+      "path": "tests/postgresqlTestEnvironment/replayBoundedDrainIntegration.test.ts"
+    },
+    {
+      "sha256": "41435f344246e9ee678f3ce40b9fa59a6081d056f9f95d68d6bbcf48c7245f81",
+      "change": "modified",
+      "path": "tests/postgresqlTestEnvironment/workflowCompletionAtomicMutationOwnerIntegration.test.ts"
+    },
+    {
+      "sha256": "692907b01ad82db98fd13780c0baa2bc50771f4eb757677b897246ba319f1b70",
+      "change": "modified",
+      "path": "tests/postgresqlTestEnvironment/workflowCompletionStatePersistenceIntegration.test.ts"
+    },
+    {
+      "sha256": "04032331e05c7bd03b9c40ffc0bc33dbadacb62eb68e268f26c5368b8a085085",
+      "change": "modified",
+      "path": "tests/productionIdentity/durableMediaOwnership.test.ts"
+    },
+    {
+      "sha256": "d540f5c15a58a665700ce0247bce7668af53ada45839e872a13f3dd18a3ad1b2",
+      "change": "modified",
+      "path": "tests/productionIdentity/productionOwnerUidProofRoute.test.ts"
+    },
+    {
+      "sha256": "4c6372bcc62a0906a64520d6c948b8110426c0421deb1c369b8363fa7611f36f",
+      "change": "modified",
+      "path": "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts"
+    },
+    {
+      "sha256": "8ca979e959653d8cf709f1594e6980109f80a611e38ef22fc22bac43f73d8113",
+      "change": "modified",
+      "path": "tests/server/multiCutReplayPostgresqlObservability/multiCutReplayPostgresqlObservability.test.ts"
+    },
+    {
+      "sha256": "9ed6a6a74a7d3f2bc199515ce633c60d08ecf1f7facf72164271494e1789be61",
+      "change": "modified",
+      "path": "tests/server/multiCutReplayPostgresqlProductionBridge/multiCutReplayPostgresqlProductionBridge.test.ts"
+    },
+    {
+      "sha256": "34473a015c623ce701d4b1c6f2b3533b69eb16d4956d844dc671d992ba236b70",
+      "change": "modified",
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs"
+    },
+    {
+      "sha256": "cf180f2b1c29d004b59bd6c193deb50beb8ffbc69ee5e75f8279865606cb46a3",
+      "change": "modified",
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs"
+    },
+    {
+      "sha256": "ee655244e292fb0fb4cc7d0f87249d3d6ce2cc1046e168a40d48f5f27d3c2cc4",
+      "change": "modified",
+      "path": "tests/tiktokHardening/runBuild.mjs"
+    }
+  ],
+  "productionOperations": 0,
+  "scope": "isolated build recovery and TikTok live-readiness preparation",
+  "fileCount": 27,
+  "baseline": "dbd5baaea08195ce94255b255751dde8b916ed02"
+}

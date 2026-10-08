@@ -50,6 +50,7 @@ test("real pool force-discards at zero deadline and late release is safe", async
   if ("status" in connection) return;
   const transaction = await connection.begin();
   assert.equal("status" in transaction, false);
+  if ("status" in transaction) throw new Error("begin-failed");
 
   assert.equal(await pool.close({ timeoutMs: 0 }), "drain-timeout");
   assert.equal(connection.state(), "discarded");

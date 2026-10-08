@@ -18,7 +18,7 @@ import type {
   PostgreSQLQueryRequest,
   PostgreSQLQueryResult,
   PostgreSQLRollbackResult,
-  PostgreSQLTransactionConnection,
+  PostgreSQLTransactionConnectionV4,
   PostgreSQLTransactionState,
 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 
@@ -91,7 +91,13 @@ const createFixture = (options: FixtureOptions = {}) => {
   let active = false;
   let discarded = false;
   let released = false;
-  const transaction: PostgreSQLTransactionConnection = Object.freeze({
+  const transaction: PostgreSQLTransactionConnectionV4 = Object.freeze({
+    lifecycleVersion:"2.0" as const,queryContractVersion:"2.0" as const,lifecycleResultVersion:"2.0" as const,
+    // This bridge exercises V1 operations; any accidental V2 invocation must fail the fixture.
+    queryV2:async()=>{throw new Error("unexpected-v2-query");},
+    commitV2:async()=>{throw new Error("unexpected-v2-commit");},
+    rollbackV2:async()=>{throw new Error("unexpected-v2-rollback");},
+    discard:()=>Object.freeze({status:"discarded" as const}),
     state: (): PostgreSQLTransactionState =>
       active ? "active" : "committed",
     async query(request: PostgreSQLQueryRequest) {
@@ -218,6 +224,7 @@ test("driver failures preserve classification and safe SQLSTATE only", async () 
     queryResult: Object.freeze({
       status: "failure",
       issue: "retryable-conflict",
+      safeReason: "postgresql-retryable-conflict",
       diagnostic: Object.freeze({
         stage: "query",
         issue: "retryable-conflict",
@@ -256,6 +263,7 @@ test("query connection disposition is projected directly without fallback", asyn
       queryResult: Object.freeze({
         status: "failure",
         issue: "unknown-failure",
+        safeReason: "postgresql-unknown-failure",
         diagnostic: Object.freeze({
           stage: "query",
           issue: "unknown-failure",
@@ -279,6 +287,7 @@ test("query connection disposition is projected directly without fallback", asyn
     queryResult: Object.freeze({
       status: "failure",
       issue: "unknown-failure",
+      safeReason: "postgresql-unknown-failure",
       diagnostic: Object.freeze({
         stage: "query",
         issue: "unknown-failure",
@@ -301,6 +310,7 @@ test("bounded timeout remains non-retryable and preserves only safe class 57", a
     queryResult: Object.freeze({
       status: "failure",
       issue: "timeout",
+      safeReason: "postgresql-timeout",
       diagnostic: Object.freeze({
         stage: "query",
         issue: "timeout",

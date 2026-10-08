@@ -1,0 +1,3 @@
+# Keep checksum-pinned artifacts byte-identical on Windows and Linux.
+lib/server/tiktokPublisherB7/artifact/** text eol=lf
+tests/tiktokProductionMigration/NONDEPLOYABLE_oauth_candidate.sql text eol=lf
