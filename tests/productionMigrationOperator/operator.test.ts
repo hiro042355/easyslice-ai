@@ -142,7 +142,7 @@ test("receipts contain only bounded allowlisted classifications, not arbitrary f
   const h=createRehearsal();await h.session.start(input);await h.session.execute("VALIDATE");const r=h.session.receipt();
   assert.doesNotMatch(JSON.stringify(r),/TOP_SECRET/); assert.ok(Object.keys(r).every(k => !["token","password","cookie","Authorization","stdout","stderr","sql","adc"].includes(k)));assert.ok(Buffer.byteLength(JSON.stringify(r))<4096);assert.ok(Object.isFrozen(r));await h.session.cancel();
 });
-test("no executable network/process/credential adapter or migration allocator is shipped",()=> {
+test("core modules contain no direct network/process/credential execution or migration allocator",()=> {
   for(const file of ["contracts.ts","authorization.ts","session.ts","rehearsal.ts"]){const s=readFileSync(`lib/productionMigrationOperator/${file}`,"utf8");assert.doesNotMatch(s,/from ["'](?:node:child_process|node:https?|pg|google-auth-library|@google-cloud)/);assert.doesNotMatch(s,/\bfetch\(|process\.env|execFile\(|spawn\(|gcloud|\.getIdToken\(|\.query\(/);}
   assert.equal((DEFAULT_TARGET as string),"NONE");
 });

@@ -1,0 +1,40 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { checkLocalSafety, LOCAL_ENDPOINT, createLocalDockerRehearsal, checkSyntheticSnapshot } from "../../lib/productionMigrationOperator/localDockerRehearsal";
+import type { Operation } from "../../lib/productionMigrationOperator/contracts";
+const safety={target:"LOCAL_REHEARSAL",endpoint:LOCAL_ENDPOINT,context:"desktop-linux",os:"linux",operatingSystem:"Docker Desktop",mounts:[],network:"PRIVATE_DISPOSABLE",ports:[],privileged:false,identity:"MIGRATOR"};
+for(const [name,patch] of Object.entries({production:{target:"PRODUCTION"},cloud:{target:"NON_PRODUCTION_CLOUD_SQL"},none:{target:"NONE"},remote:{endpoint:"tcp://external:2376"},context:{context:"cloud"},external:{externalUrl:"postgresql://external/db"},credential:{mounts:[".config/gcloud"]},socket:{mounts:["/var/run/docker.sock"]},host:{network:"host"},port:{ports:[5432]},privileged:{privileged:true},runtime:{identity:"RUNTIME"},bootstrap:{identity:"BOOTSTRAP"}})) test(`local Docker contract rejects ${name}`,()=>assert.throws(()=>checkLocalSafety({...safety,...patch})));
+test("local Docker contract accepts only fixed isolated policy",()=>assert.doesNotThrow(()=>checkLocalSafety(safety)));
+test("factory rejects invalid inputs before Docker acquisition",async()=>{await assert.rejects(()=>createLocalDockerRehearsal("PRODUCTION" as never));await assert.rejects(()=>createLocalDockerRehearsal("success",3 as never));await assert.rejects(()=>createLocalDockerRehearsal("success",1,0));});
+const real=process.env.NEXCUT_LOCAL_REHEARSAL_TESTS === "YES";
+async function ready(h:Awaited<ReturnType<typeof createLocalDockerRehearsal>>["handles"][number]) {
+  assert.equal((await h.session.start(h.input)).state,"HISTORY_PRIVILEGE_VERIFIED");
+  assert.equal((await h.session.execute("VALIDATE")).state,"AWAITING_MIGRATE_AUTHORIZATION");
+}
+function cleaned(db:Awaited<ReturnType<typeof createLocalDockerRehearsal>>) {const e=db.evidence();assert.equal(e.containersCleaned,true);assert.equal(e.networkCleaned,true);assert.equal(e.noVolumes,true);assert.equal(e.noHostPorts,true);assert.equal(e.roleSeparation,true);console.log("LOCAL_BOUNDED_EVIDENCE",JSON.stringify(e));}
+test("real PostgreSQL / Flyway success, STOP, history and negative validation",{skip:!real},async()=>{
+  const db=await createLocalDockerRehearsal();try {
+    const h=db.handles[0];await ready(h);assert.equal(db.evidence().migrationsStarted,0);assert.equal(h.session.receipt().migrationCount,0);
+    assert.equal((await h.session.authorize(h.approve())).state,"MIGRATION_AUTHORIZED");
+    const r=await h.session.execute("MIGRATE");assert.equal(r.state,"COMPLETED",JSON.stringify({receipt:r,evidence:db.evidence()}));assert.equal(r.transactionOutcome,"COMMITTED");assert.equal(r.cleanup,"PASS");
+    const e=db.evidence();assert.equal(e.historyRows,2);assert.equal(e.seedRows,2);assert.equal(e.checksums,true);assert.equal(e.ordered,true);assert.equal(e.versionVerified,true);
+    for(const k of ["checksumRejected","duplicateRejected","missingRejected","futureRejected","outOfOrderRejected"] as const) assert.equal(e[k],true,k);
+    assert.doesNotMatch(JSON.stringify(r),/PASSWORD|jdbc:|CREATE TABLE|SELECT|stdout|stderr/);cleaned(db);
+  }finally{await db.cleanup();}
+});
+test("real validation cannot initiate migration without authorization",{skip:!real},async()=>{const db=await createLocalDockerRehearsal();try{const h=db.handles[0];await ready(h);const r=await h.session.execute("MIGRATE");assert.equal(r.failureCode,"AUTHORIZATION_REJECTED");assert.equal(db.evidence().migrationsStarted,0);cleaned(db);}finally{await db.cleanup();}});
+test("real SQL failure rolls back failing migration and preserves earlier commit",{skip:!real},async()=>{const db=await createLocalDockerRehearsal("partial");try{const h=db.handles[0];await ready(h);await h.session.authorize(h.approve());const r=await h.session.execute("MIGRATE");assert.equal(r.state,"FAILED");assert.equal(r.failureCode,"MIGRATION_FAILED");assert.equal(r.transactionOutcome,"ROLLED_BACK");assert.equal(r.migrationCount,1);const e=db.evidence();assert.equal(e.historyRows,1);assert.equal(e.seedRows,1);assert.equal(e.failedMarkerAbsent,true);assert.equal(e.migrationsStarted,1);await h.session.execute("MIGRATE");assert.equal(db.evidence().migrationsStarted,1);cleaned(db);}finally{await db.cleanup();}});
+test("real PostgreSQL Flyway competing authorized runners use database lock without retry",{skip:!real},async()=>{
+  const db=await createLocalDockerRehearsal("slow",2);try{const [a,b]=db.handles;await ready(a);await ready(b);await a.session.authorize(a.approve());await b.session.authorize(b.approve());const results=await Promise.all([a.session.execute("MIGRATE"),b.session.execute("MIGRATE")]);
+    assert.deepEqual(results.map(r=>r.state).sort(),["COMPLETED","FAILED"]);assert.equal(results.find(r=>r.state==="FAILED")?.failureCode,"MIGRATION_FAILED");const e=db.evidence();assert.equal(e.lockRejected,true,JSON.stringify({receipts:results,evidence:e}));assert.equal(e.historyRows,2);assert.equal(e.seedRows,2);assert.equal(e.migrationsStarted,2);assert.equal(e.migrationsRecorded,2);assert.equal(e.ordered,true);cleaned(db);
+  }finally{await db.cleanup();}
+});
+test("real cancellation during migration reports unknown outcome and removes resources",{skip:!real},async()=>{const db=await createLocalDockerRehearsal("slow");try{const h=db.handles[0];await ready(h);await h.session.authorize(h.approve());const active=h.session.execute("MIGRATE");await db.waitForMigrationStart();await h.session.cancel();const r=await active;assert.equal(r.state,"CANCELLED");assert.equal(r.transactionOutcome,"UNKNOWN");assert.equal(db.evidence().migrationsStarted,1);cleaned(db);}finally{await db.cleanup();}});
+test("real timeout cleans idle acquired resources",{skip:!real},async()=>{const db=await createLocalDockerRehearsal("success",1,50);try{const h=db.handles[0];await h.session.start(h.input);await new Promise(r=>setTimeout(r,500));await h.session.cancel();assert.equal(h.session.state(),"TIMED_OUT");assert.equal(h.session.receipt().cleanup,"PASS");cleaned(db);}finally{await db.cleanup();}});
+test("real arbitrary operation is closed and cleans",{skip:!real},async()=>{const db=await createLocalDockerRehearsal();try{const h=db.handles[0];await ready(h);const r=await h.session.execute("repair" as Operation);assert.equal(r.failureCode,"OPERATION_REJECTED");assert.equal(db.evidence().migrationsStarted,0);cleaned(db);}finally{await db.cleanup();}});
+test("real manifest substitution rejects before session transport, with owned cleanup",{skip:!real},async()=>{const db=await createLocalDockerRehearsal();try{const h=db.handles[0];const r=await h.session.start({...h.input,approvedManifest:[{filename:"V000001__substitute.sql",sha256:"1".repeat(64)}]});assert.equal(r.failureCode,"MANIFEST_MISMATCH");assert.equal(r.cleanup,"PASS");cleaned(db);}finally{await db.cleanup();}});
+
+test("real wrapper exception is redacted and cleans acquired PostgreSQL",{skip:!real},async()=>{const db=await createLocalDockerRehearsal("wrapper");try{const h=db.handles[0];await h.session.start(h.input);const r=await h.session.execute("INFO");assert.equal(r.failureCode,"WRAPPER_EXCEPTION");assert.doesNotMatch(JSON.stringify(r),/disposable-secret|SQL/);cleaned(db);}finally{await db.cleanup();}});
+test("real structured validation failure cannot authorize or migrate",{skip:!real},async()=>{const db=await createLocalDockerRehearsal("invalid");try{const h=db.handles[0];await h.session.start(h.input);const r=await h.session.execute("VALIDATE");assert.equal(r.failureCode,"VALIDATION_FAILED");assert.equal(r.state,"FAILED");assert.throws(()=>h.approve());await h.session.execute("MIGRATE");assert.equal(db.evidence().migrationsStarted,0);cleaned(db);}finally{await db.cleanup();}});
+
+test("synthetic manifest never accepts substituted SQL or production migration names",()=>{assert.throws(()=>checkSyntheticSnapshot("success",{"V000001__seed.sql":"SELECT 1;","V000002__extend.sql":"SELECT 1;"}));assert.throws(()=>checkSyntheticSnapshot("production",{}));});

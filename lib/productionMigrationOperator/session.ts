@@ -1,3 +1,4 @@
+import { isGuardedLocalDriver, type GuardedLocalDriver } from "./localDockerRehearsal";
 import { randomUUID } from "node:crypto";
 import { consumeLocalAuthorization, type LocalMigrateAuthorization } from "./authorization";
 import { ARTIFACTS, OperatorFailure, safeFailure, binding, fail, pendingSet, preflight, type FailureCode, type Operation, type PassedPreflight, type PreflightInput, type Review } from "./contracts";
@@ -40,10 +41,10 @@ export class LocalFixture {
     if (stage !== "STOP" && this.#closed) throw new Error("fixture-closed");
   }
 }
-export type Receipt = Readonly<{ receiptVersion: "1"; sessionId: string; target: "NONE" | "LOCAL_REHEARSAL"; source: string | null; state: State; preflight: "PASS" | "NOT_RUN"; validation: "PASS" | "NOT_RUN"; artifact: "MATCH" | "NOT_RUN"; history: "VERIFIED" | "NOT_RUN"; privileges: "VERIFIED" | "NOT_RUN"; pendingVersions: readonly string[]; migrationCount: number; transactionOutcome: "NOT_RUN" | "SIMULATED_COMMITTED" | "ROLLED_BACK" | "COMMIT_UNKNOWN" | "UNKNOWN"; cleanup: "NOT_NEEDED" | "PENDING" | "PASS" | "FAIL"; failureCode: FailureCode | null }>;
+export type Receipt = Readonly<{ receiptVersion: "1"; sessionId: string; target: "NONE" | "LOCAL_REHEARSAL"; source: string | null; state: State; preflight: "PASS" | "NOT_RUN"; validation: "PASS" | "NOT_RUN"; artifact: "MATCH" | "NOT_RUN"; history: "VERIFIED" | "NOT_RUN"; privileges: "VERIFIED" | "NOT_RUN"; pendingVersions: readonly string[]; migrationCount: number; transactionOutcome: "NOT_RUN" | "COMMITTED" | "SIMULATED_COMMITTED" | "ROLLED_BACK" | "COMMIT_UNKNOWN" | "UNKNOWN"; cleanup: "NOT_NEEDED" | "PENDING" | "PASS" | "FAIL"; failureCode: FailureCode | null }>;
 const terminal = (s: State) => ["COMPLETED","FAILED","CANCELLED","TIMED_OUT"].includes(s);
 
-/** Executable only with an internally bounded in-memory fixture. No transport injection. */
+/** Closed adapters only: bounded in-memory fixture or internally branded local Docker rehearsal. */
 export class LocalMigrationSession {
   readonly #sessionId = randomUUID();
   #currentState: State = "CREATED";
@@ -64,11 +65,12 @@ export class LocalMigrationSession {
   readonly #stopped: Promise<void>;
   #stopWaiter!: () => void;
   #operations = 0;
-  readonly #fixture: LocalFixture;
-  constructor(fixture: LocalFixture = new LocalFixture()) {
+  readonly #fixture: LocalFixture | GuardedLocalDriver;
+  constructor(fixture: LocalFixture | GuardedLocalDriver = new LocalFixture()) {
     this.#fixture = fixture;
     // Runtime identity check rejects arbitrary real adapters passed by untyped callers.
-    if (Object.getPrototypeOf(fixture) !== LocalFixture.prototype || fixture.perform !== LocalFixture.prototype.perform) fail("TRANSPORT_CONTRACT_REJECTED");
+    if (!isGuardedLocalDriver(fixture) && (Object.getPrototypeOf(fixture) !== LocalFixture.prototype || fixture.perform !== LocalFixture.prototype.perform)) fail("TRANSPORT_CONTRACT_REJECTED");
+    if (isGuardedLocalDriver(fixture)) { this.#acquired = true; this.#cleanupResult = "PENDING"; }
     this.#stopped = new Promise(resolve => { this.#stopWaiter = resolve; });
     Object.seal(this);
   }
@@ -104,7 +106,7 @@ export class LocalMigrationSession {
     try { await action(); }
     catch(error) {
       const classified = safeFailure(error, typeof code === "function" ? code() : code);
-      if (this.#currentState === "MIGRATING" && classified === "MIGRATION_FAILED") this.#transactionOutcome = this.#fixture.failureOutcome();
+      if (this.#currentState === "MIGRATING" && classified === "MIGRATION_FAILED") { this.#transactionOutcome = this.#fixture.failureOutcome(); if (isGuardedLocalDriver(this.#fixture)) this.#migrated = this.#fixture.committedCount(); }
       await this.#terminate("FAILED", classified);
     } finally { this.#busy = false; }
     return this.receipt();
@@ -112,6 +114,8 @@ export class LocalMigrationSession {
   async start(input: PreflightInput): Promise<Receipt> {
     return this.#guarded(async () => {
       if (this.#currentState !== "CREATED") fail("STATE_REJECTED");
+      if (isGuardedLocalDriver(this.#fixture)) this.#fixture.checkInput(input);
+      else if (input.transport.adapter !== "IN_MEMORY") fail("TRANSPORT_CONTRACT_REJECTED");
       this.#proof = preflight(input);
       this.#transition("PREFLIGHT_PASSED");
       this.#timer = setTimeout(() => { void this.#terminate("TIMED_OUT","TIMEOUT"); },this.#proof.transport.sessionMs);
@@ -147,8 +151,8 @@ export class LocalMigrationSession {
         this.#transition("MIGRATING");
         stageCode = "MIGRATION_FAILED";
         await this.#wait("MIGRATE");
-        this.#migrated = this.#pending.length;
-        this.#transactionOutcome = "SIMULATED_COMMITTED";
+        this.#migrated = isGuardedLocalDriver(this.#fixture) ? this.#fixture.committedCount() : this.#pending.length;
+        this.#transactionOutcome = isGuardedLocalDriver(this.#fixture) ? "COMMITTED" : "SIMULATED_COMMITTED";
         this.#transition("POST_VALIDATING");
         stageCode = "POST_VALIDATION_FAILED";
         await this.#wait("POST_VALIDATE");

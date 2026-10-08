@@ -1,73 +1,47 @@
-# Isolated migration operator tooling foundation
+# Migration operator tooling: local PostgreSQL rehearsal
 
-Status: local contracts and in-memory simulation only. No Production execution capability.
+Production authority, credentials and transport remain unimplemented. The default CLI is NONE / INERT and rejects every argument. Cloud SQL and Production targets fail closed. No application route, dependency version, production migration, Terraform, IAM or deployment configuration changes here.
 
-## IMPLEMENTED NOW
+## Local entry point and authorization
 
-- `lib/productionMigrationOperator/contracts.ts`: pure preflight, fixed proposed artifact identities, explicit target/history/privilege/transport contracts, filename/version/hash checks, bounded migration sets and safe failure classifications.
-- `authorization.ts`: opaque, immutable, single-use LOCAL_REHEARSAL approval. Issuance is an explicit local test/operator event, separate from preflight and validation. It binds session, source, fixed artifact digests, target/history hashes and exact pending versions, with expiry. There is no Production issuer.
-- `session.ts`: executable in-memory session, terminal failure/cancellation/timeout behavior, private state, allowlisted operations, supervised cleanup and allowlisted receipts. Arbitrary adapters and mutable method substitution are rejected.
-- `rehearsal.ts`: synthetic fixture input and a controllable fake ledger/transport operation model. Fixture YES/VERIFIED classifications are simulation inputs, never cloud or PostgreSQL evidence. A shared in-memory lease supports competing-runner simulation; it is not proof of real Flyway/PostgreSQL locking.
-- `scripts/productionMigrationOperator.mjs`: inert entry point. No arguments produces target NONE and status INERT. Every supplied argument rejects with exit 2. It never discovers files, ADC or environment configuration.
-- Focused tests: fail-closed admission, human-stop state, approval bindings/replay/mutation/expiry, error redaction, cleanup races and prohibited operations.
+`createLocalDockerRehearsal` is an explicit local test API. It accepts only a closed synthetic scenario, one or two runners, and a bounded timeout. It accepts no URL, credential, mount, arbitrary command, source directory or external target. Its non-exported driver is branded in a private registry and never returned. A session accepts only that driver or the original sealed in-memory fixture; duck-typed/subclass adapters are rejected.
 
-## NOT IMPLEMENTED
+The returned session follows CREATED -> PREFLIGHT_PASSED -> TRANSPORT_READY -> HISTORY_PRIVILEGE_VERIFIED -> VALIDATED -> AWAITING_MIGRATE_AUTHORIZATION. Validation issues no grant and starts no migration. A separate `approve()` event mints a local-only, immutable, single-use, expiring grant bound to session/source/artifacts/target/history/pending versions. Only explicit `authorize` followed by `execute("MIGRATE")` can run the real migrate subprocess. POST_VALIDATING independently checks the real ledger and effects, then cleanup precedes COMPLETED. Production has no approval issuer.
 
-No Production authority or credential acquisition; no ADC discovery; no gcloud call or impersonation; no real proxy/transport; no Flyway subprocess; no PostgreSQL connection or query; no Production privilege/history inspection; no real migration. NON_PRODUCTION_CLOUD_SQL also lacks an executable adapter and fails before resource acquisition.
+The contracts still validate supplied source observations; they are not a Git provenance adapter. Local rehearsal uses the accepted e6a1f004c38b43820c7a00503d21a0f1263bb25e checkpoint as its review marker and a closed synthetic fixture snapshot as the source-observation domain. Its clean/index classifications refer to that independently hash-pinned synthetic snapshot, not to the implementation worktree during development. Git HEAD/tree and initial/final worktree cleanliness are separately verified by the gate. This does not establish Production source, privilege or history authority.
 
-Artifact image strings are validated proposed identities only. Nothing pulls, installs, upgrades or runs either image. Package versions, package scripts, application routes, Terraform and migration SQL are unchanged.
+## Isolation and identities
 
-## Admission and source rules
+Windows Docker Desktop Linux context must be `desktop-linux`, endpoint `npipe:////./pipe/dockerDesktopLinuxEngine`, daemon OS Linux / operating system Docker Desktop. Remote/context/config overrides fail closed. Context metadata reads Docker's own profile only; resource commands have a closed environment and explicitly pin the local pipe. No ADC, gcloud, database URL, Production environment or inherited Docker endpoint is used.
 
-DEFAULT_TARGET is NONE. Only LOCAL_REHEARSAL is executable. PRODUCTION is permanently rejected in this implementation, including when an untyped caller supplies an apparent authority object. A later adapter and Production authorization issuer require separate review and implementation; changing a flag is insufficient.
+PostgreSQL: `postgres:18.4@sha256:c2d42a104eb6b37b286a2d9c5cf83f349de4d6516d513d00a2bd9610e2c2e5e4`, linux/amd64; SQL confirms server 18.4. Flyway: `flyway/flyway:12.6.1@sha256:876479697e6f272e7897f9cebc5d43090e4e7ba164de9eb11e07767bff075011`, linux/amd64. Local image digests/platforms are checked before allocation; pulls/substitutions/upgrades are absent from the adapter. Flyway's reported version must match too.
 
-Inputs must supply exact matching 40-character Git SHAs, a clean worktree and index, the complete approved migration manifest and matching file SHA-256 values. The library validates supplied observations; it does not inspect Git or establish their external authority. Future source/identity adapters must populate them from independently verified evidence.
+Each database has a minted labeled internal bridge, PostgreSQL tmpfs, no persistent volumes, no privileged mode, dropped capabilities, no-new-privileges and restart=no. PostgreSQL runs as the image's postgres user and listens only on 127.0.0.1 inside its own namespace. Flyway joins that exact newly created container namespace. Ports are not published. Inspect checks actual privilege/network/mount/port/restart settings, network internal flag and SQL listen_addresses. No host paths or credential directories are mounted. Synthetic files alone are copied into disposable Flyway overlays. Generated random local passwords use named process-environment keys, never command arguments or receipts.
 
-No untracked migration, unresolved collision, duplicate version, malformed filename, missing/extra file, gap, invalid hash, wrong artifact/platform/digest, unknown history or unknown required privilege is admitted. The supported manifest bound is 64 migrations. Validation reports versions; it does not allocate a next version. The test fixture uses synthetic filenames solely in a separate in-memory domain. No file is created under db/workflow/migrations.
+`rehearsal_owner` is the disposable local bootstrap/database owner. Separate non-superuser, non-owner, NOINHERIT, NOCREATEDB/NOCREATEROLE/NOREPLICATION roles are `rehearsal_runtime` and `rehearsal_migrator`. PUBLIC database/schema privileges are revoked. Runtime has CONNECT and explicit intended-schema USAGE but no CREATE/ownership. Migrator owns only the intended schema and its objects; it has no database CREATE/owner/bootstrap role and cannot create in public, protected or history schemas. The owner creates an empty synthetic Flyway-compatible history table, transfers that table to migrator, then revokes history-schema CREATE. This is local fixture bootstrap, not Flyway baseline/repair or Production history initialization.
 
-Known repository context: committed V000001–V000008, unrelated untracked V000009–V000025. None of these facts establishes Production's applied head. No V000026 reservation is made.
+Real role sessions verify identities/flags and allowed/denied DDL, including runtime CREATE SCHEMA/TABLE/ALTER protected/SET ROLE migrator denial and migrator out-of-scope CREATE/SET ROLE owner denial. Successful intended-schema CREATE/ALTER is rolled back. All denials require PostgreSQL SQLSTATE 42501. The exact synthetic history location must exist and be readable before session preflight succeeds.
 
-History requires exactly one verified location and matching target/database binding. No public-schema default, history creation, relocation, baseline or repair is available. Every required privilege classification must be YES, including identity/database/schema, CONNECT/USAGE/CREATE, relevant ownership/ALTER, history readability and authority. These inputs are not queried by this foundation.
+## Flyway validation and failure behavior
 
-## Local-only operation model
+Only info, validate and migrate are implemented. cleanDisabled=true, baselineOnMigrate=false, createSchemas=false, outOfOrder=false, validateOnMigrate=true, connectRetries=0 and lockRetryCount=0. Source locations are fixed to copied rehearsal SQL. Explicit `*:pending` permits reviewed pending versions at the human stop; it does not ignore missing, checksum, future or ignored/out-of-order versions. Importantly, Flyway JSON validation may return exit code 0 with validationSuccessful=false. The wrapper requires the structured boolean to be exactly true as well as process success; unknown/malformed/false results reject.
 
-Allowed conceptual operations: INFO, VALIDATE, MIGRATE. REPAIR, CLEAN, BASELINE, UNDO and arbitrary commands are unavailable. The only implementation records fake operation counts; MIGRATE does not execute SQL or Flyway.
+The successful history case records two ordered versions with integer checksums and exact row effects. Separate synthetic validate-only copies test changed checksum, duplicate version, missing applied migration and future applied migration. The out-of-order case temporarily changes one synthetic history version to a later version, verifies the earlier resolved migration is rejected, then restores it; no out-of-order migration is executed. Nothing reads or executes db/workflow/migrations or dirty development migrations. No LOGIN-2 version is allocated.
 
-State sequence:
+Concurrent sessions each independently validate/approve and share one disposable database. Both execute migrate once; PostgreSQL advisory locking rejects one attempt with no lock retry. The successful runner leaves exactly two ledger entries/two seed rows, without duplicates. The final reference releases the database/network; a competing failure cannot destroy an active peer's database.
 
-CREATED -> PREFLIGHT_PASSED -> TRANSPORT_READY -> HISTORY_PRIVILEGE_VERIFIED
--> VALIDATED -> AWAITING_MIGRATE_AUTHORIZATION
--> explicit local authorization event -> MIGRATION_AUTHORIZED
--> MIGRATING -> POST_VALIDATING -> cleanup -> COMPLETED.
+The partial batch commits V000001, then V000002 creates a marker and fails with division by zero. Catalog/history/row queries prove the failing transaction's marker is absent and V000001 remains. The receipt reports one committed migration and ROLLED_BACK for the failing transaction, not an entire-batch rollback. Successful real migrations report COMMITTED; in-memory successes remain SIMULATED_COMMITTED. Cancellation waits until the real backend is executing pg_sleep, kills disposable resources and preserves UNKNOWN outcome rather than claiming rollback. A deliberate wrapper exception and a seeded mismatched history test exercise redaction/cleanup and structured-validation rejection.
 
-FAILED, CANCELLED and TIMED_OUT are terminal. INFO and VALIDATE never issue approval or call MIGRATE. The local approval issuer is clearly named `issueLocalRehearsalAuthorization`; it is not a Production authority. Lookalike objects are rejected through private registry lookup. Approval is consumed before migration, rechecked for expiry at migration, and cannot be replayed. Pending-set substitution fails before migration.
+## Cleanup, limits and evidence
 
-A session permits one operation at a time and a bounded operation count. A monotonic controllable fixture clock tests approval expiry; an actual local timer enforces session timeout. Caller metadata is copied into immutable known-field snapshots. Session internals use ECMAScript private fields; fake methods/prototypes cannot be replaced after construction.
+Each session owns its allocated resource even if preflight rejects after factory setup. Normal completion, SQL/validation failure, cancellation, timeout, competing failure and wrapper exception invoke memoized cleanup. Created Flyway containers are removed individually; the last session removes PostgreSQL and the internal network and verifies labeled inventory is empty. Synthetic temporary directories are removed in finally blocks, including Docker cleanup failure. Cleanup failure remains a reported failure; there is no automatic retry, repair, clean, baseline or batch rollback. Bounded readiness/activity queries are observations, not migration retries.
 
-## Cleanup and reporting
+Receipts/evidence use fixed fields, counts, booleans, versions and enumerated failures. No password, raw SQL, unrestricted process output, connection string or environment dump is persisted. stdout/stderr stay bounded in memory and are discarded after parsing/classification. The tests print only bounded classifications. PostgreSQL version is image-derived public metadata. This test suite proves supervised cleanup for tested process/session outcomes; it does not claim immunity to workstation power loss or Docker daemon failure.
 
-Resource ownership is registered before fake startup. Success, startup/operation failure, wrapper exceptions, cancellation and timeout invoke cleanup once for the acquired fake resource. No retry/restart is performed. Fake transactional outcomes are explicitly classified as ROLLED_BACK, COMMIT_UNKNOWN or UNKNOWN on failure; successful conceptual operations are SIMULATED_COMMITTED. Cancellation during a conceptual migration stays UNKNOWN. None is real DB evidence. Cancellation wakes a paused fake operation; late completion cannot overwrite a terminal state. Cleanup failure is reported, never silently accepted or retried. Preflight rejection acquires no resource and reports cleanup NOT_NEEDED.
+Local mutation accounting separates the 17 bootstrap DDL/privilege commands per fixture (18 for the deliberate invalid-ledger case), two allowed-but-rolled-back privilege-test DDL statements, migration effects, Flyway history entries and the two synthetic history updates in the success validation case. Unknown interrupted outcomes stay unknown. Counts are local observations, not Production migration authority; automatic PostgreSQL initialization/catalog internals are outside this statement-level accounting.
 
-These guarantees apply to the shipped in-memory resource. A future real adapter must independently prove bounded process termination and watchdog behavior, including OS/crash failure. This foundation does not claim to supervise a real proxy or cryptographically revoke issued tokens.
+## Verification
 
-Receipts include only generated session ID, LOCAL_REHEARSAL/NONE classification, reviewed source SHA, safe states/classifications, bounded versions/counts, cleanup and enumerated failure code. They never spread arbitrary input or output. Error properties are treated as untrusted; unknown/mutated/accessor codes become a safe classification. No raw SQL, stdout/stderr, stack, connection string, credential, ADC, cookie, token or environment dump is retained. With the 64-version bound, tested receipts remain below 4096 bytes.
+Use the existing clean dependency runtime, without dependency installation/version changes. Run both operator.test.ts (the original 97 tests) and localDocker.test.ts with tsx's Node test runner. Set `NEXCUT_LOCAL_REHEARSAL_TESTS=YES` only for this explicitly authorized local qualification; without it the real tests are skipped and no PASS may be claimed. Strict scoped tsc targets ES2017 with explicit files and the existing Node type roots. Scoped ESLint uses the existing config. Check both working and staged git diff --check.
 
-## Verification without installation
-
-Use existing installed clean baseline tooling; do not install dependencies or copy dirty source. Run from the isolated worktree:
-
-- Node's test runner via the existing `tsx` binary, targeting `tests/productionMigrationOperator/operator.test.ts` only.
-- Existing TypeScript compiler with strict/noEmit, the four library files, test file and inert script as explicit roots; existing clean Node type definitions. No incremental output.
-- Existing ESLint binary/config with cache disabled, targeting those same executable files.
-- `git diff --check`; include newly created files through staged-diff checking after ownership review.
-
-`node scripts/productionMigrationOperator.mjs` is safe and inert. There are intentionally no instructions here to start a Production transport or run a Production migration.
-
-## FUTURE GATES — not authorized here
-
-1. Non-Production Migration Rehearsal: implement/qualify isolated PostgreSQL runtime/migrator roles, real history/checksum/order/locking/transaction behavior and real cleanup. Separately qualify automatic IAM/JDBC/transport against non-Production Cloud SQL; pure fakes cannot prove it.
-2. Bounded Production Migrator Privilege / History Verification: only after separately authorized adapters, use bounded read-only inspection. Cloud IAM bindings alone do not prove PostgreSQL DDL privileges.
-3. LOGIN-2 Migration Design: reconcile history and version reservations first; do not reuse the CSRF table.
-4. LOGIN-2 Implementation: requires a new explicit authorization.
-
-Bootstrap is never the normal migrator or automatic fallback. Runtime identity is rejected as a migration identity. No deployment, push, GCP/IAM/Terraform/Vercel action, TikTok action or LOGIN-2 work is implied by this document.
+The Windows Docker Desktop endpoint and pinned images are deliberate prerequisites. No Linux/remote/cloud fallback exists. Images must already be present; missing artifacts fail closed. No deployment, push, GCP/IAM/Terraform/Vercel action, TikTok action or LOGIN-2 implementation is implied. Production history authority and migration identity authority remain UNKNOWN.
