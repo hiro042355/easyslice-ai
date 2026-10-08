@@ -1,7 +1,7 @@
-import { TikTokConnectionCard } from "../../../components/tiktok/TikTokConnectionCard";
+import { TikTokConnectionPanel } from "../../../components/tiktok/TikTokConnectionPanel";
 
 export default function ConnectionsPage() {
-  // No backend is implemented/authorized. Never derive status from query, cookie or storage.
+  // Default remains unavailable. Local/test services are explicitly injected by tests.
   return (
     <main className="min-h-screen bg-black px-5 py-10 text-white sm:px-8">
       <div className="mx-auto max-w-3xl">
@@ -10,7 +10,7 @@ export default function ConnectionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">アカウント連携</h1>
           <p className="mt-3 text-sm leading-7 text-gray-400">連携するプラットフォームと接続状況を確認できます。</p>
         </header>
-        <TikTokConnectionCard />
+        <TikTokConnectionPanel />
       </div>
     </main>
   );
