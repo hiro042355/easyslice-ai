@@ -1,0 +1,8 @@
+# A: staging qualification
+VERIFIED seven fresh read-only gcloud requests: ACTIVE; SQL Admin/Run/Compute/Secret Manager APIs disabled; IAM/KMS enabled; three enabled runtime/deployer/rotator service accounts; asia1 identity keyring only observed MAC key with three ENABLED HMAC_SHA256 versions; global WIF pool inventory empty. OBSERVED_METADATA.json records selected metadata. No impersonation/credential overrides/operator identity disclosure.
+
+Disabled API is not resource absence proof. Hosting, DB instances/users, secret inventory, network, HTTPS/domain, pipeline execution, budgets/billing controls UNKNOWN. No disabled-API bypass, SQL connection, secret values or billing access. Static infra/staging/gcp is MAC foundation, not qualified SQL/hosting/encryption/Firebase trust. Other KMS locations UNKNOWN; service-account existence is not effective permission proof.
+
+Minimum future approved changes: qualify reusable hosting/DB or approve resources/APIs/budget; exact isolated hostname; persistent TLS DB, independent migration/runtime roles and authoritative history; separate symmetric wrapping key/version and scoped runtime IAM; nonprod Firebase trust + Sandbox-only secret bindings; trusted per-instance bootstrap before register returns; redacted application/proxy logs. Connect/worker default false until qualified. Never substitute production credentials.
+
+Fallback design TECHNICALLY_FEASIBLE after approval, external NOT_READY. Tokyo desired for managed hosting/SQL if residency required; selected regional SKU quote UNVERIFIED. Cost formula and rollback documented separately. No Terraform init/plan/apply.

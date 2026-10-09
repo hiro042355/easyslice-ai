@@ -1,0 +1,204 @@
+{
+  "observedDate": "2026-10-09",
+  "project": "nexcut-staging",
+  "impersonation": false,
+  "productionReads": 0,
+  "mutations": 0,
+  "projectState": {
+    "data": {
+      "lifecycleState": "ACTIVE",
+      "projectId": "nexcut-staging"
+    },
+    "status": "VERIFIED"
+  },
+  "enabledServices": {
+    "data": [
+      {
+        "config": {
+          "name": "analyticshub.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquery.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigqueryconnection.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerydatapolicy.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerydatatransfer.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerymigration.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigqueryreservation.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerystorage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudapis.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudkms.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudresourcemanager.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudtrace.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "dataform.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "dataplex.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "datastore.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "iam.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "iamcredentials.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "logging.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "monitoring.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "servicemanagement.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "serviceusage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "sql-component.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage-api.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage-component.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "telemetry.googleapis.com"
+        }
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "identities": {
+    "data": [
+      {
+        "disabled": false,
+        "email": "nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com"
+      },
+      {
+        "disabled": false,
+        "email": "nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+      },
+      {
+        "disabled": false,
+        "email": "nexcut-stg-deployer@nexcut-staging.iam.gserviceaccount.com"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "keyrings": {
+    "data": {
+      "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity"
+    },
+    "status": "VERIFIED"
+  },
+  "keys": {
+    "data": {
+      "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac",
+      "purpose": "MAC"
+    },
+    "status": "VERIFIED"
+  },
+  "keyVersions": {
+    "data": [
+      {
+        "algorithm": "HMAC_SHA256",
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/1",
+        "state": "ENABLED"
+      },
+      {
+        "algorithm": "HMAC_SHA256",
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/2",
+        "state": "ENABLED"
+      },
+      {
+        "algorithm": "HMAC_SHA256",
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/3",
+        "state": "ENABLED"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "wifPools": {
+    "data": null,
+    "status": "VERIFIED"
+  },
+  "metadataRequests": 7
+}

@@ -1,0 +1,33 @@
+{
+  "version": "1",
+  "deployable": false,
+  "executionAuthorized": false,
+  "environment": "sandbox",
+  "option": "B",
+  "origin": "OWNER_APPROVAL_REQUIRED",
+  "immutableCommit": "OWNER_APPROVAL_REQUIRED",
+  "hostingProject": "ISOLATED_NON_PRODUCTION_REQUIRED",
+  "database": {
+    "binding": "ISOLATED_PERSISTENT_TLS_REQUIRED",
+    "migrationOwner": "UNKNOWN",
+    "runtimeDDL": false
+  },
+  "key": {
+    "purpose": "ENCRYPT_DECRYPT",
+    "algorithm": "GOOGLE_SYMMETRIC_ENCRYPTION",
+    "version": "APPROVED_NUMERIC_VERSION_REQUIRED",
+    "provider": "QUALIFIED_PROVIDER_REQUIRED"
+  },
+  "identity": {
+    "productionAllowed": false,
+    "nonProductionTrust": "APPROVAL_REQUIRED"
+  },
+  "flags": {
+    "connect": false,
+    "worker": false,
+    "nativeTransport": false
+  },
+  "secretValuesIncluded": false,
+  "rollbackDeployment": "VERIFIED_ID_REQUIRED",
+  "retention": "OWNER_APPROVAL_REQUIRED"
+}

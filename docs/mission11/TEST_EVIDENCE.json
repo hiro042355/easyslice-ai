@@ -1,0 +1,135 @@
+{
+  "date": "2026-10-09",
+  "baseline": "c33acf5fd7da58f672766e7d3748bf76ebc47de1",
+  "host": {
+    "passed": 637,
+    "failed": 0,
+    "skipped": 0,
+    "command": {
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "--test",
+        "--test-concurrency=1",
+        "tests/tiktokOAuth/foundation.test.ts",
+        "tests/tiktokConnection/connectionUi.test.tsx",
+        "tests/tiktokFirebase/auth.test.ts",
+        "tests/tiktokHttp/adapter.test.ts",
+        "tests/tiktokHardening/callback.test.ts",
+        "tests/tiktokHardening/chunkBoundary.test.ts",
+        "tests/tiktokHardening/keys.test.ts",
+        "tests/tiktokHardening/publisher.test.ts",
+        "tests/tiktokHardening/serialization.test.ts",
+        "tests/tiktokHardening/transport.test.ts",
+        "tests/productionIdentity/authenticatedAccountControl.test.ts",
+        "tests/productionIdentity/betaAuthorization.test.ts",
+        "tests/productionIdentity/durableCutOwnership.test.ts",
+        "tests/productionIdentity/durableMediaAdmissionClient.test.ts",
+        "tests/productionIdentity/durableMediaAnalyze.test.ts",
+        "tests/productionIdentity/durableMediaOwnership.test.ts",
+        "tests/productionIdentity/durableMultiCut.test.ts",
+        "tests/productionIdentity/durableReviewExport.test.ts",
+        "tests/productionIdentity/durableSubtitleBurn.test.ts",
+        "tests/productionIdentity/durableTranscript.test.ts",
+        "tests/productionIdentity/durableYoutubeIngestion.test.ts",
+        "tests/productionIdentity/googleIdentitySignIn.test.ts",
+        "tests/productionIdentity/packagedYtDlp.test.ts",
+        "tests/productionIdentity/productionDurableStorageInfrastructure.test.ts",
+        "tests/productionIdentity/productionIdentityFoundation.test.ts",
+        "tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+        "tests/productionIdentity/productionOwnerUidProofRoute.test.ts",
+        "tests/productionIdentity/restoredServerSession.test.ts",
+        "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts",
+        "tests/productionIdentity/vercelWifCredential.test.ts",
+        "tests/tiktokApplication/application.test.ts",
+        "tests/tiktokMission09/client.test.tsx",
+        "tests/tiktokMission09/worker.test.ts",
+        "tests/tiktokMission10/keyConfiguration.test.ts",
+        "tests/tiktokMission10/preflight.test.ts",
+        "tests/tiktokMission11/preflight.test.ts",
+        "tests/tiktokIntegration/client.test.tsx",
+        "tests/productionMigrationOperator/operator.test.ts"
+      ]
+    },
+    "argsEnvironment": "closed SystemRoot/PATH/TEMP/TMP; no real credentials"
+  },
+  "postgresql": {
+    "passed": 133,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+    "privateDocker": true,
+    "publishedPorts": 0,
+    "containersRemaining": 0,
+    "networksRemaining": 0,
+    "syntheticDml": "EXECUTED",
+    "productionConnections": 0
+  },
+  "distinctTests": 770,
+  "newTests": 62,
+  "typecheck": {
+    "exit": 0,
+    "command": "node node_modules/typescript/bin/tsc --noEmit"
+  },
+  "focusedLint": {
+    "exit": 0,
+    "command": [
+      "node",
+      "node_modules/eslint/bin/eslint.js",
+      "lib/server/tiktokQualification/architecturePreflight.ts",
+      "scripts/tiktokArchitecturePreflight.mjs",
+      "tests/tiktokMission11/preflight.test.ts",
+      "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "tests/tiktokHardening/runBuild.mjs"
+    ]
+  },
+  "bundle": {
+    "command": "node tests/tiktokFullIntegration/prepareLocalRehearsal.mjs C:/Users/hirom/OneDrive/ドキュメント/GitHub/nexcut-tiktok-publisher",
+    "es2022": "PASS",
+    "es2017": "PASS"
+  },
+  "build": {
+    "exit": 0,
+    "command": "node tests/tiktokHardening/runBuild.mjs C:/Users/hirom/AppData/Local/Temp/nexcut-tiktok-integration-11-20261009 C:/Users/hirom/AppData/Local/Temp/nexcut-mission11-build.log",
+    "productionEnvironmentValues": 0,
+    "network": "public-google-font-assets-only"
+  },
+  "repositoryLint": {
+    "exit": 1,
+    "classification": "BASELINE_FAILURE",
+    "baselineErrors": 30,
+    "baselineWarnings": 48,
+    "missionErrors": 30,
+    "missionWarnings": 48,
+    "exactDiagnosticsMatch": true,
+    "normalizedDiagnosticsSha256": "535f734fc50bfdad092376b0ab650ef0749b6438dadad0b0b73a21bbfcf65d8a"
+  },
+  "preflight": {
+    "exit": 2,
+    "status": "BLOCKED",
+    "classification": "EXPECTED_SAFETY_RESULT"
+  },
+  "initialFailures": {
+    "testFailures": 0,
+    "investigation": [
+      "Initial Git/DNS reads denied by sandbox; authorized read-only escalation succeeded.",
+      "Two guessed documentation/helper paths absent; actual files discovered using rg and read.",
+      "First oversized document write rejected before process creation (Windows length limit); split batches succeeded.",
+      "Initial original hash comparison was case-sensitive versus uppercase stored SHA; corrected normalization confirmed all 363 matches. No file-integrity failure.",
+      "Precommit gate stopped before commit: historic file-hash snapshot HEAD was71f4 before authorized authentication checkpoint. Reverified current original HEAD=f3873fb294bbc11974ca180dea10fa711c49d436 against Mission11 start and remote main; all363 hashes/inventories unchanged. Predicate corrected to current authorized HEAD, not stale snapshot HEAD."
+    ]
+  },
+  "logs": {
+    "hostSha256": "3c5b126a7e81063ef76ed78c5688204598fd21ab04f261cdc4204efdc4a23a79",
+    "postgresqlSha256": "710ae22a8a0cd86fe12383e774a51022f52c1646596a7f079436d1164c74bd92",
+    "buildSha256": "145ffc6c5cd5ce1b3423486ddf185b04aed58a3d058ce3b3f76c1d75846a5086"
+  },
+  "cloudProductionMutations": 0,
+  "realTikTokCalls": 0,
+  "oauthActions": 0,
+  "deployments": 0,
+  "tunnels": 0,
+  "productionReads": 0,
+  "cloudMetadataRequests": 7
+}

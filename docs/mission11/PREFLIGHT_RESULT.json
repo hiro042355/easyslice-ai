@@ -1,0 +1,86 @@
+{
+  "reportOnly": true,
+  "option": "B",
+  "status": "BLOCKED",
+  "checks": [
+    {
+      "check": "applicationConfiguration",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "environmentSeparation",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "redirectConsistency",
+      "state": "BLOCKED",
+      "reason": "ALTERNATE_CALLBACK_CODE_PORTAL_FIREBASE_RELEASE_REQUIRED"
+    },
+    {
+      "check": "databaseReadiness",
+      "state": "UNVERIFIED",
+      "reason": "PERSISTENT_ISOLATED_DATABASE_REQUIRED"
+    },
+    {
+      "check": "encryptionReadiness",
+      "state": "UNVERIFIED",
+      "reason": "QUALIFIED_SYMMETRIC_KEY_REQUIRED"
+    },
+    {
+      "check": "runtimeIdentity",
+      "state": "UNVERIFIED",
+      "reason": "NON_PRODUCTION_IDENTITY_REQUIRED"
+    },
+    {
+      "check": "firebaseBoundary",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "stateStorage",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "tokenCustody",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "connectFlag",
+      "state": "PASS",
+      "reason": "CONNECT_DISABLED"
+    },
+    {
+      "check": "workerFlag",
+      "state": "PASS",
+      "reason": "WORKER_DISABLED"
+    },
+    {
+      "check": "loggingRedaction",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "callbackComposition",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "disconnectPath",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "rollback",
+      "state": "UNVERIFIED",
+      "reason": "EVIDENCE_REQUIRED"
+    }
+  ],
+  "REAL_SANDBOX_OAUTH_READY": "NO",
+  "executionAuthorized": false,
+  "networkOperations": 0,
+  "productionAccess": 0
+}

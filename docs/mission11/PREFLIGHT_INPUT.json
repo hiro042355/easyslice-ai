@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "option": "B",
+  "environment": "sandbox",
+  "origin": "https://sandbox.example.test",
+  "redirectUri": "https://sandbox.example.test/api/tiktok/oauth/callback",
+  "connectEnabled": false,
+  "workerEnabled": false,
+  "database": "UNKNOWN",
+  "encryption": "UNKNOWN",
+  "identity": "UNKNOWN",
+  "checks": {}
+}

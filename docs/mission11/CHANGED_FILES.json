@@ -1,0 +1,346 @@
+{
+  "baseCommit": "c33acf5fd7da58f672766e7d3748bf76ebc47de1",
+  "fileCount": 24,
+  "modifiedCount": 3,
+  "createdCount": 21,
+  "deletedCount": 0,
+  "selfHash": "bound by Git commit tree",
+  "files": [
+    {
+      "path": "docs/mission11/ACCEPTANCE_REPORT.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "997da3731e512448fbe374cbb1fae09eb59dde973d69d44bb570cafbbd1efaac"
+    },
+    {
+      "path": "docs/mission11/CHANGED_FILES.json",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": null
+    },
+    {
+      "path": "docs/mission11/DEPLOYMENT_MANIFEST_TEMPLATE.json",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "9881e4debb2e7179e16683634bb57179fc27b0b46822cc7ef5d4e4ba81e781a0"
+    },
+    {
+      "path": "docs/mission11/EXECUTION_AND_ROLLBACK_PLAN.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8c6570bfa6cd13f4d3d7a4023eb0ed1fdd75b100bbecac988208fffd6d6fba59"
+    },
+    {
+      "path": "docs/mission11/OBSERVED_METADATA.json",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8ddfe71b801c9ec8098023679a8702131944b95d0a7aca45d8a9bd8b83afe422"
+    },
+    {
+      "path": "docs/mission11/OFFICIAL_REQUIREMENTS_MATRIX.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "44b6d4a6c4accae7a522f5808e27cd9b631be977cf1861de8312a7679bbbd027"
+    },
+    {
+      "path": "docs/mission11/OPTION_A_STAGING_READINESS.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "15c744e2dcea0b92d34882ccc10a41d4c103e42628df5d4d4f732bd2225343ae"
+    },
+    {
+      "path": "docs/mission11/OPTION_B_ISOLATED_SANDBOX_DESIGN.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "9ea3f72c98c0f7ce597b5a906a8aceaaf84d73aef9e0fe6ea93439de210b2afa"
+    },
+    {
+      "path": "docs/mission11/OPTION_C_LOCAL_HTTPS_READINESS.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8fb9db7f86ec5c444d73832c584275244004a0398d2ec451f4415cf7621cb994"
+    },
+    {
+      "path": "docs/mission11/PORTAL_SCREENSHOT_CHECKLIST.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e0e045d8364acbb3743f5d3e2e790c567842b4cd7f62b74949c9959aae54b67b"
+    },
+    {
+      "path": "docs/mission11/PREFLIGHT_INPUT.json",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c8ea4ede6a87f45eb70bb5ee1513f1b79a9cac2569414518b9425407b33bcc0b"
+    },
+    {
+      "path": "docs/mission11/PREFLIGHT_RESULT.json",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "9c23d370c7060fb11fa7c790bbfe67ca3ceec5d6ca82d6f5d1cb6097cd8887aa"
+    },
+    {
+      "path": "docs/mission11/PRE_LIVE_OAUTH_PREFLIGHT_REPORT.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "3ecb44e1dd99ff2b84d479cb7de794aa184e55907485501a25ef8711201aae3a"
+    },
+    {
+      "path": "docs/mission11/RECOMMENDED_SANDBOX_ARCHITECTURE.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "69d1b3d52ce093a043e85651c970385de11ce5cbd0665d88c4c79279e1772b58"
+    },
+    {
+      "path": "docs/mission11/REDIRECT_URI_COMPATIBILITY_REPORT.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "cb0e65d3de108885a1aec50e329aa45012ca96c6d208534b0abbfba2a7d2f149"
+    },
+    {
+      "path": "docs/mission11/SANDBOX_COST_COMPARISON.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "a0419b7d9b66aa0f6ca3d19f7d760bfbdc59c07776da3fe9f63010af3d7b442f"
+    },
+    {
+      "path": "docs/mission11/SANDBOX_ENVIRONMENT_COMPARISON.md",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "a3c86862061ff575f3614a39d2f804f65eee7718cd095ac8567bccf0088f5f3c"
+    },
+    {
+      "path": "docs/mission11/TEST_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission11 comparison, evidence, preflight or owner approval package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "f628ef24b6cd616197bf040066696268ef1f8fb1a313378e409a8d2b3ab9ec20"
+    },
+    {
+      "path": "lib/server/tiktokQualification/architecturePreflight.ts",
+      "status": "created",
+      "purpose": "Inert allowlisted local preflight; no runtime installation",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "4a193cf83c335b20a309c11f7d9d50fda59c05eb451bc3e92a7a480956f1ac40"
+    },
+    {
+      "path": "scripts/tiktokArchitecturePreflight.mjs",
+      "status": "created",
+      "purpose": "Inert allowlisted local preflight; no runtime installation",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2527f27fbb4d53cca79ded856a1f13a70252221548619a129090ef92125cf29d"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission11 regression output/labels and approved build root",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "71d91daf74f28abe01cd42cbaa87466f0f022381401c2e120a8151fdae9656e1"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission11 regression output/labels and approved build root",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "48f3e3e66ea5a16f33324a43fbf6f7756cc1f60c27ff821606392520e3ee2d77"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission11 regression output/labels and approved build root",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "a2c6b13254e3b318d7d90639068d006f49a4cce41ed68318a92cbf28339b0928"
+    },
+    {
+      "path": "tests/tiktokMission11/preflight.test.ts",
+      "status": "created",
+      "purpose": "Synthetic preflight security/failure tests",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "add970abf5ed07829702231ef844b64bf352ace8fd95ec4234bbb813c7d55d38"
+    }
+  ]
+}
