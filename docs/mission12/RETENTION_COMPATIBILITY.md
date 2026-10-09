@@ -1,0 +1,8 @@
+# Retention compatibility
+No retention period approved/finalized, deletion job created, irreversible deletion or Production mutation performed.
+
+Proposed additional categories: free-provider account/billing eligibility/quota records; runtime/deployment/build logs; edge TLS/access/callback query telemetry; provider audit events; encrypted DB replicas/snapshots/exports, paused/expired DB archives; versioned KEKs/wrapped DEKs/recovery copies/unseal shares; host environment snapshots and rollback artifacts; developer machine encrypted backup/temp diagnostic files; owner-approved real-review recording only later. No real token/key category stored by this mission.
+
+Provider fixed expiration/log windows are service behavior, not consent to NEXCUT retention. Examples: Render Free PG30-day expiry/deletion after grace makes durability unsafe; Supabase Free pauses and lacks managed backup; Neon announced six-hour restore window may be insufficient. Account closure/data recovery and log query retention may remain UNVERIFIED. Free tools' local test temp logs contain synthetic data; no bulk deletion outside owned disposable Docker cleanup.
+
+Before real test: owner approves encrypted data/export locations and recovery responsibility, bounded log fields, access controls, revocation/rotation and eventual retirement. Disconnect local protected state/keys/grants is accepted security behavior, not authorization for new retention jobs. Keep needed wrapping versions until every required ciphertext/backup no longer needs them. No schedule or period invented; policy may require not using a candidate at all.

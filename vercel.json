@@ -1,0 +1,7 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "codex/tiktok-integration-mission-12": false
+    }
+  }
+}

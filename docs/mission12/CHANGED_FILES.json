@@ -1,0 +1,374 @@
+{
+  "baseCommit": "ed3fe5a53e8fc39eb2f718096832395ba96f2ee2",
+  "fileCount": 26,
+  "modifiedCount": 3,
+  "createdCount": 23,
+  "deletedCount": 0,
+  "selfHash": "Bound by Git commit tree",
+  "files": [
+    {
+      "path": "docs/mission12/ACCEPTANCE_REPORT.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "943501a62f733a3c4206c3c879dd33e7028f2446e91692939e3765c5a4283ac4"
+    },
+    {
+      "path": "docs/mission12/CHANGED_FILES.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": null
+    },
+    {
+      "path": "docs/mission12/CHECKPOINT_NONDEPLOYMENT_GUARD.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "6f715efe2bd6afe88f1f9264862247643a7b47e91d8452fa1528e653e7084d49"
+    },
+    {
+      "path": "docs/mission12/DEPLOYMENT_MANIFEST_TEMPLATE.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "dd3b3c72466636c224f769c7db9b9efc5a242ae5a0844cce072af3e39abfe8fe"
+    },
+    {
+      "path": "docs/mission12/DOMAIN_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c5e4c9974e4112d7100a1956cf45b2cca87acfd71c2ffdfaaa85d4bb09b1a749"
+    },
+    {
+      "path": "docs/mission12/FREE_INFRASTRUCTURE_MATRIX.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2ed4602f7640e35715f1c4f206215b7e402ca0df58bbef62b508673e9e77679d"
+    },
+    {
+      "path": "docs/mission12/IDENTITY_AND_SECRETS_PLAN.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e54c83285029c9f1a5099aba727a1261b7e7bbaf66d82972cd9a6115a58ca628"
+    },
+    {
+      "path": "docs/mission12/OBSERVED_METADATA.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "397deb0bbea064383b04ca6dedbdc75cbcc2a9480a895860626babba0999e53a"
+    },
+    {
+      "path": "docs/mission12/PRODUCT_OWNER_DECISION_PACKAGE.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "47b74fd29821c5f68c59342cec539dc0b0f8412606debd2e52709aad500f6044"
+    },
+    {
+      "path": "docs/mission12/READINESS_INPUT.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "281d5dcd693357cd6b473e10e7e7b9942c7499d23725043948557c06ce59e41c"
+    },
+    {
+      "path": "docs/mission12/READINESS_RESULT.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "04b6a57cfd7f03c3ae33d2ca2c68f95b647951f2df5ce3ca5e233ca9189d0216"
+    },
+    {
+      "path": "docs/mission12/REAL_OAUTH_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "f28cfbdc83d84bfcac029ed68ba961560077446b6046bd93075bc566ff6f8cec"
+    },
+    {
+      "path": "docs/mission12/RETENTION_COMPATIBILITY.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2399591496d9ee2c9f9aa4dc474c5025c01a21472989ad5a661b45e713852364"
+    },
+    {
+      "path": "docs/mission12/TEST_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "28e7f0a6079b0464bf095e0ee57b09e61c625d1192e62b570eb39c82c09b6f4b"
+    },
+    {
+      "path": "docs/mission12/TIKTOK_REQUIREMENTS_VERIFICATION.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e9cddb9eea8f9649c251d66e09526e15a9881bc059410ea31514e208729d4390"
+    },
+    {
+      "path": "docs/mission12/ZERO_COST_ARCHITECTURE_COMPARISON.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "7c7e7b33dea4319af4b0d72218032e12475dc6b4a8369e53de22ef9290ae3215"
+    },
+    {
+      "path": "docs/mission12/ZERO_COST_CALLBACK_PLAN.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "42348f7d7dbc773a4a429742e1c824e3a4fdb3e70fef7d00506553405ffb3515"
+    },
+    {
+      "path": "docs/mission12/ZERO_COST_DATABASE_PLAN.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d9e9523e830c8e0bc92603fc3471cc0617e772bab3b6d0f898b4e155e1333b4c"
+    },
+    {
+      "path": "docs/mission12/ZERO_COST_ENCRYPTION_PLAN.md",
+      "status": "created",
+      "purpose": "Mission12 zero-cost qualification, decision or bounded evidence report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2d7433e0e2387de3867a400ea1ff3cbc8711ab3f2d4b280f3a80401bd2114732"
+    },
+    {
+      "path": "lib/server/tiktokQualification/zeroCostReadiness.ts",
+      "status": "created",
+      "purpose": "Inert strict no-charge/OAuth evidence gate; no runtime authority",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8e43b0cb8106939ba429bc761740b5027acbb61b028c7811edf8c6da92caa808"
+    },
+    {
+      "path": "scripts/tiktokZeroCostReadiness.mjs",
+      "status": "created",
+      "purpose": "Inert strict no-charge/OAuth evidence gate; no runtime authority",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "9da499228445e2dc863c2d7bc0b9964620ef25c547ee950005466c646f75b174"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Mission12 isolated regression bundle/labels/build-root guard",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d1090c590c50be52e4e9b54e2c92d711617ed677688792c9b39a3abaa37d4c70"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Mission12 isolated regression bundle/labels/build-root guard",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "7bfcc89703a6911ac5130b83a59bd5ec33d9466abfffaa00f30bbea7914a8d80"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "status": "modified",
+      "purpose": "Mission12 isolated regression bundle/labels/build-root guard",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "7af51de20c6063d5b4423c63731beb816fa3a46b065bb4a16402f3875d98eecc"
+    },
+    {
+      "path": "tests/tiktokMission12/readiness.test.ts",
+      "status": "created",
+      "purpose": "Synthetic zero-cost/readiness security tests",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "49a04c3aec5b6c7a42ce930921bea2d9ed2ef7ea040d1eec6d2d5a8de280560b"
+    },
+    {
+      "path": "vercel.json",
+      "status": "created",
+      "purpose": "Suppress only exact Mission12 Git automatic deployment; no other branch/settings rule",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "616948d9b0322e692c141afaa86b29ad39d6facc78e46f24a00e04b3098a0b01"
+    }
+  ]
+}

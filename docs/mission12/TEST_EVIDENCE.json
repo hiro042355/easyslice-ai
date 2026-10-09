@@ -1,0 +1,156 @@
+{
+  "date": "2026-10-09",
+  "baseline": "ed3fe5a53e8fc39eb2f718096832395ba96f2ee2",
+  "host": {
+    "passed": 711,
+    "failed": 0,
+    "skipped": 0,
+    "command": {
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "--test",
+        "--test-concurrency=1",
+        "tests/tiktokOAuth/foundation.test.ts",
+        "tests/tiktokConnection/connectionUi.test.tsx",
+        "tests/tiktokFirebase/auth.test.ts",
+        "tests/tiktokHttp/adapter.test.ts",
+        "tests/tiktokHardening/callback.test.ts",
+        "tests/tiktokHardening/chunkBoundary.test.ts",
+        "tests/tiktokHardening/keys.test.ts",
+        "tests/tiktokHardening/publisher.test.ts",
+        "tests/tiktokHardening/serialization.test.ts",
+        "tests/tiktokHardening/transport.test.ts",
+        "tests/productionIdentity/authenticatedAccountControl.test.ts",
+        "tests/productionIdentity/betaAuthorization.test.ts",
+        "tests/productionIdentity/durableCutOwnership.test.ts",
+        "tests/productionIdentity/durableMediaAdmissionClient.test.ts",
+        "tests/productionIdentity/durableMediaAnalyze.test.ts",
+        "tests/productionIdentity/durableMediaOwnership.test.ts",
+        "tests/productionIdentity/durableMultiCut.test.ts",
+        "tests/productionIdentity/durableReviewExport.test.ts",
+        "tests/productionIdentity/durableSubtitleBurn.test.ts",
+        "tests/productionIdentity/durableTranscript.test.ts",
+        "tests/productionIdentity/durableYoutubeIngestion.test.ts",
+        "tests/productionIdentity/googleIdentitySignIn.test.ts",
+        "tests/productionIdentity/packagedYtDlp.test.ts",
+        "tests/productionIdentity/productionDurableStorageInfrastructure.test.ts",
+        "tests/productionIdentity/productionIdentityFoundation.test.ts",
+        "tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+        "tests/productionIdentity/productionOwnerUidProofRoute.test.ts",
+        "tests/productionIdentity/restoredServerSession.test.ts",
+        "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts",
+        "tests/productionIdentity/vercelWifCredential.test.ts",
+        "tests/tiktokApplication/application.test.ts",
+        "tests/tiktokMission09/client.test.tsx",
+        "tests/tiktokMission09/worker.test.ts",
+        "tests/tiktokMission10/keyConfiguration.test.ts",
+        "tests/tiktokMission10/preflight.test.ts",
+        "tests/tiktokMission11/preflight.test.ts",
+        "tests/tiktokMission12/readiness.test.ts",
+        "tests/tiktokIntegration/client.test.tsx",
+        "tests/productionMigrationOperator/operator.test.ts"
+      ]
+    },
+    "closedEnvironment": [
+      "SystemRoot",
+      "PATH",
+      "TEMP",
+      "TMP"
+    ]
+  },
+  "postgresql": {
+    "passed": 133,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+    "localSyntheticDml": "EXECUTED",
+    "localFixtureDdl": "EXECUTED",
+    "privateNetwork": true,
+    "publishedPorts": 0,
+    "credentialMounts": 0,
+    "persistentVolumes": 0,
+    "remainingContainers": 0,
+    "remainingNetworks": 0
+  },
+  "distinctTests": 844,
+  "newTests": 74,
+  "typecheck": {
+    "args": [
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "focusedLint": {
+    "args": [
+      "node_modules/eslint/bin/eslint.js",
+      "lib/server/tiktokQualification/zeroCostReadiness.ts",
+      "scripts/tiktokZeroCostReadiness.mjs",
+      "tests/tiktokMission12/readiness.test.ts",
+      "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "tests/tiktokHardening/runBuild.mjs"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "strictBundle": {
+    "es2022": "PASS",
+    "es2017": "PASS",
+    "command": "node tests/tiktokFullIntegration/prepareLocalRehearsal.mjs C:/Users/hirom/OneDrive/ドキュメント/GitHub/nexcut-tiktok-publisher"
+  },
+  "build": {
+    "exit": 0,
+    "command": "node tests/tiktokHardening/runBuild.mjs C:/Users/hirom/AppData/Local/Temp/nexcut-tiktok-integration-12-20261009 C:/Users/hirom/AppData/Local/Temp/nexcut-mission12-build.log",
+    "productionEnvironmentValues": 0,
+    "network": "public-google-font-assets-only",
+    "prebuildDownloads": 0
+  },
+  "repositoryLint": {
+    "exit": 1,
+    "command": "node node_modules/eslint/bin/eslint.js . --format json --output-file C:/Users/hirom/AppData/Local/Temp/nexcut-mission12-lint.json",
+    "classification": "BASELINE_FAILURE",
+    "baselineErrors": 30,
+    "baselineWarnings": 48,
+    "missionErrors": 30,
+    "missionWarnings": 48,
+    "exactDiagnosticsMatch": true,
+    "normalizedSha256": "535f734fc50bfdad092376b0ab650ef0749b6438dadad0b0b73a21bbfcf65d8a"
+  },
+  "readiness": {
+    "exit": 2,
+    "status": "BLOCKED",
+    "classification": "EXPECTED_SAFETY_RESULT"
+  },
+  "initialFailures": {
+    "testFailures": 0,
+    "investigation": [
+      "A guessed lib/server/firebaseAdmin.ts path was absent; actual productionIdentity/firebaseAdmin.ts found and inspected.",
+      ".github/workflows inventory path absent; verified no tracked workflow files. rg no-match exit1 is absence in source, not absence of external accounts.",
+      "Neon official plan/region/TLS documents inaccessible (markdown content-type); requirements UNVERIFIED, accessible official announcement used, no third-party substitution."
+    ]
+  },
+  "logs": {
+    "hostSha256": "d06e2afe1b0383c455b8c08e71f4ce57882e860e68f76552607cbbc6ac48579e",
+    "postgresqlSha256": "4ea6e1abaf96b75e7e0c4d8fcc6ed3c44c772438f1a310472284e4822bca4998",
+    "buildSha256": "94d869e67d83f6f1f48839a5aa9b2e9ed2f0850869997d7db4cc09004ea98d1b"
+  },
+  "externalOperations": {
+    "nonprodMetadataReads": 7,
+    "publicDnsAndTlsHandshake": 1,
+    "productionHttpRequests": 0,
+    "productionAuthRequests": 0,
+    "dbConnections": 0,
+    "cryptoCalls": 0,
+    "cloudMutations": 0,
+    "billingActivation": 0,
+    "accountCreation": 0,
+    "resourceCreation": 0,
+    "deployInvocations": 0,
+    "tunnels": 0,
+    "tiktokApiCalls": 0,
+    "oauthActions": 0
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "reportOnly": true,
+  "status": "BLOCKED",
+  "evidenceAssurance": "DECLARED_ONLY",
+  "costs": [
+    {
+      "component": "hosting",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "database",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "encryption",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "runtimeIdentity",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "secrets",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "callback",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "authentication",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "logging",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "worker",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    },
+    {
+      "component": "automation",
+      "state": "UNVERIFIED",
+      "reason": "COST_EVIDENCE_REQUIRED"
+    }
+  ],
+  "checks": [
+    {
+      "check": "hosting",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "httpsCallback",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "registeredRedirect",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "database",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "encryption",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "runtimeIdentity",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "secretManagement",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "authentication",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "stateProtection",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "featureFlags",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "rollback",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    },
+    {
+      "check": "ownerAuthorization",
+      "state": "UNVERIFIED",
+      "reason": "EXTERNAL_EVIDENCE_REQUIRED"
+    }
+  ],
+  "blockers": [
+    "ALTERNATE_CALLBACK_RELEASE_REQUIRED",
+    "QUALIFIED_ENVELOPE_REQUIRED",
+    "NON_PRODUCTION_IDENTITY_REQUIRED"
+  ],
+  "REAL_SANDBOX_OAUTH_READY": "NO",
+  "executionAuthorized": false,
+  "firstFutureApiStage": "CREATOR_INFO_ONLY",
+  "networkOperations": 0,
+  "billingOperations": 0,
+  "deploymentOperations": 0
+}

@@ -1,0 +1,26 @@
+{
+  "version": "1",
+  "deployable": false,
+  "executionAuthorized": false,
+  "target": "ISOLATED_SANDBOX_ONLY",
+  "financialPolicy": {
+    "additionalCostAllowed": 0,
+    "newPaymentOrBillingAllowed": false,
+    "newPaidKmsAllowed": false,
+    "automaticUpgradeAllowed": false,
+    "chargeOverageAllowed": false,
+    "trialCreditsQualify": false,
+    "actualAccountEvidence": "UNVERIFIED"
+  },
+  "origin": "OWNER_SELECTED_REGISTERED_STATIC_HTTPS_REQUIRED",
+  "database": "PERSISTENT_TLS_LEAST_PRIVILEGE_RECOVERY_REQUIRED",
+  "encryption": "QUALIFIED_ENVELOPE_PROVIDER_REQUIRED",
+  "keyMaterialIncluded": false,
+  "nonProductionFirebaseTrust": "REVIEW_REQUIRED",
+  "connectEnabled": false,
+  "workerEnabled": false,
+  "firstFutureApiStage": "CREATOR_INFO_ONLY",
+  "realApiExecutionAllowed": false,
+  "rollbackArtifact": "VERIFIED_ID_REQUIRED",
+  "retention": "UNAPPROVED"
+}
