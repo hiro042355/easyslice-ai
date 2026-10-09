@@ -1,0 +1,4 @@
+# Real OAuth readiness
+REAL_SANDBOX_OAUTH_READY=NO;startupPermitted=false;statusBLOCKED. Actual unchangedgate output READINESS_RESULT.json: hosting/secrets/Portal/billing/rollbackUNKNOWN;database/encryption/identity/callbackNO;ownerrealOAuthauthorizationNO. Fourpublic200/TLS checks change publicreality only, not thesefields. NewemptyKMSregions expand scopedinventory, not freecustodyproof.
+
+BILLING_SAFEUNKNOWN remainsblocker. ExistingProductiondatabase/authsource orhistoricownerprobe are not TikTokcustody permission;accountfacts OWNER_VERIFICATION_REQUIRED. No zero-costruntimeverified, no finalproviderselected. Three ownerbundles resolve privatequestions; anylaterconfiguration/code/IAM/key/migration/deploy/OAuth requires separateexplicitgate. No permission inferredfromscreenshots ormarketing. Mission16notstarted.

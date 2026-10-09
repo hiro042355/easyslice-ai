@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-09",
+  "baseline": "229c266b0f13979c0eb7c325f102e24ab5cd3c89",
+  "host": {
+    "passed": 845,
+    "failed": 0,
+    "skipped": 0,
+    "command": {
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "--test",
+        "--test-concurrency=1",
+        "tests/tiktokOAuth/foundation.test.ts",
+        "tests/tiktokConnection/connectionUi.test.tsx",
+        "tests/tiktokFirebase/auth.test.ts",
+        "tests/tiktokHttp/adapter.test.ts",
+        "tests/tiktokHardening/callback.test.ts",
+        "tests/tiktokHardening/chunkBoundary.test.ts",
+        "tests/tiktokHardening/keys.test.ts",
+        "tests/tiktokHardening/publisher.test.ts",
+        "tests/tiktokHardening/serialization.test.ts",
+        "tests/tiktokHardening/transport.test.ts",
+        "tests/productionIdentity/authenticatedAccountControl.test.ts",
+        "tests/productionIdentity/betaAuthorization.test.ts",
+        "tests/productionIdentity/durableCutOwnership.test.ts",
+        "tests/productionIdentity/durableMediaAdmissionClient.test.ts",
+        "tests/productionIdentity/durableMediaAnalyze.test.ts",
+        "tests/productionIdentity/durableMediaOwnership.test.ts",
+        "tests/productionIdentity/durableMultiCut.test.ts",
+        "tests/productionIdentity/durableReviewExport.test.ts",
+        "tests/productionIdentity/durableSubtitleBurn.test.ts",
+        "tests/productionIdentity/durableTranscript.test.ts",
+        "tests/productionIdentity/durableYoutubeIngestion.test.ts",
+        "tests/productionIdentity/googleIdentitySignIn.test.ts",
+        "tests/productionIdentity/packagedYtDlp.test.ts",
+        "tests/productionIdentity/productionDurableStorageInfrastructure.test.ts",
+        "tests/productionIdentity/productionIdentityFoundation.test.ts",
+        "tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+        "tests/productionIdentity/productionOwnerUidProofRoute.test.ts",
+        "tests/productionIdentity/restoredServerSession.test.ts",
+        "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts",
+        "tests/productionIdentity/vercelWifCredential.test.ts",
+        "tests/tiktokApplication/application.test.ts",
+        "tests/tiktokMission09/client.test.tsx",
+        "tests/tiktokMission09/worker.test.ts",
+        "tests/tiktokMission10/keyConfiguration.test.ts",
+        "tests/tiktokMission10/preflight.test.ts",
+        "tests/tiktokMission11/preflight.test.ts",
+        "tests/tiktokMission12/readiness.test.ts",
+        "tests/tiktokMission13/providerSimulation.test.ts",
+        "tests/tiktokMission14/finalPreflight.test.ts",
+        "tests/tiktokMission15/realityBoundary.test.ts",
+        "tests/tiktokIntegration/client.test.tsx",
+        "tests/productionMigrationOperator/operator.test.ts"
+      ]
+    }
+  },
+  "postgresql": {
+    "passed": 133,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+    "completeE2EPassingLine": "✔ browser Connect -> real Next synthetic callback -> encrypted PG -> CONNECTED -> consent/B7 worker -> disconnect -> NOT_CONNECTED (5832.396624ms)",
+    "privateNetwork": true,
+    "publishedPorts": 0,
+    "credentialMounts": 0,
+    "persistentVolumes": 0,
+    "remainingContainers": 0,
+    "remainingNetworks": 0,
+    "localSyntheticDml": "EXECUTED",
+    "localFixtureDdl": "EXECUTED"
+  },
+  "distinctTests": 978,
+  "newTests": 33,
+  "typecheck": {
+    "args": [
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "focusedLint": {
+    "args": [
+      "node_modules/eslint/bin/eslint.js",
+      "tests/tiktokMission15/realityBoundary.test.ts",
+      "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "tests/tiktokHardening/runBuild.mjs"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "strictBundle": {
+    "es2022": "PASS",
+    "es2017": "PASS",
+    "command": "node tests/tiktokFullIntegration/prepareLocalRehearsal.mjs C:/Users/hirom/OneDrive/ドキュメント/GitHub/nexcut-tiktok-publisher"
+  },
+  "build": {
+    "exit": 0,
+    "command": "node tests/tiktokHardening/runBuild.mjs C:/Users/hirom/AppData/Local/Temp/nexcut-tiktok-integration-15-20261009 C:/Users/hirom/AppData/Local/Temp/nexcut-mission15-build.log",
+    "closedEnvironment": true,
+    "network": "public-google-font-assets-only",
+    "productionEnvironmentValues": 0
+  },
+  "repositoryLint": {
+    "exit": 1,
+    "classification": "BASELINE_FAILURE",
+    "command": "node node_modules/eslint/bin/eslint.js . --format json --output-file C:/Users/hirom/AppData/Local/Temp/nexcut-mission15-lint.json",
+    "baselineErrors": 30,
+    "baselineWarnings": 48,
+    "missionErrors": 30,
+    "missionWarnings": 48,
+    "exactDiagnosticsMatch": true
+  },
+  "readiness": {
+    "command": "node --import tsx scripts/tiktokFinalSandboxPreflight.mjs docs/mission14/PREFLIGHT_INPUT.json",
+    "exit": 2,
+    "classification": "EXPECTED_BLOCKED",
+    "billingSafe": "UNKNOWN",
+    "startupPermitted": false
+  },
+  "initialFailures": {
+    "testFailures": 0,
+    "buildFailures": 0,
+    "newRegressions": 0,
+    "investigationFailures": 0
+  },
+  "logs": {
+    "hostSha256": "f8ef2b750fe769344424cdcf031d0fcc5ba9c16630559db2037e169ca754e14a",
+    "postgresqlSha256": "6f69ffb396df708fbc6fcc9d498eb9bdbc88fb10e1948d413e6be773c8f61b89",
+    "buildSha256": "1d7ca6a61d622d3c1826a5ef321284573109cb773a813ba3c4a4605d2e60ce24"
+  },
+  "externalOperations": {
+    "nonprodMetadataReads": 5,
+    "publicUnauthenticatedHeadRequests": 4,
+    "oauthCallbackRequests": 0,
+    "dbConnections": 0,
+    "realCryptoCalls": 0,
+    "secretValuesRead": 0,
+    "cloudMutations": 0,
+    "billingActivation": 0,
+    "accountCreation": 0,
+    "resourceCreation": 0,
+    "deploymentInvocations": 0,
+    "tunnels": 0,
+    "realTikTokCalls": 0,
+    "realOAuth": 0,
+    "productionControlPlaneMetadataReads": 4,
+    "productionAuthenticatedApplicationRequests": 0,
+    "sqlQueries": 0
+  },
+  "newRealityEvidence": {
+    "productionInstance": "RUNNABLE_POSTGRES18_TOKYO",
+    "recentBackups": "3_AUTOMATED_SUCCESSFUL",
+    "scopedNewKmsLocations": "GLOBAL_TOKYO_OSAKA_EMPTY",
+    "reuseAuthority": "UNKNOWN"
+  }
+}

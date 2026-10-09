@@ -1,0 +1,54 @@
+{
+  "authenticatedRequests": 0,
+  "date": "2026-10-09",
+  "privateEndpoints": 0,
+  "oauthCodesOrTokensSent": 0,
+  "requests": 4,
+  "results": [
+    {
+      "method": "HEAD",
+      "vercelHeaderPresent": true,
+      "httpsValidated": true,
+      "cookiesSent": false,
+      "redirectFollowed": false,
+      "path": "/",
+      "authorizationSent": false,
+      "status": 200,
+      "server": "Vercel"
+    },
+    {
+      "method": "HEAD",
+      "vercelHeaderPresent": true,
+      "httpsValidated": true,
+      "cookiesSent": false,
+      "redirectFollowed": false,
+      "path": "/terms",
+      "authorizationSent": false,
+      "status": 200,
+      "server": "Vercel"
+    },
+    {
+      "method": "HEAD",
+      "vercelHeaderPresent": true,
+      "httpsValidated": true,
+      "cookiesSent": false,
+      "redirectFollowed": false,
+      "path": "/privacy",
+      "authorizationSent": false,
+      "status": 200,
+      "server": "Vercel"
+    },
+    {
+      "method": "HEAD",
+      "vercelHeaderPresent": true,
+      "httpsValidated": true,
+      "cookiesSent": false,
+      "redirectFollowed": false,
+      "path": "/auth",
+      "authorizationSent": false,
+      "status": 200,
+      "server": "Vercel"
+    }
+  ],
+  "callbackInvocations": 0
+}

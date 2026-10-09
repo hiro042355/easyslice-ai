@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-09",
+  "scope": "Known source-referenced Production resource, public control-plane metadata only",
+  "requests": 4,
+  "databaseConnections": 0,
+  "sqlQueries": 0,
+  "credentialsRead": 0,
+  "apiEnablement": 0,
+  "mutations": 0,
+  "sqlApiEnabled": true,
+  "access": "VERIFIED_CONTROL_PLANE_ONLY",
+  "resourceId": "[REDACTED_SOURCE_REFERENCED_INSTANCE]",
+  "metadata": {
+    "databaseVersion": "POSTGRES_18",
+    "region": "asia-northeast1",
+    "settings": {
+      "backupConfiguration": {
+        "enabled": true,
+        "pointInTimeRecoveryEnabled": true
+      },
+      "connectorEnforcement": "REQUIRED",
+      "tier": "db-custom-1-3840"
+    },
+    "state": "RUNNABLE"
+  },
+  "recentBackupMetadata": [
+    {
+      "endTime": "2026-10-09T04:01:02.573Z",
+      "status": "SUCCESSFUL",
+      "type": "AUTOMATED"
+    },
+    {
+      "endTime": "2026-10-08T04:36:25.532Z",
+      "status": "SUCCESSFUL",
+      "type": "AUTOMATED"
+    },
+    {
+      "endTime": "2026-10-07T05:53:46.914Z",
+      "status": "SUCCESSFUL",
+      "type": "AUTOMATED"
+    }
+  ],
+  "directProjectServiceAccountRoles": [
+    {
+      "conditionPresent": false,
+      "projectServiceAccounts": [
+        "serviceAccount:nexcut-prod-web-auth@nexcut-prod-jp-2026.iam.gserviceaccount.com"
+      ],
+      "role": "projects/nexcut-prod-jp-2026/roles/nexcutProdFirebaseSessionRuntime"
+    },
+    {
+      "conditionPresent": false,
+      "projectServiceAccounts": [
+        "serviceAccount:nexcut-prod-db-bootstrap@nexcut-prod-jp-2026.iam.gserviceaccount.com",
+        "serviceAccount:nexcut-prod-db-migrator@nexcut-prod-jp-2026.iam.gserviceaccount.com",
+        "serviceAccount:nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudsql.client"
+    },
+    {
+      "conditionPresent": false,
+      "projectServiceAccounts": [
+        "serviceAccount:nexcut-prod-db-bootstrap@nexcut-prod-jp-2026.iam.gserviceaccount.com",
+        "serviceAccount:nexcut-prod-db-migrator@nexcut-prod-jp-2026.iam.gserviceaccount.com",
+        "serviceAccount:nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudsql.instanceUser"
+    },
+    {
+      "conditionPresent": false,
+      "projectServiceAccounts": [
+        "serviceAccount:firebase-adminsdk-fbsvc@nexcut-prod-jp-2026.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebase.sdkAdminServiceAgent"
+    },
+    {
+      "conditionPresent": false,
+      "projectServiceAccounts": [
+        "serviceAccount:firebase-adminsdk-fbsvc@nexcut-prod-jp-2026.iam.gserviceaccount.com"
+      ],
+      "role": "roles/iam.serviceAccountTokenCreator"
+    },
+    {
+      "conditionPresent": false,
+      "projectServiceAccounts": [
+        "serviceAccount:nexcut-prod-deployer@nexcut-prod-jp-2026.iam.gserviceaccount.com"
+      ],
+      "role": "roles/run.developer"
+    }
+  ]
+}

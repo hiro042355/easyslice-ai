@@ -1,0 +1,6 @@
+# Domain/callback reality
+New permitted public checks: HEAD /,/terms,/privacy,/auth all200 on https://www.nexcutai.com,serverVercel,x-vercel headerpresent,TLSstandardvalidationPASS. PUBLIC_ENDPOINT_EVIDENCE.json;fourrequests,no cookie/Authorization/body/query/redirectfollowing. Confirms current publicprovider/reachability/legal/authlanding availability only.
+
+Expected /api/tiktok/oauth/callback is OAuth/authentication-sensitive: static GET dispatches installedapplication callback and may involve auth/state/exchange. It was not probed under publicnon-sensitive permission; no codes/tokens/POSTs/privateendpoints. Deployedroute/version/acceptedarchitecture/sessioncookies UNKNOWN. Public200/loginpage/sourceroute cannotprove connectedstatus or realidentity. CALLBACK_READY=NO.
+
+Source currentcanonicalURI pins, state/UID/session/app/scope/TTL/CSRF/cookie/disconnect protections verified/tested locally; ProductionWIF/isolateddeployment/Portal stillunqualified. OwnerAction1 jointly resolves actualproject/domain/deployedcommit/routeinventory/rollback metadata withoutinvokingcallback. OwnerAction3 resolves savedPortal. NoDNS/deploy/tunnel/Portalchange;safeSandboxcost/sharedProductionreuseUNKNOWN untilOwnerplan/security/permission evidence.

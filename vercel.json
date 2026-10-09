@@ -3,7 +3,8 @@
     "deploymentEnabled": {
       "codex/tiktok-integration-mission-12": false,
       "codex/tiktok-integration-mission-13": false,
-      "codex/tiktok-integration-mission-14": false
+      "codex/tiktok-integration-mission-14": false,
+      "codex/tiktok-integration-mission-15": false
     }
   }
 }

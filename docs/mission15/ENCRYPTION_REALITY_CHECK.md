@@ -1,0 +1,4 @@
+# Encryption reality
+Accepted AES256GCM/randomper-messageDEK/envelope/version/AAD/failclosed source unchanged. Knownasia1 MAC/HMAC cannotencrypt. New successful empty keyringlists in global/asia-northeast1/asia-northeast2 resolve those priorgaps; otherlocations/projects/suitableprovidersUNKNOWN, no globalabsence claim. No actualcrypto/keygeneration/material/IAM/secret retrieval.
+
+Runtime/binding source and priorMACsigner/metadata/rotation roles are not approvedwrappingpermissions/recovery. Production-managedkeys notretrieved. ExistingGooglevault requiresgenuine symmetricmetadata/resourceversions;no softwareKEK spoof/newadapter. ENCRYPTION_READY=NO until realkey/provider/runtimebinding/rotation/recovery/isolation and incrementalcost independently established. OwnerAction2 asks only any already-existing suitablemetadata and operatorauthority not keymaterial, notknownineligibleMACoralreadycheckedemptylocations. Ifnone,stopreportnone;do notcreate.

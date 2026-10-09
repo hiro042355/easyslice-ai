@@ -1,0 +1,8 @@
+# Justified local work
+No independently actionable runtime defect found; no speculative adapter, new preflight wrapper or stable architecture rewrite. Existing final9-field gate/startup denial unchanged. C01 live composition depends on actual hosting/DB/key/trust/billing/URI evidence and approval; cannot safely fill it with guessed resources.
+
+33 focused regression cases added: public200/TLS/provider observations and arbitrary owner/payment/password/cookie/SHA/screenshot fields cannot enter trusted readiness shape; officialfreepolicies for all10components are notaccountproof; unknownpayment/billing/upgrade controls deny startup; declaredprivate-answers neverindependently grantYES; Productionidentity/HMAC/missingDB deny. No realsecret data used. Harnessoutput/compile/buildroot isolated for15 and exactbranch Vercel suppression extendedonly15. No newprod/app/auth/custody/SQL/B7 behavior.
+
+Accepted local E2E unchanged: UI→initiation→syntheticauthorization→actualNextcallback→mockexchange→syntheticenvelope→disposablePG→connected→B7consent/mockworker→disconnect/wipe→notconnected. Existing livepreflightBLOCKED/startupfalse asserted before explicitmock startup; negative replay/owner/disconnect/key/DB/env cases remain. Synthetic tests demonstrate localsoftwaresecurity, not realprovider/key/identity/cookies oraccounteligibility.
+
+No plaintexttokenpersisted byacceptedvault/model,tokenserialization/redaction tests retained. Actualremote tokenstorage/logging is UNVERIFIED untilexternalproof. No secretscommitted,defaultrealworkerfalse;missingDB/key/callback and BILLING_SAFE UNKNOWN failclosed. No realOAuth/API/upload/publication ormigration;localfixtureDDL/DMLonly,privateDockerownedcleanup. Counts/commands/loghashes in TEST_EVIDENCE.json.

@@ -1,0 +1,162 @@
+{
+  "date": "2026-10-09",
+  "unresolved": [
+    {
+      "BLOCKER_ID": "B01",
+      "CATEGORY": "OWNER_VERIFICATION_REQUIRED",
+      "DESCRIPTION": "Actual hosting project/domain/deployedSHA/isolation/rollback are unverified.",
+      "CURRENT_EVIDENCE": "PublicVercel200+localprojectlink only.",
+      "REQUIRED_EVIDENCE": "ExistingVercel project/domain/currentdeployment/known-safeartifact metadata.",
+      "WHO_CAN_RESOLVE": "ProductOwner",
+      "EXACT_NEXT_ACTION": "Perform Action1 read-only;do notinvoke/redeploy/revealvalues.",
+      "COST_RISK": "UNKNOWN incrementalhosting/build",
+      "SECURITY_RISK": "SharedProduction/session/isolation",
+      "DEPENDENCIES": []
+    },
+    {
+      "BLOCKER_ID": "B02",
+      "CATEGORY": "CONFIGURATION_BLOCKER",
+      "DESCRIPTION": "Canonical URI pins and shared-origin/deployment selection require coordinated configuration.",
+      "CURRENT_EVIDENCE": "Acceptedcode/schema canonical-only;no selectedisolatedhost.",
+      "REQUIRED_EVIDENCE": "Exact approvedorigin/app/env/Portal/Firebase/runtimecomposition scope.",
+      "WHO_CAN_RESOLVE": "Owner+Codex afterapproval",
+      "EXACT_NEXT_ACTION": "After Actions1–3 andsecuritydecision,prepare narrow localrelease;no settings/deploy now.",
+      "COST_RISK": "UNKNOWN",
+      "SECURITY_RISK": "Cross-origin/state/cookie/ownerbinding",
+      "DEPENDENCIES": [
+        "B01",
+        "B03",
+        "B04",
+        "B05",
+        "B07"
+      ]
+    },
+    {
+      "BLOCKER_ID": "B03",
+      "CATEGORY": "SECURITY_BLOCKER",
+      "DESCRIPTION": "Existing DB not verified authorized for persistent TikTok custody.",
+      "CURRENT_EVIDENCE": "Freshcontrolplane verifiesexistingRUNNABLEPG18/Tokyo/backupPITR/3SUCCESSFULbackups,directSAroles;schema/tablegrants/migration/restore/custody/costunverified.",
+      "REQUIRED_EVIDENCE": "Existingtargetmetadata/roles/schemahistory/backup/restore/no-incrementpermission.",
+      "WHO_CAN_RESOLVE": "Owner+databaseowner",
+      "EXACT_NEXT_ACTION": "Action2 onlypermission/history/restore/keyrecovery/noincrementdecision;do notrepeatknowninstance/backupmetadata orquerySQL.",
+      "COST_RISK": "UNKNOWN SQL/storage/backup",
+      "SECURITY_RISK": "Productiondata/grants/migrationauthority",
+      "DEPENDENCIES": []
+    },
+    {
+      "BLOCKER_ID": "B04",
+      "CATEGORY": "SECURITY_BLOCKER",
+      "DESCRIPTION": "Suitable wrapping custody/binding/rotation/recovery unverified.",
+      "CURRENT_EVIDENCE": "ObservedHMACineligible;newthree locations empty.",
+      "REQUIRED_EVIDENCE": "Existingeligiblekeypurpose/version/access/recovery or approvedsoftwarecustodydecision.",
+      "WHO_CAN_RESOLVE": "Owner+security/keyowner",
+      "EXACT_NEXT_ACTION": "Action2 onlyexistingmetadata;reportnoneifabsent;nevercreate/reveal.",
+      "COST_RISK": "UNKNOWN key/binding/usage",
+      "SECURITY_RISK": "Plaintext/exportability/recovery",
+      "DEPENDENCIES": [
+        "P01"
+      ]
+    },
+    {
+      "BLOCKER_ID": "B05",
+      "CATEGORY": "SECURITY_BLOCKER",
+      "DESCRIPTION": "Nonproduction or explicitly approved shared authentication/runtime trust unverified.",
+      "CURRENT_EVIDENCE": "CurrentFirebaseWIFProductionbound;mocksessiontests notliveproof.",
+      "REQUIRED_EVIDENCE": "ActualFirebaseproject/domain/trust/runtimeDB/key permissions/isolationapproval.",
+      "WHO_CAN_RESOLVE": "Owner+identityowner",
+      "EXACT_NEXT_ACTION": "Action2 read-only existingauth/IAM metadata;no newidentity/credentials.",
+      "COST_RISK": "UNKNOWN",
+      "SECURITY_RISK": "Unverifiedtrust/effectivepermissions",
+      "DEPENDENCIES": [
+        "B01"
+      ]
+    },
+    {
+      "BLOCKER_ID": "B06",
+      "CATEGORY": "BILLING_RISK",
+      "DESCRIPTION": "Account-specific incremental exposure and hard stops unknown.",
+      "CURRENT_EVIDENCE": "Billingenabledstaging;publicfreepolicies notaccountproof.",
+      "REQUIRED_EVIDENCE": "Actualplan/remainingquota/automaticoverage/pause/expiry/no-chargeguarantee.",
+      "WHO_CAN_RESOLVE": "Owner/accountowner",
+      "EXACT_NEXT_ACTION": "Actions1–2 summarycontrols only;no paymentdetails orchanges.",
+      "COST_RISK": "UNKNOWN_BLOCKS_EXECUTION",
+      "SECURITY_RISK": "Quota/expiry canbreakstate/recovery",
+      "DEPENDENCIES": [
+        "B01",
+        "B03",
+        "B04"
+      ]
+    },
+    {
+      "BLOCKER_ID": "B07",
+      "CATEGORY": "OWNER_VERIFICATION_REQUIRED",
+      "DESCRIPTION": "Saved Sandbox app/products/URI/scopes/target notproven.",
+      "CURRENT_EVIDENCE": "ExpectedNEXCUTAIReview;importreported,Saveunverified.",
+      "REQUIRED_EVIDENCE": "Saved/reloadedSandbox product/URI/scope/target metadata.",
+      "WHO_CAN_RESOLVE": "ProductOwner",
+      "EXACT_NEXT_ACTION": "Action3 inspectonly;noApplychanges/review/targetaccountsign-in.",
+      "COST_RISK": "NONE fromreadonlyinspection",
+      "SECURITY_RISK": "Wrongapp/redirect/scopes",
+      "DEPENDENCIES": []
+    },
+    {
+      "BLOCKER_ID": "B08",
+      "CATEGORY": "OWNER_VERIFICATION_REQUIRED",
+      "DESCRIPTION": "Independent owner realOAuth authorization absent.",
+      "CURRENT_EVIDENCE": "Mission15explicitlyforbidsrealOAuth.",
+      "REQUIRED_EVIDENCE": "Separate future boundedowner authorization afterprerequisites.",
+      "WHO_CAN_RESOLVE": "ProductOwner",
+      "EXACT_NEXT_ACTION": "No currentaction;remainNO,do notinferauthorizationfromscreenshots.",
+      "COST_RISK": "UNKNOWN untilB06",
+      "SECURITY_RISK": "Unapprovednetwork/tokenexchange",
+      "DEPENDENCIES": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07"
+      ]
+    },
+    {
+      "BLOCKER_ID": "P01",
+      "CATEGORY": "PROVIDER_LIMITATION",
+      "DESCRIPTION": "Current MAC/HMAC keys cannot do envelope encryption.",
+      "CURRENT_EVIDENCE": "purposeMAC/HMAC_SHA256;scopedemptykeyrings elsewhere.",
+      "REQUIRED_EVIDENCE": "Alternativeexistingqualifiedprovider,notchangingMACpurpose.",
+      "WHO_CAN_RESOLVE": "Owner/securityowner",
+      "EXACT_NEXT_ACTION": "UseAction2 onlyifalreadyexistingalternative;otherwiseblocked.",
+      "COST_RISK": "UNKNOWN",
+      "SECURITY_RISK": "Wrongcryptographicprimitive",
+      "DEPENDENCIES": []
+    },
+    {
+      "BLOCKER_ID": "C01",
+      "CATEGORY": "CODE_BLOCKER",
+      "DESCRIPTION": "Live trusted per-instance loader/independent verification and selected-provider configuration not installed.",
+      "CURRENT_EVIDENCE": "Acceptedruntime inert/failclosed;realresources/trust/URI unspecified.",
+      "REQUIRED_EVIDENCE": "Approved concrete resource/binding/custody/isolation contracts.",
+      "WHO_CAN_RESOLVE": "Codex afterdependencies",
+      "EXACT_NEXT_ACTION": "No independently actionable fix now;do notinventadapter.Implementnarrowlocalcomposition onlyafterfacts/approval,retainregressions.",
+      "COST_RISK": "Mustremainzero",
+      "SECURITY_RISK": "SDK/authority/secretbinding",
+      "DEPENDENCIES": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07"
+      ]
+    }
+  ],
+  "independentlyActionableRuntimeCodeDefects": 0,
+  "localWorkCompleted": [
+    "33 targeted proof/billing/auth boundary regressions",
+    "Evidence classification and three grouped owner actions",
+    "AcceptedmockE2E/regression/harness/checkpoint"
+  ],
+  "runtimeArchitectureChanged": false
+}

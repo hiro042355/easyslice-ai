@@ -1,0 +1,8 @@
+# Database reality
+New independent public control-plane metadata verifies the exact source-referenced existing Production PostgreSQL instance is RUNNABLE, POSTGRES18,asia-northeast1,db-custom-1-3840,connectorREQUIRED,backup/PITRenabled. Latest3 automated backup statuses SUCCESSFUL;latest endTime2026-10-09T04:01:02.573Z. IDsredacted, no private DBconnection/SQL/user/password/data query,backup/restore action or configuration change. EXISTING_DATABASE_CONTROL_PLANE.json.
+
+Source CloudSQL Terraform/connector adapters/8committed workflow migration files exist. Six filtered direct project role bindings for project serviceaccounts were read; inherited/conditional effectiveauthority and PostgreSQL schema/tablegrants remainUNKNOWN. BackupSUCCESSFUL is not testedrestore or keyrecovery. Historic operatorprobe/connectivity is now unnecessary for existence conclusion, still not currentmigrationauthority proof. No probe repeated.
+
+Existing DB is real but not yet authorized/isolated/qualified for TikTok token custody or verifiedzero-added-cost reuse. DATABASE_READY=NO operationally;schema/history/migrationowner/custodygrants/restore/keyrecovery/incrementalcost require Owner/databaseowner decision. Do not ask owner torepeat state/version/region/backupenabled/recentbackupstatus—Codex obtainedthem. No remote migrations/Flywayversion/databasecreation;unversionedcandidate unchanged,originaluntrackednotimported.
+
+StagingSQLAPIoff still blocks staginginstanceinventory withoutforbiddenenablement. Firebase persistence cannot replace acceptedPG atomicstate/constraints/ownership withoutcompatibilitywork. LocalPG tests prove softwareonly, not targetdata/schema/grants. OwnerAction2 nowfocuses permission/history/recovery/cost gaps, not known existence.

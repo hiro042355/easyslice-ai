@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-09",
+  "exactQuestion": "Are existing KMS keyrings available in global/Tokyo/Osaka, previously uninspected, and are DB/secret APIs still unavailable?",
+  "requests": 5,
+  "mutations": 0,
+  "cryptoOperations": 0,
+  "secretValuesRead": 0,
+  "services": {
+    "data": [
+      {
+        "config": {
+          "name": "analyticshub.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquery.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigqueryconnection.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerydatapolicy.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerydatatransfer.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerymigration.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigqueryreservation.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerystorage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudapis.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudkms.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudresourcemanager.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudtrace.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "dataform.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "dataplex.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "datastore.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "iam.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "iamcredentials.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "logging.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "monitoring.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "servicemanagement.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "serviceusage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "sql-component.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage-api.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage-component.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "telemetry.googleapis.com"
+        }
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "billing": {
+    "data": {
+      "billingEnabled": true
+    },
+    "status": "VERIFIED"
+  },
+  "otherLocations": {
+    "global": {
+      "data": [],
+      "status": "VERIFIED"
+    },
+    "asia-northeast1": {
+      "data": [],
+      "status": "VERIFIED"
+    },
+    "asia-northeast2": {
+      "data": [],
+      "status": "VERIFIED"
+    }
+  }
+}
