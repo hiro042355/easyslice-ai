@@ -1,0 +1,8 @@
+# Justified local work / complete E2E
+B03の必要なleast-privilegeモデルを、既存LOCAL_TEST_ONLY.sql fixtureにunrelated synthetic schema/tableを追加して検証しました。既存runtime roleにUSAGE/grantは与えず、SELECT/INSERT/UPDATE/DELETEがすべて42501、schema privilege falseをassert。localOwner/synthetic sentinelだけで、Productionのdata/schema/roles/credentialsをコピーしません。実Productiongrant/isolationは未証明なのでB03をRESOLVEDにしません。
+
+新adapter/新infrastructure/preflight wrapper/stablearchitecture rewriteなし。C01はexternal依存があり、今独立して安全に実装できるlive loaderではありません。既存finalbilling UNKNOWN gate、AES256GCM/DEK/envelope/version/AAD/secretredaction/identity/state/replay/owner/disconnect/defaultworkerfalse/B7を不変更で再検証。
+
+Complete localflow：ConnectUI→initiation→synthetic authorization→actualNext callback export→mockexchange→synthetic encryption→private disposablePG→connected→B7consent/mockworker→disconnect/wipe→notconnected。React/JSDOM→IPC child actualhandlers、realstartup BLOCKED/false確認後にexplicitlocalmocksだけ。publicserver/realbrowser/auth/remoteDB/crypto/reviewevidenceではありません。負例を含め回帰を実行。
+
+localfixture DDL/DMLは実行、Production/privateDB/SQL/IAM/backup/PITR/key/realOAuthは0。private pinnedDocker/pool1/nohostports/credentialmount/persistentvolume、ownedcleanup。既存host845件に加え、新しいPG隔離case1件だけで、件数増ではなくcross-schema拒否と維持されたE2Eが成果です。exact commands/loghashes/countsはTEST_EVIDENCE.json。

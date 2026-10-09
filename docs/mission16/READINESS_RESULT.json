@@ -1,0 +1,43 @@
+{
+  "reportOnly": true,
+  "status": "BLOCKED",
+  "readiness": {
+    "HOSTING_READY": "UNKNOWN",
+    "DATABASE_READY": "NO",
+    "ENCRYPTION_READY": "NO",
+    "IDENTITY_READY": "NO",
+    "SECRETS_READY": "UNKNOWN",
+    "CALLBACK_READY": "NO",
+    "PORTAL_READY": "UNKNOWN",
+    "BILLING_SAFE": "UNKNOWN",
+    "ROLLBACK_READY": "UNKNOWN"
+  },
+  "OWNER_AUTHORIZED": "NO",
+  "REAL_SANDBOX_OAUTH_READY": "NO",
+  "startupPermitted": false,
+  "executionAuthorized": false,
+  "evidenceAssurance": "DECLARED_ONLY",
+  "blockers": [
+    "HOSTING_READY_UNKNOWN",
+    "DATABASE_READY_NO",
+    "ENCRYPTION_READY_NO",
+    "IDENTITY_READY_NO",
+    "SECRETS_READY_UNKNOWN",
+    "CALLBACK_READY_NO",
+    "PORTAL_READY_UNKNOWN",
+    "BILLING_SAFE_UNKNOWN",
+    "ROLLBACK_READY_UNKNOWN",
+    "OWNER_AUTHORIZED_NO",
+    "PRODUCTION_ORIGIN_NOT_ISOLATED",
+    "HMAC_NOT_ENCRYPTION",
+    "NON_PRODUCTION_IDENTITY_REQUIRED",
+    "UNKNOWN_BILLING_EXPOSURE_BLOCKS_STARTUP"
+  ],
+  "networkOperations": 0,
+  "billingOperations": 0,
+  "deploymentOperations": 0,
+  "PRODUCTION_DB_REUSE_READY": "NO",
+  "REAL_DATABASE_READY": "NO",
+  "REAL_ENCRYPTION_READY": "NO",
+  "ownerReplyScope": "DirectUNKNOWN/NONE reports and explicit currentoperation prohibitions;not independent positiveproof"
+}

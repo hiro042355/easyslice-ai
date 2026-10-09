@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-10",
+  "source": "Direct ProductOwner replies in this conversation; reported fields, not independent dashboard proof",
+  "group1": {
+    "projectServingCanonical": "UNKNOWN",
+    "deploymentGitSha": "UNKNOWN",
+    "plan": "UNKNOWN",
+    "additionalBilling": "UNKNOWN",
+    "automaticStop": "UNKNOWN"
+  },
+  "group2": {
+    "approvedNamespace": "UNKNOWN",
+    "approvedTableGrants": "UNKNOWN",
+    "migrationAuthority": "UNKNOWN",
+    "testedRestore": "NONE",
+    "approvedKeyCustody": "UNKNOWN",
+    "recoveryOwner": "UNKNOWN",
+    "firebaseIsolation": "UNKNOWN",
+    "zeroIncrementalCost": "UNKNOWN",
+    "productionReuseAuthorized": false
+  },
+  "group3": {
+    "application": "NEXCUT AI Review",
+    "loginKitSaved": "UNKNOWN",
+    "contentPostingSaved": "UNKNOWN",
+    "directPostSaved": "UNKNOWN",
+    "basicScopeSaved": "UNKNOWN",
+    "publishScopeSaved": "UNKNOWN",
+    "canonicalCallback": "https://www.nexcutai.com/api/tiktok/oauth/callback",
+    "callbackSaved": "UNKNOWN",
+    "targetEligibility": "UNKNOWN"
+  },
+  "deploymentAuthorized": false,
+  "billingMutationAuthorized": false,
+  "productionMutationAuthorized": false,
+  "realOAuthAuthorized": false
+}

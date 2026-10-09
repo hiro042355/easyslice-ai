@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-10",
+  "baseline": "cc0fa787a7d73f367b80fc2bc254fb4d3de2ad76",
+  "host": {
+    "passed": 845,
+    "failed": 0,
+    "skipped": 0,
+    "command": {
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "--test",
+        "--test-concurrency=1",
+        "tests/tiktokOAuth/foundation.test.ts",
+        "tests/tiktokConnection/connectionUi.test.tsx",
+        "tests/tiktokFirebase/auth.test.ts",
+        "tests/tiktokHttp/adapter.test.ts",
+        "tests/tiktokHardening/callback.test.ts",
+        "tests/tiktokHardening/chunkBoundary.test.ts",
+        "tests/tiktokHardening/keys.test.ts",
+        "tests/tiktokHardening/publisher.test.ts",
+        "tests/tiktokHardening/serialization.test.ts",
+        "tests/tiktokHardening/transport.test.ts",
+        "tests/productionIdentity/authenticatedAccountControl.test.ts",
+        "tests/productionIdentity/betaAuthorization.test.ts",
+        "tests/productionIdentity/durableCutOwnership.test.ts",
+        "tests/productionIdentity/durableMediaAdmissionClient.test.ts",
+        "tests/productionIdentity/durableMediaAnalyze.test.ts",
+        "tests/productionIdentity/durableMediaOwnership.test.ts",
+        "tests/productionIdentity/durableMultiCut.test.ts",
+        "tests/productionIdentity/durableReviewExport.test.ts",
+        "tests/productionIdentity/durableSubtitleBurn.test.ts",
+        "tests/productionIdentity/durableTranscript.test.ts",
+        "tests/productionIdentity/durableYoutubeIngestion.test.ts",
+        "tests/productionIdentity/googleIdentitySignIn.test.ts",
+        "tests/productionIdentity/packagedYtDlp.test.ts",
+        "tests/productionIdentity/productionDurableStorageInfrastructure.test.ts",
+        "tests/productionIdentity/productionIdentityFoundation.test.ts",
+        "tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+        "tests/productionIdentity/productionOwnerUidProofRoute.test.ts",
+        "tests/productionIdentity/restoredServerSession.test.ts",
+        "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts",
+        "tests/productionIdentity/vercelWifCredential.test.ts",
+        "tests/tiktokApplication/application.test.ts",
+        "tests/tiktokMission09/client.test.tsx",
+        "tests/tiktokMission09/worker.test.ts",
+        "tests/tiktokMission10/keyConfiguration.test.ts",
+        "tests/tiktokMission10/preflight.test.ts",
+        "tests/tiktokMission11/preflight.test.ts",
+        "tests/tiktokMission12/readiness.test.ts",
+        "tests/tiktokMission13/providerSimulation.test.ts",
+        "tests/tiktokMission14/finalPreflight.test.ts",
+        "tests/tiktokMission15/realityBoundary.test.ts",
+        "tests/tiktokIntegration/client.test.tsx",
+        "tests/productionMigrationOperator/operator.test.ts"
+      ]
+    }
+  },
+  "postgresql": {
+    "passed": 134,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+    "completeE2EPassingLine": "✔ browser Connect -> real Next synthetic callback -> encrypted PG -> CONNECTED -> consent/B7 worker -> disconnect -> NOT_CONNECTED (5412.163471ms)",
+    "crossSchemaPassingLine": "✔ runtime role cannot read or mutate unrelated synthetic schema (30.720081ms)",
+    "deniedOperations": [
+      "SELECT",
+      "INSERT",
+      "UPDATE",
+      "DELETE"
+    ],
+    "expectedSqlstate": "42501",
+    "privateNetwork": true,
+    "publishedPorts": 0,
+    "credentialMounts": 0,
+    "persistentVolumes": 0,
+    "remainingContainers": 0,
+    "remainingNetworks": 0,
+    "localSyntheticDml": "EXECUTED",
+    "localFixtureDdl": "EXECUTED"
+  },
+  "distinctTests": 979,
+  "newMeaningfulIsolationCase": 1,
+  "primarySuccessCriterion": "Local privilegeisolation negative and preservedsecurity/E2E,not increasingcount",
+  "typecheck": {
+    "args": [
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "focusedLint": {
+    "args": [
+      "node_modules/eslint/bin/eslint.js",
+      "tests/tiktokIntegration/postgresql.test.tsx",
+      "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "tests/tiktokHardening/runBuild.mjs"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "strictBundle": {
+    "es2022": "PASS",
+    "es2017": "PASS",
+    "command": "node tests/tiktokFullIntegration/prepareLocalRehearsal.mjs C:/Users/hirom/OneDrive/ドキュメント/GitHub/nexcut-tiktok-publisher"
+  },
+  "build": {
+    "exit": 0,
+    "command": "node tests/tiktokHardening/runBuild.mjs C:/Users/hirom/AppData/Local/Temp/nexcut-tiktok-integration-16-20261010 C:/Users/hirom/AppData/Local/Temp/nexcut-mission16-build.log",
+    "closedEnvironment": true,
+    "network": "public-google-font-assets-only",
+    "productionEnvironmentValues": 0
+  },
+  "repositoryLint": {
+    "exit": 1,
+    "classification": "BASELINE_FAILURE",
+    "command": "node node_modules/eslint/bin/eslint.js . --format json --output-file C:/Users/hirom/AppData/Local/Temp/nexcut-mission16-lint.json",
+    "baselineErrors": 30,
+    "baselineWarnings": 48,
+    "missionErrors": 30,
+    "missionWarnings": 48,
+    "exactDiagnosticsMatch": true
+  },
+  "readiness": {
+    "command": "node --import tsx scripts/tiktokFinalSandboxPreflight.mjs docs/mission14/PREFLIGHT_INPUT.json",
+    "exit": 2,
+    "classification": "EXPECTED_BLOCKED",
+    "billingSafe": "UNKNOWN",
+    "startupPermitted": false
+  },
+  "initialFailures": {
+    "testFailures": 0,
+    "buildFailures": 0,
+    "newRegressions": 0,
+    "investigationFailures": 0
+  },
+  "logs": {
+    "hostSha256": "e61a83dfa90bd044d977100f71c8f9ba66229a7fdea3da6fac3e6256edf45a8a",
+    "postgresqlSha256": "9f3675ffc8f7406a0d2a8ca5943bd9926311aa3274e70b35cb4eace5a682fc29",
+    "buildSha256": "e41c117fc27e6cd0adcf7bcd1d7b502131b37e5f802dd29e399211e4ad7de544"
+  },
+  "externalOperations": {
+    "newCloudMetadataReads": 0,
+    "publicApplicationRequests": 0,
+    "productionDatabaseConnections": 0,
+    "productionSql": 0,
+    "productionSchemasTablesUsersGrants": 0,
+    "productionBackupPitrOperations": 0,
+    "productionDataAccess": 0,
+    "realKeysGeneratedOrRetrieved": 0,
+    "credentialsRead": 0,
+    "cloudMutations": 0,
+    "billingActivation": 0,
+    "accountCreation": 0,
+    "resourceCreation": 0,
+    "deploymentInvocations": 0,
+    "tunnels": 0,
+    "realTikTokCalls": 0,
+    "realOAuth": 0
+  },
+  "ownerRepliesReceived": 3,
+  "originalBlockersResolved": 0
+}

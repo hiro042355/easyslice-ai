@@ -61,3 +61,10 @@ BEGIN
 END;
 $$;
 CREATE TRIGGER enforce_grant_transition BEFORE UPDATE ON local_tiktok_oauth.publication_grants FOR EACH ROW EXECUTE FUNCTION local_tiktok_oauth.enforce_grant_transition();
+
+-- LOCAL_TEST_ONLY. Unrelated synthetic schema; never a Production migration.
+CREATE SCHEMA local_m16_isolation_guard;
+REVOKE ALL ON SCHEMA local_m16_isolation_guard FROM PUBLIC;
+CREATE TABLE local_m16_isolation_guard.sentinel(id integer PRIMARY KEY, label text NOT NULL);
+INSERT INTO local_m16_isolation_guard.sentinel VALUES(1,'SYNTHETIC_FIXTURE_ONLY');
+REVOKE ALL ON ALL TABLES IN SCHEMA local_m16_isolation_guard FROM PUBLIC;

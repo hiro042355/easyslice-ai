@@ -1,0 +1,318 @@
+{
+  "baseCommit": "cc0fa787a7d73f367b80fc2bc254fb4d3de2ad76",
+  "fileCount": 22,
+  "modifiedCount": 6,
+  "createdCount": 16,
+  "deletedCount": 0,
+  "selfHash": "Bound by commit tree",
+  "files": [
+    {
+      "path": "docs/mission16/ACCEPTANCE_REPORT.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8d92be8ff3286ee9f68079c05a596d37596e60ad1616b4eb3f2c2b23c77a79bf"
+    },
+    {
+      "path": "docs/mission16/BASELINE_VERIFICATION.json",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d3f50708c81dd2c7c7f339b742d3a8991957488f9bc0548aa97fdc5465b7fcb8"
+    },
+    {
+      "path": "docs/mission16/CHANGED_FILES.json",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": null
+    },
+    {
+      "path": "docs/mission16/LOCAL_IMPLEMENTATION_AND_E2E.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "85670594af244a33a12a778b5ab9f13d67d76b6a869ff2e28bc01614a7f89065"
+    },
+    {
+      "path": "docs/mission16/MISSION16_BILLING_DECISION.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "86144b91791af05a9cea7e4036e40b8c5b4a92b48e925fa00b3119fac5874d95"
+    },
+    {
+      "path": "docs/mission16/MISSION16_BLOCKER_RESOLUTION_MATRIX.json",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "03eeaa0aeb278529feb647ace500708e05d836692af1f4e87057f622350e39b5"
+    },
+    {
+      "path": "docs/mission16/MISSION16_BLOCKER_RESOLUTION_MATRIX.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "12e5a554d7ec0a95a77e5a5d0df06df9dd40c94fb45b3ba8092b59d8585a0e0e"
+    },
+    {
+      "path": "docs/mission16/MISSION16_CALLBACK_AUTH_DECISION.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "b0067c3d9849ce5e702d6c6043168ddf5149926b55b70f3f8dc8a683c4e19c4f"
+    },
+    {
+      "path": "docs/mission16/MISSION16_DATABASE_DECISION.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "4e98e61d9cf487ca83fc6f121bb8ff65ddc3e601fef9bdcfd2ceaca6b562a619"
+    },
+    {
+      "path": "docs/mission16/MISSION16_ENCRYPTION_DECISION.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "ef7f012791bc3a289c4fd81fd59b97e642f77c688b6123fac0bfe729c1700581"
+    },
+    {
+      "path": "docs/mission16/MISSION16_OWNER_ACTIONS.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2047ec4648186b4b6dc541c2d11c9fc7214e004aa9c1f5e2361a478e3fe327d3"
+    },
+    {
+      "path": "docs/mission16/OWNER_RESPONSES.json",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "b8a2a250bdb29e69aacd98af060d816b8660a992f004992e653ec4e773d7f003"
+    },
+    {
+      "path": "docs/mission16/PRODUCTION_DATABASE_ISOLATION_REVIEW.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "99ff1d724f0abd2869ea699aee909abceb0f1653059eec0ece72099d424d816a"
+    },
+    {
+      "path": "docs/mission16/PRODUCT_OWNER_ACTION_CHECKLIST.md",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "0af4052d25284d92db3acd1d8e51474b8cedda3d966c0dfc8028a643c931f423"
+    },
+    {
+      "path": "docs/mission16/READINESS_RESULT.json",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "fd07ee807ad0afc58bc0bdcc65f576f791dd339fc683c9152c2699f32c6f191e"
+    },
+    {
+      "path": "docs/mission16/TEST_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Actual original-blocker/owner-answer/decision/isolation/evidence package",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "62d742ad894fd67c88f2fb04bc1d287c5efe793917e8ec8ac5c6a29dcf3b7bf1"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolated Mission16 compile/output/labels/build scope",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "9f33868c79e6b28056d4e03471778f8a8dbcf9cd146dc41200a7dc54633f1543"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolated Mission16 compile/output/labels/build scope",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "71f4fdcb2d5dffb82a75c1768006c262de2c31dff804b60f564ab1c2d6d5cec0"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "status": "modified",
+      "purpose": "Isolated Mission16 compile/output/labels/build scope",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2360659cb13dfe9ccc148fb2bfd7367ccbfa08c4600dee9a79b30ac17ac4d47a"
+    },
+    {
+      "path": "tests/tiktokIntegration/fixtures/LOCAL_TEST_ONLY.sql",
+      "status": "modified",
+      "purpose": "Disposable-only unrelated synthetic schema fixture, no runtime grants",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "24a389c54f50eeb29120936b050ea1838b396d5a30781096437b97db243ad91b"
+    },
+    {
+      "path": "tests/tiktokIntegration/postgresql.test.tsx",
+      "status": "modified",
+      "purpose": "Runtime SELECT/INSERT/UPDATE/DELETE cross-schema denial42501 regression",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e9ed723768bafe7b171b073c359b6451c15dd5f27315147caebdb05a345a8925"
+    },
+    {
+      "path": "vercel.json",
+      "status": "modified",
+      "purpose": "Exact Mission16 nondeployment suppression",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d4dd9a82d6f3d50347252a4f8e6218473dab1dff1da6f30a787d9956eccc387b"
+    }
+  ]
+}

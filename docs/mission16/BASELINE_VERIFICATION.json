@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-10",
+  "base": "cc0fa787a7d73f367b80fc2bc254fb4d3de2ad76",
+  "parent": "229c266b0f13979c0eb7c325f102e24ab5cd3c89",
+  "tree": "4be613ebe9e1425ece0cbc40c3be23318e6a17ae",
+  "verifiedManifestFiles": 26,
+  "physicalTestsVerified": 978,
+  "blockers": 10,
+  "ownerGroups": 3,
+  "sourceDocumentsRead": true,
+  "original363Preserved": true,
+  "remote": "cc0fa787a7d73f367b80fc2bc254fb4d3de2ad76\trefs/heads/codex/tiktok-integration-mission-15\nf3873fb294bbc11974ca180dea10fa711c49d436\trefs/heads/main",
+  "existingBranch": ""
+}

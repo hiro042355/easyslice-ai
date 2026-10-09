@@ -1,0 +1,202 @@
+{
+  "date": "2026-10-10",
+  "originalSource": "docs/mission15/BLOCKER_REGISTER.json",
+  "originalCount": 10,
+  "resolvedCount": 0,
+  "remainingCount": 10,
+  "ownerRepliesReceived": true,
+  "independentlyActionableLiveCodeBlockers": 0,
+  "localIsolationCheck": "PASS_LOCAL_SCHEMA_SELECT_INSERT_UPDATE_DELETE_DENIED_42501",
+  "blockers": [
+    {
+      "BLOCKER_ID": "B01",
+      "ORIGINAL_CATEGORY": "OWNER_VERIFICATION_REQUIRED",
+      "CURRENT_STATUS": "OWNER_REQUIRED",
+      "EVIDENCE": {
+        "mission15": "PublicVercel200+localprojectlink only.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "SharedProduction/session/isolation",
+      "COST_IMPACT": "UNKNOWN incrementalhosting/build",
+      "DEPENDENCIES": [],
+      "NEXT_ACTION": "Perform Action1 read-only;do notinvoke/redeploy/revealvalues."
+    },
+    {
+      "BLOCKER_ID": "B02",
+      "ORIGINAL_CATEGORY": "CONFIGURATION_BLOCKER",
+      "CURRENT_STATUS": "EXTERNALLY_BLOCKED",
+      "EVIDENCE": {
+        "mission15": "Acceptedcode/schema canonical-only;no selectedisolatedhost.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Cross-origin/state/cookie/ownerbinding",
+      "COST_IMPACT": "UNKNOWN",
+      "DEPENDENCIES": [
+        "B01",
+        "B03",
+        "B04",
+        "B05",
+        "B07"
+      ],
+      "NEXT_ACTION": "After Actions1–3 andsecuritydecision,prepare narrow localrelease;no settings/deploy now."
+    },
+    {
+      "BLOCKER_ID": "B03",
+      "ORIGINAL_CATEGORY": "SECURITY_BLOCKER",
+      "CURRENT_STATUS": "OWNER_REQUIRED",
+      "EVIDENCE": {
+        "mission15": "Freshcontrolplane verifiesexistingRUNNABLEPG18/Tokyo/backupPITR/3SUCCESSFULbackups,directSAroles;schema/tablegrants/migration/restore/custody/costunverified.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Local runtime cross-schema denial regression implemented;not actual Productiongrantproof."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Productiondata/grants/migrationauthority",
+      "COST_IMPACT": "UNKNOWN SQL/storage/backup",
+      "DEPENDENCIES": [],
+      "NEXT_ACTION": "Owner existingcustody/history/restore/keyrecovery/cost proof;do notconnect/query/create inProduction."
+    },
+    {
+      "BLOCKER_ID": "B04",
+      "ORIGINAL_CATEGORY": "SECURITY_BLOCKER",
+      "CURRENT_STATUS": "OWNER_REQUIRED",
+      "EVIDENCE": {
+        "mission15": "ObservedHMACineligible;newthree locations empty.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Plaintext/exportability/recovery",
+      "COST_IMPACT": "UNKNOWN key/binding/usage",
+      "DEPENDENCIES": [
+        "P01"
+      ],
+      "NEXT_ACTION": "Action2 onlyexistingmetadata;reportnoneifabsent;nevercreate/reveal."
+    },
+    {
+      "BLOCKER_ID": "B05",
+      "ORIGINAL_CATEGORY": "SECURITY_BLOCKER",
+      "CURRENT_STATUS": "OWNER_REQUIRED",
+      "EVIDENCE": {
+        "mission15": "CurrentFirebaseWIFProductionbound;mocksessiontests notliveproof.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Unverifiedtrust/effectivepermissions",
+      "COST_IMPACT": "UNKNOWN",
+      "DEPENDENCIES": [
+        "B01"
+      ],
+      "NEXT_ACTION": "Action2 read-only existingauth/IAM metadata;no newidentity/credentials."
+    },
+    {
+      "BLOCKER_ID": "B06",
+      "ORIGINAL_CATEGORY": "BILLING_RISK",
+      "CURRENT_STATUS": "OWNER_REQUIRED",
+      "EVIDENCE": {
+        "mission15": "Billingenabledstaging;publicfreepolicies notaccountproof.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Quota/expiry canbreakstate/recovery",
+      "COST_IMPACT": "UNKNOWN_BLOCKS_EXECUTION",
+      "DEPENDENCIES": [
+        "B01",
+        "B03",
+        "B04"
+      ],
+      "NEXT_ACTION": "Actions1–2 summarycontrols only;no paymentdetails orchanges."
+    },
+    {
+      "BLOCKER_ID": "B07",
+      "ORIGINAL_CATEGORY": "OWNER_VERIFICATION_REQUIRED",
+      "CURRENT_STATUS": "OWNER_REQUIRED",
+      "EVIDENCE": {
+        "mission15": "ExpectedNEXCUTAIReview;importreported,Saveunverified.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Wrongapp/redirect/scopes",
+      "COST_IMPACT": "NONE fromreadonlyinspection",
+      "DEPENDENCIES": [],
+      "NEXT_ACTION": "Action3 inspectonly;noApplychanges/review/targetaccountsign-in."
+    },
+    {
+      "BLOCKER_ID": "B08",
+      "ORIGINAL_CATEGORY": "OWNER_VERIFICATION_REQUIRED",
+      "CURRENT_STATUS": "EXTERNALLY_BLOCKED",
+      "EVIDENCE": {
+        "mission15": "Mission15explicitlyforbidsrealOAuth.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "LATER_EXPLICIT_APPROVAL_OR_DEPENDENCIES",
+      "SECURITY_IMPACT": "Unapprovednetwork/tokenexchange",
+      "COST_IMPACT": "UNKNOWN untilB06",
+      "DEPENDENCIES": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07"
+      ],
+      "NEXT_ACTION": "No currentaction;remainNO,do notinferauthorizationfromscreenshots."
+    },
+    {
+      "BLOCKER_ID": "P01",
+      "ORIGINAL_CATEGORY": "PROVIDER_LIMITATION",
+      "CURRENT_STATUS": "EXTERNALLY_BLOCKED",
+      "EVIDENCE": {
+        "mission15": "purposeMAC/HMAC_SHA256;scopedemptykeyrings elsewhere.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "NO_INDEPENDENT_RESOLUTION",
+      "OWNER_ACTION_REQUIRED": "YES",
+      "SECURITY_IMPACT": "Wrongcryptographicprimitive",
+      "COST_IMPACT": "UNKNOWN",
+      "DEPENDENCIES": [],
+      "NEXT_ACTION": "UseAction2 onlyifalreadyexistingalternative;otherwiseblocked."
+    },
+    {
+      "BLOCKER_ID": "C01",
+      "ORIGINAL_CATEGORY": "CODE_BLOCKER",
+      "CURRENT_STATUS": "EXTERNALLY_BLOCKED",
+      "EVIDENCE": {
+        "mission15": "Acceptedruntime inert/failclosed;realresources/trust/URI unspecified.",
+        "mission16": "Direct Owner answers preserveUNKNOWN;group2 testedrestoreNONE and productionreuse forbidden;no independent newprivateprovider proof.",
+        "local": "Acceptedfailclosedguards unchanged."
+      },
+      "LOCAL_RESOLUTION_POSSIBLE": "YES_AFTER_DEPENDENCIES",
+      "OWNER_ACTION_REQUIRED": "LATER_EXPLICIT_APPROVAL_OR_DEPENDENCIES",
+      "SECURITY_IMPACT": "SDK/authority/secretbinding",
+      "COST_IMPACT": "Mustremainzero",
+      "DEPENDENCIES": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07"
+      ],
+      "NEXT_ACTION": "No independently actionable fix now;do notinventadapter.Implementnarrowlocalcomposition onlyafterfacts/approval,retainregressions."
+    }
+  ]
+}
