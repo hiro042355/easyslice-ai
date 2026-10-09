@@ -1,0 +1,45 @@
+{
+  "scope": "db/workflow/migrations/",
+  "committedCount": 8,
+  "committedVersions": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "originalUntrackedCount": 17,
+  "originalUntrackedVersions": [
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25
+  ],
+  "excludedSyntheticMigrationFixtures": [
+    "tests/productionMigrationOperator/fixtures/partial/V000001__seed.sql",
+    "tests/productionMigrationOperator/fixtures/partial/V000002__failure.sql",
+    "tests/productionMigrationOperator/fixtures/slow/V000001__seed.sql",
+    "tests/productionMigrationOperator/fixtures/slow/V000002__extend.sql",
+    "tests/productionMigrationOperator/fixtures/success/V000001__seed.sql",
+    "tests/productionMigrationOperator/fixtures/success/V000002__extend.sql"
+  ],
+  "importedUntrackedMigrations": 0,
+  "newFlywayVersionAssigned": false,
+  "productionAppliedHistory": "UNKNOWN"
+}

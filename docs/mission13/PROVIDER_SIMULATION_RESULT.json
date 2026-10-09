@@ -1,0 +1,28 @@
+{
+  "execution": "LOCAL_TEST",
+  "hostingCandidate": "RENDER_FREE_NODE",
+  "databaseCandidate": "SUPABASE_FREE",
+  "database": {
+    "poolMax": 1,
+    "proposedRemoteTls": "VERIFY_FULL",
+    "proposedConnectionMode": "SESSION_POOLER"
+  },
+  "localDatabase": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "name": "oauth_local_test",
+    "user": "oauth_test_runtime",
+    "tls": false
+  },
+  "origin": "https://www.nexcutai.com",
+  "redirectUri": "https://www.nexcutai.com/api/tiktok/oauth/callback",
+  "custody": "SYNTHETIC_ONLY",
+  "identity": "SYNTHETIC_ONLY",
+  "externalEligibility": "UNKNOWN",
+  "OPTION_D_READY": "NO",
+  "OPTION_B_READY": "NO",
+  "REAL_SANDBOX_OAUTH_READY": "NO",
+  "executionAuthorized": false,
+  "networkOperations": 0,
+  "credentialsIncluded": false
+}

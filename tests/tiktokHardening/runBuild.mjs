@@ -4,7 +4,7 @@ import {writeFile} from "node:fs/promises";
 import {join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=resolve(process.argv[2]??""),output=resolve(process.argv[3]??"");
-if(process.argv.length!==4||!["nexcut-tiktok-integration-03-20261008","nexcut-tiktok-integration-04-20261009","nexcut-tiktok-integration-05-20261009","nexcut-tiktok-integration-06-20261009","nexcut-tiktok-integration-07-20261009","nexcut-tiktok-integration-08-20261009","nexcut-tiktok-integration-09-20261009","nexcut-tiktok-integration-10-20261009","nexcut-tiktok-integration-11-20261009","nexcut-tiktok-integration-12-20261009"].some(name=>root.endsWith(name)))throw new Error("BUILD_SCOPE_REJECTED");
+if(process.argv.length!==4||!["nexcut-tiktok-integration-03-20261008","nexcut-tiktok-integration-04-20261009","nexcut-tiktok-integration-05-20261009","nexcut-tiktok-integration-06-20261009","nexcut-tiktok-integration-07-20261009","nexcut-tiktok-integration-08-20261009","nexcut-tiktok-integration-09-20261009","nexcut-tiktok-integration-10-20261009","nexcut-tiktok-integration-11-20261009","nexcut-tiktok-integration-12-20261009","nexcut-tiktok-integration-13-20261009"].some(name=>root.endsWith(name)))throw new Error("BUILD_SCOPE_REJECTED");
 for(const name of [".env",".env.local",".env.production",".env.production.local"])if(existsSync(join(root,name)))throw new Error("BUILD_ENV_FILE_REJECTED");
 const guard=fileURLToPath(new URL("./buildNetworkGuard.cjs",import.meta.url));
 const env={SystemRoot:process.env.SystemRoot,PATH:process.env.PATH,TEMP:process.env.TEMP,TMP:process.env.TMP,NODE_ENV:"production",CI:"1",NEXT_TELEMETRY_DISABLED:"1",NODE_OPTIONS:`--require=${guard}`};

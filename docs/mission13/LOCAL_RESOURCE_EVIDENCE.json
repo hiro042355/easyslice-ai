@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-09",
+  "vercel": {
+    "projectName": "easyslice-ai",
+    "projectId": "[REDACTED_OPAQUE_ID]",
+    "orgId": "[REDACTED_OPAQUE_ID]",
+    "projectIdPresent": true,
+    "orgIdPresent": true,
+    "source": "Original .vercel/project.json selected metadata only",
+    "evidenceStatus": "LOCAL_LINK_ONLY",
+    "plan": "UNKNOWN",
+    "billing": "UNKNOWN",
+    "freeEligibility": "UNKNOWN",
+    "cloudMetadataAccess": "NO_INSTALLED_CLI_OR_CONNECTOR"
+  },
+  "firebase": {
+    "clientSource": "lib/client/firebaseClient.ts",
+    "projectConfiguration": "ENVIRONMENT_REFERENCES_ONLY",
+    "publicConfigurationVariableNames": [
+      "NEXT_PUBLIC_FIREBASE_API_KEY",
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "NEXT_PUBLIC_FIREBASE_APP_ID"
+    ],
+    "resolvedValuesRead": false,
+    "serverCredentialSource": "lib/server/productionIdentity/vercelWifCredential.ts",
+    "productionProjectReferenced": true,
+    "productionIdentityReferenced": true,
+    "currentAccountOrProjectVerified": false,
+    "plan": "UNKNOWN"
+  },
+  "otherProviderAccounts": {
+    "supabase": "UNKNOWN",
+    "neon": "UNKNOWN",
+    "render": "UNKNOWN",
+    "cloudflare": "UNKNOWN"
+  },
+  "installedMetadataClis": [
+    "gcloud"
+  ],
+  "unavailableClis": [
+    "vercel",
+    "firebase",
+    "gh"
+  ],
+  "newCliInstallation": 0,
+  "credentialsRead": 0,
+  "accountCreation": 0,
+  "browserInventory": {
+    "method": "cua.getState read-only inventory",
+    "existingAuthenticatedProviderTabs": 0,
+    "availableSurfaces": "EMPTY_IN_APP_BROWSER_AND_MCP_APPS",
+    "nativeAppsEnabled": false,
+    "newTabsCreated": 0,
+    "signInsPerformed": 0,
+    "secretsRead": 0
+  }
+}

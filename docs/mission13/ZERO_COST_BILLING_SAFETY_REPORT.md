@@ -1,0 +1,17 @@
+# Concrete billing safety
+Observed2026-10-09: nexcut-staging billingEnabled=true (read-onlyboolean, no accountID/payment/invoice); not unbilled/free-only project. No new activation/resource/crypto. Existing Vercel link plan/card/quota UNKNOWN. Supabase/Neon/Render/Cloudflare/Firebase account eligibility UNKNOWN. CLI/connector inspection plus browser inventory found no reachable already-authenticated provider dashboard; no login/account creation/newtab/secrets retrieval. Source inventory is not accountabsence proof.
+
+| Selected/assessed provider | Currentplan/billing/payment | Free limits and overage/shutdown | Expiration / expected addedcost / worstcase |
+|---|---|---|---|
+| ExistingGCPstaging | PlanUNKNOWN,billingENABLED,cardUNKNOWN | ObservedHMACunsuitable,free allowanceUNKNOWN;newmanualKMSusagecanbill | Retainedversioncost/usage/egressUNKNOWN;no suitableproviderselected;worstcaseUNKNOWN,no zero inference |
+| ExistingVercel easyslice-ai | Linkonly,plan/card/billingUNKNOWN | Remainingcompute/build/networkUNKNOWN;Hobbycommercialrestriction;paidcredit nothardzero | Trialnotselected;newpreview/buildcouldcost,staticexactbranchsuppression;expected/worstUNKNOWN |
+| Render Free Node candidate | Actualaccount/plan/cardUNKNOWN | Official750h,quotaexcesswithcardcanbill;nocardservices/buildssuspend;highoutboundtrafficmaybesuspended | No trialapproved;filesystemephemeral;conditional$0onlyactualnocard/hardstop/withinquota;worstUNKNOWN |
+| Supabase Free candidate | Actualaccount/org/card/planUNKNOWN | 2activeprojects/500MB/5GBpublicoffer;quotaexcessrestrictions,actuallimits/automaticupgradeUNKNOWN | Idlepause,recovery/deletionproofneeded;conditional$0,noexactaccountguarantee;worstUNKNOWN |
+| Neon Free fallback | Actualaccount/plan/cardUNKNOWN | Announced1GB/100CUh;detailedoverage/network/regionUNKNOWN | 6hrestore;inactivity/credit/expiryUNKNOWN;expected/worstUNKNOWN |
+| Firebase identity candidate | Actualprojectplan/cardUNKNOWN | Spark no-payment publicoffer;AppHostingBlaze requiresbilling | Noautomaticplanswitch/credittrial;expected/worstUNKNOWN |
+| SoftwareKEK/hostbinding proposal | Notprovisioned;provideradmin/storage/backup costUNKNOWN | No per-callKMSfee assumedonlyafterapproveddesign;securehostfreequalificationmissing | Recovery/labor/hostexpenseUNKNOWN;notprovenzero |
+| Localworker/automation | Existingmockonly/defaultfalse;no remotejob | No newworkflow/resource;Gitplan/quotasUNKNOWN | Localpower/operator/license auditnotperformed;no remoteadditionalworkerbudgetauthorized |
+
+No provider VERIFIED_FREE for this user's complete real deployment. REQUIRES_PRODUCT_OWNER_APPROVAL if new payment/billingneeded;notactivated. Cardpresent overage/trialautomaticconversion disqualifiesuntilhardno-charge proved;alerts/credits notcap. CurrencyUSD publicterms only,noFX/taxes/regionquotes;noIowaTokyo substitution. Allaccount-specific currentplan/monthlylimits/storagecompute/network/region/inactivity/deletion/dataexport information must be independently shown. No procurement toresolve unknowns.
+
+Checkpoint: no .githubworkflow/PR, [skip ci]+[skip render], hooksdisabled,vercel.json onlyexistingexactMission12false+newMission13false. OfficialVercel default keeps unspecifiedbranchesunchanged;noProductionconfig/routing/env/billing mutation. Arbitraryexternalwebhookcompliance/invoices unverified;no universal financialauditclaim. No deployinvocation/publictunnel/DB/keyAPI. Retentionperiodsunapproved.

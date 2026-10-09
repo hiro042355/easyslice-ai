@@ -1,0 +1,500 @@
+{
+  "baseCommit": "46cf5d38140146565083a3bb78838e0491a296e1",
+  "fileCount": 35,
+  "modifiedCount": 6,
+  "createdCount": 29,
+  "deletedCount": 0,
+  "selfHash": "Bound by Git commit tree",
+  "files": [
+    {
+      "path": "docs/mission13/ACCEPTANCE_REPORT.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "f3bbb86f9dd211437737d7f7862c1bce92daa7d57364515bf1c8e236db7cbcfa"
+    },
+    {
+      "path": "docs/mission13/CALLBACK_PROVIDER_VALIDATION.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e9df6ae7b2c0276b46fbe1bfa2e761a3584203d0979370a5ffae751b9c9842f0"
+    },
+    {
+      "path": "docs/mission13/CHANGED_FILES.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": null
+    },
+    {
+      "path": "docs/mission13/CONCRETE_PROVIDER_SELECTION.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "1fe03fa75a21de31c8182f7994e65ff4e08113c2264343345dc47d650a8b1b5d"
+    },
+    {
+      "path": "docs/mission13/DATABASE_PROVIDER_VALIDATION.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "5f803bbbf59c387bbca7c6386eb2bd351d13332ca15a7034f380e2d015771caa"
+    },
+    {
+      "path": "docs/mission13/DEVELOPER_PORTAL_ALIGNMENT.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "1365a2d3a759ce088dfcfde8fabf1f7c05b92edc87d40346561c19ae4b03270a"
+    },
+    {
+      "path": "docs/mission13/DOMAIN_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "fef46585f284efad17782cc8111727944a4c1f74b77262a0b1748183086747d8"
+    },
+    {
+      "path": "docs/mission13/ENCRYPTION_PROVIDER_VALIDATION.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8bbab87ca004bd98aa0ba3c3aa6a182b2e44b7acdc14b406c66fa9f45cf5bd8c"
+    },
+    {
+      "path": "docs/mission13/EXISTING_RESOURCE_INVENTORY.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "eaf39a73855bef55b558eb369a2fafd4bf4c2326588d58513e857dd94d262bc3"
+    },
+    {
+      "path": "docs/mission13/FREE_TIER_ELIGIBILITY_EVIDENCE.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "eaa26fd97b1112de4465cce022c0293f8f0bc43324c2dec87a878264ba54b911"
+    },
+    {
+      "path": "docs/mission13/LOCAL_RESOURCE_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "33824452d54d579c994de8c588dc86a4f4306249292b6d5ca9342dab398ab9f3"
+    },
+    {
+      "path": "docs/mission13/MIGRATION_SOURCE_INVENTORY.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "7d62c476fe6e6a45e42810bef74ce8837f86d5fbb6c8361391c87031814d2a4e"
+    },
+    {
+      "path": "docs/mission13/MOCK_E2E_REPORT.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "41496bc315a44a1a5e49d9cdb13d6566d68cc7efe0c9b1002d60a77c0bb71b95"
+    },
+    {
+      "path": "docs/mission13/OBSERVED_METADATA.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2df9e5373070793dad4550a516cfdf9056a567fd482068ed16ffb2fed6400a1b"
+    },
+    {
+      "path": "docs/mission13/OPTION_B_CONCRETE_ARCHITECTURE.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "495930fd8ec3b70b27b8bfb3be3504454237bf6b83aa90c357003a00d5d8218e"
+    },
+    {
+      "path": "docs/mission13/OPTION_D_CONCRETE_ARCHITECTURE.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "25b1620c9dce773118664983c38f92e3317457c471269ef64abaac299fb28de0"
+    },
+    {
+      "path": "docs/mission13/PRODUCT_OWNER_DECISION_PACKAGE.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "28dac7ddca6bc27dbdede9e466cc6824e072d90dc8b8669fcb18467f9f2a6820"
+    },
+    {
+      "path": "docs/mission13/PROVIDER_CONFIGURATION_TEMPLATE.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "001f0bcfd891e0a9468781ebeee427b0439ee9b40c4da98be4ed9ce9c5b7be4a"
+    },
+    {
+      "path": "docs/mission13/PROVIDER_SIMULATION_INPUT.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "b66bf97d4bee4771b8d773c03aa25f9613fe2cc37dcf1b22e1bc402cd574c705"
+    },
+    {
+      "path": "docs/mission13/PROVIDER_SIMULATION_RESULT.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e487995d1ec92ae0df44d693ea0d144c37f313d83abdfebc2ca7949d9c3efaed"
+    },
+    {
+      "path": "docs/mission13/REAL_OAUTH_READINESS.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c006833d952c7c52af94bf5758a06e4a650fea20b70ca8a2f0b7406ff9433d15"
+    },
+    {
+      "path": "docs/mission13/REAL_OAUTH_READINESS_REPORT.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d328272db630bcec2d7b9dd69bbc03650ce534f664bf551bc27504bae84f4771"
+    },
+    {
+      "path": "docs/mission13/RESOURCE_INVENTORY.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "8f0206c71a2c0f8c9bd4ca553c3b0bc0daf3256ebd069018ad3e36ffcca248c0"
+    },
+    {
+      "path": "docs/mission13/RUNTIME_IDENTITY_VALIDATION.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c811e1dccf62f530ebb4c62c16cea5a07662a81b473df9afa2bbf718121fff04"
+    },
+    {
+      "path": "docs/mission13/TEST_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d6dc0b3065a9ad9658df492ea698ec9c55707d7dd000b5ea9ee0b2166d8338b8"
+    },
+    {
+      "path": "docs/mission13/ZERO_COST_BILLING_SAFETY_REPORT.md",
+      "status": "created",
+      "purpose": "Mission13 concrete provider/resource/eligibility/security/evidence/owner decision report",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "5bd3eede72d02b1fd8047eea9c65fc48fda969b174170b73c0b9fec280cf9818"
+    },
+    {
+      "path": "lib/server/tiktokQualification/providerSimulation.ts",
+      "status": "created",
+      "purpose": "Strict local-only provider simulation/CLI/security tests; no external authority",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "46c1f07c060540f0f89374f3af1221818884f0ae869b1a1794ca4d651f2dc51c"
+    },
+    {
+      "path": "scripts/tiktokProviderSimulation.mjs",
+      "status": "created",
+      "purpose": "Strict local-only provider simulation/CLI/security tests; no external authority",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c1c640a0114e732e6142cb255ee504144bdfe382b78d1daba09f27e36e22f6d6"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission13 regression output/labels/compile and build-root guard",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "e18275ae9a1739c93fc5771e51820d644fcbc4bd683217a4f8e3d76db90907c0"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission13 regression output/labels/compile and build-root guard",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "63671738fa24bfa0c3be145b81079e843b14d73a40a1c1addbb40a9afbd7833f"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission13 regression output/labels/compile and build-root guard",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "90c4073500d3971cc698c836a68f1058333f941055944e76e3ae9d19788a6e58"
+    },
+    {
+      "path": "tests/tiktokMission09/nextHostFixture.ts",
+      "status": "modified",
+      "purpose": "Bind actual Next synthetic host to strict provider descriptor and poolMax1; bounded evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "85d70b21c1dacc74c764f9f1d559473d417b4787b2ef433d0c0db3c2e0b720c4"
+    },
+    {
+      "path": "tests/tiktokMission09/postgresql.test.tsx",
+      "status": "modified",
+      "purpose": "Assert provider/one-connection/local-only evidence in complete mock UI E2E",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "430f68e437c73d893edfb551cd8edfebe54dc804cece6495548cec73c053b169"
+    },
+    {
+      "path": "tests/tiktokMission13/providerSimulation.test.ts",
+      "status": "created",
+      "purpose": "Strict local-only provider simulation/CLI/security tests; no external authority",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "925803ca3290d7c62946eaca8ea578236125a8c0ebe7fb359b757e268f79ace8"
+    },
+    {
+      "path": "vercel.json",
+      "status": "modified",
+      "purpose": "Extend exact branch nondeployment suppression to Mission13 only",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "b8b45a3dcfe1189019962e9314cfc189cb59c65656693cecdd71184611733b46"
+    }
+  ]
+}

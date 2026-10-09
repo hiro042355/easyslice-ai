@@ -1,0 +1,27 @@
+{
+  "deployable": false,
+  "executionAuthorized": false,
+  "qualificationCandidate": {
+    "hostingProvider": "RENDER_FREE_NODE",
+    "hostingResource": "NOT_SELECTED",
+    "databaseProvider": "SUPABASE_FREE",
+    "databaseResource": "NOT_SELECTED",
+    "fallbackDatabase": "NEON_FREE",
+    "connectionMode": "SESSION_POOLER",
+    "remoteTls": "VERIFY_FULL",
+    "poolMax": 1
+  },
+  "futureOrigin": "OWNER_SELECTION_REQUIRED",
+  "callbackPath": "/api/tiktok/oauth/callback",
+  "clientKeyValueIncluded": false,
+  "secretValuesIncluded": false,
+  "encryptionProvider": "REVIEW_REQUIRED_NOT_INSTALLED",
+  "nonProductionFirebaseTrust": "REVIEW_REQUIRED_NOT_INSTALLED",
+  "databaseMigrator": "AUTHORITY_REQUIRED",
+  "liveConnect": false,
+  "liveWorker": false,
+  "zeroCostEligibility": "UNKNOWN",
+  "billingSafe": "UNKNOWN",
+  "rollbackArtifact": "VERIFIED_ID_REQUIRED",
+  "retention": "UNAPPROVED"
+}

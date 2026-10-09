@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-09",
+  "baseline": "46cf5d38140146565083a3bb78838e0491a296e1",
+  "host": {
+    "passed": 767,
+    "failed": 0,
+    "skipped": 0,
+    "command": {
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "--test",
+        "--test-concurrency=1",
+        "tests/tiktokOAuth/foundation.test.ts",
+        "tests/tiktokConnection/connectionUi.test.tsx",
+        "tests/tiktokFirebase/auth.test.ts",
+        "tests/tiktokHttp/adapter.test.ts",
+        "tests/tiktokHardening/callback.test.ts",
+        "tests/tiktokHardening/chunkBoundary.test.ts",
+        "tests/tiktokHardening/keys.test.ts",
+        "tests/tiktokHardening/publisher.test.ts",
+        "tests/tiktokHardening/serialization.test.ts",
+        "tests/tiktokHardening/transport.test.ts",
+        "tests/productionIdentity/authenticatedAccountControl.test.ts",
+        "tests/productionIdentity/betaAuthorization.test.ts",
+        "tests/productionIdentity/durableCutOwnership.test.ts",
+        "tests/productionIdentity/durableMediaAdmissionClient.test.ts",
+        "tests/productionIdentity/durableMediaAnalyze.test.ts",
+        "tests/productionIdentity/durableMediaOwnership.test.ts",
+        "tests/productionIdentity/durableMultiCut.test.ts",
+        "tests/productionIdentity/durableReviewExport.test.ts",
+        "tests/productionIdentity/durableSubtitleBurn.test.ts",
+        "tests/productionIdentity/durableTranscript.test.ts",
+        "tests/productionIdentity/durableYoutubeIngestion.test.ts",
+        "tests/productionIdentity/googleIdentitySignIn.test.ts",
+        "tests/productionIdentity/packagedYtDlp.test.ts",
+        "tests/productionIdentity/productionDurableStorageInfrastructure.test.ts",
+        "tests/productionIdentity/productionIdentityFoundation.test.ts",
+        "tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+        "tests/productionIdentity/productionOwnerUidProofRoute.test.ts",
+        "tests/productionIdentity/restoredServerSession.test.ts",
+        "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts",
+        "tests/productionIdentity/vercelWifCredential.test.ts",
+        "tests/tiktokApplication/application.test.ts",
+        "tests/tiktokMission09/client.test.tsx",
+        "tests/tiktokMission09/worker.test.ts",
+        "tests/tiktokMission10/keyConfiguration.test.ts",
+        "tests/tiktokMission10/preflight.test.ts",
+        "tests/tiktokMission11/preflight.test.ts",
+        "tests/tiktokMission12/readiness.test.ts",
+        "tests/tiktokMission13/providerSimulation.test.ts",
+        "tests/tiktokIntegration/client.test.tsx",
+        "tests/productionMigrationOperator/operator.test.ts"
+      ]
+    },
+    "closedEnvironment": [
+      "SystemRoot",
+      "PATH",
+      "TEMP",
+      "TMP"
+    ]
+  },
+  "postgresql": {
+    "passed": 133,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+    "e2ePassingLine": "✔ browser Connect -> real Next synthetic callback -> encrypted PG -> CONNECTED -> consent/B7 worker -> disconnect -> NOT_CONNECTED (6139.592836ms)",
+    "providerEvidenceAsserted": {
+      "execution": "LOCAL_TEST",
+      "hostingCandidate": "RENDER_FREE_NODE",
+      "databaseCandidate": "SUPABASE_FREE",
+      "actualLocalPoolMax": 1,
+      "externalEligibility": "UNKNOWN",
+      "liveReady": "NO",
+      "realNetwork": 0
+    },
+    "localSyntheticDml": "EXECUTED",
+    "localFixtureDdl": "EXECUTED",
+    "privateNetwork": true,
+    "publishedPorts": 0,
+    "credentialMounts": 0,
+    "persistentVolumes": 0,
+    "remainingContainers": 0,
+    "remainingNetworks": 0
+  },
+  "distinctTests": 900,
+  "newTests": 56,
+  "typecheck": {
+    "args": [
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "focusedLint": {
+    "args": [
+      "node_modules/eslint/bin/eslint.js",
+      "lib/server/tiktokQualification/providerSimulation.ts",
+      "scripts/tiktokProviderSimulation.mjs",
+      "tests/tiktokMission13/providerSimulation.test.ts",
+      "tests/tiktokMission09/nextHostFixture.ts",
+      "tests/tiktokMission09/postgresql.test.tsx",
+      "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "tests/tiktokHardening/runBuild.mjs"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "strictBundle": {
+    "es2022": "PASS",
+    "es2017": "PASS",
+    "command": "node tests/tiktokFullIntegration/prepareLocalRehearsal.mjs C:/Users/hirom/OneDrive/ドキュメント/GitHub/nexcut-tiktok-publisher"
+  },
+  "build": {
+    "exit": 0,
+    "command": "node tests/tiktokHardening/runBuild.mjs C:/Users/hirom/AppData/Local/Temp/nexcut-tiktok-integration-13-20261009 C:/Users/hirom/AppData/Local/Temp/nexcut-mission13-build.log",
+    "productionEnvironmentValues": 0,
+    "network": "public-google-font-assets-only",
+    "prebuildDownloads": 0
+  },
+  "repositoryLint": {
+    "exit": 1,
+    "command": "node node_modules/eslint/bin/eslint.js . --format json --output-file C:/Users/hirom/AppData/Local/Temp/nexcut-mission13-lint.json",
+    "classification": "BASELINE_FAILURE",
+    "baselineErrors": 30,
+    "baselineWarnings": 48,
+    "missionErrors": 30,
+    "missionWarnings": 48,
+    "exactDiagnosticsMatch": true,
+    "normalizedSha256": "535f734fc50bfdad092376b0ab650ef0749b6438dadad0b0b73a21bbfcf65d8a"
+  },
+  "providerSimulation": {
+    "exit": 0,
+    "liveReady": "NO",
+    "classification": "PASS_LOCAL_SYNTHETIC_ONLY"
+  },
+  "readiness": {
+    "exit": 2,
+    "status": "BLOCKED",
+    "classification": "EXPECTED_SAFETY_RESULT"
+  },
+  "initialFailures": {
+    "testFailures": 0,
+    "investigation": [
+      "Initial resource-report assembly stopped on PowerShell singleton keyring object rather than array; normalized successful inventory array shape without changing observed values; no extra cloud reads.",
+      "Neon detailed official plan/connectivity docs inaccessible; actual requirements remain UNKNOWN.",
+      "No installed metadata CLI/connector for other providers; read-only browser inventory shows no existing tabs/native app surface. No credential extraction/login/new tabs.",
+      "Initial broad V*.sql source count14 included6 synthetic migration-operator fixtures; scoped authoritative source directory db/workflow/migrations yields8 committed versions. Excluded fixture paths recorded, not authoritative collisions/history."
+    ]
+  },
+  "logs": {
+    "hostSha256": "8c38747d24e6b54371c7b990f2a830019b4bb226ea879e759ef0d75217249584",
+    "postgresqlSha256": "80c26832018a664c94f1d8c5fa552b0f955c549a2d20ca06e82ba795bb93107e",
+    "buildSha256": "8848c9c3a89b7ba70a8e367b55ffbc9b83e1eba150346fe9a859991f8b7fff3c"
+  },
+  "externalOperations": {
+    "nonprodMetadataReads": 11,
+    "publicDnsTlsHandshake": 1,
+    "productionHttpRequests": 0,
+    "authenticatedProductionRequests": 0,
+    "dbConnections": 0,
+    "cryptoCalls": 0,
+    "cloudMutations": 0,
+    "billingActivation": 0,
+    "accountCreation": 0,
+    "resourceCreation": 0,
+    "deploymentInvocations": 0,
+    "tunnels": 0,
+    "tiktokApiCalls": 0,
+    "oauthActions": 0
+  }
+}

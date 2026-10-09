@@ -1,0 +1,6 @@
+# Real readiness
+Eachrequiredfieldis YES/NO/UNKNOWN, with evidence/reasons in REAL_OAUTH_READINESS.json. Hosting/database/secrets/callback/Portal/billing/rollback UNKNOWN;encryptionNO,currentidentityNO,ownerOAuthauthorizationNO. OPTION_D_READY=NO,OPTION_B_READY=NO,REAL_SANDBOX_OAUTH_READY=NO.
+
+CanonicalDNS/TLS PASS not savedPortal/deployedcallback proof. ObservedHMACandProductionWIF cannotqualify. Noneofrealcredential/providerSDK/schema/deployment/rollback/zerochargeauthorityproved. Currentmissionforbidsreal OAuth. ReadinessreducersfromMissions10–12 remainfailclosedandregressiontested;newproviderSimulationreport localonly/eligibilityUNKNOWN/readinessNO,never overrides gate.
+
+Independentexisting-account metadata,exactnonprodresource/isolation/TLS/URI/owner evidence and narrowly reviewedcallback/identity/custody release needed beforeseparatelyauthorizeddeploymentqualification andone-shotOAuth. No authenticatedprobe/API/OAuth now. UNKNOWNneverpromotedusinglocaltestPASS ormarketingfreeplan.

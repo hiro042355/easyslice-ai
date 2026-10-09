@@ -1,0 +1,270 @@
+{
+  "date": "2026-10-09",
+  "project": "nexcut-staging",
+  "requests": 11,
+  "mutations": 0,
+  "productionApplicationReads": 0,
+  "secretReads": 0,
+  "cryptoOperations": 0,
+  "impersonation": false,
+  "projectState": {
+    "data": {
+      "lifecycleState": "ACTIVE",
+      "projectId": "nexcut-staging"
+    },
+    "status": "VERIFIED"
+  },
+  "services": {
+    "data": [
+      {
+        "config": {
+          "name": "analyticshub.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquery.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigqueryconnection.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerydatapolicy.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerydatatransfer.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerymigration.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigqueryreservation.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "bigquerystorage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudapis.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudkms.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudresourcemanager.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "cloudtrace.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "dataform.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "dataplex.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "datastore.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "iam.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "iamcredentials.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "logging.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "monitoring.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "servicemanagement.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "serviceusage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "sql-component.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage-api.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage-component.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "storage.googleapis.com"
+        }
+      },
+      {
+        "config": {
+          "name": "telemetry.googleapis.com"
+        }
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "identities": {
+    "data": [
+      {
+        "disabled": false,
+        "email": "nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com"
+      },
+      {
+        "disabled": false,
+        "email": "nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+      },
+      {
+        "disabled": false,
+        "email": "nexcut-stg-deployer@nexcut-staging.iam.gserviceaccount.com"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "keyrings": {
+    "data": [
+      {
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "keys": {
+    "data": [
+      {
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac",
+        "purpose": "MAC"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "versions": {
+    "data": [
+      {
+        "algorithm": "HMAC_SHA256",
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/1",
+        "state": "ENABLED"
+      },
+      {
+        "algorithm": "HMAC_SHA256",
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/2",
+        "state": "ENABLED"
+      },
+      {
+        "algorithm": "HMAC_SHA256",
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/3",
+        "state": "ENABLED"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "wifPools": {
+    "data": [],
+    "status": "VERIFIED"
+  },
+  "billingProject": {
+    "data": {
+      "billingEnabled": true
+    },
+    "status": "VERIFIED"
+  },
+  "metadataRole": {
+    "data": {
+      "includedPermissions": [
+        "cloudkms.cryptoKeyVersions.get",
+        "cloudkms.cryptoKeys.get"
+      ],
+      "name": "projects/nexcut-staging/roles/nexcutStgKmsMetadataReader",
+      "stage": "GA"
+    },
+    "status": "VERIFIED"
+  },
+  "rotatorRole": {
+    "data": {
+      "includedPermissions": [
+        "cloudkms.cryptoKeyVersions.create",
+        "cloudkms.cryptoKeyVersions.get",
+        "cloudkms.cryptoKeyVersions.list",
+        "cloudkms.cryptoKeys.get"
+      ],
+      "name": "projects/nexcut-staging/roles/nexcutStgKmsVersionRotator",
+      "stage": "GA"
+    },
+    "status": "VERIFIED"
+  },
+  "keyPolicy": {
+    "bindings": [
+      {
+        "role": "projects/nexcut-staging/roles/nexcutStgKmsMetadataReader",
+        "conditionPresent": false,
+        "nonprodServiceAccounts": [
+          "serviceAccount:nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+        ],
+        "otherPrincipalsCount": 0
+      },
+      {
+        "role": "projects/nexcut-staging/roles/nexcutStgKmsVersionRotator",
+        "conditionPresent": false,
+        "nonprodServiceAccounts": [
+          "serviceAccount:nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com"
+        ],
+        "otherPrincipalsCount": 0
+      },
+      {
+        "role": "roles/cloudkms.signer",
+        "conditionPresent": false,
+        "nonprodServiceAccounts": [
+          "serviceAccount:nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+        ],
+        "otherPrincipalsCount": 0
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "serializationNote": "PowerShell unwrapped singleton/empty inventory arrays; normalized array shape without changing observed resources."
+}

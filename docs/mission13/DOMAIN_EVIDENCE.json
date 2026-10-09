@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-09",
+  "dns": [
+    {
+      "Name": "www.nexcutai.com",
+      "Type": 5,
+      "IPAddress": null,
+      "NameHost": "687cd6f3c25a9baa.vercel-dns-017.com"
+    },
+    {
+      "Name": "687cd6f3c25a9baa.vercel-dns-017.com",
+      "Type": 1,
+      "IPAddress": "216.198.79.1",
+      "NameHost": null
+    },
+    {
+      "Name": "687cd6f3c25a9baa.vercel-dns-017.com",
+      "Type": 1,
+      "IPAddress": "64.29.17.1",
+      "NameHost": null
+    }
+  ],
+  "tlsHostnameAndChainValidated": true,
+  "certificateExpiryUtc": "2026-11-09T18:58:33.0000000Z",
+  "httpRequests": 0,
+  "authenticatedRequests": 0,
+  "dbRequests": 0,
+  "domainOwnership": "UNKNOWN",
+  "callbackRoute": "UNKNOWN",
+  "deployedVersion": "UNKNOWN"
+}

@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "execution": "LOCAL_TEST",
+  "hostingProvider": "RENDER_FREE_NODE",
+  "databaseProvider": "SUPABASE_FREE",
+  "connectionMode": "SESSION_POOLER",
+  "remoteTls": "VERIFY_FULL",
+  "poolMax": 1,
+  "encryption": "SYNTHETIC_ENVELOPE_ONLY",
+  "identity": "SYNTHETIC_FIREBASE_ONLY",
+  "origin": "https://www.nexcutai.com",
+  "redirectUri": "https://www.nexcutai.com/api/tiktok/oauth/callback",
+  "plannedPublicResource": "UNSELECTED",
+  "liveConnect": false,
+  "liveWorker": false
+}

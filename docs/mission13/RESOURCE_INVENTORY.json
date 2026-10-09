@@ -1,0 +1,392 @@
+{
+  "date": "2026-10-09",
+  "resourceCount": 17,
+  "resources": [
+    {
+      "RESOURCE_ID": "nexcut-staging",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ACTIVE",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh project.describe +billing.projects.describe",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ]
+    },
+    {
+      "RESOURCE_ID": "nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ENABLED",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh iam.service-accounts.list",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ]
+    },
+    {
+      "RESOURCE_ID": "nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ENABLED",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh iam.service-accounts.list",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ]
+    },
+    {
+      "RESOURCE_ID": "nexcut-stg-deployer@nexcut-staging.iam.gserviceaccount.com",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ENABLED",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh iam.service-accounts.list",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ]
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "PRESENT",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh kms.keyrings.list asia1",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ]
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "PURPOSE_MAC",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh kms.keys.list asia1",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ],
+      "SECURITY_QUALIFICATION": "NOT_TOKEN_ENCRYPTION",
+      "DIRECT_KEY_IAM": [
+        {
+          "role": "projects/nexcut-staging/roles/nexcutStgKmsMetadataReader",
+          "conditionPresent": false,
+          "nonprodServiceAccounts": [
+            "serviceAccount:nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+          ],
+          "otherPrincipalsCount": 0
+        },
+        {
+          "role": "projects/nexcut-staging/roles/nexcutStgKmsVersionRotator",
+          "conditionPresent": false,
+          "nonprodServiceAccounts": [
+            "serviceAccount:nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com"
+          ],
+          "otherPrincipalsCount": 0
+        },
+        {
+          "role": "roles/cloudkms.signer",
+          "conditionPresent": false,
+          "nonprodServiceAccounts": [
+            "serviceAccount:nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+          ],
+          "otherPrincipalsCount": 0
+        }
+      ]
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/1",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ENABLED_HMAC_SHA256",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh kms.keys.versions.list",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ],
+      "SECURITY_QUALIFICATION": "HMAC_NOT_ENCRYPTION"
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/2",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ENABLED_HMAC_SHA256",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh kms.keys.versions.list",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ],
+      "SECURITY_QUALIFICATION": "HMAC_NOT_ENCRYPTION"
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/3",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "ENABLED_HMAC_SHA256",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh kms.keys.versions.list",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ],
+      "SECURITY_QUALIFICATION": "HMAC_NOT_ENCRYPTION"
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/roles/nexcutStgKmsMetadataReader",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "GA",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh iam.roles.describe",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ],
+      "INCLUDED_PERMISSIONS": [
+        "cloudkms.cryptoKeyVersions.get",
+        "cloudkms.cryptoKeys.get"
+      ]
+    },
+    {
+      "RESOURCE_ID": "projects/nexcut-staging/roles/nexcutStgKmsVersionRotator",
+      "PROVIDER": "GCP",
+      "PROJECT": "nexcut-staging",
+      "ENVIRONMENT": "NON_PRODUCTION",
+      "CURRENT_STATE": "GA",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "PROJECT_BILLING_ENABLED",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_READ_ONLY_METADATA",
+      "EVIDENCE": "Fresh iam.roles.describe",
+      "UNKNOWN_FIELDS": [
+        "plan",
+        "actual account eligibility",
+        "remaining quotas",
+        "effective inherited permissions",
+        "zero additional charge"
+      ],
+      "INCLUDED_PERMISSIONS": [
+        "cloudkms.cryptoKeyVersions.create",
+        "cloudkms.cryptoKeyVersions.get",
+        "cloudkms.cryptoKeyVersions.list",
+        "cloudkms.cryptoKeys.get"
+      ]
+    },
+    {
+      "RESOURCE_ID": "easyslice-ai [opaque project/org IDs redacted]",
+      "PROVIDER": "VERCEL",
+      "PROJECT": "easyslice-ai",
+      "ENVIRONMENT": "LOCAL_LINK_TARGET_UNVERIFIED",
+      "CURRENT_STATE": "LOCAL_LINK_ONLY",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "UNKNOWN",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "LOCAL_FILE_READ_ONLY",
+      "EVIDENCE": "Original .vercel/project.json selected non-secret fields",
+      "UNKNOWN_FIELDS": [
+        "current deployment/environment",
+        "plan/billing/card",
+        "remaining quotas",
+        "domain assignment",
+        "cloud authority"
+      ]
+    },
+    {
+      "RESOURCE_ID": "nexcut-prod-jp-2026 / nexcut-prod-web-auth [SOURCE_REFERENCE_ONLY]",
+      "PROVIDER": "FIREBASE_GCP",
+      "PROJECT": "nexcut-prod-jp-2026",
+      "ENVIRONMENT": "PRODUCTION_REFERENCE_ONLY",
+      "CURRENT_STATE": "STATIC_REFERENCE_NOT_LIVE_VERIFIED",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "UNKNOWN",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "STATIC_SOURCE_ONLY_NO_PRODUCTION_API",
+      "EVIDENCE": "productionIdentity/vercelWifCredential.ts +firebaseAdmin.ts",
+      "UNKNOWN_FIELDS": [
+        "actual project/identity status",
+        "plan/billing",
+        "authorized domains",
+        "effective credentials"
+      ]
+    },
+    {
+      "RESOURCE_ID": "www.nexcutai.com",
+      "PROVIDER": "VERCEL_DNS_TLS",
+      "PROJECT": "UNKNOWN",
+      "ENVIRONMENT": "CANONICAL_PRODUCTION",
+      "CURRENT_STATE": "DNS_RESOLVES_TLS_VALID",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "UNKNOWN",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "PUBLIC_DNS_TLS_ONLY_NO_HTTP",
+      "EVIDENCE": "Fresh public DNS+TLS-only verification",
+      "UNKNOWN_FIELDS": [
+        "registrar/domain ownership control",
+        "current deployment ID/SHA",
+        "callback route",
+        "Sandbox isolation",
+        "plan/billing"
+      ],
+      "CERTIFICATE_EXPIRY_UTC": "2026-11-09T18:58:33Z"
+    },
+    {
+      "RESOURCE_ID": "hiro042355/easyslice-ai",
+      "PROVIDER": "GITHUB",
+      "PROJECT": "hiro042355/easyslice-ai",
+      "ENVIRONMENT": "REPOSITORY",
+      "CURRENT_STATE": "REMOTE_BASELINE_46cf5d38140146565083a3bb78838e0491a296e1",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "UNKNOWN",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "EXISTING_GIT_FETCH_PUSH_ONLY",
+      "EVIDENCE": "Fresh Git remote +commit/tree/parent",
+      "UNKNOWN_FIELDS": [
+        "visibility/plan/billing",
+        "Actions quota",
+        "external integrations",
+        "admin authority"
+      ]
+    },
+    {
+      "RESOURCE_ID": "hiro042355/nexcut-tiktok-publisher",
+      "PROVIDER": "GITHUB",
+      "PROJECT": "hiro042355/nexcut-tiktok-publisher",
+      "ENVIRONMENT": "PINNED_PUBLISHER",
+      "CURRENT_STATE": "LOCAL_HEAD_7f16aa12c75f7f20a50b88c50b4e7e5b13f11196",
+      "PLAN": "UNKNOWN",
+      "BILLING_STATUS": "UNKNOWN",
+      "FREE_TIER_ELIGIBILITY": "UNKNOWN",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "LOCAL_READ_ONLY",
+      "EVIDENCE": "Local Git+B7 artifact verifier",
+      "UNKNOWN_FIELDS": [
+        "account billing/plan",
+        "external integrations"
+      ]
+    },
+    {
+      "RESOURCE_ID": "PG18.4 sha256:c2d42a104eb6b37b286a2d9c5cf83f349de4d6516d513d00a2bd9610e2c2e5e4",
+      "PROVIDER": "LOCAL_DOCKER",
+      "PROJECT": "LOCAL_REHEARSAL",
+      "ENVIRONMENT": "LOCAL_SYNTHETIC",
+      "CURRENT_STATE": "CACHED_IMAGE_DISPOSABLE_RUN_COMPLETED",
+      "PLAN": "EXISTING_LOCAL_TOOL_LICENSE_NOT_AUDITED",
+      "BILLING_STATUS": "NO_REMOTE_RESOURCE_CREATED",
+      "FREE_TIER_ELIGIBILITY": "LOCAL_ONLY_NOT_CLOUD_ELIGIBILITY",
+      "USAGE_LIMITS": "UNKNOWN",
+      "ACCESS_AUTHORITY": "AUTHORIZED_DISPOSABLE_LOCAL_TEST",
+      "EVIDENCE": "Pinned runner checks;133 tests PASS +owned resources0 after cleanup",
+      "UNKNOWN_FIELDS": [
+        "durable real-token suitability",
+        "operator electricity/license"
+      ],
+      "PERSISTENT_DATABASE": false
+    }
+  ],
+  "undiscoveredAccounts": {
+    "supabase": "UNKNOWN",
+    "neon": "UNKNOWN",
+    "render": "UNKNOWN",
+    "cloudflare": "UNKNOWN"
+  },
+  "absenceBoundaries": {
+    "sqlRunSecretFirebase": "DISABLED_API_NOT_RESOURCE_ABSENCE",
+    "wif": "SUCCESSFUL_EMPTY_GLOBAL_INVENTORY",
+    "otherKmsLocations": "NOT_INSPECTED"
+  },
+  "realSecretValuesRead": 0
+}
