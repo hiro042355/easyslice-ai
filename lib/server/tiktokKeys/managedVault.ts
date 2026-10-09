@@ -1,3 +1,5 @@
+import {validateManagedKeyConfiguration,type KeyConfiguration} from "./keyConfiguration";
+export type {KeyConfiguration} from "./keyConfiguration";
 import { protectTokenSerialization } from "./tokenSecrets";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import type { Connection, Envelope, IntegrationPgStore } from "../tiktokIntegration/store";
@@ -8,14 +10,12 @@ export interface EnvelopeKmsClient {
  wrap(name:string,dek:Buffer,aad:Buffer):Promise<Readonly<{name:string;ciphertext:Buffer}>>;
  unwrap(name:string,ciphertext:Buffer,aad:Buffer):Promise<Buffer>;
 }
-export type KeyConfiguration=Readonly<{execution:"LOCAL_TEST"|"PRODUCTION";activeVersion:string;readableVersions:readonly string[]}>;
-const version=/^projects\/[a-z][a-z0-9-]{4,62}\/locations\/[a-z0-9-]+\/keyRings\/[A-Za-z0-9_-]+\/cryptoKeys\/[A-Za-z0-9_-]+\/cryptoKeyVersions\/[1-9][0-9]*$/;
 function rejected():never {throw new Error("KEY_CUSTODY_UNAVAILABLE");}
 const binding=(c:Omit<Connection,"envelope">,key:string)=>Buffer.from(JSON.stringify([2,c.uid,c.app,c.environment,c.openId,c.generation,c.scopes,c.expiresAt,key]));
 /** Envelope encryption: managed KEK never leaves KMS; independent random AES-256 DEK per message. */
 export class ManagedTokenVault {
  readonly #configuration:KeyConfiguration;readonly #client:EnvelopeKmsClient;
- constructor(configuration:KeyConfiguration,client:EnvelopeKmsClient,private readonly audit:(event:Readonly<{provider:"KMS_ENVELOPE";status:"READY"|"UNAVAILABLE"}>)=>void=()=>{}){if(!configuration||!["LOCAL_TEST","PRODUCTION"].includes(configuration.execution)||!version.test(configuration.activeVersion)||!configuration.readableVersions.includes(configuration.activeVersion)||new Set(configuration.readableVersions).size!==configuration.readableVersions.length||configuration.readableVersions.length>20||configuration.readableVersions.some(v=>!version.test(v)||v.split("/cryptoKeyVersions/")[0]!==configuration.activeVersion.split("/cryptoKeyVersions/")[0])||!client)rejected();this.#configuration=Object.freeze({...configuration,readableVersions:Object.freeze([...configuration.readableVersions])});this.#client=client;}
+ constructor(configuration:KeyConfiguration,client:EnvelopeKmsClient,private readonly audit:(event:Readonly<{provider:"KMS_ENVELOPE";status:"READY"|"UNAVAILABLE"}>)=>void=()=>{}){if(!client)rejected();try{this.#configuration=validateManagedKeyConfiguration(configuration);}catch{rejected();}this.#client=client;}
  #event(status:"READY"|"UNAVAILABLE"){try{this.audit(Object.freeze({provider:"KMS_ENVELOPE",status}));}catch{/* audit sink errors never expose provider/credential causes */}}
  get configuredExecution(){return this.#configuration.execution;}
  toJSON(){return {provider:"KMS_ENVELOPE",envelopeVersion:2,credentials:"[REDACTED]"};}

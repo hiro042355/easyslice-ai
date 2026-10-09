@@ -1,0 +1,13 @@
+# Migration authority — Mission10
+
+Current inventory independently reread:8 committed V000001–V000008,17 original untracked V000009–V000025,0 numeric version collisions. Exact paths/raw SHA256/LF-normalized SHA256/committed blob hashes in MIGRATION_INVENTORY.json. Original candidates not imported/staged/applied/reserved. Naming matches V<zero-padded numeric>__description.sql. V26 is not reserved by finding V25. Authoritative deployed history/checksums/last version/owner remain UNKNOWN.
+
+SHA256 is file-integrity evidence,not Flyway's stored SQL checksum. Flyway validate compares SQL CRC32/history and migration naming/versions; no applied-history checksum comparison was performed. [Flyway validate](https://documentation.red-gate.com/fd/validate-277578898.html). Do not equate normalized EOL hashes with runtime history proof.
+
+Existing scripts/productionMigrationOperator.mjs is inert,targetNONE,unsupported operations rejected; lib/productionMigrationOperator/contracts.ts explicitly rejects PRODUCTION and NON_PRODUCTION_CLOUD_SQL adapters. Existing operator unit tests are in-memory; they do not perform actual migration. No Production executable/migrator connection was introduced. Historical local Flyway rehearsals are not Production authority.
+
+Required authority: exact approved target/database/schema/search_path/history location/shape; current/session migrator identity; CONNECT/USAGE/CREATE/schema/table ALTER ownership and authoritative history SELECT/ownership; approved source/ordered file manifest/pinned Flyway artifact and current checksums; single concurrent migration lock; validation before any separately approved DDL. IAM service-account existence/Cloud SQL login does not prove these SQL privileges. Runtime should remain SIU only,not migration owner.
+
+Rollout: readonly history+privileges/collision gate -> reviewed unversioned candidate/dependencies -> decide authoritative next version -> separately authorized isolated staging rehearsal/migration -> postvalidate/readable key/schema/runtime compatibility -> separately approved release. Recovery: stop on unknown/failed/checksum/out-of-order/collision, preserve redacted receipt and earlier commits, investigate exact failing transaction. No automatic repair,baseline,clean,history edit,rollback DDL or version reallocation. Never import untracked unrelated workflow development.
+
+No new staging schema candidate created: existing tests/tiktokProductionMigration/NONDEPLOYABLE_oauth_candidate.sql remains sufficient local contract and not deployable. MIGRATION_IDENTITY_AUTHORITY=UNKNOWN; HISTORY_OWNER=UNKNOWN; FINAL_VERSION=UNASSIGNED; SEPARATE_MIGRATION_OWNER_REQUIRED=UNKNOWN. Source/in-memory authority investigation completed; actual DB authority BLOCKED.

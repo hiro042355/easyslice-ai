@@ -1,0 +1,271 @@
+{
+  "observedDate": "2026-10-09",
+  "base": "a1670e228b468629ccb408e302ce617cf1874046",
+  "committedCount": 8,
+  "originalUntrackedCount": 17,
+  "duplicates": [],
+  "namingConvention": "V<zero-padded numeric>__description.sql",
+  "records": [
+    {
+      "path": "db/workflow/migrations/V000001__initialize_slice_a_workflow_schema.sql",
+      "classification": "COMMITTED",
+      "version": 1,
+      "numericVersion": "000001",
+      "sha256Bytes": "94568f9fcb675f6c169f1a9fa1f0e5ad96d1011eec380d33451747bc855b10a9",
+      "sha256BomStrippedLf": "ab5578473bd6c33643ad846a6c6ca4e1241fdba1bd38deab45bfae31f422b486",
+      "committedBlobSha256": "ab5578473bd6c33643ad846a6c6ca4e1241fdba1bd38deab45bfae31f422b486",
+      "bytes": 11822
+    },
+    {
+      "path": "db/workflow/migrations/V000002__add_workflow_reconciliation_schema.sql",
+      "classification": "COMMITTED",
+      "version": 2,
+      "numericVersion": "000002",
+      "sha256Bytes": "6388977db66e4b2a5493ad1465046e873616d6e345e12aa91fe8a4d2e464749c",
+      "sha256BomStrippedLf": "1c65a19539b14cc4f3cdef17513d9624f0d18c25c2ab066874d29bbe06724784",
+      "committedBlobSha256": "1c65a19539b14cc4f3cdef17513d9624f0d18c25c2ab066874d29bbe06724784",
+      "bytes": 27498
+    },
+    {
+      "path": "db/workflow/migrations/V000003__align_reconciliation_store_schema.sql",
+      "classification": "COMMITTED",
+      "version": 3,
+      "numericVersion": "000003",
+      "sha256Bytes": "4524b96c9ce7e4010fae2d8e56c865e37fb7cee4d2f27f925a702d986d899bdd",
+      "sha256BomStrippedLf": "d29c520dfd610e6507e932326448bda1b27909c9b630299246e78a9d4ba27e5d",
+      "committedBlobSha256": "d29c520dfd610e6507e932326448bda1b27909c9b630299246e78a9d4ba27e5d",
+      "bytes": 15963
+    },
+    {
+      "path": "db/workflow/migrations/V000004__add_multi_cut_replay_postgresql_foundation.sql",
+      "classification": "COMMITTED",
+      "version": 4,
+      "numericVersion": "000004",
+      "sha256Bytes": "f83b3ba51d9a150e8367d8c6b97a2c178a44349771fc46f47605266858c5cd04",
+      "sha256BomStrippedLf": "eef031026e10fe2a4918db091f812ab95105d2abe69fbd6e6bdc5266d26fc331",
+      "committedBlobSha256": "eef031026e10fe2a4918db091f812ab95105d2abe69fbd6e6bdc5266d26fc331",
+      "bytes": 5222
+    },
+    {
+      "path": "db/workflow/migrations/V000005__add_workflow_completion_state.sql",
+      "classification": "COMMITTED",
+      "version": 5,
+      "numericVersion": "000005",
+      "sha256Bytes": "0d98e304b0959ed0cdbc7564ddcd7cf6c30726332230a8ba9a7399d6190820c9",
+      "sha256BomStrippedLf": "e88d0104404872a038a23bf0a607f16209cb94876ba99a74af6dc28409f1bb7c",
+      "committedBlobSha256": "e88d0104404872a038a23bf0a607f16209cb94876ba99a74af6dc28409f1bb7c",
+      "bytes": 2128
+    },
+    {
+      "path": "db/workflow/migrations/V000006__add_durable_media_ownership.sql",
+      "classification": "COMMITTED",
+      "version": 6,
+      "numericVersion": "000006",
+      "sha256Bytes": "2e916235606fe89cce08e7077547d84b99c3bc7bf572b6bdf1228803b814f408",
+      "sha256BomStrippedLf": "9c85cf2e3eede1be43f5173effacb1e03de4c9a125cc9992cadcedbb32210ab1",
+      "committedBlobSha256": "9c85cf2e3eede1be43f5173effacb1e03de4c9a125cc9992cadcedbb32210ab1",
+      "bytes": 1584
+    },
+    {
+      "path": "db/workflow/migrations/V000007__add_production_workflow_api_csrf_authority.sql",
+      "classification": "COMMITTED",
+      "version": 7,
+      "numericVersion": "000007",
+      "sha256Bytes": "a6e8a2956831a8b488f34f1b1992dfb7fef8e113b0cf54ebcf85aabe85e1c95f",
+      "sha256BomStrippedLf": "44472121a55adf885aed3514f361c5338b5fb4c104c6b06965bf1053e7d524e8",
+      "committedBlobSha256": "44472121a55adf885aed3514f361c5338b5fb4c104c6b06965bf1053e7d524e8",
+      "bytes": 1558
+    },
+    {
+      "path": "db/workflow/migrations/V000008__add_asset_import_idempotency.sql",
+      "classification": "COMMITTED",
+      "version": 8,
+      "numericVersion": "000008",
+      "sha256Bytes": "58ed4942beedb6c45bccd148c884fdb4220fdef6e5e1fe15d68a8075ca3352aa",
+      "sha256BomStrippedLf": "cf5f8395b42084357625743fe5d1824bf2d51f18d3885e6e8a2cc195d900f93a",
+      "committedBlobSha256": "cf5f8395b42084357625743fe5d1824bf2d51f18d3885e6e8a2cc195d900f93a",
+      "bytes": 2535
+    },
+    {
+      "path": "db/workflow/migrations/V000009__add_workflow_api_idempotency.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 9,
+      "numericVersion": "000009",
+      "sha256Bytes": "22a50df00a95cf632a5aea751c174b8032b32aaf790cd515dded90cc828ede19",
+      "sha256BomStrippedLf": "22a50df00a95cf632a5aea751c174b8032b32aaf790cd515dded90cc828ede19",
+      "committedBlobSha256": null,
+      "bytes": 2753
+    },
+    {
+      "path": "db/workflow/migrations/V000010__add_workflow_api_reference_vault.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 10,
+      "numericVersion": "000010",
+      "sha256Bytes": "6c50d35538ec8e04cb9eeb8830abea6400147188e378220e9290f1dc3d779abf",
+      "sha256BomStrippedLf": "6c50d35538ec8e04cb9eeb8830abea6400147188e378220e9290f1dc3d779abf",
+      "committedBlobSha256": null,
+      "bytes": 2809
+    },
+    {
+      "path": "db/workflow/migrations/V000011__add_reference_workflow_lifecycle_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 11,
+      "numericVersion": "000011",
+      "sha256Bytes": "305bf93cdedcb819ac20e20b8cb749a6d7df4c8d2fc5933d7867b36107430662",
+      "sha256BomStrippedLf": "305bf93cdedcb819ac20e20b8cb749a6d7df4c8d2fc5933d7867b36107430662",
+      "committedBlobSha256": null,
+      "bytes": 17538
+    },
+    {
+      "path": "db/workflow/migrations/V000012__add_workflow_ingestion_cleanup_claim_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 12,
+      "numericVersion": "000012",
+      "sha256Bytes": "b77158e7893e270f00cc9771acc156baa85e867157b535269dd9ccc63a90c69b",
+      "sha256BomStrippedLf": "b77158e7893e270f00cc9771acc156baa85e867157b535269dd9ccc63a90c69b",
+      "committedBlobSha256": null,
+      "bytes": 1011
+    },
+    {
+      "path": "db/workflow/migrations/V000013__add_workflow_restricted_input_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 13,
+      "numericVersion": "000013",
+      "sha256Bytes": "80ba5828b8cd1bcc5f0856e7d38a8480aa23c143589757459435d040d5e0dc16",
+      "sha256BomStrippedLf": "80ba5828b8cd1bcc5f0856e7d38a8480aa23c143589757459435d040d5e0dc16",
+      "committedBlobSha256": null,
+      "bytes": 2718
+    },
+    {
+      "path": "db/workflow/migrations/V000014__add_provider_binding_snapshot_and_reconciliation_projection.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 14,
+      "numericVersion": "000014",
+      "sha256Bytes": "702d56ed27a8e35cf3717efadb142af2cfc0710659a31183690beee0c1afe113",
+      "sha256BomStrippedLf": "702d56ed27a8e35cf3717efadb142af2cfc0710659a31183690beee0c1afe113",
+      "committedBlobSha256": null,
+      "bytes": 968
+    },
+    {
+      "path": "db/workflow/migrations/V000015__add_workflow_api_result_token_recovery_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 15,
+      "numericVersion": "000015",
+      "sha256Bytes": "3f88f25298daad6797c5fac349b99bc02dccef14640894a9c1beb7470ac09f66",
+      "sha256BomStrippedLf": "3f88f25298daad6797c5fac349b99bc02dccef14640894a9c1beb7470ac09f66",
+      "committedBlobSha256": null,
+      "bytes": 2335
+    },
+    {
+      "path": "db/workflow/migrations/V000016__bind_provider_generation_job_lower_operation.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 16,
+      "numericVersion": "000016",
+      "sha256Bytes": "26f14f84d048eae3a5566d1c6da03078e09de14a3b2cf1605575e32e16d575a1",
+      "sha256BomStrippedLf": "26f14f84d048eae3a5566d1c6da03078e09de14a3b2cf1605575e32e16d575a1",
+      "committedBlobSha256": null,
+      "bytes": 2026
+    },
+    {
+      "path": "db/workflow/migrations/V000017__add_provider_terminal_authorization_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 17,
+      "numericVersion": "000017",
+      "sha256Bytes": "46f11f6a07f86d07ba476a9bf6503f5952a5438a8e7b8d4d2eaa5111145fda50",
+      "sha256BomStrippedLf": "46f11f6a07f86d07ba476a9bf6503f5952a5438a8e7b8d4d2eaa5111145fda50",
+      "committedBlobSha256": null,
+      "bytes": 1500
+    },
+    {
+      "path": "db/workflow/migrations/V000018__enforce_provider_terminal_authorization_revision_relation.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 18,
+      "numericVersion": "000018",
+      "sha256Bytes": "ed8a77b9c925bb134b698d9507c52e4300e0e2fe864ca1dc63b3db31d29c00a6",
+      "sha256BomStrippedLf": "ed8a77b9c925bb134b698d9507c52e4300e0e2fe864ca1dc63b3db31d29c00a6",
+      "committedBlobSha256": null,
+      "bytes": 430
+    },
+    {
+      "path": "db/workflow/migrations/V000019__retain_operation_terminal_authorized_owner.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 19,
+      "numericVersion": "000019",
+      "sha256Bytes": "b85cecd35d195cd9d70fc75d1470b85e44eb7f848f0edfe59d0be59e7c0daf00",
+      "sha256BomStrippedLf": "b85cecd35d195cd9d70fc75d1470b85e44eb7f848f0edfe59d0be59e7c0daf00",
+      "committedBlobSha256": null,
+      "bytes": 461
+    },
+    {
+      "path": "db/workflow/migrations/V000020__add_durable_workflow_cancellation_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 20,
+      "numericVersion": "000020",
+      "sha256Bytes": "3c8e0da685fbd5dba5573377b16810705b7a406084081be701f72aeb65f1d6f2",
+      "sha256BomStrippedLf": "3c8e0da685fbd5dba5573377b16810705b7a406084081be701f72aeb65f1d6f2",
+      "committedBlobSha256": null,
+      "bytes": 7679
+    },
+    {
+      "path": "db/workflow/migrations/V000021__harden_cancellation_authority_immutability.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 21,
+      "numericVersion": "000021",
+      "sha256Bytes": "7a1af8ea0b71bd49c5ddfa304c060b498b7981e5de18992016902dfe10cd34c4",
+      "sha256BomStrippedLf": "7a1af8ea0b71bd49c5ddfa304c060b498b7981e5de18992016902dfe10cd34c4",
+      "committedBlobSha256": null,
+      "bytes": 4695
+    },
+    {
+      "path": "db/workflow/migrations/V000022__add_generation_job_cancel_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 22,
+      "numericVersion": "000022",
+      "sha256Bytes": "3a403464a315ddb8b7caafffdd223c0e1895216e19e89febb1b1f39acff47799",
+      "sha256BomStrippedLf": "3a403464a315ddb8b7caafffdd223c0e1895216e19e89febb1b1f39acff47799",
+      "committedBlobSha256": null,
+      "bytes": 8965
+    },
+    {
+      "path": "db/workflow/migrations/V000023__harden_generation_job_cancel_authority.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 23,
+      "numericVersion": "000023",
+      "sha256Bytes": "cf877443aa15e73708a4eb4d40977cd1c153a90ffa1633e82fa7a95d7c58d86c",
+      "sha256BomStrippedLf": "cf877443aa15e73708a4eb4d40977cd1c153a90ffa1633e82fa7a95d7c58d86c",
+      "committedBlobSha256": null,
+      "bytes": 6103
+    },
+    {
+      "path": "db/workflow/migrations/V000024__correct_generation_job_cancel_live_lease_time.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 24,
+      "numericVersion": "000024",
+      "sha256Bytes": "ce7eeb69d56aabc5a6b6b51e0b8475d26d5454656e60b26aef8b0b016ce9109a",
+      "sha256BomStrippedLf": "ce7eeb69d56aabc5a6b6b51e0b8475d26d5454656e60b26aef8b0b016ce9109a",
+      "committedBlobSha256": null,
+      "bytes": 5061
+    },
+    {
+      "path": "db/workflow/migrations/V000025__set_workflow_schema_metadata_migration_head.sql",
+      "classification": "ORIGINAL_UNTRACKED_NOT_IMPORTED",
+      "version": 25,
+      "numericVersion": "000025",
+      "sha256Bytes": "3f0b089671c44ab8f10ae5feef02b5d9392908aa152ec0a66b19abd762a81f7d",
+      "sha256BomStrippedLf": "3f0b089671c44ab8f10ae5feef02b5d9392908aa152ec0a66b19abd762a81f7d",
+      "committedBlobSha256": null,
+      "bytes": 562
+    }
+  ],
+  "sha256Purpose": "File integrity only; not claimed Flyway stored CRC32 checksum",
+  "productionHistory": "UNKNOWN",
+  "productionChecksums": "UNKNOWN",
+  "productionHistoryOwner": "UNKNOWN",
+  "migrationIdentityAuthority": "UNKNOWN",
+  "finalMigrationVersion": "UNASSIGNED",
+  "newCandidateCreated": false,
+  "existingOAuthCandidate": {
+    "path": "tests/tiktokProductionMigration/NONDEPLOYABLE_oauth_candidate.sql",
+    "sha256Bytes": "c0d68be3b4086a3da940cbc3103b50e2fe77487476769422beb600da59392bf8"
+  }
+}

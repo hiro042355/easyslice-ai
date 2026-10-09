@@ -1,0 +1,76 @@
+{
+  "version": "1",
+  "target": "SANDBOX",
+  "project": "nexcut-staging",
+  "origin": "https://www.nexcutai.com",
+  "checks": {
+    "databaseAvailability": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_METADATA"
+    },
+    "databaseConnectivity": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "schema": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "migrationAuthority": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "symmetricKey": {
+      "state": "BLOCKED",
+      "source": "AUTHORIZED_NON_PRODUCTION_METADATA"
+    },
+    "keyPermissions": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "runtimeIdentity": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "secretBinding": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "firebaseIdentity": {
+      "state": "BLOCKED",
+      "source": "STATIC_SOURCE"
+    },
+    "portalSavedState": {
+      "state": "UNKNOWN",
+      "source": "PRODUCT_OWNER_SAVED_STATE"
+    },
+    "eligibleTestAccount": {
+      "state": "UNKNOWN",
+      "source": "PRODUCT_OWNER_SAVED_STATE"
+    },
+    "httpsDeployment": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "originAlignment": {
+      "state": "VERIFIED",
+      "source": "STATIC_SOURCE"
+    },
+    "perInstanceBootstrap": {
+      "state": "BLOCKED",
+      "source": "STATIC_SOURCE"
+    },
+    "loggingRedaction": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "rollback": {
+      "state": "UNKNOWN",
+      "source": "AUTHORIZED_NON_PRODUCTION_RUNTIME"
+    },
+    "ownerAuthorization": {
+      "state": "UNKNOWN",
+      "source": "PRODUCT_OWNER_APPROVAL"
+    }
+  }
+}

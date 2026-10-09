@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import {test} from "node:test";
+import {readManagedKeyConfiguration} from "../../lib/server/tiktokKeys/configuration";
+import {validateManagedKeyConfiguration,type KeyConfiguration} from "../../lib/server/tiktokKeys/keyConfiguration";
+import {ManagedTokenVault} from "../../lib/server/tiktokKeys/managedVault";
+const base="projects/synthetic-local/locations/global/keyRings/fixture/cryptoKeys/token",v1=base+"/cryptoKeyVersions/1",v2=base+"/cryptoKeyVersions/2";
+const env={NEXCUT_TIKTOK_TOKEN_KEY_PROVIDER:"gcp-kms-envelope",NEXCUT_TIKTOK_TOKEN_KEY_ID:v1,NEXCUT_TIKTOK_TOKEN_READABLE_VERSIONS:v1+","+v2};
+test("pure parser and custody share frozen version contract",()=>{const a=readManagedKeyConfiguration(env,"LOCAL_TEST");assert.deepEqual(a,validateManagedKeyConfiguration(a));assert.ok(Object.isFrozen(a.readableVersions));});
+for(const active of ["",base+"/cryptoKeyVersions/latest",base+"/cryptoKeyVersions/0",base+"/cryptoKeyVersions/-1","synthetic-private-value"])test("parser rejects nonnumeric/unqualified active version",()=>assert.throws(()=>readManagedKeyConfiguration({...env,NEXCUT_TIKTOK_TOKEN_KEY_ID:active},"LOCAL_TEST"),/^Error: KEY_CONFIGURATION_REJECTED$/));
+for(const readable of ["",v1+","+v1,v1+",",v2,v1+",projects/synthetic-other/locations/global/keyRings/fixture/cryptoKeys/token/cryptoKeyVersions/1",Array.from({length:21},(_,i)=>base+"/cryptoKeyVersions/"+(i+1)).join(",")])test("parser rejects inconsistent readable list "+readable.slice(-12),()=>assert.throws(()=>readManagedKeyConfiguration({...env,NEXCUT_TIKTOK_TOKEN_READABLE_VERSIONS:readable},"LOCAL_TEST"),/^Error: KEY_CONFIGURATION_REJECTED$/));
+test("invalid execution fails before client/metadata access",()=>assert.throws(()=>readManagedKeyConfiguration(env,"SANDBOX" as KeyConfiguration["execution"]),/^Error: KEY_CONFIGURATION_REJECTED$/));
+test("missing client and malformed config preserve fixed custody classification",()=>{assert.throws(()=>new ManagedTokenVault({execution:"LOCAL_TEST",activeVersion:v1,readableVersions:[v1,v1]},{} as never),/^Error: KEY_CUSTODY_UNAVAILABLE$/);});
+test("configuration rejects hostile getters without secret error output",()=>{const value={};Object.defineProperty(value,"activeVersion",{get(){throw new Error("synthetic_private_token");}});assert.throws(()=>validateManagedKeyConfiguration(value as KeyConfiguration),/^Error: KEY_CONFIGURATION_REJECTED$/);});

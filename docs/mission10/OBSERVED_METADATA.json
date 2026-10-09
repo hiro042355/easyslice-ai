@@ -1,0 +1,133 @@
+{
+  "observedDate": "2026-10-09",
+  "staging": {
+    "project": "nexcut-staging",
+    "projectState": "ACTIVE",
+    "sqlAdminEnabled": false,
+    "kmsEnabled": true,
+    "iamEnabled": true,
+    "identities": [
+      {
+        "email": "nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com",
+        "disabled": false
+      },
+      {
+        "email": "nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com",
+        "disabled": false
+      },
+      {
+        "email": "nexcut-stg-deployer@nexcut-staging.iam.gserviceaccount.com",
+        "disabled": false
+      }
+    ],
+    "metadataRequests": 3,
+    "impersonationUsed": false,
+    "credentialOverrideUsed": false,
+    "sqlInstancesInspected": false,
+    "instanceAvailability": "UNKNOWN",
+    "productionRequests": 0,
+    "mutations": 0
+  },
+  "kmsIdentity": {
+    "project": "nexcut-staging",
+    "kmsLocationInspected": "asia1",
+    "keyrings": [
+      {
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity"
+      }
+    ],
+    "keys": [
+      {
+        "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac",
+        "purpose": "MAC",
+        "primary": null,
+        "versions": [
+          {
+            "algorithm": "HMAC_SHA256",
+            "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/1",
+            "state": "ENABLED"
+          },
+          {
+            "algorithm": "HMAC_SHA256",
+            "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/2",
+            "state": "ENABLED"
+          },
+          {
+            "algorithm": "HMAC_SHA256",
+            "name": "projects/nexcut-staging/locations/asia1/keyRings/nexcut-stg-identity/cryptoKeys/protected-identity-mac/cryptoKeyVersions/3",
+            "state": "ENABLED"
+          }
+        ],
+        "bindings": [
+          {
+            "role": "projects/nexcut-staging/roles/nexcutStgKmsMetadataReader",
+            "conditionPresent": false,
+            "stagingServiceAccounts": [
+              "serviceAccount:nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+            ],
+            "otherPrincipalCount": 0
+          },
+          {
+            "role": "projects/nexcut-staging/roles/nexcutStgKmsVersionRotator",
+            "conditionPresent": false,
+            "stagingServiceAccounts": [
+              "serviceAccount:nexcut-stg-kms-rotator@nexcut-staging.iam.gserviceaccount.com"
+            ],
+            "otherPrincipalCount": 0
+          },
+          {
+            "role": "roles/cloudkms.signer",
+            "conditionPresent": false,
+            "stagingServiceAccounts": [
+              "serviceAccount:nexcut-stg-runtime@nexcut-staging.iam.gserviceaccount.com"
+            ],
+            "otherPrincipalCount": 0
+          }
+        ]
+      }
+    ],
+    "projectStagingBindings": [],
+    "workloadIdentityPools": [],
+    "metadataRequests": 6,
+    "inventoryCompleteness": "asia1 keyrings and direct policies only; inherited effective permissions and other locations UNKNOWN",
+    "productionRequests": 0,
+    "mutations": 0,
+    "cryptoOperations": 0,
+    "secretAccess": 0,
+    "impersonation": 0
+  },
+  "customRoles": {
+    "project": "nexcut-staging",
+    "roles": [
+      {
+        "includedPermissions": [
+          "cloudkms.cryptoKeyVersions.get",
+          "cloudkms.cryptoKeys.get"
+        ],
+        "name": "projects/nexcut-staging/roles/nexcutStgKmsMetadataReader",
+        "stage": "GA"
+      },
+      {
+        "includedPermissions": [
+          "cloudkms.cryptoKeyVersions.create",
+          "cloudkms.cryptoKeyVersions.get",
+          "cloudkms.cryptoKeyVersions.list",
+          "cloudkms.cryptoKeys.get"
+        ],
+        "name": "projects/nexcut-staging/roles/nexcutStgKmsVersionRotator",
+        "stage": "GA"
+      }
+    ],
+    "metadataRequests": 2,
+    "productionRequests": 0,
+    "mutations": 0,
+    "impersonation": 0
+  },
+  "cloudMetadataRequests": 11,
+  "scope": "existing nexcut-staging,asia1 KMS,global federation; existing caller, no overrides/impersonation",
+  "productionRequests": 0,
+  "secretAccess": 0,
+  "cryptoOperations": 0,
+  "sqlConnections": 0,
+  "mutations": 0
+}

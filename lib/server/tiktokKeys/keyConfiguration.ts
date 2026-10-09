@@ -1,0 +1,6 @@
+export type KeyConfiguration=Readonly<{execution:"LOCAL_TEST"|"PRODUCTION";activeVersion:string;readableVersions:readonly string[]}>;
+const version=/^projects\/[a-z][a-z0-9-]{4,62}\/locations\/[a-z0-9-]+\/keyRings\/[A-Za-z0-9_-]+\/cryptoKeys\/[A-Za-z0-9_-]+\/cryptoKeyVersions\/[1-9][0-9]*$/;
+/** Pure shape/version validation; no metadata, SDK, secrets, provisioning or execution authority. */
+export function validateManagedKeyConfiguration(value:KeyConfiguration):KeyConfiguration {
+ try{if(!value||!["LOCAL_TEST","PRODUCTION"].includes(value.execution)||typeof value.activeVersion!=="string"||!version.test(value.activeVersion)||!Array.isArray(value.readableVersions)||!value.readableVersions.length||value.readableVersions.length>20||!value.readableVersions.includes(value.activeVersion)||new Set(value.readableVersions).size!==value.readableVersions.length||value.readableVersions.some(v=>typeof v!=="string"||!version.test(v)||v.split("/cryptoKeyVersions/")[0]!==value.activeVersion.split("/cryptoKeyVersions/")[0]))throw new Error("INVALID");return Object.freeze({execution:value.execution,activeVersion:value.activeVersion,readableVersions:Object.freeze([...value.readableVersions])});}catch{throw new Error("KEY_CONFIGURATION_REJECTED");}
+}

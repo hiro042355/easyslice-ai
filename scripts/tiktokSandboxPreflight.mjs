@@ -1,0 +1,4 @@
+import {readFile} from "node:fs/promises";
+// Inert CLI: explicit local evidence file only. No environment/credentials/SDK/subprocess/network discovery.
+if(process.argv.length!==3){console.log(JSON.stringify({tool:"tiktok-sandbox-preflight",reportOnly:true,REAL_SANDBOX_OAUTH_READY:"NO",executionAuthorized:false,status:"EVIDENCE_FILE_REQUIRED"}));process.exitCode=2;}
+else{try{const bytes=await readFile(process.argv[2]);if(bytes.length>32768)throw new Error("REJECTED");const input=JSON.parse(bytes.toString("utf8"));const {evaluateSandboxPreflight}=await import("../lib/server/tiktokQualification/preflight.ts");console.log(JSON.stringify(evaluateSandboxPreflight(input)));}catch{console.error(JSON.stringify({error:"QUALIFICATION_INPUT_REJECTED",reportOnly:true,executionAuthorized:false}));process.exitCode=2;}}
