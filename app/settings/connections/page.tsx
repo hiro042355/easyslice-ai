@@ -1,4 +1,6 @@
-import { TikTokConnectionPanel } from "../../../components/tiktok/TikTokConnectionPanel";
+import {sandboxUiRequested} from "../../../lib/server/tiktokApplication/uiAvailability";
+import {TikTokReviewPanel} from "../../../components/tiktok/TikTokReviewPanel";
+import {TikTokSandboxConnectionPanel} from "../../../components/tiktok/TikTokSandboxConnectionPanel";
 
 export default function ConnectionsPage() {
   // Default remains unavailable. Local/test services are explicitly injected by tests.
@@ -10,7 +12,8 @@ export default function ConnectionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">アカウント連携</h1>
           <p className="mt-3 text-sm leading-7 text-gray-400">連携するプラットフォームと接続状況を確認できます。</p>
         </header>
-        <TikTokConnectionPanel />
+        <TikTokSandboxConnectionPanel enabled={sandboxUiRequested()}/>
+        <TikTokReviewPanel/>
       </div>
     </main>
   );

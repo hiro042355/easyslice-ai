@@ -9,11 +9,11 @@ import {validateSandboxApplicationEnvironment} from "./configuration";
 import {composeSandboxTikTokApplication} from "./composition";
 export {installAuthorizedSandboxApplication} from "./runtime";
 /** Inert bootstrap factory. Caller supplies separately approved Sandbox DB/KMS/runtime/network authority. */
-export function createAuthorizedSandboxApplication(ports:Readonly<{pool:Pool;vault:ManagedTokenVault;execution:ServerRuntimeExecution;releaseAuthorization:()=>Promise<void>}>) {
+export function createAuthorizedSandboxApplication(ports:Readonly<{pool:Pool;vault:ManagedTokenVault;execution:ServerRuntimeExecution;releaseAuthorization:()=>Promise<void>;clientEnabled?:boolean}>) {
  const config=validateSandboxApplicationEnvironment(process.env);
  const execution=Object.freeze({...ports.execution});
  const verifier=createCanonicalTikTokFirebaseVerifier();
  const store=new IntegrationPgStore(ports.pool,execution,{app:config.authority.clientKey,redirect:config.redirectUri,environment:"staging"});
  const transport=new NativeHttpTransport({execution:"AUTHORIZED_NATIVE",releaseAuthorization:ports.releaseAuthorization});
- return composeSandboxTikTokApplication(config,{store,keys:ports.vault,transport,verifier,execution,csrf:session=>verifier.csrf(session)});
+ return composeSandboxTikTokApplication(config,{store,keys:ports.vault,transport,verifier,execution,csrf:session=>verifier.csrf(session),clientEnabled:ports.clientEnabled===true&&process.env.NEXCUT_TIKTOK_CONNECT_UI_ENABLED==="true"});
 }

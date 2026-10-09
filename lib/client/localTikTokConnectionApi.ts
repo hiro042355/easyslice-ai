@@ -1,5 +1,5 @@
 import { CONNECTION_STATES, type ConnectionResponse, type FutureConnectionApi } from "../tiktokConnection/contracts";
-export type ConnectionApi=FutureConnectionApi & Readonly<{execution:"UNAVAILABLE"|"LOCAL_TEST"}>;
+export type ConnectionApi=FutureConnectionApi & Readonly<{execution:"UNAVAILABLE"|"LOCAL_TEST"|"SANDBOX"}>;
 export interface LocalRouteTransport { request(path:string,method:"GET"|"POST",body?:string):Promise<Response>; completeMockRedirect(response:Response):Promise<void> }
 export const unavailableConnectionApi:ConnectionApi=Object.freeze({execution:"UNAVAILABLE",getConnection:async()=>({version:"1",status:"UNAVAILABLE"} as const),startOAuth:async()=>({status:"UNAVAILABLE"} as const),disconnect:async()=>({status:"UNAVAILABLE"} as const)});
 const localApis=new WeakSet<object>();

@@ -1,0 +1,2 @@
+import type {ReviewOperation} from "./controller";
+export async function dispatchReviewRequest(operation:ReviewOperation,request:Request){if(process.env.NODE_ENV!=="test"||process.env.LOCAL_TEST_POSTGRES!=="YES")return Response.json({status:"UNAVAILABLE"},{status:503,headers:{"Cache-Control":"no-store","Referrer-Policy":"no-referrer"}});const runtime=await import("./runtime");return runtime.dispatchMockReview(operation,request);}

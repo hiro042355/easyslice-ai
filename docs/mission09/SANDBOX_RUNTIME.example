@@ -1,0 +1,20 @@
+# Documentation template only. Never source this into a real environment without separate approval.
+# Placeholders only; no credential or connection string. Defaults cannot activate live operations.
+NEXCUT_TIKTOK_APPLICATION_MODE=disabled
+NEXCUT_TIKTOK_OAUTH_MODE=sandbox
+NEXCUT_TIKTOK_CONNECT_UI_ENABLED=false
+NEXCUT_TIKTOK_CLIENT_KEY=<APPROVED_SANDBOX_SERVER_BINDING>
+NEXCUT_TIKTOK_CLIENT_SECRET=<APPROVED_PRIVATE_SECRET_BINDING>
+NEXCUT_TIKTOK_REDIRECT_URI=https://www.nexcutai.com/api/tiktok/oauth/callback
+NEXCUT_TIKTOK_TOKEN_KEY_PROVIDER=gcp-kms-envelope
+NEXCUT_TIKTOK_TOKEN_KEY_ID=<APPROVED_ENABLED_SYMMETRIC_NUMERIC_KEY_VERSION>
+NEXCUT_TIKTOK_TOKEN_READABLE_VERSIONS=<APPROVED_READABLE_VERSION_LIST>
+NEXCUT_BETA_ALLOWED_UIDS=<APPROVED_OPERATOR_UID_BINDING>
+TIKTOK_WORKER_ENABLED=false
+TIKTOK_WORKER_MODE=local-test
+TIKTOK_CONTENT_POSTING_ENABLED=false
+TIKTOK_LOG_LEVEL=bounded
+TIKTOK_ERROR_MONITORING=disabled
+# Database Pool, Firebase/KMS SDK and per-operation/network authorizers are injected trusted server ports.
+# No env value supplies these functions; no DSN/ADC/Production fallback introduced.
+# The local worker accepts only LOCAL_TEST service + registered MockHttpTransport; no native release path.

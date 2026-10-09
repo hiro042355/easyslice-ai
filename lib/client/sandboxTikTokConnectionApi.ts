@@ -1,0 +1,19 @@
+import type {ConnectionResponse} from "../tiktokConnection/contracts";
+import type {ConnectionApi} from "./localTikTokConnectionApi";
+export interface SandboxClientTransport {request(path:string,init:RequestInit):Promise<Response>;navigate(path:string):Promise<void>|void}
+const sandboxApis=new WeakSet<object>(),syntheticApis=new WeakSet<object>();
+export const isSandboxConnectionApi=(api:ConnectionApi)=>sandboxApis.has(api);
+export const isSyntheticSandboxApi=(api:ConnectionApi)=>syntheticApis.has(api);
+const unavailable=()=>({version:"1",status:"UNAVAILABLE"} as const);
+/** Same-origin UI producer. No credentials/ownership IDs/OAuth parameters provided by the browser. */
+export function createSandboxConnectionApi(transport:SandboxClientTransport,mode:"SANDBOX"|"SYNTHETIC"):ConnectionApi {
+ if(!["SANDBOX","SYNTHETIC"].includes(mode)||typeof transport.request!=="function"||typeof transport.navigate!=="function")throw new Error("CLIENT_REQUIRED");
+ let csrf:string|undefined,busy=false,navigating=false;
+ const request=(path:string,method:"GET"|"POST",body?:string)=>transport.request(path,{method,credentials:"same-origin",redirect:"error",cache:"no-store",headers:{accept:"application/json",...(method==="POST"?{"content-type":"application/json","x-nexcut-local-csrf":csrf??""}:{})},body});
+ const bootstrap=async()=>{const response=await request("/api/tiktok/bootstrap","GET");if(!response.ok){csrf=undefined;return false;}const value=await response.json();if(value?.version!=="1"||value.mode!=="sandbox"||value.enabled!==true||typeof value.csrf!=="string"||!/^[a-f0-9]{64}$/.test(value.csrf))throw new Error("CLIENT_UNAVAILABLE");csrf=value.csrf;return true;};
+ const api=Object.freeze({execution:mode==="SYNTHETIC"?"LOCAL_TEST" as const:"SANDBOX" as const,
+  async getConnection():Promise<ConnectionResponse>{try{if(!await bootstrap())return unavailable();const response=await request("/api/tiktok/connection","GET");if([401,403,501,503].includes(response.status))return unavailable();if(!response.ok)throw new Error("CONNECTION_CHECK_FAILED");const v=await response.json();if(v?.version!=="1"||!["NOT_CONNECTED","CONNECTED","REAUTH_REQUIRED","ERROR","UNAVAILABLE"].includes(v.status))throw new Error("CONNECTION_CHECK_FAILED");if(v.status==="CONNECTED"){const n=v.account?.displayName;if(typeof n!=="string"||!n||n.trim()!==n||n.length>64||/[<>\x00-\x1f\x7f]|https?:/.test(n))throw new Error("CONNECTION_CHECK_FAILED");return Object.freeze({version:"1",status:"CONNECTED",account:Object.freeze({displayName:n})});}return Object.freeze({version:"1",status:v.status,...(v.status==="ERROR"?{error:"CONNECTION_CHECK_FAILED" as const}:{})});}catch{csrf=undefined;throw new Error("CONNECTION_CHECK_FAILED");}},
+  async startOAuth(){if(busy||navigating)throw new Error("OPERATION_BUSY");busy=true;try{if(!await bootstrap())return {status:"UNAVAILABLE" as const};const response=await request("/api/tiktok/oauth/start","POST");if(!response.ok)throw new Error("CONNECTION_CHECK_FAILED");const v=await response.json();if(v?.status!=="SERVER_REDIRECT"||typeof v.navigationPath!=="string"||!/^\/api\/tiktok\/oauth\/navigate\?ticket=[a-f0-9-]{36}$/.test(v.navigationPath))throw new Error("REDIRECT_REJECTED");await transport.navigate(v.navigationPath);if(mode==="SANDBOX")navigating=true;return {status:"SERVER_REDIRECT" as const};}catch{throw new Error("CONNECTION_CHECK_FAILED");}finally{busy=false;}},
+  async disconnect(){if(busy)throw new Error("OPERATION_BUSY");busy=true;try{if(!await bootstrap())return {status:"UNAVAILABLE" as const};const response=await request("/api/tiktok/disconnect","POST",JSON.stringify({confirm:true}));if(!response.ok||(await response.json()).status!=="DISCONNECTED")throw new Error("CONNECTION_CHECK_FAILED");return {status:"DISCONNECTED" as const};}catch{throw new Error("CONNECTION_CHECK_FAILED");}finally{busy=false;csrf=undefined;}}
+ });(mode==="SYNTHETIC"?syntheticApis:sandboxApis).add(api);return api;
+}

@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {MockHttpTransport} from "../../lib/server/tiktokHttp/adapter";
+import type {FirebasePublisherBridge} from "../../lib/server/tiktokIntegration/publisher";
+import {registerLocalTikTokWorkerProvider,startRegisteredTikTokWorker,stopRegisteredTikTokWorker} from "../../worker/tiktok/runtime";
+import {register} from "../../instrumentation";
+async function main(){Object.assign(process.env,{NODE_ENV:"test",NEXT_RUNTIME:"nodejs",TIKTOK_WORKER_ENABLED:"true",TIKTOK_WORKER_MODE:"local-test",TIKTOK_CONTENT_POSTING_ENABLED:"false"});let calls=0;const bridge={service:{execution:"LOCAL_TEST",store:{environment:"staging"}},transport:new MockHttpTransport(async()=>{throw new Error("NETWORK_FORBIDDEN");})} as unknown as FirebasePublisherBridge;
+ registerLocalTikTokWorkerProvider(async()=>{calls++;return bridge;});await Promise.all([register(),register(),startRegisteredTikTokWorker()]);assert.equal(calls,1);assert.equal((await startRegisteredTikTokWorker()).status,"READY_SYNTHETIC");await stopRegisteredTikTokWorker();
+ let release!:(value:FirebasePublisherBridge)=>void;const gate=new Promise<FirebasePublisherBridge>(r=>release=r);registerLocalTikTokWorkerProvider(()=>gate);const starting=startRegisteredTikTokWorker(),stopping=stopRegisteredTikTokWorker();release(bridge);await assert.rejects(()=>starting,/WORKER_STARTUP_REJECTED/);await stopping;await assert.rejects(()=>startRegisteredTikTokWorker(),/DEPENDENCIES_REQUIRED/);
+ let neverResolve!:()=>void;const unresponsive=new Promise<FirebasePublisherBridge>(()=>{neverResolve=()=>{};});registerLocalTikTokWorkerProvider(()=>unresponsive);const hanging=startRegisteredTikTokWorker(),stopped=stopRegisteredTikTokWorker();await assert.rejects(()=>hanging,/WORKER_STARTUP_REJECTED/);await stopped;neverResolve();
+ let failedCalls=0;registerLocalTikTokWorkerProvider(async()=>{failedCalls++;throw new Error("synthetic_private_token");});await assert.rejects(()=>startRegisteredTikTokWorker(),/^Error: WORKER_STARTUP_REJECTED$/);await assert.rejects(()=>startRegisteredTikTokWorker(),/^Error: WORKER_STARTUP_REJECTED$/);assert.equal(failedCalls,1);await stopRegisteredTikTokWorker();console.log("WORKER_RUNTIME_LIFECYCLE_PASS");}
+main().catch(()=>{console.error("WORKER_RUNTIME_LIFECYCLE_FAILED");process.exitCode=1;});

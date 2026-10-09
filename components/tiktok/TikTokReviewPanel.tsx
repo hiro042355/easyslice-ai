@@ -1,0 +1,20 @@
+"use client";
+import {useRef,useState} from "react";
+import {isMockReviewApi,type MockReviewApi,type SafeCreator} from "../../lib/client/mockTikTokReviewApi";
+/** Clearly synthetic preparation UI. No native publishing producer exists. */
+export function TikTokReviewPanel({api}:{api?:MockReviewApi}){
+ const [review,setReview]=useState<string>(),[creator,setCreator]=useState<SafeCreator>(),[privacy,setPrivacy]=useState(""),[title,setTitle]=useState(""),[preview,setPreview]=useState(false),[music,setMusic]=useState(false),[aigc,setAigc]=useState(false),[consented,setConsented]=useState(false),[published,setPublished]=useState(false),[status,setStatus]=useState(""),[error,setError]=useState(false),[busy,setBusy]=useState(false);const flight=useRef(false),enabled=isMockReviewApi(api);
+ const run=async(action:()=>Promise<void>)=>{if(!enabled||flight.current)return;flight.current=true;setBusy(true);setError(false);try{await action();}catch{setError(true);setStatus("UNKNOWN");}finally{flight.current=false;setBusy(false);}};
+ const select=()=>run(async()=>{setConsented(false);setPublished(false);setPrivacy("");setPreview(false);setMusic(false);setStatus("");const id=await api!.select();setReview(id);setCreator(await api!.creator(id));});
+ return <section aria-label="Synthetic TikTok review workflow" className="mt-6 rounded-2xl border border-white/10 bg-zinc-950 p-6 text-white"><h2 className="text-xl font-bold">TikTok 投稿デモ準備</h2><p className="my-3 text-sm text-amber-200">合成テスト専用です。実 TikTok の接続・動画転送・投稿・承認を示す証拠ではありません。</p>
+ {!enabled?<p role="status">投稿デモは準備中です。本番投稿は無効です。</p>:<>
+ <button type="button" disabled={busy} onClick={select} className="rounded-lg border border-cyan-300/30 p-2">合成動画を選択</button>
+ {review?<p className="mt-3">合成データを選択済み。実動画の再生・プレビューではありません。</p>:null}
+ {creator?<fieldset disabled={busy||consented} className="mt-4 space-y-3"><legend>投稿設定（合成 Creator Info）</legend><p>{creator.nickname} / 最大 {creator.maxDurationSec} 秒</p><label className="block">タイトル<input aria-label="投稿タイトル" value={title} maxLength={150} onChange={e=>setTitle(e.target.value)} className="ml-3 rounded border border-white/20 bg-black p-2"/></label><label className="block">公開範囲<select aria-label="公開範囲" value={privacy} onChange={e=>setPrivacy(e.target.value)} className="ml-3 bg-black p-2"><option value="">選択してください</option>{creator.privacyOptions.map(p=><option key={p} value={p}>{p}</option>)}</select></label><p>コメント: {creator.commentDisabled?"無効":"利用可能"} / Duet: {creator.duetDisabled?"無効":"利用可能"} / Stitch: {creator.stitchDisabled?"無効":"利用可能"}</p><label className="block"><input type="checkbox" checked={aigc} onChange={e=>setAigc(e.target.checked)}/> AI生成コンテンツ</label><p>商用・ブランド投稿はこの合成デモでは選択しません。</p><label className="block"><input type="checkbox" checked={preview} onChange={e=>setPreview(e.target.checked)}/> 合成内容と設定を確認しました</label><label className="block"><input type="checkbox" checked={music} onChange={e=>setMusic(e.target.checked)}/> 音楽・コンテンツの権利確認に同意します</label></fieldset>:null}
+ <button type="button" disabled={busy||!review||!creator||privacy!=="SELF_ONLY"||!preview||!music||consented} onClick={()=>void run(async()=>{await api!.consent(review!,{title,privacy:"SELF_ONLY",allowComments:false,allowDuet:false,allowStitch:false,brandContent:false,brandOrganic:false,commercialDisclosureEnabled:false,isAigc:aigc},{preview:true,music:true,branded:false});setConsented(true);})} className="mt-4 rounded border border-white/20 p-2">この合成投稿に明示的に同意</button>
+ <button type="button" disabled={busy||!consented||published} onClick={()=>void run(async()=>{setStatus(await api!.publish(review!));setPublished(true);})} className="ml-3 rounded border border-white/20 p-2">合成投稿を実行</button>
+ <button type="button" disabled={busy||!published} onClick={()=>void run(async()=>setStatus(await api!.status(review!)))} className="ml-3 rounded border border-white/20 p-2">合成ステータスを確認</button>
+ <p role="status" aria-live="polite" className="mt-3">{busy?"合成処理中":status}</p>{error?<p role="alert">合成処理を確認できませんでした。実投稿の成功は確認していません。</p>:null}
+ </>}
+ </section>;
+}

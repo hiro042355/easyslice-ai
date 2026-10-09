@@ -1,7 +1,7 @@
 import type {ApplicationRoutes} from "./composition";
 export type ApplicationOperation=keyof ApplicationRoutes;
-const paths:Record<ApplicationOperation,string>={start:"/api/tiktok/oauth/start",callback:"/api/tiktok/oauth/callback",connection:"/api/tiktok/connection",disconnect:"/api/tiktok/disconnect"};
-const methods:Record<ApplicationOperation,string>={start:"POST",callback:"GET",connection:"GET",disconnect:"POST"};
+const paths:Record<ApplicationOperation,string>={start:"/api/tiktok/oauth/start",callback:"/api/tiktok/oauth/callback",connection:"/api/tiktok/connection",disconnect:"/api/tiktok/disconnect",bootstrap:"/api/tiktok/bootstrap",navigate:"/api/tiktok/oauth/navigate"};
+const methods:Record<ApplicationOperation,string>={start:"POST",callback:"GET",connection:"GET",disconnect:"POST",bootstrap:"GET",navigate:"GET"};
 function unavailable(){return Response.json({version:"1",status:"UNAVAILABLE",error:"APPLICATION_NOT_READY"},{status:503,headers:{"Cache-Control":"no-store","Referrer-Policy":"no-referrer"}});}
 /** Identical HTTP dispatcher is used by Next handlers and disposable-PG tests. */
 export async function dispatchTikTokApplication(operation:ApplicationOperation,request:Request,resolve:()=>Promise<ApplicationRoutes|undefined>):Promise<Response>{
