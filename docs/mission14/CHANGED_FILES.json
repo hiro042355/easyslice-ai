@@ -1,0 +1,444 @@
+{
+  "baseCommit": "eea19ae6f3e38f9488822868dd9d962ba4b2af65",
+  "fileCount": 31,
+  "modifiedCount": 6,
+  "createdCount": 25,
+  "deletedCount": 0,
+  "selfHash": "Bound by Git commit tree",
+  "files": [
+    {
+      "path": "docs/mission14/ACCEPTANCE_REPORT.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "298e69300533e73a1fc7aa96c1eb96f057f3fd7801b5126f42182b897d11598c"
+    },
+    {
+      "path": "docs/mission14/BILLING_SAFETY.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "152ec00cd2a9c233c23326cae6086366249c60d01da79ef5aa1035da7e12a6ad"
+    },
+    {
+      "path": "docs/mission14/CALLBACK_READINESS.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "d7cf33eb8c9f7e12e3d0ae163fb09693b76ea4d99154e89a169afd5d7facceff"
+    },
+    {
+      "path": "docs/mission14/CHANGED_FILES.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": null
+    },
+    {
+      "path": "docs/mission14/DATABASE_READINESS.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "4a66a1ec2119bdfff8596ba9f1991273a7b8e2c32cf4c18d12ee32b3d5c8af43"
+    },
+    {
+      "path": "docs/mission14/DEPLOYMENT_MANIFEST_TEMPLATE.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "0170106caeb7faec9e6de41befb7f6f1a0482056444a7ff4182f2cd7d073da78"
+    },
+    {
+      "path": "docs/mission14/DOMAIN_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "dceeaf58d2fb160c10ff74d74d157c72a1139d5d4f36e93b3a72c81926ceaf4d"
+    },
+    {
+      "path": "docs/mission14/ENCRYPTION_READINESS.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "1ba723ee02d242919a6ff2ce36e7b38f750c6b89851171237f521648a2e1166f"
+    },
+    {
+      "path": "docs/mission14/FINAL_PREFLIGHT_REPORT.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "bdf0079944e0c1e3fa69880a54e48e032f8c28c9edda9c971d7e6657a1ef1f5d"
+    },
+    {
+      "path": "docs/mission14/FINAL_SANDBOX_ARCHITECTURE.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "385c0b9f0e04b85f71ee4e20bb62052d50f8815b4616df93a0d0f478b94e1353"
+    },
+    {
+      "path": "docs/mission14/LOCAL_E2E_REPORT.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "39048d1b3f5db2db31844f6c77bf22ad377677f10eb5f7cbd686ac5e4badd4fd"
+    },
+    {
+      "path": "docs/mission14/LOCAL_RESOURCE_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "2d317ccbe3f5688aed895a28be9c0414695280252563c0bec9cbb5fb711a3d10"
+    },
+    {
+      "path": "docs/mission14/MISSION13_VERIFICATION.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "ac7d0ca38976bf1d38a1ad7bf8a686f28abed35607eb77983cfcc9581b0c0b7f"
+    },
+    {
+      "path": "docs/mission14/MISSION13_VERIFICATION.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "183c945d933e4ec9204094b4947028ca24b5e780462616a8123c2fe41136b6bc"
+    },
+    {
+      "path": "docs/mission14/OBSERVED_METADATA.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "1fd354ea687f324ec81920c401b83a51e4362a17f1840591c94cd62f940f535a"
+    },
+    {
+      "path": "docs/mission14/PORTAL_READINESS.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "5fac454165820c4384a7176cb68ffb8b891df634ad75393751b13e59f0a57a10"
+    },
+    {
+      "path": "docs/mission14/PREFLIGHT_INPUT.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "029244dbaafed5bb6e0e6d2a58d8e8e987c399a2f9ae02f825f10a47dbf9f5fd"
+    },
+    {
+      "path": "docs/mission14/PREFLIGHT_RESULT.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "09639fccda11f6c913f752ea848f1134ae73a8c0599f5b528e7fbc32d57e104e"
+    },
+    {
+      "path": "docs/mission14/PRODUCT_OWNER_DECISION_PACKAGE.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "945a992d5bf7aeb19c8b85248d9f74178ce80bf7a86f3aabd8da1af736b4a0ad"
+    },
+    {
+      "path": "docs/mission14/RUNTIME_IDENTITY_READINESS.md",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "301cd4adc0fb809459664cbddf0383c5ce55a5df9c45e2e9fbc7ecf03fa37bc1"
+    },
+    {
+      "path": "docs/mission14/TEST_EVIDENCE.json",
+      "status": "created",
+      "purpose": "Mission14 verified baseline, concrete readiness/final plan/owner evidence",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "452f61ae806ae76ad4fcd0f2ce428d52d63280e8c0228ef01a70254a5ef0cbef"
+    },
+    {
+      "path": "lib/server/tiktokQualification/finalSandboxPreflight.ts",
+      "status": "created",
+      "purpose": "Inert final9-field readiness projection/CLI, unknown-billing startup denial",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "87c156d3197646704037bc399e37712e213f43c4f65a4afb9704073213f64e8b"
+    },
+    {
+      "path": "scripts/tiktokFinalSandboxPreflight.mjs",
+      "status": "created",
+      "purpose": "Inert final9-field readiness projection/CLI, unknown-billing startup denial",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "924de4fac4da1c01f5ed7c004e2bd696f432e86e7bd203830d736de478d8c4e2"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission14 regression paths/labels/compile and build scope",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "0f84833e3a6b8068ed019e2b1559a8e0729eb3087bbbc60e613f6e0d4149b6ca"
+    },
+    {
+      "path": "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission14 regression paths/labels/compile and build scope",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "06ca92acf659981e5865f7e3f91c8574024144eeb4236609841db182132f988d"
+    },
+    {
+      "path": "tests/tiktokHardening/runBuild.mjs",
+      "status": "modified",
+      "purpose": "Isolate Mission14 regression paths/labels/compile and build scope",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "58a7e8f9ab88d8a5e7fa32d6fbaa4a4944858ee6ff3c6c90fa683f78b0ee0075"
+    },
+    {
+      "path": "tests/tiktokMission09/nextHostFixture.ts",
+      "status": "modified",
+      "purpose": "Assert live preflight/startup denial before explicit local mock initialization",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c252093770906ebd5a67ca003a2dd2ba2e5129a2fbe62702e55216f3cffd7637"
+    },
+    {
+      "path": "tests/tiktokMission09/postgresql.test.tsx",
+      "status": "modified",
+      "purpose": "Assert live startup denied during complete local UI/Next/PG/B7 E2E",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "4d73aa760528039c37a9dbee6b600ad8fb18b4be7fda6c5923d46e6a1546cf3a"
+    },
+    {
+      "path": "tests/tiktokMission14/finalPreflight.test.ts",
+      "status": "created",
+      "purpose": "Synthetic final preflight security tests/non-secret unqualified fixture",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "fa2400cbe9d5d991f682d3a6da794d239d72e7e04ebf01da2139f7ab26ebf4dd"
+    },
+    {
+      "path": "tests/tiktokMission14/preflightFixture.ts",
+      "status": "created",
+      "purpose": "Synthetic final preflight security tests/non-secret unqualified fixture",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "b89f8b7380976478b7a8db880b7fcc89faa04604e285a97ae37a003ca27e2a52"
+    },
+    {
+      "path": "vercel.json",
+      "status": "modified",
+      "purpose": "Extend exact branch auto-deployment suppression only to Mission14",
+      "sharedAuthenticationInfrastructure": false,
+      "directLogicChanges": {
+        "clipWorkspaceFlow": false,
+        "aiMV": false,
+        "youtube": false,
+        "tiktokPublishing": false,
+        "bilibili": false
+      },
+      "sha256": "c793d4083eaa1287845cbdef37baba5f31329f91c55450110612bbcc2cd7adf7"
+    }
+  ]
+}

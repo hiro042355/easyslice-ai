@@ -1,0 +1,15 @@
+# Billing safety
+BILLING_SAFE=UNKNOWN; unknown exposure is a blocker. Fresh nexcut-staging billingEnabled=true, not a new activation and not proof of free usage or invoices. No account/card/invoice details retrieved. Existing Vercel easyslice-ai local link plan/quota/card UNKNOWN. Render/Supabase candidates have no verified actual accounts/resources; no final deployment configuration selected.
+
+| Component | Current plan / eligibility / payment or billing requirement | Limits, overage, trial, shutdown and data behavior | Worst-case exposure |
+|---|---|---|---|
+| Existing GCP staging/key | Project billing alreadyenabled; suitable key/free allowance UNKNOWN | Observed HMAC ineligible, no crypto. New manual symmetric KMS usage not proven free; actual budgets/caps UNKNOWN | UNKNOWN; no new paid usage |
+| Vercel hosting link | Actual plan/card/isolation/remaining usage UNKNOWN | Preview/build/compute/network could charge; no trial/upgrade. Exact Mission14 source suppression avoids standard Git preview, no dashboard mutation | UNKNOWN; no invoice audit |
+| Render Node qualification candidate | Actual account/plan/card/billing UNKNOWN | Official free quota750h; card-present build/bandwidth excess may bill, no-card suspends services/builds; idle/cold-start/ephemeral disk. No trial selected, durable recovery still needed | UNKNOWN, not inferred$0 |
+| Supabase qualification candidate | Actual org/plan/card/region/limits UNKNOWN | Provider quota/pause/backup/restore/deletion and no-upgrade/hard stop require account evidence; no DB created | UNKNOWN |
+| Firebase/nonprod identity | Actual project plan/domain/billing UNKNOWN | Spark public no-payment option does not prove this project's eligibility; AppHosting requires billing. No plan switch/credits/trial | UNKNOWN |
+| Server binding/software custody/backups/logs | No qualified secure existing resource | Admin/security/recovery/retention/egress/compute limits UNKNOWN. No paid key/store/drain/worker selected | UNKNOWN |
+
+[Render free policy](https://render.com/docs/free), [Firebase plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans) and [KMS pricing](https://cloud.google.com/kms/pricing) rechecked2026-10-09 for these specific blockers, not generic comparisons. No marketing price page verifies account eligibility/hard stop. If payment/billing would be needed, separate owner approval is required and it remains forbidden here. Alerts/shared credits are not zero-charge caps; no region/FX/tax estimate fabricated. No new accounts/resources/subscriptions/APIs/payment/keys/tunnels/public services or paid trials.
+
+Logs/backup exports/key recovery/binding snapshots/deployment artifacts and account eligibility evidence add retention categories, not approved periods. Provider expiration is not NEXCUT deletion authorization; no irreversible deletion/job/retention finalized. Local synthetic test resources use existing tools, no remote services, but electricity/operator/license/account invoices not audited. Do not claim universal financial zero from absence of procurement.

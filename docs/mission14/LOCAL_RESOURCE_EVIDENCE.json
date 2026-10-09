@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-09",
+  "vercelProjectName": "easyslice-ai",
+  "projectIdPresent": true,
+  "orgIdPresent": true,
+  "opaqueIds": "REDACTED",
+  "evidenceScope": "LOCAL_LINK_ONLY",
+  "plan": "UNKNOWN",
+  "billing": "UNKNOWN",
+  "actualHostingIsolation": "UNKNOWN",
+  "firebaseNonProductionTrust": "NOT_INSTALLED_IN_ACCEPTED_SOURCE",
+  "renderResource": "NOT_SELECTED",
+  "supabaseResource": "NOT_SELECTED",
+  "secretsRead": 0
+}

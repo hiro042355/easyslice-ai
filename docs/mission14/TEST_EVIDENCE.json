@@ -1,0 +1,177 @@
+{
+  "date": "2026-10-09",
+  "baseline": "eea19ae6f3e38f9488822868dd9d962ba4b2af65",
+  "mission13MandatoryAudit": "PASS_BEFORE_MISSION14_START",
+  "host": {
+    "passed": 812,
+    "failed": 0,
+    "skipped": 0,
+    "command": {
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "node_modules/tsx/dist/cli.mjs",
+        "--test",
+        "--test-concurrency=1",
+        "tests/tiktokOAuth/foundation.test.ts",
+        "tests/tiktokConnection/connectionUi.test.tsx",
+        "tests/tiktokFirebase/auth.test.ts",
+        "tests/tiktokHttp/adapter.test.ts",
+        "tests/tiktokHardening/callback.test.ts",
+        "tests/tiktokHardening/chunkBoundary.test.ts",
+        "tests/tiktokHardening/keys.test.ts",
+        "tests/tiktokHardening/publisher.test.ts",
+        "tests/tiktokHardening/serialization.test.ts",
+        "tests/tiktokHardening/transport.test.ts",
+        "tests/productionIdentity/authenticatedAccountControl.test.ts",
+        "tests/productionIdentity/betaAuthorization.test.ts",
+        "tests/productionIdentity/durableCutOwnership.test.ts",
+        "tests/productionIdentity/durableMediaAdmissionClient.test.ts",
+        "tests/productionIdentity/durableMediaAnalyze.test.ts",
+        "tests/productionIdentity/durableMediaOwnership.test.ts",
+        "tests/productionIdentity/durableMultiCut.test.ts",
+        "tests/productionIdentity/durableReviewExport.test.ts",
+        "tests/productionIdentity/durableSubtitleBurn.test.ts",
+        "tests/productionIdentity/durableTranscript.test.ts",
+        "tests/productionIdentity/durableYoutubeIngestion.test.ts",
+        "tests/productionIdentity/googleIdentitySignIn.test.ts",
+        "tests/productionIdentity/packagedYtDlp.test.ts",
+        "tests/productionIdentity/productionDurableStorageInfrastructure.test.ts",
+        "tests/productionIdentity/productionIdentityFoundation.test.ts",
+        "tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+        "tests/productionIdentity/productionOwnerUidProofRoute.test.ts",
+        "tests/productionIdentity/restoredServerSession.test.ts",
+        "tests/productionIdentity/sessionLifecycleFakeE2E.test.ts",
+        "tests/productionIdentity/vercelWifCredential.test.ts",
+        "tests/tiktokApplication/application.test.ts",
+        "tests/tiktokMission09/client.test.tsx",
+        "tests/tiktokMission09/worker.test.ts",
+        "tests/tiktokMission10/keyConfiguration.test.ts",
+        "tests/tiktokMission10/preflight.test.ts",
+        "tests/tiktokMission11/preflight.test.ts",
+        "tests/tiktokMission12/readiness.test.ts",
+        "tests/tiktokMission13/providerSimulation.test.ts",
+        "tests/tiktokMission14/finalPreflight.test.ts",
+        "tests/tiktokIntegration/client.test.tsx",
+        "tests/productionMigrationOperator/operator.test.ts"
+      ]
+    },
+    "closedEnvironment": [
+      "SystemRoot",
+      "PATH",
+      "TEMP",
+      "TMP"
+    ]
+  },
+  "postgresql": {
+    "passed": 133,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+    "e2ePassingLine": "✔ browser Connect -> real Next synthetic callback -> encrypted PG -> CONNECTED -> consent/B7 worker -> disconnect -> NOT_CONNECTED (6042.471603ms)",
+    "e2eAssertions": {
+      "actualNextHandlers": true,
+      "localPoolMax": 1,
+      "realNetwork": 0,
+      "livePreflight": "BLOCKED",
+      "liveStartupPermitted": false,
+      "externalEligibility": "UNKNOWN"
+    },
+    "localSyntheticDml": "EXECUTED",
+    "localFixtureDdl": "EXECUTED",
+    "privateNetwork": true,
+    "publishedPorts": 0,
+    "credentialMounts": 0,
+    "persistentVolumes": 0,
+    "remainingContainers": 0,
+    "remainingNetworks": 0
+  },
+  "distinctTests": 945,
+  "newTests": 45,
+  "typecheck": {
+    "args": [
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "focusedLint": {
+    "args": [
+      "node_modules/eslint/bin/eslint.js",
+      "lib/server/tiktokQualification/finalSandboxPreflight.ts",
+      "scripts/tiktokFinalSandboxPreflight.mjs",
+      "tests/tiktokMission14/finalPreflight.test.ts",
+      "tests/tiktokMission14/preflightFixture.ts",
+      "tests/tiktokMission09/nextHostFixture.ts",
+      "tests/tiktokMission09/postgresql.test.tsx",
+      "tests/tiktokFullIntegration/prepareLocalRehearsal.mjs",
+      "tests/tiktokFullIntegration/runLocalRehearsal.mjs",
+      "tests/tiktokHardening/runBuild.mjs"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  "strictBundle": {
+    "es2022": "PASS",
+    "es2017": "PASS",
+    "command": "node tests/tiktokFullIntegration/prepareLocalRehearsal.mjs C:/Users/hirom/OneDrive/ドキュメント/GitHub/nexcut-tiktok-publisher"
+  },
+  "build": {
+    "exit": 0,
+    "command": "node tests/tiktokHardening/runBuild.mjs C:/Users/hirom/AppData/Local/Temp/nexcut-tiktok-integration-14-20261009 C:/Users/hirom/AppData/Local/Temp/nexcut-mission14-build.log",
+    "productionEnvironmentValues": 0,
+    "network": "public-google-font-assets-only",
+    "prebuildDownloads": 0
+  },
+  "repositoryLint": {
+    "exit": 1,
+    "command": "node node_modules/eslint/bin/eslint.js . --format json --output-file C:/Users/hirom/AppData/Local/Temp/nexcut-mission14-lint.json",
+    "classification": "BASELINE_FAILURE",
+    "baselineErrors": 30,
+    "baselineWarnings": 48,
+    "missionErrors": 30,
+    "missionWarnings": 48,
+    "exactDiagnosticsMatch": true,
+    "normalizedSha256": "535f734fc50bfdad092376b0ab650ef0749b6438dadad0b0b73a21bbfcf65d8a"
+  },
+  "preflight": {
+    "command": "node --import tsx scripts/tiktokFinalSandboxPreflight.mjs docs/mission14/PREFLIGHT_INPUT.json",
+    "exit": 2,
+    "status": "BLOCKED",
+    "classification": "EXPECTED_SAFETY_RESULT",
+    "billingSafe": "UNKNOWN",
+    "startupPermitted": false,
+    "realOAuthReady": "NO"
+  },
+  "initialFailures": {
+    "testFailures": 0,
+    "buildFailures": 0,
+    "newLintRegressions": 0,
+    "investigationFailures": 0,
+    "limitations": [
+      "Account-specific provider plan/eligibility/quotas/secret/identity/rollback evidence unavailable; UNKNOWN retained.",
+      "No public callback HTTP/auth probing, cloud DB/crypto or new authenticated provider dashboard access; TLS and source do not prove deployed handler."
+    ]
+  },
+  "logs": {
+    "hostSha256": "02403686f049244229c629bb5f2454b88f530b89f4845ae42e424060934b9f00",
+    "postgresqlSha256": "fe31eeebebbac9e7194ce4249b454b243bb8826742343a4ceed9d8cf12a93932",
+    "buildSha256": "1efadf6ad4e76669d525a1d4d5b6e2cc10327af668aa775a99c39f2b163627ad"
+  },
+  "externalOperations": {
+    "nonprodMetadataReads": 8,
+    "publicDnsTlsHandshake": 1,
+    "productionHttpRequests": 0,
+    "authenticatedProductionRequests": 0,
+    "cloudDbConnections": 0,
+    "realCryptoCalls": 0,
+    "cloudMutations": 0,
+    "billingActivation": 0,
+    "accountCreation": 0,
+    "resourceCreation": 0,
+    "deploymentInvocations": 0,
+    "tunnels": 0,
+    "tiktokApiCalls": 0,
+    "oauthActions": 0
+  }
+}

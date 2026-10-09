@@ -1,0 +1,41 @@
+{
+  "mission13Complete": true,
+  "branchExists": true,
+  "localCommit": "eea19ae6f3e38f9488822868dd9d962ba4b2af65",
+  "remoteCommit": "eea19ae6f3e38f9488822868dd9d962ba4b2af65",
+  "parent": "46cf5d38140146565083a3bb78838e0491a296e1",
+  "tree": "9986428804eb6a5cc0231d451d13ba33979b4b6b",
+  "acceptanceReportPresent": true,
+  "changedFiles": 35,
+  "manifestAndLogsHashVerified": true,
+  "tests": 900,
+  "securityFindings": "No accepted auth/custody/B7/app/SQL changes; synthetic-only fixture and report helper; secretScan0; external readinessNO",
+  "provider": "RenderFreeNode+SupabaseFree qualification only, no actual resources selected",
+  "billing": "nexcut-staging billingEnabled true; account-specific zero-cost unknown",
+  "outstandingBlockers": {
+    "HOSTING_VERIFIED": "UNKNOWN",
+    "DATABASE_VERIFIED": "UNKNOWN",
+    "ENCRYPTION_VERIFIED": "NO",
+    "IDENTITY_VERIFIED": "NO",
+    "SECRETS_VERIFIED": "UNKNOWN",
+    "CALLBACK_VERIFIED": "UNKNOWN",
+    "PORTAL_VERIFIED": "UNKNOWN",
+    "BILLING_SAFE": "UNKNOWN",
+    "ROLLBACK_READY": "UNKNOWN",
+    "OWNER_AUTHORIZED": "NO",
+    "OPTION_D_READY": "NO",
+    "OPTION_B_READY": "NO",
+    "REAL_SANDBOX_OAUTH_READY": "NO",
+    "evidenceScope": "Actual external readiness; local mocks and DNS/TLS not sufficient",
+    "reasons": {
+      "ENCRYPTION_VERIFIED": "ObservedHMACineligible;no qualifiedsoftware/symmetrickeyadapter",
+      "IDENTITY_VERIFIED": "CurrentFirebaseproviderProductionbound;no validatednonprodtrust",
+      "CALLBACK_VERIFIED": "DNS/TLSPASSbutdeployedroute/version/savedURI/isolationUNKNOWN",
+      "OWNER_AUTHORIZED": "CurrentmissionexplicitlyforbidsrealOAuth"
+    }
+  },
+  "original363Preserved": true,
+  "hashMismatches": 0,
+  "mission14BranchLocal": "",
+  "remote": "eea19ae6f3e38f9488822868dd9d962ba4b2af65\trefs/heads/codex/tiktok-integration-mission-13\nf3873fb294bbc11974ca180dea10fa711c49d436\trefs/heads/main"
+}

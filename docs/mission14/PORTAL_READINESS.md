@@ -1,0 +1,6 @@
+# Developer Portal readiness
+PORTAL_READY=UNKNOWN. Expected NEXCUT AI Review Sandbox with saved LoginKit,ContentPosting/DirectPost, selected user.info.basic+video.publish and canonical https://www.nexcutai.com/api/tiktok/oauth/callback. No new saved-state screenshots or owner evidence; earlier Production import was owner-reported, Save still UNKNOWN. No Portal change or review submission.
+
+Future non-secret evidence must show correct app/Sandbox, LoginKit saved/reloaded URI list, saved ContentPosting/DirectPost and actually selected scopes, target user eligibility and Sandbox/Production separation. Exclude secrets/tokens/cookies/code/state/authURL/personal identifiers. If isolated host selected later, owner must separately approve exact additional staticHTTPS URI and corresponding code/schema/Firebase release. No invented URL/draft text treated as saved proof.
+
+Official Web requirements reread2026-10-09; prior Mission13 Sandbox/DirectPost/review matrix verified from its committed evidence. First review/genuine complete demo/domain alignment and actual app/user scopes are separate requirements; synthetic tests are not live authorization or review footage. No real creator/upload/publication; future first API stage remains CREATOR_INFO_ONLY under separate permission.
