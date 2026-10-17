@@ -8,6 +8,8 @@ import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/rou
 import { cleanupJobTempRoot, createDurableMediaOwnershipRepository, createExportStorageKey, createJobTempDirectories, isUuid } from "@/lib/server/durableMediaOwnership";
 import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
 import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/composition";
+import { buildCameraFfmpegFilter } from "@/lib/server/ffmpegCameraFilter";
+import { parseCameraMovements } from "@/lib/camera/cameraEngine";
 
 export const runtime = "nodejs";
 
@@ -45,6 +47,18 @@ export async function POST(request: Request) {
       const start = Number(form.get("start"));
       const end = Number(form.get("end"));
       if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) return NextResponse.json({ error: "invalid-boundary" }, { status: 400 });
+
+      const rawCameraMovements = form.get("cameraMovements");
+      let cameraFilter: string | null = null;
+      if (typeof rawCameraMovements === "string" && rawCameraMovements.trim() !== "") {
+        try {
+          const parsedMovements = JSON.parse(rawCameraMovements);
+          cameraFilter = buildCameraFfmpegFilter(parsedMovements, end - start);
+        } catch {
+          // Invalid json ignored safely
+        }
+      }
+
       const paths = await createJobTempDirectories(jobId);
       const input = join(paths.input, "source.mp4");
       const output = join(paths.output, "cut.mp4");
@@ -52,7 +66,12 @@ export async function POST(request: Request) {
       try {
         const [bytes] = await bucket.file(media.storageKey).download();
         await writeFile(input, bytes);
-        await runFfmpeg(["-y", "-i", input, "-ss", String(start), "-to", String(end), "-c:v", "libx264", "-c:a", "aac", output]);
+        const ffmpegArgs: string[] = ["-y", "-ss", String(start), "-to", String(end), "-i", input];
+        if (cameraFilter) {
+          ffmpegArgs.push("-vf", cameraFilter);
+        }
+        ffmpegArgs.push("-c:v", "libx264", "-c:a", "aac", output);
+        await runFfmpeg([...ffmpegArgs]);
         const rendered = await readFile(output);
         const exportId = randomUUID();
         uploadedKey = createExportStorageKey(jobId, exportId, "video/mp4");
