@@ -10,17 +10,25 @@ test("FFmpeg Camera Filter - returns null for empty or invalid movements", () =>
   assert.equal(buildCameraFfmpegFilter([{ invalid: true } as unknown as CameraMovement], 10), null);
 });
 
-test("FFmpeg Camera Filter - builds valid sanitized crop filter for PAN movement", () => {
+test("FFmpeg Camera Filter - builds valid sanitized zoompan filter for PAN movement", () => {
   const panMv = createDefaultCameraMovement("clip-1", "PAN");
-  const filter = buildCameraFfmpegFilter([panMv], 10);
+  const filter = buildCameraFfmpegFilter([panMv], 10, 1280, 720);
 
   assert.ok(filter !== null);
-  assert.ok(filter.startsWith("crop="));
-  assert.ok(filter.includes("between(t,"));
-  assert.ok(filter.endsWith(",scale=iw:ih"));
-  // Ensure no unescaped characters or injection strings
+  assert.ok(filter.startsWith("zoompan=z="));
+  assert.ok(filter.includes("between(on,0,150)"));
+  assert.ok(filter.includes(":s=1280x720:fps=30"));
+  // Ensure no unescaped injection strings
   assert.ok(!filter.includes(";"));
   assert.ok(!filter.includes("$"));
+});
+
+test("FFmpeg Camera Filter - preserves custom output dimensions (e.g. vertical 9:16 Shorts)", () => {
+  const zoomMv = createDefaultCameraMovement("clip-1", "ZOOM");
+  const filter = buildCameraFfmpegFilter([zoomMv], 5, 720, 1280);
+
+  assert.ok(filter !== null);
+  assert.ok(filter.includes(":s=720x1280:fps=30"));
 });
 
 test("FFmpeg Camera Filter - handles multiple movement segments", () => {
@@ -29,6 +37,6 @@ test("FFmpeg Camera Filter - handles multiple movement segments", () => {
 
   const filter = buildCameraFfmpegFilter([mv1, mv2], 10);
   assert.ok(filter !== null);
-  assert.ok(filter.includes("between(t,0.000,3.000)"));
-  assert.ok(filter.includes("between(t,3.000,8.000)"));
+  assert.ok(filter.includes("between(on,0,90)"));
+  assert.ok(filter.includes("between(on,90,240)"));
 });

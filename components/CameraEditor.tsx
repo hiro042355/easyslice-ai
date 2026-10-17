@@ -346,7 +346,7 @@ export function CameraEditor({
               onChange={(type) => {
                 const defaults = createDefaultCameraMovement(clipId, type);
                 setEditingMovement((prev) =>
-                  prev ? { ...prev, movementType: type, ...defaults, id: prev.id } : null
+                  prev ? { ...prev, ...defaults, movementType: type, id: prev.id } : null
                 );
               }}
             />
