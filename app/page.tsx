@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useObjectUrl } from "@/hooks/useObjectUrl";
 import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
 import { toPng } from "html-to-image";
 import Slider from "rc-slider";
@@ -43,7 +44,6 @@ export default function Home() {
   const [zipFileName, setZipFileName] = useState("");
 const [generatedClipCount, setGeneratedClipCount] = useState(0);
   const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
-  const [localVideoUrl, setLocalVideoUrl] = useState("");
   const [previewEnd, setPreviewEnd] = useState<number | null>(null);
   const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -193,6 +193,7 @@ const updateClip = (
   setClips(newClips);
 };
   const [video, setVideo] = useState<File | null>(null);
+  const localVideoUrl = useObjectUrl(video);
   const [durableMedia, setDurableMedia] = useState<DurableMediaReference | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
  const setStartFromCurrent = () => {
@@ -499,19 +500,6 @@ useEffect(() => {
     video.removeEventListener("timeupdate", handleTimeUpdate);
   };
 }, [previewEnd]);
- useEffect(() => {
-  if (!video) {
-    setLocalVideoUrl("");
-    return;
-  }
-
-  const url = URL.createObjectURL(video);
-  setLocalVideoUrl(url);
-
-  return () => {
-    URL.revokeObjectURL(url);
-  };
-}, [video]);
 const previewVideoUrl = videoSrc || localVideoUrl;
 const validClips = clips.filter(
   (clip) =>

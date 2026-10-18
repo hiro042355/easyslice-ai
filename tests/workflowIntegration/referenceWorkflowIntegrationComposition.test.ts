@@ -14,6 +14,13 @@ import { createReferenceWorkflowEntryReconciliation } from "../../lib/server/wor
 import type { ReferenceAsyncWorkflowInput, ReferenceGenerationAcceptanceUnknownRecovery, ReferenceResumePipelineInput } from "../../lib/workflowIntegration/types";
 import type { ReferenceGenerationJobRecord, ReferenceWorkflowGenerationPollInput } from "../../lib/workflowEntry/types";
 import { vocalRequest } from "../materializers/materializerTestFixtures";
+import type { ProviderJobReference } from "../../lib/providerClients/types";
+
+// Sensitive is a compile-time confidentiality marker, not authentication.
+// Synthetic test data must still satisfy every nested domain field/discriminant.
+// This local fixture constructor is never exported to production code.
+type FixtureData<T> = T extends Sensitive<string> ? string : T extends readonly (infer Item)[] ? readonly FixtureData<Item>[] : T extends object ? { [Key in keyof T as Key extends symbol ? never : Key]: FixtureData<T[Key]> } : T;
+const syntheticFixture = <T>(value: FixtureData<T>): T => structuredClone(value) as T;
 
 test("reconciliation forwards completed provider output through the injected ingestion capability", async () => {
   let executeCallCount = 0;
@@ -29,7 +36,7 @@ test("reconciliation forwards completed provider output through the injected ing
   const reconciliation = createReferenceWorkflowEntryReconciliation({
     ingestion: { async execute(plan, references) { executeCallCount += 1; capturedPlan = plan; capturedReferences = references; return executeResult; } },
   });
-  const result = await reconciliation.recover({
+  const result = await reconciliation.recover(syntheticFixture<Parameters<ReferenceGenerationAcceptanceUnknownRecovery["recover"]>[0]>({
     lookup: { status: "found-completed", response: { responseVersion: "1.0", operation: "generate-vocal", outcome: "completed", providerOutputReferences: ["ref-vocal"], safeMetadata: { outputCount: 1 } }, audit: { auditVersion: "1.0", status: "found-completed", reasonCodes: ["generation-response-found"] } },
     workflowInput: {
       contractVersion: "1.0",
@@ -50,7 +57,7 @@ test("reconciliation forwards completed provider output through the injected ing
       restrictedAdapterRequest: vocalRequest(),
       restrictedRecords: { originalInputRecordRef: "reconciliation-original", adapterRequestRecordRef: "reconciliation-adapter", schemaFingerprint: "reconciliation-schema", expiresAt: "2030-01-02T00:00:00.000Z" },
     },
-  } as Parameters<ReferenceGenerationAcceptanceUnknownRecovery["recover"]>[0]);
+  }));
   const expectedPlan: OutputIngestionPlan = {
     planVersion: "1.0",
     executorVersion: "reference-v1",
@@ -79,7 +86,7 @@ test("recovery-required reconciliation ingestion fails safely without accessing 
       },
     },
   });
-  const result = await reconciliation.recover({
+  const result = await reconciliation.recover(syntheticFixture<Parameters<ReferenceGenerationAcceptanceUnknownRecovery["recover"]>[0]>({
     lookup: { status: "found-completed", response: { responseVersion: "1.0", operation: "generate-vocal", outcome: "completed", providerOutputReferences: ["ref-vocal"], safeMetadata: { outputCount: 1 } }, audit: { auditVersion: "1.0", status: "found-completed", reasonCodes: ["generation-response-found"] } },
     workflowInput: {
       contractVersion: "1.0",
@@ -100,7 +107,7 @@ test("recovery-required reconciliation ingestion fails safely without accessing 
       restrictedAdapterRequest: vocalRequest(),
       restrictedRecords: { originalInputRecordRef: "reconciliation-recovery-original", adapterRequestRecordRef: "reconciliation-recovery-adapter", schemaFingerprint: "reconciliation-recovery-schema", expiresAt: "2030-01-02T00:00:00.000Z" },
     },
-  } as Parameters<ReferenceGenerationAcceptanceUnknownRecovery["recover"]>[0]);
+  }));
   assert.equal(executeCallCount, 1);
   assert.deepEqual(result, { status: "failed", stage: "ingestion" });
 });
@@ -168,7 +175,7 @@ test("coordinator start registers the canonical restricted adapter request recor
     ...dependencies,
     operationPipelineRegistry: Object.freeze({ resolver }),
   });
-  const input: ReferenceAsyncWorkflowInput = {
+  const input = syntheticFixture<ReferenceAsyncWorkflowInput>({
     contractVersion: "1.0",
     operation: "generate-vocal",
     acceptedStateProjection: {
@@ -231,7 +238,7 @@ test("coordinator start registers the canonical restricted adapter request recor
     bindings: { materializerBindingId: "reference-vocal-resume-pipeline-v1", generationClientBindingId: "reference-vocal-client-v1", outputIngestionBindingId: "reference-output-ingestion-v1" },
     restrictedAdapterRequest: vocalRequest(),
     restrictedRecords: { originalInputRecordRef: "coordinator-original", adapterRequestRecordRef: "coordinator-adapter", schemaFingerprint: "coordinator-schema", expiresAt: "2030-01-02T00:00:00.000Z" },
-  };
+  });
   const result = await coordinator.start(input);
   assert.equal(registeredRecords.length, 1);
   assert.deepEqual(registeredRecords[0], {
@@ -294,7 +301,7 @@ test("completed generation-job flow forwards the canonical plan and references t
 test("recovery-required generation-job ingestion preserves reconciliation semantics without accessing assets", async () => {
   const dependencies = createReferenceWorkflowIntegrationDependencies();
   const store = new ReferenceGenerationJobRecordStore();
-  const jobReference = { providerId: "reference-provider", providerApiVersion: "reference-api-v1", operation: "generate-vocal", clientVersion: "1.0.0", jobReference: "opaque-recovery-job" } as const;
+  const jobReference = syntheticFixture<ProviderJobReference>({ providerId: "reference-provider", providerApiVersion: "reference-api-v1", operation: "generate-vocal", clientVersion: "1.0.0", jobReference: "opaque-recovery-job" });
   const finalResultIdentity = "final-recovery-generation-job-result";
   assert.deepEqual(dependencies.restrictedAdapterRequestResolver.register({ recordVersion: "1.0", operation: "generate-vocal", adapterId: "reference-vocal-v1", adapterVersion: "1.0.0", requestSchemaVersion: "1.0", fingerprint: "safe-recovery", tenantRef: "tenant", region: "region", expiresAt: "2031-01-01T00:00:00.000Z", deletionState: "active", legalHold: false, payloadRef: "recovery-generation-job-payload" }, vocalRequest() as Sensitive<OperationAdapterRequest>), { status: "registered" });
   assert.equal((await store.createIfAbsent("recovery-generation-job-identity", { recordVersion: "1.0", providerId: "reference-provider", providerApiVersion: "reference-api-v1", operation: "generate-vocal", clientBindingId: "1.0.0", normalizerBindingId: "reference-vocal-v1", ingestionBindingId: "reference-output-ingestion-v1", originalInputRecordRef: "original-input", adapterRequestRecordRef: "recovery-generation-job-payload", generationIdentity: "recovery-generation-job-identity", jobReference, finalResultIdentity, baselineTime: "2030-01-01T00:00:00.000Z", tenantRef: "tenant", region: "region", revision: 1, status: "pending", lifecycle: "generation-pending", expiresAt: "2031-01-01T00:00:00.000Z" } as ReferenceGenerationJobRecord)).status, "created");
