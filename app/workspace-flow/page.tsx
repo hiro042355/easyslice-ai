@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { HamburgerMenu } from "@/components/ui/HamburgerMenu";
+import { CameraPreview } from "@/components/CameraPreview";
+import { CameraEditor } from "@/components/CameraEditor";
+import type { CameraMovement } from "@/lib/camera/cameraTypes";
 import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
 import { parseSubtitleText, projectTimedTextForHighlight } from "@/lib/client/subtitleState";
 import type { ClipTimedTextV1 } from "@/lib/clipEditing";
@@ -156,6 +161,7 @@ export default function WorkspaceFlowPage() {
     enabled: false,
     mode: "smart",
   });
+  const [cameraMovements, setCameraMovements] = useState<readonly CameraMovement[]>([]);
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === currentStep) ?? steps[0],
@@ -536,6 +542,9 @@ export default function WorkspaceFlowPage() {
       formData.append("start", primaryClip.start || "0");
       formData.append("end", primaryClip.end || "30");
       formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));
+      if (cameraMovements.length > 0) {
+        formData.append("cameraMovements", JSON.stringify(cameraMovements));
+      }
       console.log("CreatorStyleConfig -> /api/cut", creatorStyleConfig);
       if (hookPreview) {
         formData.append("aiHookConfig", JSON.stringify(aiHookConfig));
@@ -736,18 +745,27 @@ export default function WorkspaceFlowPage() {
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8 lg:px-10">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
           <div>
-            <a href="/workspace" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
-              ← Workspace Home
-            </a>
+            <Breadcrumb
+              items={[
+                { label: "NEXCUT AI", href: "/workspace" },
+                { label: "Clip Studio", href: "/workspace" },
+                { label: "Short Video Workspace", current: true },
+              ]}
+            />
             <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
               Short Video Workspace
             </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-              One Screen. One Goal.
-            </div>
+            <HamburgerMenu
+              links={[
+                { label: "Workspace Home", href: "/workspace" },
+                { label: "Short Video", href: "/workspace-flow", active: true },
+                { label: "AI MV Studio", href: "/ai-mv", badge: "β" },
+                { label: "Video Convert", href: "/convert" },
+              ]}
+            />
             <AuthenticatedAccountControl />
           </div>
         </header>
@@ -1405,10 +1423,12 @@ export default function WorkspaceFlowPage() {
                       </h3>
 
                       {videoSrc ? (
-                        <video
+                        <CameraPreview
                           src={videoSrc}
-                          controls
-                          className="mt-4 aspect-video w-full rounded-2xl border border-white/10 bg-black object-contain"
+                          movements={cameraMovements}
+                          clipStart={Number(primaryClip.start || 0)}
+                          clipEnd={Number(primaryClip.end || 30)}
+                          className="mt-4"
                         />
                       ) : (
                         <div className="mt-4 flex aspect-video w-full items-center justify-center rounded-2xl border border-white/10 bg-black/40">
@@ -1417,6 +1437,14 @@ export default function WorkspaceFlowPage() {
                           </p>
                         </div>
                       )}
+
+                      <CameraEditor
+                        clipId={primaryClip.title || "primary-clip"}
+                        clipDuration={Math.max(1, Number(primaryClip.end || 30) - Number(primaryClip.start || 0))}
+                        movements={cameraMovements}
+                        onChangeMovements={setCameraMovements}
+                        className="mt-6"
+                      />
 
                       <div className="mt-4 grid gap-2 text-xs font-semibold sm:grid-cols-3">
                         <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
