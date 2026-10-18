@@ -36,7 +36,7 @@ export function planMockMultimodal(catalog:readonly MockModalityModel[],request:
   if(request.kind==='image'){
    if(quote.unit!=='image'||!Number.isSafeInteger(request.count)||request.count<1||request.count>10)throw Error('INVALID_IMAGE_PARAMETERS');units=request.count;
   }else{
-   if(quote.unit!=='second'||!Number.isSafeInteger(request.durationSeconds)||!model.supportedDurations?.includes(request.durationSeconds))throw Error('INVALID_VIDEO_PARAMETERS');units=request.durationSeconds;
+   if(quote.unit!=='second'||!Number.isSafeInteger(request.durationSeconds)||request.durationSeconds<1||!model.supportedDurations?.includes(request.durationSeconds))throw Error('INVALID_VIDEO_PARAMETERS');units=request.durationSeconds;
   }
  }
  const estimatedUpperBoundUsd=quote.inputCostUpperBoundUsd+units*quote.outputUnitUsd;

@@ -20,3 +20,9 @@ test('legacy text executor never dispatches image/video even when a mock catalog
  const result=await executeMockOpenRouter({enabled:true,apiKeyPresent:true,authorizedForMock:true,budgetUsd:1},[m],{requestId:capability,modelId:'fixture',capability,inputTokens:1,maxOutputTokens:1},createMockUsageAccounting(1),{mode:'OFFLINE_MOCK',execute:async()=>{calls++;throw Error('forbidden');}});
  assert.equal(result.ok,false);if(!result.ok)assert.equal(result.error.safeCode,'UNSUPPORTED_CAPABILITY');}assert.equal(calls,0);
 });
+
+test('catalog-listed zero and negative video durations cannot create negative or free cost reservations',()=>{
+ const m={...model('video'),supportedDurations:[-5,0,5]};
+ for(const durationSeconds of [-5,0])assert.throws(()=>planMockMultimodal([m],{...request,durationSeconds},1),/INVALID_VIDEO_PARAMETERS/);
+ assert.equal(planMockMultimodal([m],request,1).estimatedUpperBoundUsd,.11);
+});
