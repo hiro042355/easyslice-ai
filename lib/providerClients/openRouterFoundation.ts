@@ -30,6 +30,8 @@ export async function executeMockOpenRouter(config:OpenRouterConfig,catalog:read
  const fail=(category:NormalizedProviderClientError['category'],safeCode:string)=>({ok:false as const,error:{category,retryable:false,safeCode}});
  const gate=assessOpenRouterRequest(config,catalog,request);if(!gate.ok)return fail('invalid-request',gate.code);
  if(process.env.NODE_ENV==='production')return fail('unsupported','LIVE_INFERENCE_FORBIDDEN');
+ // This legacy executor parses text and token usage only; do not misroute media jobs.
+ if(request.capability!=='text')return fail('unsupported','UNSUPPORTED_CAPABILITY');
  if(signal?.aborted)return fail('invalid-request','MOCK_CANCELLED');
  if(transport.mode!=='OFFLINE_MOCK')return fail('unsupported','LIVE_INFERENCE_FORBIDDEN');
  const selected=catalog.find(m=>m.modelId===request.modelId);
