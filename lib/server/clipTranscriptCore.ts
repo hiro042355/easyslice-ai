@@ -19,7 +19,8 @@ export async function transcribeOwnedClip(input:OwnedClipTranscriptInput,deps:Cl
   checkMediaCancellation(input.signal);
   await deps.download(media.storageKey,ws.file('source.mp4'),input.signal);
   await ws.assertRegular('source.mp4');checkMediaCancellation(input.signal);
-  await deps.extract(ws.file('source.mp4'),ws.file('audio.wav'),input.start,input.end-input.start,input.signal);
+  // Retain the legacy clip API's one-second minimum extraction duration.
+  await deps.extract(ws.file('source.mp4'),ws.file('audio.wav'),input.start,Math.max(1,input.end-input.start),input.signal);
   await ws.assertRegular('audio.wav');checkMediaCancellation(input.signal);
   if((await stat(ws.file('audio.wav'))).size>32*1024*1024)throw new MediaRequestFailure('provider-failed');
   const text=await deps.transcribe(await readFile(ws.file('audio.wav')),input.signal);

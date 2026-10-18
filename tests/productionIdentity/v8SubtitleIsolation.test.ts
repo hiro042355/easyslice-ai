@@ -49,6 +49,11 @@ test('foreign project/media fails before temp download, extraction or inference'
  await assert.rejects(transcribeOwnedClip(input(),{resolve:async()=>undefined,download:forbidden,extract:forbidden,transcribe:forbidden}),/resource-not-found/);
  assert.equal(calls,0);
 });
+test('subsecond clip requests retain the existing one-second minimum extraction behavior',async()=>{
+ let duration=0;
+ const result=await transcribeOwnedClip({...input(),end:2.5},{resolve:async()=>({storageKey:'owned'}),download:async(_,p)=>{await writeFile(p,'source');},extract:async(_,p,start,seconds)=>{assert.equal(start,2);duration=seconds;await writeFile(p,'audio');},transcribe:async()=> '字幕'});
+ assert.equal(duration,1);assert.equal(result,'字幕');
+});
 for(const phase of ['download','extract','transcribe','cancel'] as const)test('request cleanup after '+phase+' failure is complete and bounded',async()=>{
  let root='';const controller=new AbortController();
  const deps:ClipTranscriptDependencies={resolve:async()=>({storageKey:'owned'}),download:async(_,p)=>{root=path.dirname(p);await writeFile(p,'input');if(phase==='download')throw Error('secret-path');},extract:async(_,p)=>{if(phase==='extract')throw Error('private stderr');await writeFile(p,'audio');if(phase==='cancel')controller.abort();},transcribe:async()=>{throw Error('provider secret');}};
