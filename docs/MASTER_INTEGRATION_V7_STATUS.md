@@ -13,6 +13,10 @@ Start: `7f57dfb0a5cc92e2a5dbd6a89b6653e951b56ee0`, existing Draft PR #2, branch 
 
 ## Quality disposition
 
+Follow-up inspection also proves an AssetRecord contract defect: the Reference registry used audio metadata for character/brand records. Typed per-kind construction now preserves image metadata for image/character/brand, video metadata for video and audio metadata for audio/voice/melody. All seven kinds, copy isolation, existing injected failure and unknown runtime-kind rejection execute in regression. No external ingestion is performed.
+
+Poll audit projection now uses its declared status/operation/reason contracts and treats raw state/items as unknown. Null/malformed observations no longer cause a property-access exception while producing a bounded failure audit. Existing status counts and fields are retained and tested.
+
 Initial reproduction: TypeScript 8 errors; ESLint 201 errors. Full typecheck reaches zero errors. Hooks and prefer-const errors are resolved; remaining lint is the legacy no-explicit-any cluster. No rule weakening, directory exclusion, global --fix or changed strictness.
 
 The remaining any usages are not renamed or hidden. They span discriminant-correlated multi-operation pipeline bindings, Sensitive persistence keys/records, replay/final-result projections and runtime state validators. A blanket unknown replacement or asserting guessed unions would remove actual authority guarantees or create new errors. Their exact diagnostics, per-file counts/risk and proposed contract-aware work are in the machine-readable owner ledger. This larger architecture work is not represented as complete or PASS.
