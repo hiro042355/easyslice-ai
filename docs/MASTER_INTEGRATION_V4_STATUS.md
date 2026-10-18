@@ -1,5 +1,7 @@
 # Master integration V4 — bounded foundation, not release certification
 
+Historical checkpoint: see `MASTER_INTEGRATION_V5_STATUS.md` for subsequent stabilization, verified Character provenance and updated QA/build evidence. V4 counts below are not current certification.
+
 Baseline: `6edd8726709c6c530f9228fed38d076f349f5387` (merged PR #1). Its tree matches PR head `8d3449586002816a724a2623d05238ff83df28c7`. Original dirty main remains at `f3873fb294bbc11974ca180dea10fa711c49d436`; it is not this branch.
 
 ## Implemented and locally exercised

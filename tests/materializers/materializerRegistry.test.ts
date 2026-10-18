@@ -17,7 +17,9 @@ const expected = [
 ] as const;
 
 async function importRegistryVariant(mutate: (source: string) => string): Promise<typeof import("../../lib/materializers/materializerRegistry")> {
-  let source = mutate(await readFile(REGISTRY, "utf8"));
+  const original = (await readFile(REGISTRY, "utf8")).replace(/\r\n/g, "\n");
+  let source = mutate(original);
+  assert.notEqual(source, original, "registry variant mutation must actually change the fixture");
   for (const dependency of ["materializerUtils", "referenceProfiles"] as const) {
     const url = pathToFileURL(`${ROOT}lib/materializers/${dependency}.ts`).href;
     source = source.replace(`"./${dependency}"`, `"${url}"`);

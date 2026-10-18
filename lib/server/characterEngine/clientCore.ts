@@ -13,9 +13,9 @@ const stable=(v:unknown):v is string=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0
 const bibleFields=['identityTraits','faceCharacteristics','hairCharacteristics','eyeCharacteristics','bodyCharacteristics','personality','clothing','accessories','colorPalette','expressionRules','identityConstraints','forbiddenChanges','referenceAssetIds'];
 function identityProjection(raw:unknown,expectedId:string,revisionId:string):CharacterIdentity|undefined{
  const envelope=record(raw),c=record(envelope?.character),lock=record(c?.identityLock),rev=record(lock?.lockedRevision),identity=record(rev?.identity),bible=record(identity?.bible);
- if(envelope?.ok!==true||c?.id!==expectedId||!stable(c.ownerUserId)||lock?.status!=='LOCKED'||lock.characterId!==expectedId||lock.revisionId!==revisionId||rev?.id!==revisionId||rev.characterId!==expectedId||!['APPROVED','LOCKED'].includes(String(rev.status))||identity?.characterId!==expectedId||!bible||typeof bible.movementStyle!=='string'||!bible.movementStyle.trim())return;
+ if(envelope?.ok!==true||c?.id!==expectedId||!stable(c.ownerUserId)||lock?.status!=='LOCKED'||lock.characterId!==expectedId||lock.revisionId!==revisionId||rev?.id!==revisionId||rev.characterId!==expectedId||rev.status!=='LOCKED'||identity?.characterId!==expectedId||!bible||typeof bible.movementStyle!=='string'||!bible.movementStyle.trim())return;
  if(bibleFields.some(k=>!Array.isArray(bible[k])||(bible[k] as unknown[]).some(x=>typeof x!=='string'||!x.trim())))return;
- if(!Array.isArray(c.revisions)||!c.revisions.some(r=>{const x=record(r);return x?.id===revisionId&&x.characterId===expectedId&&['APPROVED','LOCKED'].includes(String(x.status));}))return;
+ if(!Array.isArray(c.revisions)||c.revisions.filter(r=>record(r)?.id===revisionId).length!==1||!c.revisions.some(r=>{const x=record(r);return x?.id===revisionId&&x.characterId===expectedId&&x.status==='LOCKED';}))return;
  return Object.freeze({characterId:expectedId,revisionId,ownerUserId:c.ownerUserId,locked:true});
 }
 export function createCharacterReadClient(config:CharacterClientConfig,transport:CharacterTransport=fetch){
@@ -35,12 +35,15 @@ export function createCharacterReadClient(config:CharacterClientConfig,transport
    const work=async():Promise<CharacterResult>=>{
     const url=new URL(`${base.pathname.replace(/\/$/,'')}/characters/${characterId}`,base.origin);
     const response=await transport(url,{method:'GET',headers:{authorization:`Bearer ${c.bearerToken}`,accept:'application/json'},redirect:'error',signal:controller.signal,cache:'no-store'});
+    if(controller.signal.aborted){void response.body?.cancel().catch(()=>undefined);return {ok:false,code:'TIMEOUT'};}
     if(response.status===401||response.status===403)return {ok:false,code:'UNAUTHORIZED'};
     if(!response.ok)return {ok:false,code:'UNAVAILABLE'};
     if(!response.headers.get('content-type')?.includes('application/json'))return {ok:false,code:'MALFORMED_RESPONSE'};
     const reader=response.body?.getReader();if(!reader)return {ok:false,code:'MALFORMED_RESPONSE'};
+    const abortBody=()=>{void reader.cancel().catch(()=>undefined);};
+    controller.signal.addEventListener('abort',abortBody,{once:true});
     const chunks:Uint8Array[]=[];let bytes=0;
-    try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.length;if(bytes>262144){await reader.cancel();return {ok:false,code:'MALFORMED_RESPONSE'};}chunks.push(part.value);}}finally{reader.releaseLock();}
+    try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.length;if(bytes>262144){await reader.cancel();return {ok:false,code:'MALFORMED_RESPONSE'};}chunks.push(part.value);}}finally{controller.signal.removeEventListener('abort',abortBody);reader.releaseLock();}
     const data=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.length;}
     let raw:unknown;
     try{raw=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(data));}catch{return {ok:false,code:'MALFORMED_RESPONSE'};}

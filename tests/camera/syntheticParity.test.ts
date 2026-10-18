@@ -19,11 +19,12 @@ const cases:readonly [string,Partial<CameraMovement>][]=[
  ['zoom-in',{startZoom:1,endZoom:2}],['zoom-out',{startZoom:2,endZoom:1}],
  ['zoom-pan',{startZoom:1,endZoom:2,startPosition:{x:0,y:0},endPosition:{x:.15,y:0}}],
  ['mid-clip',{startTime:.5,endTime:1.5}],['end-clip',{startTime:1,endTime:2}],
+ ['ends-before-completion',{startTime:.4,endTime:1.2,startPosition:{x:-.1,y:.1},endPosition:{x:.1,y:-.1}}],
 ];
-for(const [name,overrides] of cases)test(`actual FFmpeg crop parity: ${name}`,{skip:!ffmpeg},()=>{
+for(const [w,h] of [[320,180],[180,320],[256,256]] as const)for(const [name,overrides] of cases)test(`actual FFmpeg crop parity: ${name} ${w}x${h}`,{skip:!ffmpeg},()=>{
  const dir=mkdtempSync(path.join(tmpdir(),'nexcut-camera-'));
  try{
-  const w=320,h=180,fps=10,frames=21;
+  const fps=10,frames=21;
   // RGB coordinate ramp: output centre encodes source crop-centre position.
   const pixels=Buffer.alloc(w*h*3);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*3;pixels[i]=Math.round(x/(w-1)*255);pixels[i+1]=Math.round(y/(h-1)*255);pixels[i+2]=64;}

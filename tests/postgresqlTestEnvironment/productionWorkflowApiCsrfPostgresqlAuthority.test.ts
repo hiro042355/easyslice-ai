@@ -91,7 +91,7 @@ test("V000007 and PostgreSQL CSRF authority preserve schema, ceiling, revisions,
     assert.match(indexes.rows.find((row) => row.indexname === "ix_production_workflow_api_csrf_tokens_active_session")?.indexdef ?? "", /session_id, issued_at, token_id.*WHERE.*lifecycle_state.*active/iu);
     assert.equal(columns.rows.some((row) => /raw|secret/iu.test(row.column_name)), false);
 
-    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 8, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, queryTimeoutMs: 10_000, applicationName: "csrf-authority-test", tls: { mode: "disabled" } });
+    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 8, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, queryTimeoutMs: 10_000, applicationName: "csrf-authority-test", tls: { mode: "disabled" as const } });
     assert.equal(await pool.start(), "ready");
     const firstAdapter = new PostgresqlProductionWorkflowApiCsrfAuthority(pool);
     const secondAdapter = new PostgresqlProductionWorkflowApiCsrfAuthority(pool);

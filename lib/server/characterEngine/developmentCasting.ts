@@ -17,7 +17,7 @@ export function createDevelopmentCastingStore(authority:CastingAuthority){
  const castings=new Map<string,CastingRecord>(),scenes=new Map<string,SceneAssignment>();
  const id=(x:string)=>{if(typeof x!=='string'||!x.trim()||x.length>160)throw Error('INVALID_IDENTIFIER');};
  async function project(owner:string,p:string){id(owner);id(p);if(!await authority.authorizeProject(owner,p))throw Error('PROJECT_FORBIDDEN');}
- async function locked(owner:string,c:string,r:string){const result=await authority.lockedIdentity(c,r);if(!result.ok||!result.identity.locked||result.identity.characterId!==c||result.identity.revisionId!==r||result.identity.ownerUserId!==owner)throw Error('LOCK_AUTHORITY_REQUIRED');}
+ async function locked(owner:string,c:string,r:string){if(typeof c!=='string'||typeof r!=='string'||!/[a-zA-Z0-9]/.test(c)||!/^([a-zA-Z0-9][a-zA-Z0-9_-]{1,127})$/.test(c)||!/^([a-zA-Z0-9][a-zA-Z0-9_-]{1,127})$/.test(r))throw Error('INVALID_IDENTIFIER');const result=await authority.lockedIdentity(c,r);if(!result.ok||!result.identity.locked||result.identity.characterId!==c||result.identity.revisionId!==r||result.identity.ownerUserId!==owner)throw Error('LOCK_AUTHORITY_REQUIRED');}
  return Object.freeze({mode:'DEVELOPMENT_ONLY' as const,
   async cast(owner:string,p:string,c:string,r:string):Promise<CastingRecord>{
    await project(owner,p);await locked(owner,c,r);
@@ -37,7 +37,7 @@ export function createDevelopmentCastingStore(authority:CastingAuthority){
    await locked(owner,c.characterId,c.identityRevisionId);if(castings.get(castingId)!==c)throw Error('CASTING_CHANGED');
    if([...scenes.values()].some(x=>x.productionProjectId===p&&x.sceneId===sceneId&&x.castingId===castingId&&x.status!=='REMOVED'))throw Error('DUPLICATE_SCENE_ASSIGNMENT');
    const allowed=['expression','pose','outfit','cameraFraming','sceneAction','emotionalState','artStyleConstraints'];
-   if(!appearance||Object.keys(appearance).some(k=>!allowed.includes(k)))throw Error('INVALID_APPEARANCE');
+   if(!appearance||typeof appearance!=='object'||Array.isArray(appearance)||Object.getPrototypeOf(appearance)!==Object.prototype||Object.keys(appearance).some(k=>!allowed.includes(k)))throw Error('INVALID_APPEARANCE');
    for(const [key,value] of Object.entries(appearance)){if(key==='artStyleConstraints'){if(!Array.isArray(value)||value.length>32||value.some(x=>typeof x!=='string'||x.length>500))throw Error('INVALID_APPEARANCE');}else if(typeof value!=='string'||value.length>500)throw Error('INVALID_APPEARANCE');}
    const snapshot=Object.freeze({...appearance,...(appearance.artStyleConstraints?{artStyleConstraints:Object.freeze([...appearance.artStyleConstraints])}:{})});
    const at=new Date().toISOString();const row:SceneAssignment=Object.freeze({sceneAssignmentId:randomUUID(),productionProjectId:p,sceneId,castingId,characterId:c.characterId,identityRevisionId:c.identityRevisionId,appearance:snapshot,status:'DRAFT',createdAt:at,updatedAt:at});scenes.set(row.sceneAssignmentId,row);return row;

@@ -1,12 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createCharacterReadClient} from '../../lib/server/characterEngine/clientCore';
-import {assessOpenRouterRequest,readOpenRouterConfig,executeMockOpenRouter,type OpenRouterModel} from '../../lib/providerClients/openRouterFoundation';
+import {assessOpenRouterRequest,readOpenRouterConfig,executeMockOpenRouter,createMockUsageAccounting,type OpenRouterModel} from '../../lib/providerClients/openRouterFoundation';
 import {createMockOpenRouterCatalog} from '../../lib/providerClients/openRouterCatalog';
 
 const config={enabled:true,baseUrl:'https://character.example.com/api/v1',allowedOrigin:'https://character.example.com',bearerToken:'offline-fixture-not-a-credential',timeoutMs:30};
 const bible={movementStyle:'still',...Object.fromEntries(['identityTraits','faceCharacteristics','hairCharacteristics','eyeCharacteristics','bodyCharacteristics','personality','clothing','accessories','colorPalette','expressionRules','identityConstraints','forbiddenChanges','referenceAssetIds'].map(k=>[k,[]]))};
-const revision={id:'hero-rev-1',characterId:'hero',status:'APPROVED',identity:{characterId:'hero',bible}};
+const revision={id:'hero-rev-1',characterId:'hero',status:'LOCKED',identity:{characterId:'hero',bible}};
 const character={id:'hero',ownerUserId:'owner-1',revisions:[revision],identityLock:{characterId:'hero',revisionId:'hero-rev-1',status:'LOCKED',lockedRevision:revision}};
 test('Character client disabled by default configuration performs no transport',async()=>{
  const c=createCharacterReadClient({enabled:false},async()=>{throw Error('must not call');});assert.deepEqual(await c.lockedIdentity('hero','hero-rev-1'),{ok:false,code:'DISABLED'});
@@ -19,6 +19,17 @@ test('Character rejects absent lock, mismatched revision, character and malforme
  for(const raw of [{ok:true,character:{...character,identityLock:undefined}},{ok:true,character:{...character,id:'other'}},{ok:true,character:{...character,identityLock:{...character.identityLock,revisionId:'other'}}},{ok:true,character:{...character,revisions:[]}},{}]){
   const c=createCharacterReadClient(config,async()=>Response.json(raw));assert.deepEqual(await c.lockedIdentity('hero','hero-rev-1'),{ok:false,code:'MALFORMED_RESPONSE'});
  }
+});
+test('Character rejects approved-but-not-locked and duplicate revision authority',async()=>{
+ for(const c of [{...character,identityLock:{...character.identityLock,lockedRevision:{...revision,status:'APPROVED'}}},{...character,revisions:[revision,revision]}]){
+  assert.deepEqual(await createCharacterReadClient(config,async()=>Response.json({ok:true,character:c})).lockedIdentity('hero','hero-rev-1'),{ok:false,code:'MALFORMED_RESPONSE'});
+ }
+});
+test('Character body timeout cancels stalled stream and oversized body is rejected',async()=>{
+ let cancelled=false;const stalled=new ReadableStream<Uint8Array>({cancel(){cancelled=true;}});
+ const c=createCharacterReadClient(config,async()=>new Response(stalled,{headers:{'content-type':'application/json'}}));
+ assert.deepEqual(await c.lockedIdentity('hero','hero-rev-1'),{ok:false,code:'TIMEOUT'});assert.equal(cancelled,true);
+ const big=createCharacterReadClient(config,async()=>new Response('x'.repeat(262145),{headers:{'content-type':'application/json'}}));assert.deepEqual(await big.lockedIdentity('hero','hero-rev-1'),{ok:false,code:'MALFORMED_RESPONSE'});
 });
 test('Character SSRF/path traversal and invalid configuration denied before dispatch',async()=>{
  for(const baseUrl of ['http://localhost/api/v1','https://127.0.0.1/api/v1','https://evil.example/api/v1','https://character.example.com/api/v1?x=1']){
@@ -50,4 +61,18 @@ test('model discovery mock snapshots metadata and preserves unknown pricing',()=
  const input=structuredClone({...model,pricing:null});const catalog=createMockOpenRouterCatalog([input]);assert.equal(catalog[0].pricing,null);assert.equal(Object.isFrozen(catalog[0].capabilities),true);
  input.displayName='changed';assert.equal(catalog[0].displayName,'Offline fixture');
  assert.throws(()=>createMockOpenRouterCatalog([model,model]));assert.throws(()=>createMockOpenRouterCatalog([{...model,authority:'LIVE'}]));assert.throws(()=>createMockOpenRouterCatalog([{...model,pricing:undefined}]));
+});
+test('OpenRouter stalled/mock malformed response fail closed without retry',async()=>{
+ const accounting=createMockUsageAccounting(1);let calls=0;
+ const timed=await executeMockOpenRouter({...enabled,timeoutMs:10},[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>{calls++;return new Promise(()=>{});}});
+ assert.deepEqual(timed,{ok:false,error:{category:'timeout',retryable:false,safeCode:'MOCK_TIMEOUT'}});assert.equal(calls,1);
+ for(const value of [null,{}, {text:'safe',inputTokens:0,outputTokens:1000000}]){
+  const result=await executeMockOpenRouter(enabled,[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>value});assert.deepEqual(result,{ok:false,error:{category:'malformed-response',retryable:false,safeCode:'MALFORMED_RESPONSE'}});
+ }
+});
+test('mock budget reservations prevent concurrent aggregate overspend and retain unknown reservations',async()=>{
+ const budget=.04,accounting=createMockUsageAccounting(budget);let calls=0;
+ const run=()=>executeMockOpenRouter({...enabled,budgetUsd:budget,timeoutMs:10},[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>{calls++;return new Promise(()=>{});}});
+ const results=await Promise.all([run(),run()]);assert.equal(calls,1);assert.ok(results.some(r=>!r.ok&&r.error.safeCode==='BUDGET_EXCEEDED'));
+ assert.deepEqual(await run(),{ok:false,error:{category:'invalid-request',retryable:false,safeCode:'BUDGET_EXCEEDED'}});
 });

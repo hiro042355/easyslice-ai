@@ -8,6 +8,8 @@ import {RadioGroup} from '../../components/ui/RadioGroup';
 import {HamburgerMenu} from '../../components/ui/HamburgerMenu';
 import {AccordionItem} from '../../components/ui/Accordion';
 import {SelectionCard} from '../../components/ui/SelectionCard';
+import {Breadcrumb} from '../../components/ui/Breadcrumb';
+import {Select} from '../../components/ui/Select';
 import {CameraEditor} from '../../components/CameraEditor';
 import type {CameraMovement} from '../../lib/camera/cameraTypes';
 
@@ -54,4 +56,14 @@ test('Camera recommendations require acceptance then application, reject preserv
  await act(async()=>button('Accept').click());assert.equal(movements.length,0);
  await act(async()=>button('Apply').click());assert.equal(movements.length,1);assert.equal(movements[0].approvalStatus,'APPLIED');
  const before=JSON.stringify(movements);await act(async()=>button('Reject').click());assert.equal(JSON.stringify(movements),before);
+}));
+test('Breadcrumb labels current location and native Select preserves types and disabled options',async()=>withDom(async(host,render)=>{
+ let selected=1;await render(<><Breadcrumb items={[{label:'Home',href:'/'},{label:'Current',current:true}]}/><Select label="Count" value={1} options={[{value:1,label:'One'},{value:2,label:'Two',disabled:true},{value:3,label:'Three'}]} onChange={v=>{selected=v;}}/></>);
+ assert.equal(host.querySelector('[aria-current="page"]')?.textContent,'Current');const select=host.querySelector<HTMLSelectElement>('select')!;assert.equal(host.querySelector('label')?.htmlFor,select.id);select.focus();assert.equal(document.activeElement,select);
+ await act(async()=>{select.value='2';select.dispatchEvent(new window.Event('change',{bubbles:true}));});assert.equal(selected,1);
+ await act(async()=>{select.value='3';select.dispatchEvent(new window.Event('change',{bubbles:true}));});assert.equal(selected,3);
+}));
+test('enabled SelectionCard activates with Enter and Space',async()=>withDom(async(host,render)=>{
+ let calls=0;await render(<SelectionCard title="Choose" onClick={()=>calls++}/>);const card=host.querySelector<HTMLElement>('[role="button"]')!;card.focus();
+ for(const key of ['Enter',' '])await act(async()=>card.dispatchEvent(new window.KeyboardEvent('keydown',{key,bubbles:true,cancelable:true})));assert.equal(calls,2);assert.equal(document.activeElement,card);
 }));
