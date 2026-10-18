@@ -20,7 +20,7 @@ import { MULTI_CUT_REPLAY_POSTGRESQL_SQL_DEFINITIONS_V2 as definitions } from ".
 import type {
   PostgreSQLConnection,
   PostgreSQLConnectionPool,
-  PostgreSQLTransactionConnection,
+  PostgreSQLTransactionConnectionV4,
 } from "../../../lib/server/productionWorkflowRuntime/postgresqlDriver";
 
 const forbiddenKeys = new Set([
@@ -235,7 +235,14 @@ test("success and zero-row never emit failure events", async () => {
 
 test("active transaction discard emits exactly once", async () => {
   let active = false;
-  const transaction: PostgreSQLTransactionConnection = Object.freeze({
+  const transaction: PostgreSQLTransactionConnectionV4 = Object.freeze<PostgreSQLTransactionConnectionV4>({
+    lifecycleVersion: "2.0",
+    queryContractVersion: "2.0",
+    lifecycleResultVersion: "2.0",
+    async queryV2() { throw new Error("unexpected-v2-query"); },
+    async commitV2() { throw new Error("unexpected-v2-commit"); },
+    async rollbackV2() { throw new Error("unexpected-v2-rollback"); },
+    discard() { active = false; return { status: "discarded" as const }; },
     state: () => "active",
     query: async () => Object.freeze({
       status: "success" as const,

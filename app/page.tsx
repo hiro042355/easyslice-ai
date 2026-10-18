@@ -208,7 +208,7 @@ const setEndFromCurrent = () => {
 
   const [loading, setLoading] = useState(false);
   const [aiCooldownUntil, setAiCooldownUntil] = useState<number>(0);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 const isAiCoolingDown = now < aiCooldownUntil;
 const aiCooldownSeconds = Math.max(
   0,

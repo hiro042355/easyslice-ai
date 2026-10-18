@@ -43,8 +43,8 @@ test('Character timeout, unavailable and unauthorized have bounded secret-safe e
  assert.deepEqual(await createCharacterReadClient(config,async()=>Response.json({}, {status:403})).lockedIdentity('hero','hero-rev-1'),{ok:false,code:'UNAUTHORIZED'});
 });
 const model:OpenRouterModel={providerId:'openrouter',modelId:'fixture-only/not-a-real-model',displayName:'Offline fixture',capabilities:['text'],availability:'available',pricing:{currency:'USD',inputPerToken:.001,outputPerToken:.002},refreshedAt:'2026-10-18T00:00:00Z',authority:'MOCK'};
-const request={modelId:model.modelId,capability:'text' as const,inputTokens:10,maxOutputTokens:10};
-const enabled={enabled:true,apiKeyPresent:true,budgetUsd:1};
+const request={requestId:'fixture-request',modelId:model.modelId,capability:'text' as const,inputTokens:10,maxOutputTokens:10};
+const enabled={enabled:true,apiKeyPresent:true,budgetUsd:1,authorizedForMock:true};
 test('OpenRouter defaults disabled and missing/unknown authorities deny',()=>{
  assert.deepEqual(readOpenRouterConfig({}),{enabled:false,apiKeyPresent:false,budgetUsd:null});
  for(const [cfg,catalog,req,expected] of [
@@ -53,7 +53,7 @@ test('OpenRouter defaults disabled and missing/unknown authorities deny',()=>{
  ] as const)assert.deepEqual(assessOpenRouterRequest(cfg,catalog,req),{ok:false,code:expected});
 });
 test('OpenRouter mock separates reserved estimate from actual; errors never leak and never retry',async()=>{
- const records:string[]=[];const accounting={reserve:()=>{records.push('ESTIMATE');return true;},record:()=>{records.push('ACTUAL');}};
+ const records:string[]=[];const accounting={claim:()=>true,reserve:()=>{records.push('ESTIMATE');return true;},record:()=>{records.push('ACTUAL');}};
  const result=await executeMockOpenRouter(enabled,[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>({text:'offline text',inputTokens:8,outputTokens:5})});assert.equal(result.ok,true);assert.deepEqual(records,['ESTIMATE','ACTUAL']);
  let calls=0;const failure=await executeMockOpenRouter(enabled,[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>{calls++;throw Error('secret');}});assert.deepEqual(failure,{ok:false,error:{category:'unknown',retryable:false,safeCode:'MOCK_EXECUTION_FAILED'}});assert.equal(calls,1);
 });
@@ -67,12 +67,12 @@ test('OpenRouter stalled/mock malformed response fail closed without retry',asyn
  const timed=await executeMockOpenRouter({...enabled,timeoutMs:10},[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>{calls++;return new Promise(()=>{});}});
  assert.deepEqual(timed,{ok:false,error:{category:'timeout',retryable:false,safeCode:'MOCK_TIMEOUT'}});assert.equal(calls,1);
  for(const value of [null,{}, {text:'safe',inputTokens:0,outputTokens:1000000}]){
-  const result=await executeMockOpenRouter(enabled,[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>value});assert.deepEqual(result,{ok:false,error:{category:'malformed-response',retryable:false,safeCode:'MALFORMED_RESPONSE'}});
+  const result=await executeMockOpenRouter(enabled,[model],request,createMockUsageAccounting(1),{mode:'OFFLINE_MOCK',execute:async()=>value});assert.deepEqual(result,{ok:false,error:{category:'malformed-response',retryable:false,safeCode:'MALFORMED_RESPONSE'}});
  }
 });
 test('mock budget reservations prevent concurrent aggregate overspend and retain unknown reservations',async()=>{
  const budget=.04,accounting=createMockUsageAccounting(budget);let calls=0;
- const run=()=>executeMockOpenRouter({...enabled,budgetUsd:budget,timeoutMs:10},[model],request,accounting,{mode:'OFFLINE_MOCK',execute:async()=>{calls++;return new Promise(()=>{});}});
+ let sequence=0;const run=()=>executeMockOpenRouter({...enabled,budgetUsd:budget,timeoutMs:10},[model],{...request,requestId:'budget-'+sequence++},accounting,{mode:'OFFLINE_MOCK',execute:async()=>{calls++;return new Promise(()=>{});}});
  const results=await Promise.all([run(),run()]);assert.equal(calls,1);assert.ok(results.some(r=>!r.ok&&r.error.safeCode==='BUDGET_EXCEEDED'));
  assert.deepEqual(await run(),{ok:false,error:{category:'invalid-request',retryable:false,safeCode:'BUDGET_EXCEEDED'}});
 });

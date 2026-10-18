@@ -22,7 +22,9 @@ export function createCharacterReadClient(config:CharacterClientConfig,transport
  // Snapshot server configuration; caller never controls the destination or token.
  const c={...config};
  return Object.freeze({async lockedIdentity(characterId:string,revisionId:string):Promise<CharacterResult>{
-  if(!c.enabled)return {ok:false,code:'DISABLED'};
+  // Upstream ownership/contracts are not production-certified. Direct callers
+  // cannot activate this compatibility adapter via configuration alone.
+  if(process.env.NODE_ENV==='production'||!c.enabled)return {ok:false,code:'DISABLED'};
   if(!stable(characterId)||!stable(revisionId))return {ok:false,code:'INVALID_ID'};
   let base:URL;
   try{base=new URL(c.baseUrl??'');const trusted=new URL(c.allowedOrigin??'');

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { exec } from "child_process";
+import { execFile } from "child_process";
+import { parseJson3Subtitles, subtitleSourceUrl } from "@/lib/server/subtitleSafety";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { mkdir, readdir, readFile, rm } from "fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "fs/promises";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
 
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
   const authentication = await requireAuthenticatedRequest(req);
   if (!authentication.ok) return authentication.response;
   const body = await req.json();
-  const url = body.url;
+  const url = subtitleSourceUrl(body?.url);
 
   if (!url) {
     return NextResponse.json(
@@ -26,34 +27,23 @@ export async function POST(req: Request) {
         ? path.resolve("./yt-dlp.exe")
         : "yt-dlp";
 
-    const subtitleDir = path.join(os.tmpdir(), `subtitle-${Date.now()}`);
+    const subtitleDir = await mkdtemp(path.join(os.tmpdir(), "subtitle-"));
     const outputBase = path.join(subtitleDir, "subtitle");
 
-    await mkdir(subtitleDir, { recursive: true });
-
-    const cookiesPath = path.join(os.tmpdir(), "cookies.txt");
+    const cookiesPath = path.join(subtitleDir, "cookies.txt");
 
     if (process.env.YOUTUBE_COOKIES) {
       fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES);
     }
 
-    const cookiesArg = fs.existsSync(cookiesPath)
-      ? `--cookies "${cookiesPath}"`
-      : "";
-
-const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-langs "ja,en" --skip-download --sub-format json3 -o "${outputBase}" "${url}"`;
-
-    console.log("subtitle exec:", cmd);
-
-    exec(cmd, async (error, stdout, stderr) => {
-      console.log("subtitle error:", error);
-      console.log("subtitle stderr:", stderr);
+    const args = [...(fs.existsSync(cookiesPath) ? ["--cookies", cookiesPath] : []), "--write-auto-subs", "--write-subs", "--sub-langs", "ja,en", "--skip-download", "--sub-format", "json3", "-o", outputBase, "--", url];
+    execFile(ytDlpPath, args, {timeout:120000,maxBuffer:1024*1024,windowsHide:true}, async (error) => {
 
       if (error) {
         await rm(subtitleDir, { recursive: true, force: true });
         resolve(
           NextResponse.json(
-            { success: false, error: stderr || "字幕取得に失敗しました" },
+            { success: false, error: "字幕取得に失敗しました" },
             { status: 500 }
           )
         );
@@ -86,18 +76,7 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
         const subtitlePath = path.join(subtitleDir, preferredFile);
         const subtitleData = JSON.parse(await readFile(subtitlePath, "utf-8"));
 
-        const subtitles =
-          subtitleData.events
-            ?.filter((event: any) => event.segs && event.segs.length > 0)
-            .map((event: any) => ({
-              second: Math.floor(event.tStartMs / 1000),
-              text: event.segs
-                .map((seg: any) => seg.utf8)
-                .join("")
-                .replace(/\n/g, " ")
-                .trim(),
-            }))
-            .filter((item: any) => item.text !== "") || [];
+        const subtitles = parseJson3Subtitles(subtitleData);
 
         const keywords: Record<string, number> = {
           衝撃: 5,
@@ -116,7 +95,7 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
         };
 
         const highlights = subtitles
-          .map((subtitle: any) => {
+          .map((subtitle) => {
             let score = 0;
 
             Object.entries(keywords).forEach(([word, value]) => {
@@ -127,11 +106,11 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
 
             return { ...subtitle, score };
           })
-          .filter((item: any) => item.score > 0)
-          .sort((a: any, b: any) => b.score - a.score)
+          .filter((item) => item.score > 0)
+          .sort((a, b) => b.score - a.score)
           .slice(0, CLIP_FINAL_SELECTION_POLICY_V1.candidatePoolLimit);
 
-        const fullText = subtitles.map((s: any) => s.text).join(" ");
+        const fullText = subtitles.map((s) => s.text).join(" ");
         const summary = fullText.slice(0, 500);
 
         await rm(subtitleDir, { recursive: true, force: true });
@@ -151,7 +130,7 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
 
         resolve(
           NextResponse.json(
-            { success: false, error: String(e) },
+            { success: false, error: "字幕データを処理できませんでした" },
             { status: 500 }
           )
         );

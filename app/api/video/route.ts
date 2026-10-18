@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stat } from "fs/promises";
 import { createReadStream } from "fs";
+import { webByteStream } from "@/lib/server/webByteStream";
 import path from "path";
 import os from "os";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
@@ -22,7 +23,7 @@ const filePath = path.join(os.tmpdir(), fileName);
     const range = req.headers.get("range");
 
     if (!range) {
-      return new Response(createReadStream(filePath) as any, {
+      return new Response(webByteStream(createReadStream(filePath)), {
         headers: {
           "Content-Type": "video/mp4",
           "Content-Length": String(fileSize),
@@ -42,7 +43,7 @@ const filePath = path.join(os.tmpdir(), fileName);
       end,
     });
 
-    return new Response(stream as any, {
+    return new Response(webByteStream(stream), {
       status: 206,
       headers: {
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,

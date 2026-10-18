@@ -2,10 +2,10 @@ import type {NormalizedProviderClientError} from './types';
 
 /** Offline foundation only. No fetch, endpoint or credentials are persisted. */
 export type OpenRouterModel=Readonly<{providerId:'openrouter';modelId:string;displayName:string;capabilities:readonly ('text'|'image'|'video'|'audio')[];availability:'available'|'unavailable';pricing:Readonly<{currency:'USD';inputPerToken:number;outputPerToken:number}>|null;refreshedAt:string;authority:'MOCK'}>;
-export type OpenRouterConfig=Readonly<{enabled:boolean;apiKeyPresent:boolean;budgetUsd:number|null;timeoutMs?:number}>;
-export type OpenRouterRequest=Readonly<{modelId:string;capability:'text'|'image'|'video'|'audio';inputTokens:number;maxOutputTokens:number}>;
+export type OpenRouterConfig=Readonly<{enabled:boolean;apiKeyPresent:boolean;budgetUsd:number|null;timeoutMs?:number;authorizedForMock?:boolean}>;
+export type OpenRouterRequest=Readonly<{requestId:string;modelId:string;capability:'text'|'image'|'video'|'audio';inputTokens:number;maxOutputTokens:number}>;
 export type UsageRecord=Readonly<{kind:'ESTIMATE'|'ACTUAL';usd:number;inputTokens:number;outputTokens:number;authority:'MOCK'}>;
-export type UsageAccounting={reserve(estimate:UsageRecord,budgetUsd:number):boolean;record(actual:UsageRecord):void};
+export type UsageAccounting={claim(requestId:string):boolean;reserve(estimate:UsageRecord,budgetUsd:number):boolean;record(actual:UsageRecord):void};
 export function readOpenRouterConfig(env:Readonly<Record<string,string|undefined>>):OpenRouterConfig{
  const raw=env.OPENROUTER_BUDGET_USD;const n=raw&&raw.trim()?Number(raw):NaN;
  return Object.freeze({enabled:env.OPENROUTER_ENABLED==='true',apiKeyPresent:!!env.OPENROUTER_API_KEY?.trim(),budgetUsd:Number.isFinite(n)&&n>0?n:null});
@@ -14,6 +14,8 @@ const finiteNonNegative=(n:number)=>Number.isFinite(n)&&n>=0;
 export function assessOpenRouterRequest(config:OpenRouterConfig,catalog:readonly OpenRouterModel[],request:OpenRouterRequest){
  if(!config.enabled)return {ok:false as const,code:'DISABLED'};
  if(!config.apiKeyPresent)return {ok:false as const,code:'MISSING_KEY'};
+ if(config.authorizedForMock!==true)return {ok:false as const,code:'MISSING_AUTHORIZATION'};
+ if(typeof request.requestId!=='string'||!/^[-a-zA-Z0-9_]{1,128}$/.test(request.requestId))return {ok:false as const,code:'INVALID_REQUEST'};
  if(config.budgetUsd===null||!Number.isFinite(config.budgetUsd)||config.budgetUsd<=0)return {ok:false as const,code:'MISSING_BUDGET'};
  const matches=catalog.filter(m=>m.modelId===request.modelId);if(matches.length!==1)return {ok:false as const,code:'UNKNOWN_MODEL'};
  const model=matches[0];if(model.availability!=='available'||!model.capabilities.includes(request.capability))return {ok:false as const,code:'UNSUPPORTED_CAPABILITY'};
@@ -23,10 +25,12 @@ export function assessOpenRouterRequest(config:OpenRouterConfig,catalog:readonly
  if(!Number.isFinite(usd)||usd>config.budgetUsd)return {ok:false as const,code:'BUDGET_EXCEEDED'};
  return {ok:true as const,estimate:Object.freeze({kind:'ESTIMATE' as const,usd,inputTokens:request.inputTokens,outputTokens:request.maxOutputTokens,authority:'MOCK' as const})};
 }
-export type MockOpenRouterTransport={readonly mode:'OFFLINE_MOCK';execute(request:OpenRouterRequest):Promise<unknown>};
-export async function executeMockOpenRouter(config:OpenRouterConfig,catalog:readonly OpenRouterModel[],request:OpenRouterRequest,accounting:UsageAccounting,transport:MockOpenRouterTransport):Promise<{ok:true;text:string;actual:UsageRecord}|{ok:false;error:NormalizedProviderClientError}>{
+export type MockOpenRouterTransport={readonly mode:'OFFLINE_MOCK';execute(request:OpenRouterRequest,signal:AbortSignal):Promise<unknown>};
+export async function executeMockOpenRouter(config:OpenRouterConfig,catalog:readonly OpenRouterModel[],request:OpenRouterRequest,accounting:UsageAccounting,transport:MockOpenRouterTransport,signal?:AbortSignal):Promise<{ok:true;text:string;actual:UsageRecord}|{ok:false;error:NormalizedProviderClientError}>{
  const fail=(category:NormalizedProviderClientError['category'],safeCode:string)=>({ok:false as const,error:{category,retryable:false,safeCode}});
  const gate=assessOpenRouterRequest(config,catalog,request);if(!gate.ok)return fail('invalid-request',gate.code);
+ if(process.env.NODE_ENV==='production')return fail('unsupported','LIVE_INFERENCE_FORBIDDEN');
+ if(signal?.aborted)return fail('invalid-request','MOCK_CANCELLED');
  if(transport.mode!=='OFFLINE_MOCK')return fail('unsupported','LIVE_INFERENCE_FORBIDDEN');
  const selected=catalog.find(m=>m.modelId===request.modelId);
  if(!selected?.pricing)return fail('invalid-request','UNKNOWN_PRICE');
@@ -36,21 +40,25 @@ export async function executeMockOpenRouter(config:OpenRouterConfig,catalog:read
  if(budget===null)return fail('invalid-request','MISSING_BUDGET');
  const timeout=config.timeoutMs??5000;
  if(!Number.isInteger(timeout)||timeout<1||timeout>30000)return fail('invalid-request','INVALID_TIMEOUT');
- let timer:ReturnType<typeof setTimeout>|undefined;
+ let timer:ReturnType<typeof setTimeout>|undefined;const controller=new AbortController();
+ let cancel:(()=>void)|undefined;
  try{
+  if(!accounting.claim(boundedRequest.requestId))return fail('invalid-request','DUPLICATE_REQUEST');
   if(!accounting.reserve(gate.estimate,budget))return fail('invalid-request','BUDGET_EXCEEDED');
   const outcome=await Promise.race([
-   transport.execute(boundedRequest).then(value=>({kind:'result' as const,value})),
-   new Promise<{kind:'timeout'}>(resolve=>{timer=setTimeout(()=>resolve({kind:'timeout'}),timeout);}),
+   transport.execute(boundedRequest,controller.signal).then(value=>({kind:'result' as const,value})),
+   new Promise<{kind:'timeout'}>(resolve=>{timer=setTimeout(()=>{controller.abort();resolve({kind:'timeout'});},timeout);}),
+   new Promise<{kind:'cancelled'}>(resolve=>{cancel=()=>{controller.abort();resolve({kind:'cancelled'});};signal?.addEventListener('abort',cancel,{once:true});if(signal?.aborted)cancel();}),
   ]);
   if(outcome.kind==='timeout')return fail('timeout','MOCK_TIMEOUT');
+  if(outcome.kind==='cancelled')return fail('invalid-request','MOCK_CANCELLED');
   if(!outcome.value||typeof outcome.value!=='object'||Array.isArray(outcome.value))return fail('malformed-response','MALFORMED_RESPONSE');
   const result=outcome.value as Record<string,unknown>;
   if(typeof result.text!=='string'||result.text.length>65536||typeof result.inputTokens!=='number'||!Number.isSafeInteger(result.inputTokens)||result.inputTokens<0||result.inputTokens>boundedRequest.inputTokens||typeof result.outputTokens!=='number'||!Number.isSafeInteger(result.outputTokens)||result.outputTokens<0||result.outputTokens>boundedRequest.maxOutputTokens)return fail('malformed-response','MALFORMED_RESPONSE');
   const actual:UsageRecord=Object.freeze({kind:'ACTUAL',usd:result.inputTokens*price.inputPerToken+result.outputTokens*price.outputPerToken,inputTokens:result.inputTokens,outputTokens:result.outputTokens,authority:'MOCK'});
   accounting.record(actual);return {ok:true,text:result.text,actual};
  }catch{return fail('unknown','MOCK_EXECUTION_FAILED');}
- finally{if(timer)clearTimeout(timer);}
+ finally{if(timer)clearTimeout(timer);if(cancel)signal?.removeEventListener('abort',cancel);}
 }
 
 /** Conservative process-local MOCK budget, not a production financial ledger.
@@ -58,8 +66,8 @@ export async function executeMockOpenRouter(config:OpenRouterConfig,catalog:read
  */
 export function createMockUsageAccounting(approvedBudgetUsd:number):UsageAccounting{
  if(!Number.isFinite(approvedBudgetUsd)||approvedBudgetUsd<=0)throw Error('INVALID_MOCK_BUDGET');
- let reserved=0,actual=0;
- return Object.freeze({reserve(estimate:UsageRecord,budgetUsd:number){
+ let reserved=0,actual=0;const claimed=new Set<string>();
+ return Object.freeze({claim(requestId:string){if(!/^[-a-zA-Z0-9_]{1,128}$/.test(requestId)||claimed.has(requestId))return false;claimed.add(requestId);return true;},reserve(estimate:UsageRecord,budgetUsd:number){
   if(budgetUsd!==approvedBudgetUsd||estimate.kind!=='ESTIMATE'||estimate.authority!=='MOCK'||!finiteNonNegative(estimate.usd)||!Number.isFinite(reserved+estimate.usd)||reserved+estimate.usd>approvedBudgetUsd)return false;
   reserved+=estimate.usd;return true;
  },record(value:UsageRecord){
