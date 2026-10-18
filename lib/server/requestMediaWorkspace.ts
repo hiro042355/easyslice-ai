@@ -3,6 +3,9 @@ import {chmod,lstat,mkdtemp,realpath,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
+// Exclude playlist/concat/image-sequence demuxers that can open caller-described files.
+export const LOCAL_MEDIA_INPUT_OPTIONS=Object.freeze(['-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,mpeg,ogg,flv']);
+
 export class MediaRequestFailure extends Error {
  constructor(readonly code:'cancelled'|'invalid-path'|'process-failed'|'process-timeout'|'resource-not-found'|'invalid-request'|'provider-failed') {super(code);}
 }
@@ -49,6 +52,28 @@ export async function runMediaProcess(executable:string,args:readonly string[],s
    else if(timedOut)reject(new MediaRequestFailure('process-timeout'));
    else if(spawnFailed||code!==0)reject(new MediaRequestFailure('process-failed'));
    else resolve();
+  });
+ });
+}
+
+/** Bounded internal diagnostics. Probe commands may exit nonzero; callers must validate evidence. */
+export async function captureMediaProcess(executable:string,args:readonly string[],signal?:AbortSignal,timeoutMs=30000):Promise<Readonly<{code:number|null;stderr:string}>>{
+ checkMediaCancellation(signal);
+ if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>300000)throw new MediaRequestFailure('invalid-request');
+ return new Promise((resolve,reject)=>{
+  const child=spawn(executable,[...args],{shell:false,windowsHide:true,stdio:['ignore','ignore','pipe']});
+  const chunks:Buffer[]=[];let size=0,cancelled=false,timedOut=false,spawnFailed=false;
+  child.stderr.on('data',(chunk:Buffer)=>{const bounded=chunk.subarray(0,Math.max(0,65536-size));if(bounded.length){chunks.push(Buffer.from(bounded));size+=bounded.length;}});
+  const stop=()=>{cancelled=true;child.kill('SIGKILL');};
+  const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},timeoutMs);
+  signal?.addEventListener('abort',stop,{once:true});if(signal?.aborted)stop();
+  child.once('error',()=>{spawnFailed=true;});
+  child.once('close',code=>{
+   clearTimeout(timer);signal?.removeEventListener('abort',stop);
+   if(cancelled)reject(new MediaRequestFailure('cancelled'));
+   else if(timedOut)reject(new MediaRequestFailure('process-timeout'));
+   else if(spawnFailed)reject(new MediaRequestFailure('process-failed'));
+   else resolve(Object.freeze({code,stderr:Buffer.concat(chunks).toString('utf8')}));
   });
  });
 }

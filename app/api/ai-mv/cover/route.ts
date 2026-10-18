@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import {requireAuthenticatedRequest} from '@/lib/server/productionIdentity/routeGuard';
+import {createGeneratedAssetBoundary,fetchGeneratedAsset} from '@/lib/server/generatedAssetBoundaryCore';
+export const POST=createGeneratedAssetBoundary(requireAuthenticatedRequest,handleGeneration);
 
 type CoverRequest = {
   prompt?: string;
 };
 
-export async function POST(request: Request) {
+async function handleGeneration(request: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -44,7 +47,7 @@ Prompt:
 ${prompt}
 `;
 
-    const res = await fetch(
+    const res = await fetchGeneratedAsset(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent",
       {
         method: "POST",
@@ -63,7 +66,7 @@ ${prompt}
           },
         }),
       }
-    );
+    ,request.signal);
 
     if (!res.ok) {
       const message = await res.text();
@@ -86,7 +89,7 @@ ${prompt}
 
     const inlineData = imagePart?.inlineData;
 
-    if (!inlineData?.data) {
+    if (!inlineData?.data || !['image/png','image/jpeg','image/webp'].includes(inlineData.mimeType??'image/png') || !/^[A-Za-z0-9+/]+={0,2}$/.test(inlineData.data) || inlineData.data.length>11*1024*1024) {
       return NextResponse.json(
         { success: false, error: "画像データを取得できませんでした" },
         { status: 500 }
@@ -99,8 +102,7 @@ ${prompt}
         inlineData.data
       }`,
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
 
     return NextResponse.json(
       { success: false, error: "ジャケット画像生成に失敗しました" },

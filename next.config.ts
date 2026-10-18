@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
+    "/api/convert": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/audio-energy": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/cut": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/multi-cut": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],

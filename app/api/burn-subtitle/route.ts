@@ -89,7 +89,7 @@ export async function POST(request: Request) {
         );
         await workspace.assertRegular(subtitleName);
         await runMediaProcess(resolvePackagedFfmpeg(), [
-          "-nostdin", "-n", "-ss", String(boundary.start), "-t", String(boundary.duration), "-protocol_whitelist", "file,pipe", "-i", inputPath,
+          "-nostdin", "-n", "-ss", String(boundary.start), "-t", String(boundary.duration), "-protocol_whitelist", "file,pipe", "-format_whitelist", "mov", "-i", inputPath,
           "-vf", createSubtitleFilter(subtitlePath, renderConfig.enabled),
           "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
           "-c:a", "aac", "-b:a", "128k", outputPath,

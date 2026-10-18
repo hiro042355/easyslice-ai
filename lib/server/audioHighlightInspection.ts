@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import {LOCAL_MEDIA_INPUT_OPTIONS} from './requestMediaWorkspace';
 import { constants, existsSync } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import path from "node:path";
@@ -141,7 +142,7 @@ export const inspectAudioMedia = async (
   let stderr: string;
   try {
     const result = await execFileAsync(executable, [
-      "-hide_banner", "-protocol_whitelist", "file,pipe", "-i", inputPath, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
+      "-nostdin", "-hide_banner", ...LOCAL_MEDIA_INPUT_OPTIONS, "-i", inputPath, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
     ], {timeout: 120_000, maxBuffer: 1024 * 1024, windowsHide: true});
     stderr = result.stderr;
   } catch (error) {

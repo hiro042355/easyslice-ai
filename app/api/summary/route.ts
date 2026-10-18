@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
+import {createGeneratedAssetBoundary} from '@/lib/server/generatedAssetBoundaryCore';
+export const POST=createGeneratedAssetBoundary(requireAuthenticatedRequest,handleSummary);
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
-export async function POST(req: Request) {
-  const authentication = await requireAuthenticatedRequest(req);
-  if (!authentication.ok) return authentication.response;
+async function handleSummary(req: Request) {
   const body = await req.json();
   const text = body.text || "";
   const subtitles = body.subtitles || [];

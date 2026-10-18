@@ -10,7 +10,7 @@ export const extractTranscriptAudio = async (
   signal?: AbortSignal,
 ): Promise<void> => {
   await runMediaProcess(executable, [
-    "-nostdin", "-hide_banner", "-n", "-protocol_whitelist", "file,pipe", "-i", inputPath, "-map", "0:a:0", "-vn",
+    "-nostdin", "-hide_banner", "-n", "-protocol_whitelist", "file,pipe", "-format_whitelist", "mov", "-i", inputPath, "-map", "0:a:0", "-vn",
     "-ac", "1", "-ar", "16000", "-c:a", "flac", audioPath,
   ], signal);
 };

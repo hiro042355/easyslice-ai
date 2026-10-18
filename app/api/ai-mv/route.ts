@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import {requireAuthenticatedRequest} from '@/lib/server/productionIdentity/routeGuard';
+import {createGeneratedAssetBoundary,fetchGeneratedAsset} from '@/lib/server/generatedAssetBoundaryCore';
+export const POST=createGeneratedAssetBoundary(requireAuthenticatedRequest,handleGeneration);
 
 type AiMvRequest = {
   story?: string;
@@ -56,7 +59,7 @@ hashtags: string[];
 score: AiMvScore;
 };
 
-export async function POST(request: Request) {
+async function handleGeneration(request: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -106,7 +109,7 @@ const prompt = buildAiMvPrompt({
   revisionMode,
 });
 
-    const res = await fetch(
+    const res = await fetchGeneratedAsset(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
         method: "POST",
@@ -122,7 +125,7 @@ const prompt = buildAiMvPrompt({
           ],
         }),
       }
-    );
+    ,request.signal);
 
     if (!res.ok) {
       const message = await res.text();
@@ -176,8 +179,7 @@ const prompt = buildAiMvPrompt({
     const result = validateAiMvResult(parsed);
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error(error);
+  } catch {
 
     return NextResponse.json(
       { error: "AI MV生成に失敗しました。" },

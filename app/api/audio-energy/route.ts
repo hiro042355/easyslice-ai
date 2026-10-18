@@ -1,6 +1,6 @@
-import { execFile } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
+import {LOCAL_MEDIA_INPUT_OPTIONS,captureMediaProcess,checkMediaCancellation,withRequestMediaWorkspace} from '@/lib/server/requestMediaWorkspace';
+import {downloadRequestMedia} from '@/lib/server/requestMediaIo';
+import {readBoundedJsonBody} from '@/lib/server/boundedJsonBody';
 import { NextResponse } from "next/server";
 import { decideCanonicalClipBoundary } from "@/lib/clipBoundary";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
@@ -9,9 +9,7 @@ import {
   inspectAudioMedia,
 } from "@/lib/server/audioHighlightInspection";
 import {
-  cleanupJobTempRoot,
   createDurableMediaOwnershipRepository,
-  createJobTempDirectories,
   isUuid,
 } from "@/lib/server/durableMediaOwnership";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
@@ -20,7 +18,6 @@ import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
 
 export const runtime = "nodejs";
 
-const execFileAsync = promisify(execFile);
 const ffmpegExecutable = (): string => {
   return resolvePackagedFfmpeg();
 };
@@ -32,7 +29,7 @@ type EnergyItem = {
 
 type DurableAnalyzeRequest = Readonly<{ jobId: string; mediaId: string }>;
 
-const analyzeVideo = async (inputPath: string) => {
+const analyzeVideo = async (inputPath: string,signal:AbortSignal) => {
   const inspection = await inspectAudioMedia(ffmpegExecutable(), inputPath);
   const duration = inspection.durationSeconds;
   console.info("audio-analysis-inspection", {
@@ -45,10 +42,12 @@ const analyzeVideo = async (inputPath: string) => {
   const windowSeconds = 10;
   const energies: EnergyItem[] = [];
   for (let second = 0; second < duration; second += windowSeconds) {
-    const result = await execFileAsync(ffmpegExecutable(), [
+    checkMediaCancellation(signal);
+    const result = await captureMediaProcess(ffmpegExecutable(), [
+      '-nostdin',...LOCAL_MEDIA_INPUT_OPTIONS,
       "-hide_banner", "-ss", String(second), "-t", String(windowSeconds),
       "-i", inputPath, "-af", "volumedetect", "-f", "null", "-",
-    ]).catch((error: { stderr?: string }) => error);
+    ],signal);
     const stderr = result.stderr || "";
     const match = stderr.match(/mean_volume:\s*(-?\d+(\.\d+)?) dB/);
     if (match) energies.push({ second, meanVolume: Number(match[1]) });
@@ -92,7 +91,7 @@ const analyzeVideo = async (inputPath: string) => {
 
 const readDurableRequest = async (request: Request): Promise<DurableAnalyzeRequest | undefined> => {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return undefined;
-  const body: unknown = await request.json();
+  const body: unknown = await readBoundedJsonBody(request,8192);
   if (!body || typeof body !== "object") return undefined;
   const jobId = "jobId" in body ? String(body.jobId) : "";
   const mediaId = "mediaId" in body ? String(body.mediaId) : "";
@@ -104,6 +103,8 @@ export async function POST(request: Request) {
   if (!authentication.ok) return authentication.response;
 
   try {
+    if(request.headers.get('origin')!==new URL(request.url).origin)return NextResponse.json({success:false,error:'invalid-origin'},{status:403});
+    const signal=AbortSignal.any([request.signal,AbortSignal.timeout(300000)]);
     const durableRequest = await readDurableRequest(request);
     if (!durableRequest) {
       return NextResponse.json({ success: false, error: "durable-media-required" }, { status: 400 });
@@ -123,14 +124,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: "resource-not-found" }, { status: 404 });
       }
 
-      const paths = await createJobTempDirectories(jobId);
-      const inputPath = path.join(paths.input, "source.mp4");
-      try {
-        await bucket.file(media.storageKey).download({ destination: inputPath });
-        return await analyzeVideo(inputPath);
-      } finally {
-        await cleanupJobTempRoot(jobId);
-      }
+      return withRequestMediaWorkspace(async workspace=>{
+        const inputPath=workspace.file('source.mp4');
+        await downloadRequestMedia(bucket.file(media.storageKey).createReadStream(),inputPath,signal);
+        await workspace.assertRegular('source.mp4');
+        return await analyzeVideo(inputPath,signal);
+      },signal);
     });
   } catch (error) {
     if (error instanceof AudioInspectionFailure) {
@@ -141,7 +140,7 @@ export async function POST(request: Request) {
       const status = error.reason === "audio-stream-not-found" ? 422 : 500;
       return NextResponse.json({ success: false, error: error.reason }, { status });
     }
-    console.error(error);
+    console.error('audio-analysis-failed');
     return NextResponse.json(
       { success: false, error: "音声ハイライト生成に失敗しました" },
       { status: 500 },

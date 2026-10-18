@@ -34,19 +34,20 @@ test("multi-cut enforces ownership before GCS, temp, or FFmpeg", () => {
   const job = route.indexOf("resolveOwnedJob(body.jobId, ownerUid)");
   const media = route.indexOf("resolveOwnedMedia(body.mediaId, ownerUid)");
   const relation = route.indexOf("media.jobId !== body.jobId");
-  const temp = route.indexOf("createJobTempDirectories(body.jobId)");
-  const gcs = route.indexOf("file(media.storageKey).download");
-  const ffmpeg = route.indexOf("inspectDuration(executable, inputPath)");
+  const temp = route.indexOf("withRequestMediaWorkspace(async workspace");
+  const gcs = route.indexOf("file(media.storageKey).createReadStream");
+  const ffmpeg = route.indexOf("inspectDuration(executable, inputPath,signal)");
   assert.ok(job > 0 && media > job && relation > media && temp > relation && gcs > temp && ffmpeg > gcs);
   assert.match(route, /resource-not-found[\s\S]*status:\s*404/);
 });
 
 test("multi-cut uses isolated paths and canonical packaged FFmpeg without a shell", () => {
   assert.doesNotMatch(route, /downloaded\.mp4|os\.tmpdir|from "node:os"|\bexec\s*\(|execAsync/);
-  assert.match(route, /path\.join\(paths\.input, "source\.mp4"\)/);
-  assert.match(route, /path\.join\(paths\.output, `clip-\$\{String\(index\)\.padStart\(4, "0"\)\}\.mp4`\)/);
+  assert.match(route, /workspace\.file\("source\.mp4"\)/);
+  assert.match(route, /workspace\.file\(outputName\)/);
   assert.match(route, /resolvePackagedFfmpeg\(\)/);
-  assert.match(route, /spawn\(executable, \[\.\.\.args\], \{ shell: false/);
+  assert.match(route, /runMediaProcess\(executable,/);
+  assert.match(readFileSync('lib/server/requestMediaWorkspace.ts','utf8'),/shell:false/);
   assert.doesNotMatch(route, /spawn\(["']ffmpeg["']|shell:\s*true/);
   assert.match(nextConfig, /"\/api\/multi-cut": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
 });
@@ -71,8 +72,9 @@ test("ZIP entry naming remains deterministic and cannot become a server path", (
   assert.equal(createMultiCutZipEntryName(1, "shorts-9x16", clips[0]!), "clip1_shorts-9x16_a_b_clip_1-3.mp4");
 });
 
-test("multi-cut cleanup is Job-scoped and ZIP remains download-only", () => {
-  assert.match(route, /finally \{[\s\S]*cleanupJobTempRoot\(body\.jobId\)/);
+test("multi-cut cleanup is request-scoped and ZIP remains download-only", () => {
+  assert.match(route, /withRequestMediaWorkspace\(async workspace/);
+  assert.doesNotMatch(route,/cleanupJobTempRoot|createJobTempDirectories/);
   assert.doesNotMatch(route, /\.save\(|\.delete\(|createExport|INSERT INTO|UPDATE workflow|DELETE FROM/);
   assert.match(route, /"Content-Type": "application\/zip"/);
   assert.match(route, /filename=clips\.zip/);

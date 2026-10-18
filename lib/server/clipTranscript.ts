@@ -17,7 +17,7 @@ export const transcribeProductionOwnedClip=(input:OwnedClipTranscriptInput)=>wit
    return media?.jobId===i.jobId?media:undefined;
   },
   async download(key,destination,signal){await pipeline(bucket.file(key).createReadStream(),createWriteStream(destination,{flags:'wx',mode:0o600}),{signal});},
-  extract:(source,audio,start,duration,signal)=>runMediaProcess(resolvePackagedFfmpeg(),['-nostdin','-hide_banner','-n','-ss',String(start),'-t',String(duration),'-protocol_whitelist','file,pipe','-i',source,'-vn','-ac','1','-ar','16000',audio],signal),
+  extract:(source,audio,start,duration,signal)=>runMediaProcess(resolvePackagedFfmpeg(),['-nostdin','-hide_banner','-n','-ss',String(start),'-t',String(duration),'-protocol_whitelist','file,pipe','-format_whitelist','mov','-i',source,'-vn','-ac','1','-ar','16000',audio],signal),
   transcribe:createJapaneseClipProvider(()=>process.env.GEMINI_API_KEY),
  });
 });
