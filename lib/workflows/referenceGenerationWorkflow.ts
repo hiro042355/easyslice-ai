@@ -3,19 +3,7 @@ import type {
   OperationPipelineResult,
   OperationPipelineRetryRecommendation,
 } from "../operationPipelines/types";
-import type {
-  WorkflowAudit,
-  WorkflowAuditEntry,
-  WorkflowCancellationMarker,
-  WorkflowContext,
-  WorkflowDefinition,
-  WorkflowInput,
-  WorkflowPipelineReference,
-  WorkflowReconciliationRecommendation,
-  WorkflowResult,
-  WorkflowRetryRecommendation,
-  WorkflowStageDefinition,
-} from "./types";
+import type { WorkflowAudit, WorkflowAuditEntry, WorkflowContext, WorkflowDefinition, WorkflowInput, WorkflowPipelineReference, WorkflowReconciliationRecommendation, WorkflowResult, WorkflowRetryRecommendation, WorkflowStageDefinition } from "./types";
 
 export type ReferenceWorkflowValue =
   | null

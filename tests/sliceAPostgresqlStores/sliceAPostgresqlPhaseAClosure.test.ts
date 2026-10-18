@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { withPostgreSqlTestEnvironment } from "@/lib/postgresqlTestEnvironment";
 import { createDurableWorkflowTransactionManagerV2, durableTransactionSuccess } from "@/lib/server/productionWorkflowRuntime/durableTransaction";
-import type { DurableWorkflowDatabaseCapability, DurableWorkflowTransactionContext } from "@/lib/server/productionWorkflowRuntime/durableTransaction";
+
 import { createPostgreSQLFinalResultStore, createPostgreSQLOutboxStore, createPostgreSQLResultReferenceVault, createPostgreSQLSliceAAtomicCommit, registerPostgreSQLSliceAStatementCatalog } from "@/lib/server/productionWorkflowRuntime/postgresqlStores";
 import type { PostgreSQLInternalUuidGenerator, PostgreSQLProtectedDigest, PostgreSQLSliceAAtomicGroup } from "@/lib/server/productionWorkflowRuntime/postgresqlStores";
 import { SliceATestStatementBridge } from "../helpers/sliceAPostgresqlStatementBridge";

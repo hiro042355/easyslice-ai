@@ -28,40 +28,7 @@ const BUILT_IN_MOTIFS = Object.freeze([
 ] as const);
 const CHARACTER_REF_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
 
-import type {
-  AssetReference,
-  AspectRatio,
-  BuiltInVisualMotif,
-  CharacterAssetReference,
-  CharacterContinuity,
-  CharacterStateChange,
-  ContinuityPlan,
-  EnvironmentType,
-  LyricsInput,
-  MVDecisionProjection,
-  MVScene,
-  MVScenePlan,
-  MVScenePlannerAssets,
-  MVScenePlannerConstraints,
-  MVScenePlannerInput,
-  MVScenePlannerIssueCode,
-  MVScenePlannerReasonCode,
-  MVScenePlanRationale,
-  MVScenePlanResult,
-  MVScenePlanValidationStatus,
-  NarrativeArc,
-  PerformanceMode,
-  SceneAction,
-  SceneActionType,
-  SceneAssetReference,
-  SceneNarrativePurpose,
-  SceneSetting,
-  SceneSubject,
-  StoryInput,
-  TemporalMode,
-  TemporalTransition,
-  VisualMotif,
-} from "@/lib/mvContracts";
+import type { AssetReference, AspectRatio, BuiltInVisualMotif, CharacterStateChange, ContinuityPlan, LyricsInput, MVDecisionProjection, MVScene, MVScenePlannerAssets, MVScenePlannerConstraints, MVScenePlannerInput, MVScenePlannerIssueCode, MVScenePlannerReasonCode, MVScenePlanRationale, MVScenePlanResult, MVScenePlanValidationStatus, NarrativeArc, PerformanceMode, SceneAction, SceneActionType, SceneAssetReference, SceneNarrativePurpose, SceneSetting, SceneSubject, StoryInput, TemporalTransition, VisualMotif } from "@/lib/mvContracts";
 
 type PreparedInput = {
   input: MVScenePlannerInput;

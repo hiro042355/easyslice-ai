@@ -9,13 +9,7 @@ import type {
 import type { DirectorPreset } from "@/lib/emotionEngine";
 import type { MusicLyricsMode } from "@/lib/providerRequests/types";
 export type { MusicLyricsMode } from "@/lib/providerRequests/types";
-import type {
-  AssetKind,
-  AssetReference,
-  AspectRatio,
-  CharacterAssetReference,
-  LocationAssetReference,
-} from "@/lib/mvContracts";
+import type { AssetReference, AspectRatio, CharacterAssetReference, LocationAssetReference } from "@/lib/mvContracts";
 export type { AssetKind, AssetReference } from "@/lib/mvContracts";
 
 export type AdapterValidationStatus =
