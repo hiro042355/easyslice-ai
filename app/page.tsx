@@ -1130,6 +1130,7 @@ if (validClips.length === 0) {
 }
   try {
 const targetClip = validClips[0];
+if (!durableMedia) throw new Error("先に動画を登録してください");
 
 const res = await fetch("/api/transcript", {
   method: "POST",
@@ -1137,6 +1138,8 @@ const res = await fetch("/api/transcript", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
+    jobId: durableMedia.jobId,
+    mediaId: durableMedia.mediaId,
     start: targetClip.start,
     end: targetClip.end,
   }),

@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     "/api/multi-cut": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/burn-subtitle": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/transcript/durable": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
+    "/api/transcript": ["./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*"],
     "/api/v1/assets/import": [
       "./node_modules/.nexcut-runtime/yt-dlp/yt-dlp",
       "./node_modules/.nexcut-runtime/ffmpeg/ffmpeg*",

@@ -141,8 +141,8 @@ export const inspectAudioMedia = async (
   let stderr: string;
   try {
     const result = await execFileAsync(executable, [
-      "-hide_banner", "-i", inputPath, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
-    ]);
+      "-hide_banner", "-protocol_whitelist", "file,pipe", "-i", inputPath, "-map", "0:a:0", "-t", "0.001", "-f", "null", "-",
+    ], {timeout: 120_000, maxBuffer: 1024 * 1024, windowsHide: true});
     stderr = result.stderr;
   } catch (error) {
     const failure = error as ExecFailure;

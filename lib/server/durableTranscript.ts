@@ -1,27 +1,32 @@
-import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
-import { promisify } from "node:util";
+import { readFile, stat } from "node:fs/promises";
 import type { TranscriptProvider } from "./transcriptProvider";
-
-const execFileAsync = promisify(execFile);
+import {checkMediaCancellation,runMediaProcess} from './requestMediaWorkspace';
+import {TranscriptFailure} from './transcriptProvider';
 
 export const extractTranscriptAudio = async (
   executable: string,
   inputPath: string,
   audioPath: string,
+  signal?: AbortSignal,
 ): Promise<void> => {
-  await execFileAsync(executable, [
-    "-hide_banner", "-y", "-i", inputPath, "-map", "0:a:0", "-vn",
+  await runMediaProcess(executable, [
+    "-nostdin", "-hide_banner", "-n", "-protocol_whitelist", "file,pipe", "-i", inputPath, "-map", "0:a:0", "-vn",
     "-ac", "1", "-ar", "16000", "-c:a", "flac", audioPath,
-  ]);
+  ], signal);
 };
 
 export const transcribeExtractedAudio = async (
   provider: TranscriptProvider,
   audioPath: string,
   durationSeconds: number,
-) => provider.transcribe({
+  signal?: AbortSignal,
+) => {
+checkMediaCancellation(signal);
+if((await stat(audioPath)).size>32*1024*1024)throw new TranscriptFailure('provider-failed');
+return provider.transcribe({
   audio: await readFile(audioPath),
   mimeType: "audio/flac",
   durationSeconds,
+  signal,
 });
+};
