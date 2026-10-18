@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import EmotionGraphPreview from "@/components/EmotionGraphPreview";
 import DirectorDecisionPreview from "@/components/DirectorDecisionPreview";
+import { AiMvSignalFoundation } from "@/components/AiMvSignalFoundation";
 import { createDirectorDecision } from "@/lib/directorDecisionEngine";
 import {
   createEmotionGraph,
@@ -205,6 +207,7 @@ const handleDownloadCover = () => {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
+      <div className="mx-auto max-w-7xl px-6 pt-6"><AiMvSignalFoundation /></div>
       <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[420px_1fr]">
         <section className="rounded-lg border border-white/10 bg-white/[0.04] p-6">
           <div className="mb-6">
@@ -213,12 +216,12 @@ const handleDownloadCover = () => {
       AI MV生成 β
     </div>
 
-    <a
+    <Link
       href="/"
       className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-cyan-400/50 hover:text-cyan-200"
     >
       トップへ戻る
-    </a>
+    </Link>
   </div>
 
   <h1 className="text-2xl font-bold">あなたの出来事を作品にする</h1>

@@ -60,6 +60,10 @@ export function CameraPreview({
   );
 
   const handleTimeUpdate = () => {
+    if (videoRef.current && clipEnd !== undefined && videoRef.current.currentTime >= clipEnd) {
+      videoRef.current.pause();
+      if (videoRef.current.currentTime > clipEnd) videoRef.current.currentTime = clipEnd;
+    }
     if (videoRef.current && !isPlaying) {
       const relTime = Math.max(0, videoRef.current.currentTime - clipStart);
       setCurrentTime(relTime);
@@ -76,13 +80,20 @@ export function CameraPreview({
             ref={videoRef}
             src={src}
             controls
+            onLoadedMetadata={() => { if (videoRef.current) videoRef.current.currentTime = clipStart; }}
+            onSeeking={() => {
+              const video = videoRef.current;
+              if (!video) return;
+              if (video.currentTime < clipStart) video.currentTime = clipStart;
+              if (clipEnd !== undefined && video.currentTime > clipEnd) video.currentTime = clipEnd;
+            }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
             onTimeUpdate={handleTimeUpdate}
-            className="w-full h-full object-contain transition-transform duration-75 ease-out origin-center"
+            className="w-full h-full object-fill origin-center"
             style={{
-              transform: `scale(${transformState.zoom}) translate(${transformState.x * 100}%, ${transformState.y * 100}%)`,
+              transform: `scale(${transformState.zoom}) translate(${-transformState.x * 100}%, ${-transformState.y * 100}%)`,
             }}
           />
         ) : (

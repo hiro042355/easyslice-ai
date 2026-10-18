@@ -9,7 +9,7 @@ import { cleanupJobTempRoot, createDurableMediaOwnershipRepository, createExport
 import { resolvePackagedFfmpeg } from "@/lib/server/packagedFfmpeg";
 import { withProductionMediaRuntime } from "@/lib/server/productionMediaRuntime/composition";
 import { buildCameraFfmpegFilter } from "@/lib/server/ffmpegCameraFilter";
-import { parseCameraMovements } from "@/lib/camera/cameraEngine";
+import { validateCameraMovementArray } from "@/lib/camera/cameraEngine";
 
 export const runtime = "nodejs";
 
@@ -52,11 +52,16 @@ export async function POST(request: Request) {
       let cameraFilter: string | null = null;
       if (typeof rawCameraMovements === "string" && rawCameraMovements.trim() !== "") {
         try {
+          if (rawCameraMovements.length > 65536) return NextResponse.json({ error: "invalid-camera" }, { status: 400 });
           const parsedMovements = JSON.parse(rawCameraMovements);
+          if (!Array.isArray(parsedMovements) || parsedMovements.length > 128 || !validateCameraMovementArray(parsedMovements, end - start).valid) return NextResponse.json({ error: "invalid-camera" }, { status: 400 });
           cameraFilter = buildCameraFfmpegFilter(parsedMovements, end - start);
+          if (parsedMovements.length && !cameraFilter) return NextResponse.json({ error: "invalid-camera" }, { status: 400 });
         } catch {
-          // Invalid json ignored safely
+          return NextResponse.json({ error: "invalid-camera" }, { status: 400 });
         }
+      } else if (rawCameraMovements !== null && typeof rawCameraMovements !== "string") {
+        return NextResponse.json({ error: "invalid-camera" }, { status: 400 });
       }
 
       const paths = await createJobTempDirectories(jobId);
