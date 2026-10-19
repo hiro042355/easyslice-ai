@@ -98,7 +98,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const safeId = (value: unknown) =>
   typeof value === "string" && value.length > 0 && value.length <= 256 &&
   !value.includes("://");
-const round6 = (value: number) => Math.round((value + Number.EPSILON) * 1e6) / 1e6;
 
 function cloneCapability(capability: MVProviderCapability): MVProviderCapability {
   return Object.freeze({

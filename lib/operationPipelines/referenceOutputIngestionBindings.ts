@@ -47,7 +47,7 @@ const createReferenceIngestionDependencies = (scenario: Config["ingestionScenari
   cleanup: new ReferencePersistenceCleanupV2(),
 });
 
-export function createBoundOperationPipeline(binding: OperationResumePipelineBinding<any, any, any, any>, config: Config = {}): OperationResumePipeline {
+export function createBoundOperationPipeline<TRequest extends import("./referenceOperationResumeTypes").OperationAdapterRequest,TMaterializedBody,TClientBody extends {transportSummary:import("./referenceOperationResumeTypes").ReferenceTransportSummary},TResponse>(binding: OperationResumePipelineBinding<TRequest,TMaterializedBody,TClientBody,TResponse>, config: Config = {}): OperationResumePipeline {
   const client = createReferenceProviderClient({
     scenario: config.scenario ?? "sync-completed",
     referenceNowEpochSeconds: 1893456000,
@@ -58,8 +58,8 @@ export function createBoundOperationPipeline(binding: OperationResumePipelineBin
   const ingestion = config.ingestionExecutorFactory?.(ingestionDependencies) ?? new ReferenceOutputIngestionExecutor(ingestionDependencies);
 
   return { async execute(raw: OperationResumePipelineInput): Promise<OperationResumePipelineResult> {
-    const x: any = raw, op = binding.operation;
-    const fail = (reason: any, status: "failed" | "acceptance-unknown" = "failed"): OperationResumePipelineResult => ({
+    const x = raw, op = binding.operation;
+    const fail = (reason: import("./referenceOperationResumeTypes").OperationPipelineReasonCode, status: "failed" | "acceptance-unknown" = "failed"): OperationResumePipelineResult => ({
       status,
       issues: [issue(reason, status === "acceptance-unknown" ? "conflict" : "failed", status === "acceptance-unknown")],
       audit: audit(status, op, [reason, ...(status === "acceptance-unknown" ? ["reconciliation-required" as const] : [])]),
@@ -77,7 +77,7 @@ export function createBoundOperationPipeline(binding: OperationResumePipelineBin
         : "adapter-request-schema-mismatch";
       return fail(reason);
     }
-    const projected = projectReadyAssetsToMaterializerResolution({ projectionVersion: "1.0", operation: op, pollStatus: x.pollStatus, pollRevision: x.pollRevision, assets: x.readyAssets } as any);
+    const projected = projectReadyAssetsToMaterializerResolution({ projectionVersion: "1.0", operation: op, pollStatus: x.pollStatus, pollRevision: x.pollRevision, assets: x.readyAssets });
     if (projected.status !== "projected") return fail("ready-asset-projection-failed");
     const mat = binding.materialize(restored.request, projected.resolution, x.context.baselineTime);
     if (mat.status !== "materialized" || mat.request.materialization.unresolvedAssetCount !== 0) return fail("materialization-failed");
@@ -114,15 +114,15 @@ export function createBoundOperationPipeline(binding: OperationResumePipelineBin
       return await config.idempotency.completeGeneration(x.context.generationIdempotencyKeyRef, generationFingerprint, status, result) === "updated" ? result : fail("reconciliation-required");
     };
 
-    const submitted = await client.submit({ contractVersion: "1.0", request: { ...mat.request, body: toReferenceProviderRequestBody(bridged.body as any) }, credentialHandle: referenceCredentialHandle, timeoutPolicy: REFERENCE_PROVIDER_TIMEOUT_POLICY, correlation: { operationId: x.context.operationRef, attempt: x.context.attempt }, idempotency: { keyRef: x.context.generationIdempotencyKeyRef } } as any);
-    if (submitted.status === "accepted") return finish({ status: "accepted", job: copy(submitted.job) as any, audit: audit("accepted", op, [], { adapterRestoreStatus: "resolved", readyAssetProjectionStatus: "projected", materializerStatus: "materialized", transportBridgeStatus: "bridged", providerClientStatus: "accepted" }) });
+    const submitted = await client.submit({ contractVersion: "1.0", request: { ...mat.request, body: toReferenceProviderRequestBody(bridged.body) }, credentialHandle: referenceCredentialHandle, timeoutPolicy: REFERENCE_PROVIDER_TIMEOUT_POLICY, correlation: { operationId: x.context.operationRef, attempt: x.context.attempt }, idempotency: { keyRef: x.context.generationIdempotencyKeyRef } });
+    if (submitted.status === "accepted") return finish({ status: "accepted", job: copy(submitted.job), audit: audit("accepted", op, [], { adapterRestoreStatus: "resolved", readyAssetProjectionStatus: "projected", materializerStatus: "materialized", transportBridgeStatus: "bridged", providerClientStatus: "accepted" }) });
     if (submitted.status !== "completed") return finish(submitted.transport.requestAccepted && submitted.error.category === "timeout" ? fail("generation-acceptance-unknown", "acceptance-unknown") : fail("provider-submit-failed"));
     let normalized: NormalizedGenerationResult;
-    try { normalized = (binding as any).normalize(binding.bridgeResponse(submitted.data)); } catch { return finish(fail("provider-output-reference-invalid")); }
+    try { normalized = binding.normalize(binding.bridgeResponse(submitted.data)); } catch { return finish(fail("provider-output-reference-invalid")); }
     if (!normalized || normalized.status === "failed" || normalized.outputs.length === 0) return finish(fail("response-normalization-failed"));
-    const expected = projectExpectedOutput(op, restored.request as any);
+    const expected = projectExpectedOutput(op, restored.request);
     if (expected.status !== "projected") return finish(fail("expected-output-invalid"));
-    const plan = buildOutputIngestionPlan({ contractVersion: "1.0", providerId: normalized.providerId, providerApiVersion: "reference-api-v1", operation: op, generationResult: normalized, expectedOutput: expected.expected, policy: expected.policy, context: { contextVersion: "1.0", operationRef: x.context.operationRef, baselineTime: x.context.baselineTime, attempt: x.context.attempt, cancellation: { stage: "none" } }, idempotency: { ingestionKeyRef: x.context.outputIngestionIdempotencyKeyRef } } as any);
+    const plan = buildOutputIngestionPlan({ contractVersion: "1.0", providerId: normalized.providerId, providerApiVersion: "reference-api-v1", operation: op, generationResult: normalized, expectedOutput: expected.expected, policy: expected.policy, context: { contextVersion: "1.0", operationRef: x.context.operationRef, baselineTime: x.context.baselineTime, attempt: x.context.attempt, cancellation: { stage: "none" } }, idempotency: { ingestionKeyRef: x.context.outputIngestionIdempotencyKeyRef } });
     if (plan.status !== "planned") return finish(fail("output-ingestion-failed"));
     const result = await ingestion.execute(plan.plan, plan.references);
     if (result.status === "failed") return finish(fail("output-ingestion-failed"));

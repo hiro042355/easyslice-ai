@@ -16,11 +16,15 @@ export const createReferenceMVResumePipeline = (
   providerClientId: "reference-provider-client-v1", providerClientVersion: "1.0.0", providerId: "reference-provider",
   providerApiVersion: "reference-api-v1", normalizerId: "reference-mv-v1", normalizerVersion: "1.0.0",
   outputIngestionId: "reference-output-ingestion-v1",
-  restoreAdapterRequest: (reference, input) => resolver.resolve(reference, "generate-mv", input.context, input.authorization),
+  restoreAdapterRequest: async (reference, input) => {
+    const result=await resolver.resolve(reference,"generate-mv",input.context,input.authorization);
+    if(result.status!=="resolved")return result;
+    return "globalDirection" in result.request?{status:"resolved" as const,request:result.request}:{status:"operation-mismatch" as const};
+  },
   materialize: (request, resolution, baselineTime) => referenceMVMaterializer.materialize({
     contractVersion: "1.0", providerId: "reference-provider", providerApiVersion: "reference-api-v1",
-    operation: "generate-mv", adapterRequest: request as never, resolvedAssets: resolution,
+    operation: "generate-mv", adapterRequest: request, resolvedAssets: resolution,
     profile: referenceMVMaterializationProfile, context: { contextVersion: "1.0", baselineTime },
   }),
-  bridgeToClientBody: bridgeMVRequest as never, bridgeResponse: bridgeMVResponse, normalize: normalizeReferenceMVResponse,
+  bridgeToClientBody: bridgeMVRequest, bridgeResponse: bridgeMVResponse, normalize: normalizeReferenceMVResponse,
 }, config);
