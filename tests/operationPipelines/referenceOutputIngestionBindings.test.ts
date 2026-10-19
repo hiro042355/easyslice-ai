@@ -140,10 +140,10 @@ const executeWith = async (ingestionDependencies: ReferenceOutputIngestionDepend
   let executionCount = 0;
   const pipeline = createBoundOperationPipeline(binding as never, {
     ingestionDependencies,
-    ingestionExecutorFactory: (value) => {
+    ingestionExecutorFactory: (value: ReferenceOutputIngestionDependencies) => {
       const executor = new ReferenceOutputIngestionExecutor(value);
       return {
-        async execute(plan, references) {
+        async execute(plan: Parameters<ReferenceOutputIngestionExecutor["execute"]>[0], references: Parameters<ReferenceOutputIngestionExecutor["execute"]>[1]) {
           executionCount += 1;
           return executor.execute(plan, references);
         },
@@ -168,7 +168,11 @@ test("does not fabricate partial status for authoritative completed ingestion", 
   const { result, executionCount } = await executeWith(dependencies(new ReferencePersistenceProvenanceV2()));
   assert.equal(executionCount, 1);
   assert.equal(result.status, "completed");
-  assert.equal("issues" in result && result.issues.some((value) => value.reasonCode === "output-ingestion-partial"), false);
+  if ("issues" in result) assert.ok(Array.isArray(result.issues), "issues must be an array when present");
+  assert.equal("issues" in result && Array.isArray(result.issues) && result.issues.some((value: unknown) => {
+    assert.ok(value !== null && typeof value === "object" && "reasonCode" in value);
+    return value.reasonCode === "output-ingestion-partial";
+  }), false);
   assert.equal(result.audit.reasonCodes.includes("output-ingestion-partial"), false);
   assert.equal(result.audit.ingestionStatus, "completed");
 });

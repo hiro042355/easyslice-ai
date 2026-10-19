@@ -5,8 +5,11 @@ import { ReferenceRestrictedAdapterRequestResolver } from "../../lib/operationPi
 import { createReferenceVocalResumePipeline } from "../../lib/operationPipelines/referenceVocalResumePipeline";
 import { createReferenceMusicResumePipeline } from "../../lib/operationPipelines/referenceMusicResumePipeline";
 import { createReferenceMVResumePipeline } from "../../lib/operationPipelines/referenceMVResumePipeline";
+import type { ResolvedAsset, Sensitive } from "../../lib/assets/types";
+import type { OperationAdapterRequest, OperationResumePipelineInput, RestrictedAdapterRequestResolver } from "../../lib/operationPipelines/referenceOperationResumeTypes";
 
 const BASELINE = "2030-01-01T00:00:00.000Z";
+const confidentialFixture = <T>(value: T): Sensitive<T> => value as Sensitive<T>;
 const operations = [
   { operation: "generate-vocal", bindingId: "reference-vocal-resume-pipeline-v1", adapterId: "reference-vocal-v1", request: { ...vocalRequest(), durationSeconds: 10, timeline: [{ ...vocalRequest().timeline[0], endSeconds: 10 }] }, create: createReferenceVocalResumePipeline, assets: [] },
   { operation: "generate-music", bindingId: "reference-music-resume-pipeline-v1", adapterId: "reference-music-v1", request: { ...musicRequest(), durationSeconds: 20, outputFormat: "mp3", timeline: [{ ...musicRequest().timeline[0], endSeconds: 20 }] }, create: createReferenceMusicResumePipeline, assets: [] },
@@ -61,4 +64,36 @@ test("rejects caller-selected operation and binding mismatches before provider e
   const result = await pipeline.execute({ ...input(entry), bindingId: "caller-runtime" } as never);
   assert.equal(result.status, "failed");
   assert.match(JSON.stringify(result), /adapter-request-operation-mismatch/);
+});
+
+test("operation-specific restore rejects a resolved request for another operation before generation reservation", async () => {
+  for (let index = 0; index < operations.length; index++) {
+    const entry = operations[index];
+    const other = [vocalRequest(), musicRequest(), mvRequest()][(index + 1) % operations.length];
+    // Synthetic confidential fixture; not an authentication or provider authority.
+    const request = confidentialFixture<OperationAdapterRequest>(other);
+    const resolver: RestrictedAdapterRequestResolver = {
+      register: () => ({ status: "registered" }),
+      resolve: async () => ({ status: "resolved", request }),
+    };
+    let reservations = 0;
+    const forbidden = async (): Promise<never> => {
+      reservations++;
+      throw new Error("unexpected-generation-reservation");
+    };
+    const pipeline = entry.create(resolver, { idempotency: {
+      reserveMaterialization: forbidden,
+      completeMaterialization: forbidden,
+      reserveGeneration: forbidden,
+      completeGeneration: forbidden,
+    } });
+    const fixture: OperationResumePipelineInput = {
+      ...input(entry),
+      readyAssets: confidentialFixture<readonly ResolvedAsset[]>([...entry.assets]),
+    };
+    const result = await pipeline.execute(fixture);
+    assert.equal(result.status, "failed", entry.operation);
+    assert.deepEqual(result.audit.reasonCodes, ["adapter-request-operation-mismatch"]);
+    assert.equal(reservations, 0);
+  }
 });

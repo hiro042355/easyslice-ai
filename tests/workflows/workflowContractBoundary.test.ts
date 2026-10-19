@@ -95,7 +95,7 @@ test("Reference Workflow input contracts remain isolated from the generic Workfl
     "../../lib/server/workflowApi/referenceWorkflowApiService.ts",
     "../../lib/workflowApi/types.ts",
     "../../lib/workflowEntry/types.ts",
-    "../../lib/workflows/referenceGenerationWorkflow.ts",
+    "../../lib/workflows/referenceGenerationWorkflowFacade.ts",
     "../sensitiveBoundary/fixture.ts",
     "./referenceGenerationWorkflow.test.ts",
   ] as const;
@@ -118,14 +118,14 @@ test("Reference Workflow input contracts remain isolated from the generic Workfl
     assert.match(inputSource, new RegExp(`export\\s+type\\s+${publicType}\\b`));
   }
 
-  assert.doesNotMatch(genericSource, /export\s+(?:type\s+)?\{[^}]*Reference(?:Vocal|Music|MV)?WorkflowInput[^}]*\}/s);
+  assert.doesNotMatch(genericSource, /export\s+(?:type\s+)?\{[^}]*Reference(?:Vocal|Music|MV)?WorkflowInput[^}]*\}/);
 
   for (const consumerUrl of consumerUrls) {
     const consumerSource = await readFile(new URL(consumerUrl, import.meta.url), "utf8");
     assert.match(consumerSource, /referenceWorkflowTypes/);
     assert.doesNotMatch(
       consumerSource,
-      /import\s+type\s+\{[^}]*\bReference(?:Vocal|Music|MV)?WorkflowInput\b[^}]*\}\s+from\s+["'][^"']*(?:workflows\/types|\.\/types)["']/s,
+      /import\s+type\s+\{[^}]*\bReference(?:Vocal|Music|MV)?WorkflowInput\b[^}]*\}\s+from\s+["'][^"']*(?:workflows\/types|\.\/types)["']/,
     );
   }
 });

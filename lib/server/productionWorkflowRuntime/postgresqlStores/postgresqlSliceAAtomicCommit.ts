@@ -1,6 +1,6 @@
 import type { DurableWorkflowTransactionContext } from "../durableTransaction";
 import { durableTransactionFailure, durableTransactionSuccess } from "../durableTransaction";
-import { bytesField, execute, stringField } from "./postgresqlStoreUtils";
+import { execute, stringField } from "./postgresqlStoreUtils";
 import type { PostgreSQLFinalResultStoreV2, PostgreSQLOutboxStoreV2, PostgreSQLResultReferenceVaultV2, PostgreSQLSliceAAtomicCommitResult, PostgreSQLSliceAAtomicGroup, PostgreSQLSliceAUnknownLookupResult } from "./types";
 
 export function createPostgreSQLSliceAAtomicCommit(stores:Readonly<{finalResults:PostgreSQLFinalResultStoreV2;references:PostgreSQLResultReferenceVaultV2;outbox:PostgreSQLOutboxStoreV2}>){return Object.freeze({

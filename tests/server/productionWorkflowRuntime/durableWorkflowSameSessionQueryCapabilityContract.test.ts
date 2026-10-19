@@ -155,8 +155,8 @@ test("optional safe failure fields remain optional without inferred defaults", (
 });
 
 test("V3 is additive and leaves the existing V2 context contract unchanged", () => {
-  const acceptsV2 = (_context: DurableWorkflowTransactionContext): void => {};
-  const acceptsV3 = (_context: DurableWorkflowTransactionContextV3): void => {};
+  const acceptsV2: (context: DurableWorkflowTransactionContext) => void = () => {};
+  const acceptsV3: (context: DurableWorkflowTransactionContextV3) => void = () => {};
 
   assert.equal(typeof acceptsV2, "function");
   assert.equal(typeof acceptsV3, "function");

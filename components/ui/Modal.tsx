@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useId } from "react";
 
 export type ModalProps = {
   isOpen: boolean;
@@ -31,15 +31,18 @@ export function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement;
+      const previousOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
 
       const timer = setTimeout(() => {
         const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
         );
         if (focusable && focusable.length > 0) {
           focusable[0]?.focus();
@@ -53,7 +56,7 @@ export function Modal({
 
         if (e.key === "Tab" && modalRef.current) {
           const focusables = modalRef.current.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
           );
           if (focusables.length === 0) return;
           const first = focusables[0];
@@ -73,7 +76,7 @@ export function Modal({
       return () => {
         clearTimeout(timer);
         document.removeEventListener("keydown", handleKeyDown);
-        document.body.style.overflow = "";
+        document.body.style.overflow = previousOverflow;
         previousFocusRef.current?.focus();
       };
     }
@@ -95,17 +98,17 @@ export function Modal({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
-        aria-describedby={description ? "modal-description" : undefined}
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         className={`relative z-10 w-full max-w-lg rounded-2xl border border-cyan-300/25 bg-zinc-950 p-6 shadow-2xl shadow-cyan-950/40 text-white ${className}`}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="modal-title" className="text-xl font-black tracking-tight text-white">
+            <h2 id={titleId} className="text-xl font-black tracking-tight text-white">
               {title}
             </h2>
             {description && (
-              <p id="modal-description" className="mt-2 text-xs leading-5 text-gray-300">
+              <p id={descriptionId} className="mt-2 text-xs leading-5 text-gray-300">
                 {description}
               </p>
             )}

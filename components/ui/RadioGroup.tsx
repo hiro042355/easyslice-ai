@@ -46,6 +46,7 @@ export function RadioGroup<T extends string | number = string>({
       }
       if (options[nextIndex] && !options[nextIndex].disabled) {
         onChange(options[nextIndex].value);
+        e.currentTarget.parentElement?.querySelectorAll<HTMLInputElement>('input[type="radio"]')[nextIndex]?.focus();
       }
     } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
       e.preventDefault();
@@ -55,6 +56,7 @@ export function RadioGroup<T extends string | number = string>({
       }
       if (options[nextIndex] && !options[nextIndex].disabled) {
         onChange(options[nextIndex].value);
+        e.currentTarget.parentElement?.querySelectorAll<HTMLInputElement>('input[type="radio"]')[nextIndex]?.focus();
       }
     }
   };

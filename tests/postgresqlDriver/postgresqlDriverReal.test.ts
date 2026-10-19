@@ -17,7 +17,7 @@ const isCompleteLifecycleConnection = (
 
 test("real pool, dedicated connection, codecs, cardinality, and lifecycle", async () => {
   await withPostgreSqlTestEnvironment(async (environment) => {
-    const config: PostgreSQLConnectionConfig = { ...environment.connection, maxConnections: 4, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, applicationName: "postgresql-driver-foundation-test", tls: { mode: "disabled" } };
+    const config: PostgreSQLConnectionConfig = { ...environment.connection, maxConnections: 4, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, applicationName: "postgresql-driver-foundation-test", tls: { mode: "disabled" as const } };
     const pool = new PostgreSQLConnectionPoolAdapter(config);
     const before = await pool.checkout();
     assert.equal("status" in before && before.status, "failure");
@@ -65,7 +65,7 @@ test("real pool, dedicated connection, codecs, cardinality, and lifecycle", asyn
 
 test("real SQLSTATE, failed transaction, commit, rollback, cancellation, and termination", async () => {
   await withPostgreSqlTestEnvironment(async (environment) => {
-    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 6, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, applicationName: "postgresql-driver-failure-test", tls: { mode: "disabled" } });
+    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 6, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, applicationName: "postgresql-driver-failure-test", tls: { mode: "disabled" as const } });
     assert.equal(await pool.start(), "ready");
     const connection = await pool.checkout();
     if ("status" in connection) throw new Error("checkout-failed");
@@ -135,7 +135,7 @@ test("real read-only, deadlock, and serialization conflicts are conservatively c
   await withPostgreSqlTestEnvironment(async (environment) => {
     await environment.pool.query("CREATE TABLE public.driver_conflict_probe (id integer PRIMARY KEY, value integer NOT NULL)");
     await environment.pool.query("INSERT INTO public.driver_conflict_probe VALUES (1, 0), (2, 0)");
-    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 6, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, applicationName: "postgresql-driver-conflict-test", tls: { mode: "disabled" } });
+    const pool = new PostgreSQLConnectionPoolAdapter({ ...environment.connection, maxConnections: 6, connectionTimeoutMs: 5_000, idleTimeoutMs: 5_000, applicationName: "postgresql-driver-conflict-test", tls: { mode: "disabled" as const } });
     assert.equal(await pool.start(), "ready");
 
     const readOnlyConnection = await pool.checkout();
@@ -200,7 +200,7 @@ test("server statement timeout is authoritative and transaction cleanup permits 
       idleTimeoutMs: 5_000,
       queryTimeoutMs: 50,
       applicationName: "postgresql-driver-timeout-test",
-      tls: { mode: "disabled" },
+      tls: { mode: "disabled" as const },
     });
     assert.equal(await pool.start(), "ready");
 

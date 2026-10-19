@@ -10,18 +10,8 @@ export type {
   ReferenceMVRequest,
   ReferenceMVSceneInstruction,
 } from "@/lib/providerRequests/types";
-import {
-  clamp, cloneAndFreezeRecord, createMappingRecord, deduplicateReasonCodes,
-  mapScoreToUnitRange, normalizeProviderError,
-  resolveAdapterValidationStatus, sanitizeSafeMetadata,
-} from "@/lib/providers/adapterUtils";
-import type {
-  AdapterBuildResult, AdapterIssue, AdapterMappingRecord,
-  AdapterReasonCode, AdapterValidation, AdapterWarning,
-  MVFrameRate, MVGenerationConstraints, MVOutputFormat,
-  MVProviderCapability, MVResolution, MVWorkflowAssets,
-  GeneratedAssetReference, NormalizedGenerationResult, NormalizedProviderError,
-} from "@/lib/providers/types";
+import { cloneAndFreezeRecord, createMappingRecord, deduplicateReasonCodes, mapScoreToUnitRange, normalizeProviderError, resolveAdapterValidationStatus, sanitizeSafeMetadata } from "@/lib/providers/adapterUtils";
+import type { AdapterBuildResult, AdapterIssue, AdapterMappingRecord, AdapterReasonCode, AdapterValidation, AdapterWarning, MVGenerationConstraints, MVProviderCapability, MVWorkflowAssets, GeneratedAssetReference, NormalizedGenerationResult, NormalizedProviderError } from "@/lib/providers/types";
 
 export const REFERENCE_MV_ADAPTER_ID = "reference-mv-v1";
 export const REFERENCE_MV_ADAPTER_VERSION = "1.0.0";
@@ -108,7 +98,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const safeId = (value: unknown) =>
   typeof value === "string" && value.length > 0 && value.length <= 256 &&
   !value.includes("://");
-const round6 = (value: number) => Math.round((value + Number.EPSILON) * 1e6) / 1e6;
 
 function cloneCapability(capability: MVProviderCapability): MVProviderCapability {
   return Object.freeze({

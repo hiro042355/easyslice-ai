@@ -109,7 +109,9 @@ test("GCS and DB failures compensate object and transaction without partial auth
   assert.match(importer, /uploaded = true[\s\S]*pipeline\(/);
   assert.match(importer, /query\("ROLLBACK"\)\.catch/);
   assert.match(importer, /if \(uploaded\) await input\.bucket\.file\(storageKey\)\.delete\(\{ ignoreNotFound: true \}\)/);
-  assert.match(importer, /finally \{ await cleanupJobTempRoot\(input\.jobId\); \}/);
+  assert.match(importer, /return withRequestMediaWorkspace\(async workspace/);
+  assert.match(importer, /workspace.assertRegular\("youtube-source.mp4"\)/);
+  assert.doesNotMatch(importer,/cleanupJobTempRoot|createJobTempDirectories/);
   assert.doesNotMatch(importer, /predefinedAcl|makePublic|makePrivate|\.acl\b/);
 });
 

@@ -46,7 +46,7 @@ export function Select<T extends string | number = string>({
           onChange={(e) => {
             const rawVal = e.target.value;
             const match = options.find((opt) => String(opt.value) === rawVal);
-            if (match) onChange(match.value);
+            if (!disabled && match && !match.disabled) onChange(match.value);
           }}
           className="w-full appearance-none rounded-xl border border-white/10 bg-zinc-900/90 px-4 py-2.5 text-xs font-bold text-white outline-none transition hover:border-cyan-300/40 focus:border-cyan-300 focus:ring-1 focus:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 pr-8"
         >

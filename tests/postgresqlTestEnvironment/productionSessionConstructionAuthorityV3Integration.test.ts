@@ -17,7 +17,7 @@ test("construction authority keeps every capability on the owner's active transa
       idleTimeoutMs: 5_000,
       queryTimeoutMs: 5_000,
       applicationName: "session-v3-construction-test",
-      tls: { mode: "disabled" },
+      tls: { mode: "disabled" as const },
     });
     assert.equal(await pool.start(), "ready");
     const checkedOut = await pool.checkout();

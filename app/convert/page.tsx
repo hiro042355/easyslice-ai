@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function ConvertPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -63,12 +64,12 @@ export default function ConvertPage() {
             </p>
           </div>
 
-          <a
+          <Link
             href="/"
             className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-cyan-400/50 hover:text-cyan-200"
           >
             トップへ戻る
-          </a>
+          </Link>
         </div>
 
         <section className="rounded-lg border border-white/10 bg-white/[0.04] p-6">
