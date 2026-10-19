@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { UnoptimizedPreviewImage } from "@/components/UnoptimizedPreviewImage";
 import EmotionGraphPreview from "@/components/EmotionGraphPreview";
 import DirectorDecisionPreview from "@/components/DirectorDecisionPreview";
 import { AiMvSignalFoundation } from "@/components/AiMvSignalFoundation";
@@ -730,10 +731,12 @@ window.setTimeout(() => setAllCopied(false), 1200);
 
 {coverImageUrl ? (
   <div className="space-y-3">
-    <img
+    <UnoptimizedPreviewImage
+      width={1024}
+      height={1024}
       src={coverImageUrl}
       alt="AI生成ジャケット"
-      className="aspect-square w-full max-w-sm rounded-md border border-white/10 object-cover"
+      className="aspect-square h-auto w-full max-w-sm rounded-md border border-white/10 object-cover"
     />
 
     <button

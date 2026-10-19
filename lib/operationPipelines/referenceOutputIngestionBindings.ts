@@ -1,3 +1,4 @@
+import { createSensitiveImportedAssetReferences } from "@/lib/sensitiveBoundary/createSensitiveWorkflowFixtureInput";
 import { createReferenceProviderClient, REFERENCE_PROVIDER_TIMEOUT_POLICY } from "@/lib/providerClients/referenceProviderClient";
 import type { ReferenceTransportScenario } from "@/lib/providerClients/types";
 import { buildOutputIngestionPlan } from "@/lib/outputIngestion/outputIngestionPlan";
@@ -127,8 +128,10 @@ export function createBoundOperationPipeline<TRequest extends import("./referenc
     const result = await ingestion.execute(plan.plan, plan.references);
     if (result.status === "failed") return finish(fail("output-ingestion-failed"));
     if (result.status === "recovery-required") return finish(fail("reconciliation-required"));
-    if (result.status === "partial") return finish({ status: "partial", assets: copy(result.assets) as any, issues: [issue("output-ingestion-partial", "failed")], audit: audit("partial", op, ["output-ingestion-partial"], { adapterRestoreStatus: "resolved", readyAssetProjectionStatus: "projected", materializerStatus: "materialized", transportBridgeStatus: "bridged", providerClientStatus: "completed", normalizationStatus: "completed", ingestionStatus: "partial" }) });
+    const classifiedAssets=createSensitiveImportedAssetReferences(result.assets);
+    if(classifiedAssets.status!=="created")return finish(fail("output-ingestion-failed"));
+    if (result.status === "partial") return finish({ status: "partial", assets: classifiedAssets.value, issues: [issue("output-ingestion-partial", "failed")], audit: audit("partial", op, ["output-ingestion-partial"], { adapterRestoreStatus: "resolved", readyAssetProjectionStatus: "projected", materializerStatus: "materialized", transportBridgeStatus: "bridged", providerClientStatus: "completed", normalizationStatus: "completed", ingestionStatus: "partial" }) });
     const status = x.pollStatus === "degraded" || mat.audit.omittedCount > 0 ? "degraded" : "completed";
-    return finish({ status, assets: copy(result.assets) as any, audit: audit(status, op, ["operation-pipeline-completed"], { adapterRestoreStatus: "resolved", readyAssetProjectionStatus: x.pollStatus === "degraded" ? "degraded" : "projected", materializerStatus: "materialized", transportBridgeStatus: "bridged", providerClientStatus: "completed", normalizationStatus: "completed", ingestionStatus: "completed" }) });
+    return finish({ status, assets: classifiedAssets.value, audit: audit(status, op, ["operation-pipeline-completed"], { adapterRestoreStatus: "resolved", readyAssetProjectionStatus: x.pollStatus === "degraded" ? "degraded" : "projected", materializerStatus: "materialized", transportBridgeStatus: "bridged", providerClientStatus: "completed", normalizationStatus: "completed", ingestionStatus: "completed" }) });
   } };
 }

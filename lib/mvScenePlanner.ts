@@ -22,10 +22,7 @@ const SECTION_ORDER = Object.freeze([
 ] as const);
 const ASPECT_RATIOS = Object.freeze(["16:9", "9:16", "1:1", "4:5"] as const);
 const PERFORMANCE_MODES = Object.freeze(["narrative", "performance", "hybrid"] as const);
-const BUILT_IN_MOTIFS = Object.freeze([
-  "light", "rain", "mirror", "road", "flower", "sky",
-  "water", "fire", "shadow", "door", "photograph", "empty-room",
-] as const);
+
 const CHARACTER_REF_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
 
 import type { AssetReference, AspectRatio, BuiltInVisualMotif, CharacterStateChange, ContinuityPlan, LyricsInput, MVDecisionProjection, MVScene, MVScenePlannerAssets, MVScenePlannerConstraints, MVScenePlannerInput, MVScenePlannerIssueCode, MVScenePlannerReasonCode, MVScenePlanRationale, MVScenePlanResult, MVScenePlanValidationStatus, NarrativeArc, PerformanceMode, SceneAction, SceneActionType, SceneAssetReference, SceneNarrativePurpose, SceneSetting, SceneSubject, StoryInput, TemporalTransition, VisualMotif } from "@/lib/mvContracts";

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { UnoptimizedPreviewImage } from "@/components/UnoptimizedPreviewImage";
 import { HamburgerMenu } from "@/components/ui/HamburgerMenu";
 import { CameraPreview } from "@/components/CameraPreview";
 import { CameraEditor } from "@/components/CameraEditor";
@@ -926,7 +927,9 @@ export default function WorkspaceFlowPage() {
                   {videoTitle && (
                     <div className="overflow-hidden rounded-2xl border border-cyan-300/15 bg-white/[0.04]">
                       {thumbnail && (
-                        <img
+                        <UnoptimizedPreviewImage
+                          width={1280}
+                          height={720}
                           src={thumbnail}
                           alt="YouTube thumbnail"
                           className="h-44 w-full object-cover"

@@ -210,14 +210,14 @@ for (const race of ["delivery", "takeover"] as const) {
             (await environment.pool.query("SELECT (transaction_timestamp()+interval '1 hour')::text value")).rows[0]
               .value,
           );
-          const takeover = (newOwner: ProtectedIdentity<"claim-owner">) =>
+          const takeover = () =>
             outboxV2.takeoverExpiredLeaseV2 as typeof outboxV2.takeoverExpiredLeaseV2;
           const results = await Promise.all(
             [ownerB, ownerC].map(newOwner =>
               (async () => {
                 await barrier();
                 return run(context =>
-                  takeover(newOwner)(context, {
+                  takeover()(context, {
                     identity: draft.identity,
                     expectedRevision: target.revision,
                     expectedSourceState: "claimed",

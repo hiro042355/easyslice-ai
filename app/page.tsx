@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useObjectUrl } from "@/hooks/useObjectUrl";
+import { UnoptimizedPreviewImage } from "@/components/UnoptimizedPreviewImage";
 import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
 import { toPng } from "html-to-image";
 import Slider from "rc-slider";
@@ -35,8 +36,8 @@ export default function Home() {
     thumbnailMood?: string;
   }[]
 >([]);
-  const [currentYoutubeUrl, setCurrentYoutubeUrl] = useState("");
-  const [youtubeSourceMetadata, setYoutubeSourceMetadata] = useState<{
+  const [currentYoutubeUrl] = useState("");
+  const [youtubeSourceMetadata] = useState<{
     sourceId: string;
     description?: string;
     chapters?: readonly VideoSourceChapterV1[];
@@ -196,16 +197,8 @@ const updateClip = (
   const localVideoUrl = useObjectUrl(video);
   const [durableMedia, setDurableMedia] = useState<DurableMediaReference | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
- const setStartFromCurrent = () => {
-  if (!videoRef.current) return;
-  const current = Math.floor(videoRef.current.currentTime);
-  setStart(current.toString());
-};
-const setEndFromCurrent = () => {
-  if (!videoRef.current) return;
-  const current = Math.floor(videoRef.current.currentTime);
-  setEnd(current.toString());
-};
+
+
 
   const [loading, setLoading] = useState(false);
   const [aiCooldownUntil, setAiCooldownUntil] = useState<number>(0);
@@ -222,9 +215,9 @@ useEffect(() => {
 
   return () => clearInterval(timer);
 }, []);
-  const [progress, setProgress] = useState(0);
+  const [progress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState("");
-  const [cutVideoUrl, setCutVideoUrl] = useState("");
+  const [, setCutVideoUrl] = useState("");
 const [videoTitle] = useState("");
 const [videoDuration, setVideoDuration] = useState(0);
 const [thumbnail] = useState("");
@@ -246,48 +239,7 @@ const contextualizeCandidates = (
   return enrichClipCandidatesWithSourceContextV1(candidates, context);
 };
   // ✂️ 切り抜き
-  const handleCut = async () => {
-    if ((!video && !videoSrc) || !durableMedia || !start || !end) {
-      alert("動画・開始・終了を入力してね");
-      return;
-    }
 
-    setLoading(true);
-
-    setProgress(0);
-
-const interval = setInterval(() => {
-  setProgress((prev) => {
-    if (prev >= 90) return prev;
-    return prev + 5;
-  });
-}, 500);
-
-    const formData = new FormData();
-
-formData.append("jobId", durableMedia.jobId);
-formData.append("mediaId", durableMedia.mediaId);
-
-formData.append("start", start);
-formData.append("end", end);
-formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));
-console.log("CreatorStyleConfig -> /api/cut", creatorStyleConfig);
-setLastExportCreatorStyleConfig(JSON.stringify(creatorStyleConfig, null, 2));
-    const res = await fetch("/api/cut", {
-  method: "POST",
-  body: formData,
-});
-
-const blob = await res.blob();
-
-const url = URL.createObjectURL(blob);
-
-setDownloadUrl(url);
-setCutVideoUrl(url);
-setProgress(100);
-clearInterval(interval);
-setLoading(false);
-};
 const handleMultiCut = async () => {
   const durationLimit =
     videoDuration && videoDuration > 0
@@ -530,61 +482,8 @@ const resetClips = () => {
   setActivePreviewIndex(null);
   setScriptResult(null);
 };
-const singleClipDuration = Math.max(
-  0,
-  Number(end || 0) - Number(start || 0)
-);
-const handleUploadVideo = async (file: File | null) => {
-  if (!file) {
-    return;
-  }
 
-  try {
-    setLoading(true);
-    setSuccessMessage("");
 
-    setDurableMedia(await admitDurableMedia(file));
-
-    setVideo(file);
-    setVideoSrc(URL.createObjectURL(file));
-    setCurrentYoutubeUrl("");
-    setYoutubeSourceMetadata(null);
-
-    setClips([
-      {
-        start: "",
-        end: "",
-        reason: "",
-        title: "",
-        score: 0,
-      },
-    ]);
-
-    setSuccessMessage("動画をアップロードしました");
-    setZipFileName("");
-    setGeneratedClipCount(0);
-    setPreviewEnd(null);
-    setActivePreviewIndex(null);
-    setDownloadUrl("");
-    setCutVideoUrl("");
-    setSummary("");
-    setFullText("");
-    setSubtitles([]);
-    setStart("0");
-    setEnd("");
-    setProgress(0);
-  } catch (err) {
-    console.error(err);
-
-    setErrorMessage(
-      err instanceof Error
-        ? err.message
-        : "不明なエラー"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
 const parseTimeToSeconds = (timeText: string) => {
   const normalized = timeText.replace(",", ".");
   const parts = normalized.split(":");
@@ -1486,10 +1385,12 @@ const downloadThumbnail = async (clipIndex: number) => {
     {videoTitle && (
       <div className="mt-4 overflow-hidden rounded-xl border border-cyan-500/20 bg-zinc-900 shadow-xl shadow-cyan-500/10 hover:shadow-cyan-500/30 transition-all duration-300">
         {thumbnail && (
-          <img
+          <UnoptimizedPreviewImage
+            width={1280}
+            height={720}
             src={thumbnail}
             alt="thumbnail"
-            className="w-full object-cover"
+            className="h-auto w-full object-cover"
           />
         )}
 

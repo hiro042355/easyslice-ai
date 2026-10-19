@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   constructProductionTransactionSessionCapabilitiesV3,
   constructProductionTransactionSessionCompleteCapabilitiesV2,
-  type DurableWorkflowDatabaseCommand,
+
   type DurableWorkflowDatabaseExecutionResult,
   type DurableWorkflowTransactionContext,
 } from "../../../lib/server/productionWorkflowRuntime/durableTransaction";
@@ -17,7 +17,7 @@ import type {
 function context(): DurableWorkflowTransactionContext {
   const database = Object.freeze({
     capabilityVersion: "1.0" as const,
-    execute: async (_command: DurableWorkflowDatabaseCommand): Promise<DurableWorkflowDatabaseExecutionResult> =>
+    execute: async (): Promise<DurableWorkflowDatabaseExecutionResult> =>
       Object.freeze({ status: "success", rows: Object.freeze([]), rowCount: 0 }),
   });
   return Object.freeze({
