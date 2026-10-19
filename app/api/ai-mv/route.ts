@@ -10,6 +10,13 @@ type AiMvRequest = {
   mood?: string;
   length?: string;
   revisionMode?: string;
+  characterAssets?: unknown[];
+  performerAsset?: unknown;
+  characterProjectState?: {
+    characters?: { characterId: string; name: string; defaultDimensionMode: string; identityLockEnforced: boolean }[];
+    castings?: { characterId: string; selectedRevisionId: string; dimensionMode: string; identityLockEnforced: boolean }[];
+    sceneAssignments?: { sceneId: string; characterId: string; roleInScene: string; dimensionMode: string }[];
+  };
 };
 
 type AiMvScene = {
@@ -107,6 +114,7 @@ const prompt = buildAiMvPrompt({
   mood,
   length,
   revisionMode,
+  characterProjectState: body.characterProjectState,
 });
 
     const res = await fetchGeneratedAsset(
@@ -195,6 +203,7 @@ function buildAiMvPrompt({
   mood,
   length,
   revisionMode,
+  characterProjectState,
 }: {
   story: string;
   theme: string;
@@ -202,7 +211,18 @@ function buildAiMvPrompt({
   mood?: string;
   length: string;
   revisionMode: string;
+  characterProjectState?: AiMvRequest["characterProjectState"];
 }) {
+  const characterSummary = characterProjectState?.characters?.map((c) => {
+    const casting = characterProjectState.castings?.find((cast) => cast.characterId === c.characterId);
+    const mode = casting?.dimensionMode || c.defaultDimensionMode;
+    const lock = casting?.identityLockEnforced ?? c.identityLockEnforced ? "Identity-Locked" : "Flexible";
+    return `- ${c.name} (${c.characterId}): ${mode} render mode, ${lock}`;
+  }).join("\n") || "None specified";
+
+  const assignmentsSummary = characterProjectState?.sceneAssignments?.map(
+    (a) => `- Scene ${a.sceneId}: ${a.characterId} (${a.roleInScene}, ${a.dimensionMode})`
+  ).join("\n") || "None specified";
   return `
 あなたはNEXCUT AIのAI MVプランナーです。
 ユーザーの日記、出来事、思い出、感情をもとに、SNS投稿に向いた音楽作品の企画を作成してください。
@@ -256,6 +276,10 @@ genre: ${genre}
 mood: ${mood}
 length: ${length}
 revisionMode: ${revisionMode || "標準"}
+Character Castings & Dimension Modes:
+${characterSummary}
+Scene Character Assignments:
+${assignmentsSummary}
 
 JSON形式:
 {
