@@ -5,11 +5,18 @@ export type AssetImportState =
   | "failed_final"
   | "reconciliation_required";
 
-export type CanonicalAssetImportSource = Readonly<{
-  platform: "youtube";
-  videoId: string;
-  normalizedUrl: string;
-}>;
+export type CanonicalAssetImportSource =
+  | Readonly<{
+      platform: "youtube";
+      videoId: string;
+      normalizedUrl: string;
+    }>
+  | Readonly<{
+      platform: "tiktok";
+      videoId: string;
+      normalizedUrl: string;
+      authorUsername?: string;
+    }>;
 
 export type AssetImportSuccess = Readonly<{
   responseVersion: "1.0";

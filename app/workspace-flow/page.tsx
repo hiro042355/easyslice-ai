@@ -16,6 +16,8 @@ import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
 import { addReviewQueueItem, isDurableExportId, type ReviewQueueItem } from "../../lib/reviewQueue";
 import { detectUrlSource, type UrlSource } from "../../lib/urlImport";
+import { classifyUrl } from "@/lib/urlAcquisition/classifyUrl";
+import { evaluateTikTokAcquisitionGuidance } from "@/lib/urlAcquisition/tiktokAcquisitionState";
 
 const steps = [
   {
@@ -172,6 +174,21 @@ export default function WorkspaceFlowPage() {
     [universalUrl]
   );
   const detectedUrlSourceLabel = urlSourceLabels[detectedUrlSource];
+
+  const universalUrlClassification = useMemo(() => {
+    return universalUrl.trim() ? classifyUrl(universalUrl.trim()) : null;
+  }, [universalUrl]);
+
+  const tikTokGuidance = useMemo(() => {
+    if (
+      universalUrlClassification &&
+      (universalUrlClassification.kind === "SUPPORTED_TIKTOK" ||
+        universalUrlClassification.kind === "UNSUPPORTED_TIKTOK")
+    ) {
+      return evaluateTikTokAcquisitionGuidance(universalUrlClassification);
+    }
+    return null;
+  }, [universalUrlClassification]);
 
   useEffect(() => {
     trackEvent("workspace_open", {
@@ -825,15 +842,59 @@ export default function WorkspaceFlowPage() {
                       className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-cyan-300/60 focus:bg-cyan-300/10"
                     />
 
-                    <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
-                      <p className="font-bold">URL Import Safety Notice</p>
-                      <ul className="mt-2 list-disc space-y-1 pl-4 text-yellow-100/85">
-                        <li>現在はURL判定のみです。</li>
-                        <li>YouTube URL取得はβ対応です。</li>
-                        <li>TikTok / Instagram / X は今後対応予定です。</li>
-                        <li>利用権限のある動画のみ使用してください。</li>
-                      </ul>
-                    </div>
+                    {tikTokGuidance ? (
+                      <div className="mt-4 rounded-2xl border border-cyan-400/30 bg-cyan-950/40 p-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                            TikTok Integration Guidance
+                          </span>
+                          <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-200">
+                            {universalUrlClassification?.kind === "SUPPORTED_TIKTOK"
+                              ? "URL Recognized"
+                              : "Unsupported Link"}
+                          </span>
+                        </div>
+                        <h4 className="mt-2 text-sm font-bold text-white">
+                          {tikTokGuidance.title}
+                        </h4>
+                        <p className="mt-1 text-xs leading-5 text-gray-300">
+                          {tikTokGuidance.explanation}
+                        </p>
+                        {universalUrlClassification?.kind === "SUPPORTED_TIKTOK" && (
+                          <div className="mt-3 rounded-xl border border-white/10 bg-black/50 p-3 text-xs text-gray-400 space-y-1">
+                            <div>
+                              <span className="font-semibold text-gray-300">Video ID: </span>
+                              <span className="font-mono text-cyan-200">{universalUrlClassification.videoId}</span>
+                            </div>
+                            {universalUrlClassification.authorUsername && (
+                              <div>
+                                <span className="font-semibold text-gray-300">Author: </span>
+                                <span className="font-mono text-cyan-200">@{universalUrlClassification.authorUsername}</span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="font-semibold text-gray-300">Canonical: </span>
+                              <span className="font-mono text-gray-400 break-all">{universalUrlClassification.normalizedUrl}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="mt-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs text-yellow-100">
+                          <span className="font-bold">必要なアクション: </span>
+                          <span>{tikTokGuidance.actionRequired}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
+                        <p className="font-bold">URL Import Safety Notice</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-yellow-100/85">
+                          <li>現在はURL判定のみです。</li>
+                          <li>YouTube URL取得はβ対応です。</li>
+                          <li>TikTok URLは認識・正規化と動画ファイル連携に対応しています。</li>
+                          <li>Instagram / X は今後対応予定です。</li>
+                          <li>利用権限のある動画のみ使用してください。</li>
+                        </ul>
+                      </div>
+                    )}
 
                     <p className="mt-2 text-xs text-gray-500">
                       判定のみのFoundationです。既存のYouTube取得処理とは分離しています。

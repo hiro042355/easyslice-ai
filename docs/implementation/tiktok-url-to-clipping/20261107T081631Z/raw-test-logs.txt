@@ -1,0 +1,125 @@
+TAP version 13
+# Subtest: classifyUrl recognizes and normalizes canonical desktop TikTok URLs
+ok 1 - classifyUrl recognizes and normalizes canonical desktop TikTok URLs
+  ---
+  duration_ms: 2.255828
+  type: 'test'
+  ...
+# Subtest: classifyUrl recognizes mobile path /v/:id.html
+ok 2 - classifyUrl recognizes mobile path /v/:id.html
+  ---
+  duration_ms: 0.424849
+  type: 'test'
+  ...
+# Subtest: classifyUrl rejects non-video TikTok URLs safely as UNSUPPORTED_TIKTOK
+ok 3 - classifyUrl rejects non-video TikTok URLs safely as UNSUPPORTED_TIKTOK
+  ---
+  duration_ms: 0.434523
+  type: 'test'
+  ...
+# Subtest: classifyUrl rejects phishing and lookalike hosts as UNSUPPORTED_URL
+ok 4 - classifyUrl rejects phishing and lookalike hosts as UNSUPPORTED_URL
+  ---
+  duration_ms: 0.282992
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect safely resolves short links without SSRF
+ok 5 - resolveSafeTikTokRedirect safely resolves short links without SSRF
+  ---
+  duration_ms: 32.416442
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains
+ok 6 - resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains
+  ---
+  duration_ms: 0.552607
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect limits redirect count and detects loops
+ok 7 - resolveSafeTikTokRedirect limits redirect count and detects loops
+  ---
+  duration_ms: 0.966622
+  type: 'test'
+  ...
+# Subtest: evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints
+ok 8 - evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints
+  ---
+  duration_ms: 0.504176
+  type: 'test'
+  ...
+# Subtest: canonical authority supports and normalizes the V1 YouTube forms
+ok 9 - canonical authority supports and normalizes the V1 YouTube forms
+  ---
+  duration_ms: 3.060269
+  type: 'test'
+  ...
+# Subtest: recognized YouTube hosts with unsupported V1 shapes stay unsupported
+ok 10 - recognized YouTube hosts with unsupported V1 shapes stay unsupported
+  ---
+  duration_ms: 0.787094
+  type: 'test'
+  ...
+# Subtest: lookalike and unrelated hosts never receive YouTube authority
+ok 11 - lookalike and unrelated hosts never receive YouTube authority
+  ---
+  duration_ms: 0.256091
+  type: 'test'
+  ...
+# Subtest: invalid input and non-http schemes fail closed without side effects
+ok 12 - invalid input and non-http schemes fail closed without side effects
+  ---
+  duration_ms: 0.911206
+  type: 'test'
+  ...
+# Subtest: raw input length is enforced before trimming at the baseline boundary
+ok 13 - raw input length is enforced before trimming at the baseline boundary
+  ---
+  duration_ms: 0.269813
+  type: 'test'
+  ...
+# Subtest: canonical support decisions match the baseline production validator
+ok 14 - canonical support decisions match the baseline production validator
+  ---
+  duration_ms: 0.872189
+  type: 'test'
+  ...
+# Subtest: UI and server delegate to the same support decision
+ok 15 - UI and server delegate to the same support decision
+  ---
+  duration_ms: 1.581965
+  type: 'test'
+  ...
+# Subtest: legacy routes remain deterministic non-executing retirement endpoints
+ok 16 - legacy routes remain deterministic non-executing retirement endpoints
+  ---
+  duration_ms: 0.473303
+  type: 'test'
+  ...
+# Subtest: TikTok asset source produces deterministic fingerprint under CanonicalAssetImportSource contract
+ok 17 - TikTok asset source produces deterministic fingerprint under CanonicalAssetImportSource contract
+  ---
+  duration_ms: 2.512454
+  type: 'test'
+  ...
+# Subtest: Existing clipping profile engine contains dedicated TikTok profile with 15-55s duration window and vertical crop weighting
+ok 18 - Existing clipping profile engine contains dedicated TikTok profile with 15-55s duration window and vertical crop weighting
+  ---
+  duration_ms: 0.315345
+  type: 'test'
+  ...
+# Subtest: TikTok URL classification matches CanonicalAssetImportSource platform discriminator
+ok 19 - TikTok URL classification matches CanonicalAssetImportSource platform discriminator
+  ---
+  duration_ms: 0.691636
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 394.186931
+Exit code: 0
