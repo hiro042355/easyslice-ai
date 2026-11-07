@@ -1,0 +1,5 @@
+Checking ffmpeg at: /app/node_modules/.nexcut-runtime/ffmpeg/ffmpeg
+FFmpeg version output: ffmpeg version 7.0.2-static https://johnvansickle.com/ffmpeg/  Copyright (c) 2000-2024 the FFmpeg developers
+Generated synthetic 9:16 MP4: /tmp/test_vertical_9_16.mp4 size: 3991 bytes
+Packaged FFmpeg 9:16 export execution verified successfully.
+exit_code: 0
