@@ -1,0 +1,72 @@
+{
+  "manifestVersion": "1.0",
+  "evidenceDirectory": "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z",
+  "generatedAt": "2026-11-07T13:55:00Z",
+  "baseCommit": "013fdcdd379e0ce962861e45d6b60720d622009c",
+  "reports": [
+    {
+      "name": "post-merge-baseline.md",
+      "purpose": "Documents merged commit baseline, PR #5 integration, and tree cleanliness."
+    },
+    {
+      "name": "url-input-test-report.md",
+      "purpose": "Documents TikTok URL recognition across desktop, mobile, short, invalid, and unsupported patterns."
+    },
+    {
+      "name": "redirect-security-report.md",
+      "purpose": "Documents HTTPS allowlist enforcement, 3-hop limit, timeout protection, and SSRF defense."
+    },
+    {
+      "name": "mp4-upload-handoff-report.md",
+      "purpose": "Documents acquisition guidance and authorized MP4 upload handoff via /api/media/admit."
+    },
+    {
+      "name": "pipeline-stage-verification.md",
+      "purpose": "Details each stage of the integrated clipping pipeline and clarifies real vs mocked execution."
+    },
+    {
+      "name": "export-verification.md",
+      "purpose": "Documents packaged FFmpeg 7.0.2 execution and synthetic 9:16 vertical MP4 export."
+    },
+    {
+      "name": "test-coverage-report.md",
+      "purpose": "Summarizes test suites, assertions, exit codes, and coverage metrics."
+    },
+    {
+      "name": "defect-remediation-log.md",
+      "purpose": "Tracks defect diagnosis, verification findings, and remediation results."
+    },
+    {
+      "name": "remaining-blockers.md",
+      "purpose": "Enumerates platform/external API constraints and infrastructure prerequisites."
+    },
+    {
+      "name": "product-owner-action-checklist.md",
+      "purpose": "Action items for Product Owner approval, copywriting, and deployment."
+    },
+    {
+      "name": "readiness-gates.json",
+      "purpose": "Machine-readable evaluation of all required readiness gates."
+    },
+    {
+      "name": "change-manifest.json",
+      "purpose": "Listing of all files added, modified, or preserved."
+    },
+    {
+      "name": "evidence-manifest.json",
+      "purpose": "Index of evidence artifacts and verification outputs."
+    }
+  ],
+  "rawLogs": [
+    "raw-test-logs/classify-tiktok-url.log",
+    "raw-test-logs/classify-url.log",
+    "raw-test-logs/tiktok-pipeline-handoff.log",
+    "raw-test-logs/clipping-platform-optimization.log",
+    "raw-test-logs/clipping-pipeline-stages.log",
+    "raw-test-logs/ffmpeg-export-execution.log",
+    "raw-test-logs/npm-prebuild.log",
+    "raw-test-logs/npm-build.log",
+    "raw-test-logs/npm-lint.log",
+    "raw-test-logs/npm-typecheck.log"
+  ]
+}

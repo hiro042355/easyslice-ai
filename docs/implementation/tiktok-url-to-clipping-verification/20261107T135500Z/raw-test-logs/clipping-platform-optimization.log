@@ -1,0 +1,149 @@
+TAP version 13
+# Subtest: defines one versioned final count and larger pool limit
+ok 1 - defines one versioned final count and larger pool limit
+  ---
+  duration_ms: 3.417899
+  type: 'test'
+  ...
+# Subtest: creates a versioned candidate with stable deterministic identity
+ok 2 - creates a versioned candidate with stable deterministic identity
+  ---
+  duration_ms: 1.489016
+  type: 'test'
+  ...
+# Subtest: different sources produce different stable identities
+ok 3 - different sources produce different stable identities
+  ---
+  duration_ms: 1.122959
+  type: 'test'
+  ...
+# Subtest: preserves boundaries and derives duration without mutation
+ok 4 - preserves boundaries and derives duration without mutation
+  ---
+  duration_ms: 0.485331
+  type: 'test'
+  ...
+# Subtest: preserves story, boundary, transcript, and segment evidence
+ok 5 - preserves story, boundary, transcript, and segment evidence
+  ---
+  duration_ms: 1.735399
+  type: 'test'
+  ...
+# Subtest: preserves optional absence instead of fabricating evidence
+ok 6 - preserves optional absence instead of fabricating evidence
+  ---
+  duration_ms: 0.425022
+  type: 'test'
+  ...
+# Subtest: copies segment indexes for isolation
+ok 7 - copies segment indexes for isolation
+  ---
+  duration_ms: 0.985485
+  type: 'test'
+  ...
+# Subtest: rejects invalid boundary shapes
+ok 8 - rejects invalid boundary shapes
+  ---
+  duration_ms: 0.785468
+  type: 'test'
+  ...
+# Subtest: merges multiple sources in deterministic source-balanced order
+ok 9 - merges multiple sources in deterministic source-balanced order
+  ---
+  duration_ms: 1.704287
+  type: 'test'
+  ...
+# Subtest: applies only the candidate pool limit
+ok 10 - applies only the candidate pool limit
+  ---
+  duration_ms: 2.284615
+  type: 'test'
+  ...
+# Subtest: pool construction does not quality-rank, deduplicate, or mutate boundaries
+ok 11 - pool construction does not quality-rank, deduplicate, or mutate boundaries
+  ---
+  duration_ms: 16.48771
+  type: 'test'
+  ...
+# Subtest: legacy adapter maintains five outputs and original shape
+ok 12 - legacy adapter maintains five outputs and original shape
+  ---
+  duration_ms: 3.412437
+  type: 'test'
+  ...
+# Subtest: legacy adapter does not mutate candidate boundaries
+ok 13 - legacy adapter does not mutate candidate boundaries
+  ---
+  duration_ms: 0.263364
+  type: 'test'
+  ...
+# Subtest: profiles expose the exact versioned target union and are deeply readonly
+ok 14 - profiles expose the exact versioned target union and are deeply readonly
+  ---
+  duration_ms: 2.391243
+  type: 'test'
+  ...
+# Subtest: quality and portfolio weights sum to one for every profile
+ok 15 - quality and portfolio weights sum to one for every profile
+  ---
+  duration_ms: 0.4377
+  type: 'test'
+  ...
+# Subtest: omitted target resolves to generic and exactly preserves current Quality V2
+ok 16 - omitted target resolves to generic and exactly preserves current Quality V2
+  ---
+  duration_ms: 3.423529
+  type: 'test'
+  ...
+# Subtest: duration profiles remain bounded and only provide policy to canonical authority
+ok 17 - duration profiles remain bounded and only provide policy to canonical authority
+  ---
+  duration_ms: 1.250073
+  type: 'test'
+  ...
+# Subtest: story evidence remains primary over duration proximity for every platform
+ok 18 - story evidence remains primary over duration proximity for every platform
+  ---
+  duration_ms: 1.441264
+  type: 'test'
+  ...
+# Subtest: platform quality differences stay small and never rescue a weak candidate past the existing floor
+ok 19 - platform quality differences stay small and never rescue a weak candidate past the existing floor
+  ---
+  duration_ms: 1.125681
+  type: 'test'
+  ...
+# Subtest: portfolio preserves membership, duplicate rules, floor, and final count while allowing ordering evidence
+ok 20 - portfolio preserves membership, duplicate rules, floor, and final count while allowing ordering evidence
+  ---
+  duration_ms: 19.305056
+  type: 'test'
+  ...
+# Subtest: hook and filler adapters preserve strict context, QA, ratio, and generic behavior
+ok 21 - hook and filler adapters preserve strict context, QA, ratio, and generic behavior
+  ---
+  duration_ms: 2.272522
+  type: 'test'
+  ...
+# Subtest: source type and distribution target remain independent
+ok 22 - source type and distribution target remain independent
+  ---
+  duration_ms: 0.816816
+  type: 'test'
+  ...
+# Subtest: profiles and adapters are deterministic and contain no popularity, analytics, IO, clock, or random authority
+ok 23 - profiles and adapters are deterministic and contain no popularity, analytics, IO, clock, or random authority
+  ---
+  duration_ms: 18.657478
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1077.735333
+exit_code: 0
