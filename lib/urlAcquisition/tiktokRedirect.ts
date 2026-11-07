@@ -9,75 +9,96 @@ const ALLOWED_REDIRECT_HOSTS = new Set([
   "vt.tiktok.com",
 ]);
 
+const MAX_REDIRECT_DEPTH = 3;
+const DEFAULT_TIMEOUT_MS = 5000;
+
 export type RedirectResolutionResult =
   | Readonly<{ status: "resolved"; canonicalUrl: string; classification: SupportedTikTokUrl }>
   | Readonly<{ status: "not_tiktok"; reason: string }>
   | Readonly<{ status: "unsupported"; reason: string }>
   | Readonly<{ status: "network_error"; reason: string }>;
 
+export type RedirectResolutionOptions = Readonly<{
+  fetchFn?: typeof fetch;
+  maxRedirects?: number;
+  timeoutMs?: number;
+}>;
+
 export async function resolveSafeTikTokRedirect(
   shortUrl: string,
-  fetchFn: typeof fetch = fetch
+  options: RedirectResolutionOptions = {}
 ): Promise<RedirectResolutionResult> {
-  let parsed: URL;
-  try {
-    parsed = new URL(shortUrl);
-  } catch {
-    return { status: "unsupported", reason: "invalid_url" };
-  }
+  const fetchFn = options.fetchFn ?? fetch;
+  const maxRedirects = options.maxRedirects ?? MAX_REDIRECT_DEPTH;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-  const host = parsed.hostname.toLowerCase();
-  if (!ALLOWED_REDIRECT_HOSTS.has(host) || parsed.protocol !== "https:") {
-    return { status: "not_tiktok", reason: "disallowed_host_or_scheme" };
-  }
+  let currentUrl = shortUrl;
+  let redirectsFollowed = 0;
 
-  try {
-    // Perform HEAD request without following redirects automatically to avoid SSRF
-    const response = await fetchFn(shortUrl, {
-      method: "HEAD",
-      redirect: "manual",
-    });
+  while (redirectsFollowed <= maxRedirects) {
+    let parsed: URL;
+    try {
+      parsed = new URL(currentUrl);
+    } catch {
+      return { status: "unsupported", reason: "invalid_url" };
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    // Enforce HTTPS and strict allowlist on every hop (preventing localhost, RFC 1918, or non-TikTok hosts)
+    if (!ALLOWED_REDIRECT_HOSTS.has(host) || parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) {
+      return { status: "not_tiktok", reason: "disallowed_host_or_scheme" };
+    }
+
+    // If current URL is already a supported video URL, resolve immediately without unnecessary network calls
+    const immediateClassification = classifyUrl(currentUrl);
+    if (immediateClassification.kind === "SUPPORTED_TIKTOK") {
+      return {
+        status: "resolved",
+        canonicalUrl: immediateClassification.normalizedUrl,
+        classification: immediateClassification,
+      };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let response: Response;
+    try {
+      // Perform bounded HEAD request with manual redirect handling to prevent arbitrary SSRF or body downloading
+      response = await fetchFn(currentUrl, {
+        method: "HEAD",
+        redirect: "manual",
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      return {
+        status: "network_error",
+        reason: error instanceof Error ? error.message : "network_failure",
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const location = response.headers.get("location");
     if (!location) {
-      // If no location header, inspect the original url directly
-      const currentClassification = classifyUrl(shortUrl);
-      if (currentClassification.kind === "SUPPORTED_TIKTOK") {
-        return {
-          status: "resolved",
-          canonicalUrl: currentClassification.normalizedUrl,
-          classification: currentClassification,
-        };
-      }
       return { status: "unsupported", reason: "no_redirect_location" };
     }
 
-    let targetUrl: URL;
+    let nextTargetUrl: URL;
     try {
-      targetUrl = new URL(location, parsed.origin);
+      nextTargetUrl = new URL(location, parsed.origin);
     } catch {
       return { status: "unsupported", reason: "invalid_redirect_target" };
     }
 
-    const targetHost = targetUrl.hostname.toLowerCase();
-    if (!ALLOWED_REDIRECT_HOSTS.has(targetHost) || targetUrl.protocol !== "https:") {
-      return { status: "not_tiktok", reason: "redirect_target_disallowed" };
+    redirectsFollowed += 1;
+    if (redirectsFollowed > maxRedirects) {
+      return { status: "unsupported", reason: "too_many_redirects" };
     }
 
-    const classification = classifyUrl(targetUrl.toString());
-    if (classification.kind === "SUPPORTED_TIKTOK") {
-      return {
-        status: "resolved",
-        canonicalUrl: classification.normalizedUrl,
-        classification,
-      };
-    }
-
-    return { status: "unsupported", reason: "target_not_supported_video" };
-  } catch (error) {
-    return {
-      status: "network_error",
-      reason: error instanceof Error ? error.message : "network_failure",
-    };
+    currentUrl = nextTargetUrl.toString();
   }
+
+  return { status: "unsupported", reason: "too_many_redirects" };
 }

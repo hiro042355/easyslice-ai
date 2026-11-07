@@ -92,7 +92,7 @@ test("resolveSafeTikTokRedirect safely resolves short links without SSRF", async
     });
   };
 
-  const outcome = await resolveSafeTikTokRedirect(shortUrl, mockFetch);
+  const outcome = await resolveSafeTikTokRedirect(shortUrl, { fetchFn: mockFetch });
   assert.equal(outcome.status, "resolved");
   if (outcome.status === "resolved") {
     assert.equal(outcome.canonicalUrl, CANONICAL_URL);
@@ -114,8 +114,32 @@ test("resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains", as
     });
   };
 
-  const outcome = await resolveSafeTikTokRedirect(shortUrl, maliciousMockFetch);
+  const outcome = await resolveSafeTikTokRedirect(shortUrl, { fetchFn: maliciousMockFetch });
   assert.equal(outcome.status, "not_tiktok");
+});
+
+test("resolveSafeTikTokRedirect limits redirect count and detects loops", async () => {
+  const shortUrl = "https://vm.tiktok.com/ZMloop/";
+
+  // Mock fetch simulating redirect loop within allowed domain
+  const loopFetch: typeof fetch = async () => {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: "https://vt.tiktok.com/ZSloop/",
+      },
+    });
+  };
+
+  const outcome = await resolveSafeTikTokRedirect(shortUrl, {
+    fetchFn: loopFetch,
+    maxRedirects: 2,
+    timeoutMs: 1000,
+  });
+  assert.equal(outcome.status, "unsupported");
+  if (outcome.status === "unsupported") {
+    assert.equal(outcome.reason, "too_many_redirects");
+  }
 });
 
 test("evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints", () => {
