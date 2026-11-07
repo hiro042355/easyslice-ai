@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-11-07T23:31:09Z",
+  "baseCommit": "ce24b71c3a626988335ddd7a28c4f037f54534d3",
+  "evidenceDirectory": "docs/implementation/tiktok-production-readiness/20261107T233109Z/",
+  "documents": [
+    "executive-summary.md",
+    "post-merge-baseline.md",
+    "user-journey-audit.md",
+    "upload-security-audit.md",
+    "database-persistence-audit.md",
+    "runtime-deployment-audit.md",
+    "tiktok-acquisition-boundary-audit.md",
+    "production-gap-matrix.md",
+    "risk-register.md",
+    "required-external-approvals.md",
+    "production-test-plan.md",
+    "product-owner-action-checklist.md",
+    "readiness-gates.json",
+    "change-manifest.json",
+    "evidence-manifest.json"
+  ],
+  "rawLogs": [
+    "raw-test-logs/classify-tiktok-url.log",
+    "raw-test-logs/tiktok-pipeline-handoff.log",
+    "raw-test-logs/classify-url.log",
+    "raw-test-logs/media-admission-validation.log",
+    "raw-test-logs/durable-media-admission-client.log",
+    "raw-test-logs/clipping-platform-optimization.log",
+    "raw-test-logs/npm-prebuild.log",
+    "raw-test-logs/npm-build.log",
+    "raw-test-logs/npm-lint.log",
+    "raw-test-logs/npm-typecheck.log"
+  ]
+}

@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: classifyUrl recognizes and normalizes canonical desktop TikTok URLs
+ok 1 - classifyUrl recognizes and normalizes canonical desktop TikTok URLs
+  ---
+  duration_ms: 2.235946
+  type: 'test'
+  ...
+# Subtest: classifyUrl recognizes mobile path /v/:id.html
+ok 2 - classifyUrl recognizes mobile path /v/:id.html
+  ---
+  duration_ms: 0.396808
+  type: 'test'
+  ...
+# Subtest: classifyUrl rejects non-video TikTok URLs safely as UNSUPPORTED_TIKTOK
+ok 3 - classifyUrl rejects non-video TikTok URLs safely as UNSUPPORTED_TIKTOK
+  ---
+  duration_ms: 0.412979
+  type: 'test'
+  ...
+# Subtest: classifyUrl rejects phishing and lookalike hosts as UNSUPPORTED_URL
+ok 4 - classifyUrl rejects phishing and lookalike hosts as UNSUPPORTED_URL
+  ---
+  duration_ms: 0.281355
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect safely resolves short links without SSRF
+ok 5 - resolveSafeTikTokRedirect safely resolves short links without SSRF
+  ---
+  duration_ms: 26.029335
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains
+ok 6 - resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains
+  ---
+  duration_ms: 0.42709
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect limits redirect count and detects loops
+ok 7 - resolveSafeTikTokRedirect limits redirect count and detects loops
+  ---
+  duration_ms: 0.913548
+  type: 'test'
+  ...
+# Subtest: evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints
+ok 8 - evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints
+  ---
+  duration_ms: 0.54797
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 333.466714
+Exit code: 0
