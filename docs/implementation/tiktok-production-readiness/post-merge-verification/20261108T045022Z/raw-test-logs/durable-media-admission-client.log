@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: media bytes go only to the server-issued resumable URL
+ok 1 - media bytes go only to the server-issued resumable URL
+  ---
+  duration_ms: 30.245835
+  type: 'test'
+  ...
+# Subtest: non-JSON platform failures are reported without a JSON parse exception
+ok 2 - non-JSON platform failures are reported without a JSON parse exception
+  ---
+  duration_ms: 1.687257
+  type: 'test'
+  ...
+# Subtest: GCS upload failures expose only safe protocol diagnostics
+ok 3 - GCS upload failures expose only safe protocol diagnostics
+  ---
+  duration_ms: 1.748016
+  type: 'test'
+  ...
+# Subtest: GCS JSON diagnostics preserve safe nested error fields and redact authority
+ok 4 - GCS JSON diagnostics preserve safe nested error fields and redact authority
+  ---
+  duration_ms: 1.618193
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 396.576045
+exit_code=0

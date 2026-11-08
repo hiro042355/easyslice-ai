@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-11-08T04:50:22Z",
+  "baselineCommit": "d636ae79045cca888757bf897e969d5d485f6640",
+  "mergedPullRequest": 7,
+  "evidenceDirectory": "docs/implementation/tiktok-production-readiness/post-merge-verification/20261108T045022Z/",
+  "decision": "POST_MERGE_VERIFICATION_PASS_WITH_LIMITATIONS",
+  "documents": [
+    "merged-pr-confirmation.md",
+    "post-merge-baseline.md",
+    "regression-results.md",
+    "readiness-gate-matrix.md",
+    "readiness-gates.json",
+    "remaining-blockers.md",
+    "evidence-manifest.json"
+  ],
+  "rawLogs": [
+    "raw-test-logs/classify-tiktok-url.log",
+    "raw-test-logs/classify-url.log",
+    "raw-test-logs/tiktok-pipeline-handoff.log",
+    "raw-test-logs/media-admission-validation.log",
+    "raw-test-logs/durable-media-admission-client.log",
+    "raw-test-logs/clipping-platform-optimization.log",
+    "raw-test-logs/npm-prebuild.log",
+    "raw-test-logs/npm-build.log",
+    "raw-test-logs/npm-typecheck.log",
+    "raw-test-logs/npm-lint.log"
+  ]
+}
