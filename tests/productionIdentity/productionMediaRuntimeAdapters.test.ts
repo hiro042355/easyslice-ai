@@ -10,21 +10,115 @@ import {
   resolveAuthorizedBucketName,
 } from "../../lib/server/productionMediaRuntime/gcsAdapter";
 import { readProductionMediaWifConfiguration } from "../../lib/server/productionMediaRuntime/mediaWifCredential";
-import { withProductionMediaCloudSqlPool } from "../../lib/server/productionMediaRuntime/cloudSqlAdapter";
+import {
+  withProductionMediaCloudSqlPool,
+  validateMediaCloudSqlAuthority,
+} from "../../lib/server/productionMediaRuntime/cloudSqlAdapter";
 
 const environment = Object.freeze({
+  APP_ENVIRONMENT: "production",
   GCP_PROJECT_ID: "nexcut-prod-jp-2026",
   GCP_WIF_PROVIDER_RESOURCE: "projects/566365202495/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production",
   GCP_MEDIA_WIF_SERVICE_ACCOUNT: "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com",
 });
 
 test("media WIF authority is exact and independent from Firebase service account", () => {
-  const result = readProductionMediaWifConfiguration(environment);
+  const result = readProductionMediaWifConfiguration(environment, "production");
   assert.equal(result.serviceAccountEmail, environment.GCP_MEDIA_WIF_SERVICE_ACCOUNT);
   assert.throws(() => readProductionMediaWifConfiguration({
     ...environment,
     GCP_MEDIA_WIF_SERVICE_ACCOUNT: "nexcut-prod-web-auth@nexcut-prod-jp-2026.iam.gserviceaccount.com",
-  }), /Invalid Production media/);
+  }, "production"), /Invalid Production media/);
+});
+
+test("readProductionMediaWifConfiguration enforces fail-closed environment validation", () => {
+  const envWithoutAppEnv = {
+    ...environment,
+    APP_ENVIRONMENT: undefined,
+  };
+  assert.throws(
+    () => readProductionMediaWifConfiguration(envWithoutAppEnv, undefined),
+    /Unauthorized or missing APP_ENVIRONMENT: undefined/,
+  );
+  assert.throws(
+    () => readProductionMediaWifConfiguration(environment, "development"),
+    /Unauthorized or missing APP_ENVIRONMENT: development/,
+  );
+  // Staging with production WIF authority fails closed
+  assert.throws(
+    () => readProductionMediaWifConfiguration(environment, "staging"),
+    /production WIF authority cannot be used in staging/,
+  );
+  // Staging without approved WIF parameters fails closed
+  assert.throws(
+    () => readProductionMediaWifConfiguration({
+      APP_ENVIRONMENT: "staging",
+      GCP_PROJECT_ID: "easyslice-staging",
+      GCP_WIF_PROVIDER_RESOURCE: "projects/123/locations/global/workloadIdentityPools/staging/providers/vercel",
+      GCP_MEDIA_WIF_SERVICE_ACCOUNT: "staging-media@easyslice-staging.iam.gserviceaccount.com",
+    }, "staging"),
+    /Staging media WIF authority requires explicit Product Owner configuration approval/,
+  );
+});
+
+test("validateMediaCloudSqlAuthority enforces fail-closed connection tuple validation", () => {
+  const validProductionTuple = {
+    instanceConnectionName: "nexcut-prod-jp-2026:asia-northeast1:nexcut-prod-postgresql",
+    database: "nexcut",
+    iamUser: "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam",
+  };
+  // Production succeeds with exact tuple
+  assert.doesNotThrow(() => validateMediaCloudSqlAuthority("production", validProductionTuple));
+
+  // Missing or unknown environment throws
+  assert.throws(
+    () => validateMediaCloudSqlAuthority(undefined, validProductionTuple),
+    /Unauthorized or missing APP_ENVIRONMENT: undefined/,
+  );
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("local", validProductionTuple),
+    /Unauthorized or missing APP_ENVIRONMENT: local/,
+  );
+
+  // Missing fields fail
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("production", { ...validProductionTuple, instanceConnectionName: "" }),
+    /Missing Cloud SQL instance connection name/,
+  );
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("production", { ...validProductionTuple, database: "" }),
+    /Missing Cloud SQL database name/,
+  );
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("production", { ...validProductionTuple, iamUser: "" }),
+    /Missing Cloud SQL IAM user/,
+  );
+
+  // Mismatched production fields fail
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("production", { ...validProductionTuple, database: "staging_db" }),
+    /Invalid Production Cloud SQL authority: database mismatch/,
+  );
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("production", { ...validProductionTuple, instanceConnectionName: "other-instance" }),
+    /Invalid Production Cloud SQL authority: instance mismatch/,
+  );
+
+  // Staging with production credentials fails closed
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("staging", validProductionTuple),
+    /production database credentials cannot be used in staging/,
+  );
+
+  // Staging without explicit PO approval fails closed
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("staging", {
+      instanceConnectionName: "easyslice-staging:asia-northeast1:staging-pg",
+      database: "easyslice_staging",
+      iamUser: "staging-app-sa@easyslice-staging.iam",
+    }),
+    /Staging Cloud SQL authority requires explicit Product Owner configuration approval/,
+  );
 });
 
 test("GCS compatibility adapter preserves the impersonated authorization header", async () => {
@@ -163,7 +257,7 @@ test("media Cloud SQL facade preserves callback-scoped native pool cleanup", asy
       };
     },
     createPool() { return nativePool; },
-  });
+  }, "production");
 
   assert.equal(result, "complete");
   assert.deepEqual(events, ["callback", "pool-close", "connector-close"]);
@@ -184,7 +278,7 @@ test("media Cloud SQL facade cleans pool and connector when callback fails", asy
       close() { events.push("connector-close"); },
     }),
     createPool: () => nativePool,
-  }), /callback failed/);
+  }, "production"), /callback failed/);
   assert.deepEqual(events, ["pool-close", "connector-close"]);
 });
 
@@ -205,7 +299,7 @@ test("media Connector cleanup still runs when native pool end fails", async () =
       close() { events.push("connector-close"); },
     }),
     createPool: () => nativePool,
-  }), (error: Error) => {
+  }, "production"), (error: Error) => {
     assert.equal(error.message, "Production media Cloud SQL cleanup failed");
     assert.equal(error.cause, undefined);
     assert.doesNotMatch(String(error), /sensitive/);
@@ -232,7 +326,7 @@ test("media preserves callback failure while attempting every failing cleanup", 
       close() { events.push("connector-close"); throw new Error("sensitive connector cleanup detail"); },
     }),
     createPool: () => nativePool,
-  }), (error) => error === callbackError);
+  }, "production"), (error) => error === callbackError);
   assert.deepEqual(events, ["pool-close", "connector-close"]);
 });
 
@@ -251,7 +345,7 @@ test("media Connector close failure exposes only the closed cleanup error", asyn
       close() { events.push("connector-close"); throw new Error("sensitive connector cleanup detail"); },
     }),
     createPool: () => nativePool,
-  }), (error: Error) => {
+  }, "production"), (error: Error) => {
     assert.equal(error.message, "Production media Cloud SQL cleanup failed");
     assert.equal(error.cause, undefined);
     assert.doesNotMatch(String(error), /sensitive/);
