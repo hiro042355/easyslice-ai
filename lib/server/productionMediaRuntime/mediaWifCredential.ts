@@ -2,6 +2,8 @@ import { IdentityPoolClient, type SubjectTokenSupplier } from "google-auth-libra
 
 const SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token";
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+export const PRODUCTION_PROJECT_NUMBER = "566365202495" as const;
+export const PRODUCTION_WIF_PROVIDER_RESOURCE = `projects/${PRODUCTION_PROJECT_NUMBER}/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production` as const;
 
 export type ProductionMediaWifConfiguration = Readonly<{
   projectId: string;
@@ -28,8 +30,8 @@ export const readProductionMediaWifConfiguration = (
 
   if (activeEnvironment === "production") {
     if (projectId !== "nexcut-prod-jp-2026") throw new Error("Invalid Production media project authority");
-    if (!/^projects\/[1-9][0-9]*\/locations\/global\/workloadIdentityPools\/nexcut-prod-vercel\/providers\/vercel-production$/.test(providerResource)) {
-      throw new Error("Invalid Production media WIF provider authority");
+    if (providerResource !== PRODUCTION_WIF_PROVIDER_RESOURCE) {
+      throw new Error("Invalid Production media WIF provider authority: project number or pool mismatch");
     }
     if (serviceAccountEmail !== "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com") {
       throw new Error("Invalid Production media service-account authority");
@@ -37,7 +39,7 @@ export const readProductionMediaWifConfiguration = (
   } else if (activeEnvironment === "staging") {
     // Authoritative staging WIF values require explicit Product Owner approval
     // Mismatched or production values in staging fail closed
-    if (projectId === "nexcut-prod-jp-2026" || serviceAccountEmail.includes("nexcut-prod")) {
+    if (projectId === "nexcut-prod-jp-2026" || serviceAccountEmail.includes("nexcut-prod") || providerResource.includes(PRODUCTION_PROJECT_NUMBER)) {
       throw new Error("Invalid Staging media authority: production WIF authority cannot be used in staging");
     }
     throw new Error("Staging media WIF authority requires explicit Product Owner configuration approval");

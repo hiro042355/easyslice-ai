@@ -9,26 +9,54 @@ import {
   createStorageCompatibleAuthClient,
   resolveAuthorizedBucketName,
 } from "../../lib/server/productionMediaRuntime/gcsAdapter";
-import { readProductionMediaWifConfiguration } from "../../lib/server/productionMediaRuntime/mediaWifCredential";
+import {
+  readProductionMediaWifConfiguration,
+  PRODUCTION_PROJECT_NUMBER,
+  PRODUCTION_WIF_PROVIDER_RESOURCE,
+} from "../../lib/server/productionMediaRuntime/mediaWifCredential";
 import {
   withProductionMediaCloudSqlPool,
   validateMediaCloudSqlAuthority,
 } from "../../lib/server/productionMediaRuntime/cloudSqlAdapter";
+import {
+  validateMediaRuntimeConfiguration,
+  executeProductionMediaRuntime,
+  type MediaRuntimeClientFactories,
+} from "../../lib/server/productionMediaRuntime/compositionCore";
 
 const environment = Object.freeze({
   APP_ENVIRONMENT: "production",
   GCP_PROJECT_ID: "nexcut-prod-jp-2026",
-  GCP_WIF_PROVIDER_RESOURCE: "projects/566365202495/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production",
+  GCP_WIF_PROVIDER_RESOURCE: `projects/${PRODUCTION_PROJECT_NUMBER}/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production`,
   GCP_MEDIA_WIF_SERVICE_ACCOUNT: "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com",
+});
+
+const fullProductionEnv = Object.freeze({
+  ...environment,
+  MEDIA_BUCKET_NAME: "nexcut-prod-jp-2026-media",
+  CLOUD_SQL_INSTANCE_CONNECTION_NAME: "nexcut-prod-jp-2026:asia-northeast1:nexcut-prod-postgresql",
+  POSTGRES_DATABASE: "nexcut",
+  POSTGRES_IAM_USER: "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam",
 });
 
 test("media WIF authority is exact and independent from Firebase service account", () => {
   const result = readProductionMediaWifConfiguration(environment, "production");
   assert.equal(result.serviceAccountEmail, environment.GCP_MEDIA_WIF_SERVICE_ACCOUNT);
+  assert.equal(result.providerResource, PRODUCTION_WIF_PROVIDER_RESOURCE);
   assert.throws(() => readProductionMediaWifConfiguration({
     ...environment,
     GCP_MEDIA_WIF_SERVICE_ACCOUNT: "nexcut-prod-web-auth@nexcut-prod-jp-2026.iam.gserviceaccount.com",
   }, "production"), /Invalid Production media/);
+});
+
+test("readProductionMediaWifConfiguration enforces exact production project number", () => {
+  assert.throws(
+    () => readProductionMediaWifConfiguration({
+      ...environment,
+      GCP_WIF_PROVIDER_RESOURCE: "projects/999999999999/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production",
+    }, "production"),
+    /Invalid Production media WIF provider authority: project number or pool mismatch/,
+  );
 });
 
 test("readProductionMediaWifConfiguration enforces fail-closed environment validation", () => {
@@ -119,6 +147,83 @@ test("validateMediaCloudSqlAuthority enforces fail-closed connection tuple valid
     }),
     /Staging Cloud SQL authority requires explicit Product Owner configuration approval/,
   );
+});
+
+test("executeProductionMediaRuntime enforces zero factory calls on invalid configuration", async () => {
+  const callCounts = {
+    getOidcToken: 0,
+    createWifClient: 0,
+    createBucket: 0,
+    withCloudSqlPool: 0,
+  };
+
+  const spyFactories: MediaRuntimeClientFactories = Object.freeze({
+    getOidcToken: async () => { callCounts.getOidcToken++; return "token"; },
+    createWifClient: () => { callCounts.createWifClient++; return {} as IdentityPoolClient; },
+    createBucket: () => { callCounts.createBucket++; return {} as ReturnType<typeof createProductionMediaBucket>; },
+    withCloudSqlPool: async () => { callCounts.withCloudSqlPool++; return "done" as never; },
+  });
+
+  const invalidTestCases = [
+    { name: "missing APP_ENVIRONMENT", env: { ...fullProductionEnv, APP_ENVIRONMENT: undefined } },
+    { name: "unknown APP_ENVIRONMENT", env: { ...fullProductionEnv, APP_ENVIRONMENT: "development" } },
+    { name: "missing GCP_PROJECT_ID", env: { ...fullProductionEnv, GCP_PROJECT_ID: undefined } },
+    { name: "invalid WIF project number", env: { ...fullProductionEnv, GCP_WIF_PROVIDER_RESOURCE: "projects/123/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production" } },
+    { name: "production WIF in staging", env: { ...fullProductionEnv, APP_ENVIRONMENT: "staging" } },
+    { name: "missing MEDIA_BUCKET_NAME", env: { ...fullProductionEnv, MEDIA_BUCKET_NAME: undefined } },
+    { name: "staging bucket in production", env: { ...fullProductionEnv, MEDIA_BUCKET_NAME: "easyslice-staging-media-artifacts" } },
+    { name: "missing CLOUD_SQL_INSTANCE_CONNECTION_NAME", env: { ...fullProductionEnv, CLOUD_SQL_INSTANCE_CONNECTION_NAME: undefined } },
+    { name: "missing POSTGRES_DATABASE", env: { ...fullProductionEnv, POSTGRES_DATABASE: undefined } },
+    { name: "missing POSTGRES_IAM_USER", env: { ...fullProductionEnv, POSTGRES_IAM_USER: undefined } },
+    { name: "mismatched Cloud SQL database", env: { ...fullProductionEnv, POSTGRES_DATABASE: "other-database" } },
+  ];
+
+  for (const { name, env } of invalidTestCases) {
+    const priorCounts = { ...callCounts };
+    await assert.rejects(
+      async () => executeProductionMediaRuntime(async () => "success", spyFactories, env),
+      (err: Error) => {
+        assert.ok(err instanceof Error);
+        return true;
+      },
+      `Expected rejection for test case: ${name}`,
+    );
+    // Directly verify that ZERO factory calls occurred
+    assert.deepEqual(callCounts, priorCounts, `Factory calls occurred during invalid case: ${name}`);
+  }
+});
+
+test("executeProductionMediaRuntime enforces strict Phase A -> Phase B ordered execution log", async () => {
+  const executionOrder: string[] = [];
+
+  const spyFactories: MediaRuntimeClientFactories = Object.freeze({
+    getOidcToken: async () => { executionOrder.push("getOidcToken"); return "token"; },
+    createWifClient: () => { executionOrder.push("createWifClient"); return {} as IdentityPoolClient; },
+    createBucket: () => { executionOrder.push("createBucket"); return {} as ReturnType<typeof createProductionMediaBucket>; },
+    withCloudSqlPool: async (_auth, _config, op) => {
+      executionOrder.push("withCloudSqlPool:open");
+      const fakePool = {} as Pool;
+      const res = await op(fakePool);
+      executionOrder.push("withCloudSqlPool:close");
+      return res;
+    },
+  });
+
+  const result = await executeProductionMediaRuntime(async ({ bucket, pool }) => {
+    executionOrder.push("operation:execute");
+    assert.ok(bucket);
+    assert.ok(pool);
+    return "operation-complete";
+  }, spyFactories, fullProductionEnv);
+
+  assert.equal(result, "operation-complete");
+  assert.deepEqual(executionOrder, [
+    "createWifClient",
+    "createBucket",
+    "withCloudSqlPool:open",
+    "operation:execute",
+    "withCloudSqlPool:close",
+  ]);
 });
 
 test("GCS compatibility adapter preserves the impersonated authorization header", async () => {
@@ -229,6 +334,7 @@ test("reusable media runtime sources do not log or embed static credentials", ()
     "lib/server/productionMediaRuntime/mediaWifCredential.ts",
     "lib/server/productionMediaRuntime/gcsAdapter.ts",
     "lib/server/productionMediaRuntime/cloudSqlAdapter.ts",
+    "lib/server/productionMediaRuntime/compositionCore.ts",
   ].map(file => readFileSync(file, "utf8")).join("\n");
   assert.doesNotMatch(sources, /console\.|NEXT_PUBLIC_|google_service_account_key|service-account\.json/);
   assert.doesNotMatch(sources, /SELECT 1|CREATE TABLE|ALTER TABLE|GRANT /);
