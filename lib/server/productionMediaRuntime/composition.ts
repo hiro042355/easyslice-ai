@@ -20,7 +20,12 @@ export const withProductionMediaRuntime = async <T>(
 ): Promise<T> => {
   const configuration = readProductionMediaWifConfiguration();
   const auth = createProductionMediaWifClient(configuration, () => getVercelOidcToken());
-  const bucket = createProductionMediaBucket(auth, required("MEDIA_BUCKET_NAME", process.env.MEDIA_BUCKET_NAME));
+  const environment = required("APP_ENVIRONMENT", process.env.APP_ENVIRONMENT);
+  const bucket = createProductionMediaBucket(
+    auth,
+    required("MEDIA_BUCKET_NAME", process.env.MEDIA_BUCKET_NAME),
+    environment,
+  );
   return withProductionMediaCloudSqlPool(auth, {
     instanceConnectionName: required("CLOUD_SQL_INSTANCE_CONNECTION_NAME", process.env.CLOUD_SQL_INSTANCE_CONNECTION_NAME),
     database: required("POSTGRES_DATABASE", process.env.POSTGRES_DATABASE),

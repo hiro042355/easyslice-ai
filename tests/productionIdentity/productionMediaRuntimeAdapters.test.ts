@@ -4,8 +4,10 @@ import test from "node:test";
 import type { IdentityPoolClient } from "google-auth-library";
 import type { Pool } from "pg";
 import {
+  AUTHORIZED_BUCKET_MAP,
   createProductionMediaBucket,
   createStorageCompatibleAuthClient,
+  resolveAuthorizedBucketName,
 } from "../../lib/server/productionMediaRuntime/gcsAdapter";
 import { readProductionMediaWifConfiguration } from "../../lib/server/productionMediaRuntime/mediaWifCredential";
 import { withProductionMediaCloudSqlPool } from "../../lib/server/productionMediaRuntime/cloudSqlAdapter";
@@ -71,8 +73,61 @@ test("GCS compatibility adapter preserves the impersonated authorization header"
 
 test("GCS composition retains the exact Production bucket authority", () => {
   const authClient = {} as IdentityPoolClient;
-  assert.equal(createProductionMediaBucket(authClient, "nexcut-prod-jp-2026-media").name, "nexcut-prod-jp-2026-media");
-  assert.throws(() => createProductionMediaBucket(authClient, "nexcut-staging-media"), /Invalid Production media bucket/);
+  assert.equal(createProductionMediaBucket(authClient, "nexcut-prod-jp-2026-media", "production").name, "nexcut-prod-jp-2026-media");
+  assert.throws(() => createProductionMediaBucket(authClient, "nexcut-staging-media", "production"), /Invalid Production media bucket/);
+});
+
+test("resolveAuthorizedBucketName enforces fail-closed environment-to-bucket isolation", () => {
+  assert.equal(
+    resolveAuthorizedBucketName("production", AUTHORIZED_BUCKET_MAP.production),
+    "nexcut-prod-jp-2026-media",
+  );
+  assert.equal(
+    resolveAuthorizedBucketName("staging", AUTHORIZED_BUCKET_MAP.staging),
+    "easyslice-staging-media-artifacts",
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName("production", AUTHORIZED_BUCKET_MAP.staging),
+    /Invalid Production media bucket authority/,
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName("staging", AUTHORIZED_BUCKET_MAP.production),
+    /Invalid Production media bucket authority/,
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName(undefined, AUTHORIZED_BUCKET_MAP.production),
+    /unauthorized environment undefined/,
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName("development", AUTHORIZED_BUCKET_MAP.production),
+    /unauthorized environment development/,
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName("production", undefined),
+    /missing bucket name/,
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName("production", "arbitrary-unknown-bucket"),
+    /Invalid Production media bucket authority/,
+  );
+  assert.throws(
+    () => resolveAuthorizedBucketName("staging", "arbitrary-unknown-bucket"),
+    /Invalid Production media bucket authority/,
+  );
+});
+
+test("createProductionMediaBucket supports staging when explicitly passed", () => {
+  const authClient = {} as IdentityPoolClient;
+  const stagingBucket = createProductionMediaBucket(authClient, "easyslice-staging-media-artifacts", "staging");
+  assert.equal(stagingBucket.name, "easyslice-staging-media-artifacts");
+  assert.throws(
+    () => createProductionMediaBucket(authClient, "nexcut-prod-jp-2026-media", "staging"),
+    /Invalid Production media bucket authority/,
+  );
+  assert.throws(
+    () => createProductionMediaBucket(authClient, "easyslice-staging-media-artifacts", undefined),
+    /unauthorized environment undefined/,
+  );
 });
 
 test("reusable media runtime sources do not log or embed static credentials", () => {
