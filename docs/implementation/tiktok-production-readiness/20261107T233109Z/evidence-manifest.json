@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-07T23:31:09Z",
+  "timestamp": "2026-11-08T00:35:00Z",
   "baseCommit": "ce24b71c3a626988335ddd7a28c4f037f54534d3",
   "evidenceDirectory": "docs/implementation/tiktok-production-readiness/20261107T233109Z/",
   "documents": [
@@ -20,6 +20,8 @@
     "evidence-manifest.json"
   ],
   "rawLogs": [
+    "raw-test-logs/baseline-npm-lint.log",
+    "raw-test-logs/baseline-npm-typecheck.log",
     "raw-test-logs/classify-tiktok-url.log",
     "raw-test-logs/tiktok-pipeline-handoff.log",
     "raw-test-logs/classify-url.log",

@@ -1,12 +1,12 @@
 # Database and Persistence Audit
 
-**Audit Timestamp:** `2026-11-07T23:31:09Z`
+**Audit Timestamp:** `2026-11-07T23:31:09Z` (Updated: `2026-11-08T00:35:00Z`)
 **Evaluator:** Jules (Software Engineer)
-**Overall Status:** `PASS` (Repository & Migration Design) / `NOT_VERIFIED` (Production Application on Live Cloud SQL)
+**Overall Status:** `NOT_VERIFIED` for Production Database Application / `PASS` for Static SQL Review & Contract Alignment
 
 ---
 
-## 1. Migration V000009 Analysis
+## 1. Migration V000009 Rigorous Three-Tier Distinction
 
 **File:** `db/workflow/migrations/V000009__expand_asset_import_platform.sql`
 
@@ -22,56 +22,35 @@ ALTER TABLE workflow.asset_import_requests
   CHECK (command_version = '1.0' AND platform IN ('youtube', 'tiktok'));
 ```
 
-### Safety & Backward Compatibility Evaluation:
-1. **Additive Schema Evolution:**
-   - Previous constraint from `V000008__add_asset_import_idempotency.sql` enforced:
-     `CHECK (command_version = '1.0' AND platform = 'youtube')`.
-   - The updated constraint expands the allowed set to `('youtube', 'tiktok')`.
-   - Existing rows with `platform = 'youtube'` remain 100% compliant and valid.
-2. **Locking Impact:**
-   - In PostgreSQL, dropping a check constraint (`DROP CONSTRAINT`) takes an `ACCESS EXCLUSIVE` lock on `workflow.asset_import_requests`.
-   - Re-adding the check constraint without `NOT VALID` will scan the table to validate existing rows. Because the table is bounded and rows only have `'youtube'`, this validation completes in milliseconds.
-3. **Rollback Feasibility:**
-   - Reversible by dropping `ck_asset_import_authority` and re-adding the previous condition `platform = 'youtube'` (provided no rows with `platform = 'tiktok'` exist at time of rollback).
-4. **Idempotency & Replay:**
-   - The migration uses standard Flyway/versioned migration naming (`V000009__...`). It will execute exactly once during Flyway migration deployment.
+To prevent ungrounded claims of production readiness, this audit explicitly distinguishes three operational levels:
+
+### Level 1: Static SQL & Schema Review (Status: PASS)
+- **Constraint Expansion:** The previous check constraint defined in `V000008` enforced `(command_version = '1.0' AND platform = 'youtube')`. The new constraint expands this to `IN ('youtube', 'tiktok')`.
+- **Backward Compatibility:** All existing rows where `platform = 'youtube'` satisfy the new predicate identically. No existing rows are invalidated or modified.
+- **Locking Characteristics:** `ALTER TABLE ... DROP CONSTRAINT` takes an `ACCESS EXCLUSIVE` lock. Re-adding the constraint without `NOT VALID` triggers a table scan to validate existing rows. Because `workflow.asset_import_requests` is small and only contains valid `'youtube'` entries, the lock duration in PostgreSQL will be under a few milliseconds.
+- **Contract Parity:** Perfectly aligns with the TypeScript union `CanonicalAssetImportSource` in `lib/assetImport/types.ts` (`export type CanonicalAssetImportPlatform = "youtube" | "tiktok"`).
+
+### Level 2: Local Disposable Database Migration Test (Status: NOT_APPLICABLE / NO LOCAL PG CONTAINER RUNNING)
+- The sandbox environment does not run an active local PostgreSQL daemon or Docker container.
+- Verification in unit tests (`tests/urlAcquisition/productionAssetImportCommand.test.ts` and `tests/postgresqlTestEnvironment/`) tests schema contracts, regex invariants, and query syntax offline.
+- No live PostgreSQL migration execution was attempted or simulated on a disposable container.
+
+### Level 3: Production Database Application (Status: NOT_VERIFIED)
+- In strict adherence to security rules, migration `V000009` has **NOT** been applied to the live Google Cloud SQL instance (`nexcut-prod-postgresql`).
+- Applying this migration requires scheduled maintenance window authorization and invocation through Flyway by the authorized service account `database_migration@...`.
+- **Verdict for Gate `DATABASE_MIGRATION_READY`:** Evaluated as `NOT_VERIFIED` for production release, though static SQL analysis is verified `PASS`.
 
 ---
 
-## 2. Media Ownership & Job Persistence Architecture
+## 2. Media Ownership & Transactional Consistency
 
-**File:** `app/api/media/admit/route.ts` & `lib/server/durableMediaOwnership/repository.ts`
+**Files:** `app/api/media/admit/route.ts` & `lib/server/durableMediaOwnership/repository.ts`
 
 1. **Transactional Boundaries:**
-   - Media registration happens in an explicit PostgreSQL transaction:
-     ```ts
-     const transaction = await pool.connect();
-     try {
-       await transaction.query("BEGIN");
-       const repository = createDurableMediaOwnershipRepository(transaction);
-       // ... checks existing job / media ...
-       await repository.createJobWithId(body.jobId, ownerUid);
-       const media = await repository.createMediaWithId(body.mediaId, body.jobId, ownerUid, "input", VIDEO_MIME);
-       await transaction.query("COMMIT");
-     } catch (error) {
-       await transaction.query("ROLLBACK").catch(() => undefined);
-       await object.delete({ ignoreNotFound: true }).catch(() => undefined);
-       throw error;
-     } finally {
-       transaction.release();
-     }
-     ```
-2. **Data Consistency between `workflow.jobs` and `workflow.media`:**
-   - Invariant: `workflow.media.job_id` references `workflow.jobs.id`.
-   - Media creation relies on `INSERT INTO workflow.media (id, job_id, storage_key, kind) SELECT $1, j.id, $2, $3 FROM workflow.jobs j WHERE j.id = $4 AND j.owner_uid = $5`.
-   - If the job does not exist or belongs to another owner, zero rows are inserted, triggering a transaction rollback.
-3. **Storage vs Database Atomicity:**
-   - If database insertion fails after GCS upload has completed, the compensation handler immediately issues `object.delete({ ignoreNotFound: true })` on GCS, preventing orphaned storage objects.
-   - Idempotent finalization: Re-issuing finalize for an already admitted `{ jobId, mediaId }` verifies that the job and media exist and match the expected storage key, returning HTTP 200 without creating duplicates or failing.
-
----
-
-## 3. Production Deployment Status
-
-- **Repository Status:** `PASS`. Migration SQL is verified, syntax-valid, and covered by type contracts in `lib/assetImport/types.ts`.
-- **Live Database Status:** `NOT_VERIFIED`. In accordance with safety policies, migrations have NOT been applied to the live Google Cloud SQL production instance `nexcut-prod-postgresql`. This requires Product Owner authorization and deployment execution via CI/CD Flyway runner.
+   - Media registration happens inside an explicit `BEGIN ... COMMIT` block.
+   - If an error occurs during repository creation, `ROLLBACK` is executed immediately, followed by compensation cleanup deleting the uploaded GCS object (`object.delete({ ignoreNotFound: true })`).
+2. **Referential Invariants:**
+   - `workflow.media.job_id` references `workflow.jobs.id`.
+   - Media insertion uses `INSERT INTO workflow.media (id, job_id, storage_key, kind) SELECT $1, j.id, $2, $3 FROM workflow.jobs j WHERE j.id = $4 AND j.owner_uid = $5`. If the job does not belong to the authenticated `ownerUid`, zero rows are inserted, triggering transaction failure.
+3. **Idempotent Duplicate Resolution:**
+   - Re-requesting finalize on an already registered `{ jobId, mediaId }` with matching storage key safely returns HTTP 200 without creating duplicate records or failing.
