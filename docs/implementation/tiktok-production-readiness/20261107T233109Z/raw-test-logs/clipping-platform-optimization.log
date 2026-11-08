@@ -1,0 +1,71 @@
+TAP version 13
+# Subtest: profiles expose the exact versioned target union and are deeply readonly
+ok 1 - profiles expose the exact versioned target union and are deeply readonly
+  ---
+  duration_ms: 2.266503
+  type: 'test'
+  ...
+# Subtest: quality and portfolio weights sum to one for every profile
+ok 2 - quality and portfolio weights sum to one for every profile
+  ---
+  duration_ms: 0.475634
+  type: 'test'
+  ...
+# Subtest: omitted target resolves to generic and exactly preserves current Quality V2
+ok 3 - omitted target resolves to generic and exactly preserves current Quality V2
+  ---
+  duration_ms: 3.16676
+  type: 'test'
+  ...
+# Subtest: duration profiles remain bounded and only provide policy to canonical authority
+ok 4 - duration profiles remain bounded and only provide policy to canonical authority
+  ---
+  duration_ms: 1.202097
+  type: 'test'
+  ...
+# Subtest: story evidence remains primary over duration proximity for every platform
+ok 5 - story evidence remains primary over duration proximity for every platform
+  ---
+  duration_ms: 1.485016
+  type: 'test'
+  ...
+# Subtest: platform quality differences stay small and never rescue a weak candidate past the existing floor
+ok 6 - platform quality differences stay small and never rescue a weak candidate past the existing floor
+  ---
+  duration_ms: 0.94761
+  type: 'test'
+  ...
+# Subtest: portfolio preserves membership, duplicate rules, floor, and final count while allowing ordering evidence
+ok 7 - portfolio preserves membership, duplicate rules, floor, and final count while allowing ordering evidence
+  ---
+  duration_ms: 17.644781
+  type: 'test'
+  ...
+# Subtest: hook and filler adapters preserve strict context, QA, ratio, and generic behavior
+ok 8 - hook and filler adapters preserve strict context, QA, ratio, and generic behavior
+  ---
+  duration_ms: 1.992831
+  type: 'test'
+  ...
+# Subtest: source type and distribution target remain independent
+ok 9 - source type and distribution target remain independent
+  ---
+  duration_ms: 0.685899
+  type: 'test'
+  ...
+# Subtest: profiles and adapters are deterministic and contain no popularity, analytics, IO, clock, or random authority
+ok 10 - profiles and adapters are deterministic and contain no popularity, analytics, IO, clock, or random authority
+  ---
+  duration_ms: 12.901539
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 358.303579
+Exit code: 0
