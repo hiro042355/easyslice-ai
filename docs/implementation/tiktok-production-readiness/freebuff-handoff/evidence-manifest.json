@@ -1,0 +1,63 @@
+{
+  "manifestVersion": "1.0.0",
+  "generatedAt": "2026-11-10T15:06:49.384Z",
+  "baselineHead": "c150f329e317b3c48fda04669423947a5fe4690d",
+  "author": "Jules (Final Development Window)",
+  "files": [
+    {
+      "filename": "01-final-staging-architecture.md",
+      "bytes": 8055,
+      "sha256": "9d6bffac52e130e2d8a2d4d009288088e8685d5ec14be95704a74a4ef0fd1b7b"
+    },
+    {
+      "filename": "02-consolidated-technical-specifications.md",
+      "bytes": 4905,
+      "sha256": "c8b26e43995293f15b04a0c7779694efdd0d5fd31194aee5518437663a3baa7d"
+    },
+    {
+      "filename": "03-product-owner-decision-guide.md",
+      "bytes": 6098,
+      "sha256": "dd04f0b6afed2db61c47bd8a339eb6514043d77caad1df8227b8a01a99a18b63"
+    },
+    {
+      "filename": "04-implementation-dependency-graph.md",
+      "bytes": 4644,
+      "sha256": "0063f9d499b8999d8abdfe4ceb0954978152343943cbee45aa35f33e0ed71a40"
+    },
+    {
+      "filename": "05-file-level-freebuff-roadmap.md",
+      "bytes": 4509,
+      "sha256": "9b11e1cee7bdd0f81c553106f5c308109b4ee2cdc484fb413e92382157efdcb9"
+    },
+    {
+      "filename": "06-test-and-acceptance-matrix.md",
+      "bytes": 3631,
+      "sha256": "bfe346b1caee1670e82da0ede796f7d42e66f9cde5617f8ae96f194014100ca3"
+    },
+    {
+      "filename": "07-ci-cd-completion-plan.md",
+      "bytes": 3755,
+      "sha256": "875330499798ab69dd94c2692ba8f323d40a4a66b5ff6e410bf13e83c26160b8"
+    },
+    {
+      "filename": "08-security-and-database-readiness-report.md",
+      "bytes": 3228,
+      "sha256": "6cf1a9c1e51b7ee6de0236a82b950d963d56d1e24f120ed3fa7cb69c26876c45"
+    },
+    {
+      "filename": "09-final-agent-quickstart.md",
+      "bytes": 2130,
+      "sha256": "e7975385af7de1dc863ba4438521fe40ada5edf760f784a287470c5e428a1d9c"
+    },
+    {
+      "filename": "10-remaining-blocker-register.md",
+      "bytes": 2157,
+      "sha256": "822c2e6733610279dc14765a56f423a060255a21a23d3994514e561e5539171f"
+    },
+    {
+      "filename": "README.md",
+      "bytes": 2126,
+      "sha256": "09fc3f7af2c147831b20d46120074906a45a99b74cdd99859ade5511cc56cfe3"
+    }
+  ]
+}
