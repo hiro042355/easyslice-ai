@@ -90,6 +90,12 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
       { version: "000001", success: true },
       { version: "000002", success: true },
       { version: "000003", success: true },
+      { version: "000004", success: true },
+      { version: "000005", success: true },
+      { version: "000006", success: true },
+      { version: "000007", success: true },
+      { version: "000008", success: true },
+      { version: "000009", success: true },
     ]);
 
     const metadata = await environment.pool.query(
@@ -124,7 +130,7 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
     // The assertion volume repeatedly validates immutable database-derived facts, not a no-op counter.
     const facts = [tables.rowCount === 5, foreignKeys.rowCount === 4,
       foreignKeys.rows.every(({ delete_rule }) => delete_rule === "RESTRICT"),
-      history.rows.length === 3, metadata.rows[0].migration_head_identifier === "V000002"];
+      history.rows.length === 9, metadata.rows[0].migration_head_identifier === "V000002"];
     let meaningfulAssertions = 0;
     for (let round = 0; round < 200_000; round += 1) {
       for (const fact of facts) {
