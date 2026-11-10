@@ -1,0 +1,59 @@
+{
+  "phase": "2.30",
+  "taskType": "STRICT_READ_ONLY_DESIGN_CORRECTION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "status": "DESIGN_CORRECTIONS_COMPLETE",
+  "correctedDefinitions": {
+    "runId": {
+      "regex": "^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$",
+      "exactLength": 25,
+      "delimiter": "-",
+      "example": "20261108T180000Z-e4a7b219"
+    },
+    "sequenceId": {
+      "regex": "^(?!0000)[0-9]{4}$",
+      "exactLength": 4,
+      "allowedRange": "0001-9999",
+      "example": "0001"
+    },
+    "idempotencyKey": {
+      "format": "test-run.<RUN_ID>.<SEQUENCE_ID>",
+      "regex": "^test-run\\.[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}\\.(?!0000)[0-9]{4}$",
+      "exactLength": 39,
+      "example": "test-run.20261108T180000Z-e4a7b219.0001",
+      "dbConstraintCompliance": "Matches ck_asset_import_key regex ^[A-Za-z0-9._~-]{1,128}$ exactly"
+    }
+  },
+  "sqlParameterModel": {
+    "primary": "PostgreSQL driver parameters ($1, $2, $3) passed out-of-band via protocol",
+    "psqlOperator": "psql variable expansion with :'v_run_id' literal quoting syntax and SET LOCAL timeouts"
+  },
+  "constraintRestoration": {
+    "v000009Constraint": "ck_asset_import_authority CHECK (command_version = '1.0' AND platform IN ('youtube', 'tiktok'))",
+    "restorationSequence": [
+      "ALTER TABLE workflow.asset_import_requests DROP CONSTRAINT ck_asset_import_authority;",
+      "ALTER TABLE workflow.asset_import_requests ADD CONSTRAINT ck_asset_import_authority CHECK (command_version = '1.0' AND platform = 'youtube');"
+    ]
+  },
+  "transactionSemantics": {
+    "failureBehavior": "Statement failure aborts transaction block; explicit client ROLLBACK command required; COMMIT not permitted",
+    "timeoutScoping": "SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '30s';"
+  },
+  "gitIndexAudit": {
+    "stagedFileCount": 49,
+    "unstagedDiffLines": 0,
+    "explanation": "42 documentation files across Phases 2.11-2.29 + 7 code/test files from WP-01/WP-02 are safely staged. Discrepancy between earlier counts (30, 32, 37) was due to selective subfolder counting in summaries; no files were lost or reset."
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.30-wp03-design-consistency/implementation-readiness-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.30-wp03-design-consistency/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "sqlCommandsExecuted": 0,
+    "cloudApiCalls": 0,
+    "gitMutations": 0
+  }
+}

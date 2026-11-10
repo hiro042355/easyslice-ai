@@ -2,11 +2,13 @@ import { IdentityPoolClient, type SubjectTokenSupplier } from "google-auth-libra
 
 const SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token";
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+export const PRODUCTION_PROJECT_NUMBER = "566365202495" as const;
+export const PRODUCTION_WIF_PROVIDER_RESOURCE = `projects/${PRODUCTION_PROJECT_NUMBER}/locations/global/workloadIdentityPools/nexcut-prod-vercel/providers/vercel-production` as const;
 
 export type ProductionMediaWifConfiguration = Readonly<{
-  projectId: "nexcut-prod-jp-2026";
+  projectId: string;
   providerResource: string;
-  serviceAccountEmail: "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com";
+  serviceAccountEmail: string;
 }>;
 
 const required = (name: string, value: string | undefined): string => {
@@ -16,17 +18,33 @@ const required = (name: string, value: string | undefined): string => {
 
 export const readProductionMediaWifConfiguration = (
   environment: Readonly<Record<string, string | undefined>> = process.env,
+  appEnvironment?: string,
 ): ProductionMediaWifConfiguration => {
+  const activeEnvironment = appEnvironment ?? environment.APP_ENVIRONMENT;
+  if (!activeEnvironment || (activeEnvironment !== "production" && activeEnvironment !== "staging")) {
+    throw new Error(`Unauthorized or missing APP_ENVIRONMENT: ${String(activeEnvironment)}`);
+  }
   const projectId = required("GCP_PROJECT_ID", environment.GCP_PROJECT_ID);
   const providerResource = required("GCP_WIF_PROVIDER_RESOURCE", environment.GCP_WIF_PROVIDER_RESOURCE);
   const serviceAccountEmail = required("GCP_MEDIA_WIF_SERVICE_ACCOUNT", environment.GCP_MEDIA_WIF_SERVICE_ACCOUNT);
-  if (projectId !== "nexcut-prod-jp-2026") throw new Error("Invalid Production media project authority");
-  if (!/^projects\/[1-9][0-9]*\/locations\/global\/workloadIdentityPools\/nexcut-prod-vercel\/providers\/vercel-production$/.test(providerResource)) {
-    throw new Error("Invalid Production media WIF provider authority");
+
+  if (activeEnvironment === "production") {
+    if (projectId !== "nexcut-prod-jp-2026") throw new Error("Invalid Production media project authority");
+    if (providerResource !== PRODUCTION_WIF_PROVIDER_RESOURCE) {
+      throw new Error("Invalid Production media WIF provider authority: project number or pool mismatch");
+    }
+    if (serviceAccountEmail !== "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com") {
+      throw new Error("Invalid Production media service-account authority");
+    }
+  } else if (activeEnvironment === "staging") {
+    // Authoritative staging WIF values require explicit Product Owner approval
+    // Mismatched or production values in staging fail closed
+    if (projectId === "nexcut-prod-jp-2026" || serviceAccountEmail.includes("nexcut-prod") || providerResource.includes(PRODUCTION_PROJECT_NUMBER)) {
+      throw new Error("Invalid Staging media authority: production WIF authority cannot be used in staging");
+    }
+    throw new Error("Staging media WIF authority requires explicit Product Owner configuration approval");
   }
-  if (serviceAccountEmail !== "nexcut-prod-media-runtime@nexcut-prod-jp-2026.iam.gserviceaccount.com") {
-    throw new Error("Invalid Production media service-account authority");
-  }
+
   return Object.freeze({ projectId, providerResource, serviceAccountEmail });
 };
 

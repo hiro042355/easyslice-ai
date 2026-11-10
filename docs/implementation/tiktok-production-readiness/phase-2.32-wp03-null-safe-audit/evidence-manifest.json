@@ -1,0 +1,53 @@
+{
+  "phase": "2.32",
+  "taskType": "STRICT_READ_ONLY_DESIGN_CORRECTION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "status": "DESIGN_CORRECTIONS_COMPLETE",
+  "nullSafeAudit": {
+    "technique": "Explicit IS NULL checks combined with IS NOT TRUE boolean evaluation to overcome three-valued logic",
+    "columnsCheckedForNull": ["owner_uid", "idempotency_key", "canonical_source_id", "normalized_url"],
+    "guarantee": "Zero malformed or unexpected TikTok rows can be omitted from the audit count"
+  },
+  "exactSyntheticValidation": {
+    "runIdRegex": "^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$",
+    "sequenceIdRegex": "^(?!0000)[0-9]{4}$",
+    "crossColumnConsistency": "Exact equality between extracted sequence IDs across idempotency_key, canonical_source_id, and normalized_url",
+    "canonicalPredicateEquivalence": "Precheck audit and DELETE statements share identical canonical eligibility predicates"
+  },
+  "ownerIsolation": {
+    "ownerUidCondition": "Exact equality owner_uid = $1",
+    "po04Status": "REQUIRES_PO_APPROVAL (pending)",
+    "operationalGuard": "Execution remains strictly blocked until approved Staging QA UID is provided"
+  },
+  "transactionFailureHandling": {
+    "beginManaged": true,
+    "transactionStateTracked": true,
+    "rollbackSwallowingPrevented": true,
+    "connectionDestructionOnTaint": "client.release(true) called if connection state is uncertain or corrupted"
+  },
+  "migrationSourceIntegrity": {
+    "v000009File": "db/workflow/migrations/V000009__expand_asset_import_platform.sql",
+    "v000009Constraint": "ck_asset_import_authority CHECK (command_version = '1.0' AND platform IN ('youtube', 'tiktok'))",
+    "v000009DropsAndRecreates": true,
+    "v000008File": "db/workflow/migrations/V000008__add_asset_import_idempotency.sql",
+    "v000008Constraint": "ck_asset_import_authority CHECK (command_version = '1.0' AND platform = 'youtube')"
+  },
+  "gitIntegrity": {
+    "stagedFileCount": 53,
+    "unstagedChanges": 0,
+    "phase230And231FilesPreserved": true,
+    "phase232FilesStaged": false
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.32-wp03-null-safe-audit/implementation-readiness-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.32-wp03-null-safe-audit/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "sqlCommandsExecuted": 0,
+    "cloudApiCalls": 0,
+    "gitMutations": 0
+  }
+}

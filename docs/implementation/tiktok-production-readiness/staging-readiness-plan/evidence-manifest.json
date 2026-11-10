@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-11-08T05:50:00Z",
+  "evaluatedCommit": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "evaluatedPullRequest": 8,
+  "planDirectory": "docs/implementation/tiktok-production-readiness/staging-readiness-plan/",
+  "evaluationOutcome": "PR8_POST_MERGE_VERIFIED_WITH_LIMITATIONS",
+  "stagingPlanStatus": "COMPLETE_AWAITING_PO_APPROVAL",
+  "documents": [
+    "executive-summary.md",
+    "pr8-merge-confirmation.md",
+    "current-main-baseline.md",
+    "evidence-integrity-review.md",
+    "updated-readiness-gate-matrix.md",
+    "staging-architecture-and-dependency-checklist.md",
+    "migration-and-rollback-plan.md",
+    "gcs-validation-plan.md",
+    "security-and-cost-risk-register.md",
+    "product-owner-approval-checklist.md",
+    "evidence-manifest.json"
+  ],
+  "gatesSummary": {
+    "verifiedOffline": [
+      "URL_CLASSIFICATION_READY",
+      "SSRF_PROTECTION_READY",
+      "AUTHORIZED_MP4_UPLOAD_READY",
+      "CLIENT_2GB_VALIDATION_READY",
+      "SERVER_MEDIA_ADMISSION_READY",
+      "CLIPPING_PIPELINE_READY",
+      "LOCAL_EXPORT_READY"
+    ],
+    "unverifiedExternal": [
+      "DATABASE_MIGRATION_V000009_LIVE_READY",
+      "GCS_BUCKET_LIVE_STREAMING_READY",
+      "STAGING_IDENTITY_AUTHENTICATION_READY",
+      "END_TO_END_STAGING_JOURNEY_READY",
+      "PRODUCTION_RELEASE_READY"
+    ]
+  }
+}
