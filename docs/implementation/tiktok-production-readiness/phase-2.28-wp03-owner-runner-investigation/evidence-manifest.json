@@ -1,0 +1,37 @@
+{
+  "phase": "2.28",
+  "taskType": "STRICT_READ_ONLY_INVESTIGATION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "investigationFindings": {
+    "ownerIdentityModel": {
+      "origin": "Verified Firebase Admin UID from session cookie or Authorization Bearer token (lib/server/productionIdentity/routeGuard.ts:9)",
+      "projection": "projectVerifiedIdentity projects decoded.uid to userId (lib/server/productionIdentity/firebaseIdentityAdapter.ts:65)",
+      "dbIdentity": "owner_uid in workflow.asset_import_requests is 100% equivalent to authenticated Firebase UID",
+      "syntheticUidAssessment": "staging_test_tiktok_<RUN_ID> is compatible with Postgres schema check constraints length(owner_uid) > 0, but incompatible with FK fk_asset_import_job_owner if job_id is populated, and incompatible with HTTP API route guards",
+      "saferAlternative": "Embed RUN_ID strictly in idempotency_key (format: test_run_<RUN_ID>_<SEQ>), which allows authentic staging QA Firebase UIDs while strictly satisfying ck_asset_import_key regex ^[A-Za-z0-9._~-]{1,128}$"
+    },
+    "migrationRunner": {
+      "inRepositoryRunnerExists": false,
+      "packageJsonScripts": "Only ephemeral docker test runners exist (test:postgresql-reconciliation-migration)",
+      "liveCloudSqlRunner": "None exists in repository; live migrations are strictly operator-managed via psql or external CI/CD",
+      "preConnectionAuthorityValidation": "Synchronous validation in lib/server/productionMediaRuntime/compositionCore.ts validates environment, WIF, GCS bucket, and Cloud SQL connection tuple before any network socket or pool is created"
+    },
+    "rollbackSafetyDesign": {
+      "status": "DESIGN_ONLY_ZERO_IMPLEMENTATION",
+      "preCheckPredicateIdenticalToDeletion": true,
+      "isolationMechanism": "Atomic transaction with fail-closed audit asserting zero non-test TikTok rows and zero foreign key references"
+    }
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.28-wp03-owner-runner-investigation/implementation-readiness-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.28-wp03-owner-runner-investigation/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "sqlCommandsExecuted": 0,
+    "cloudApiCalls": 0,
+    "stagedChangesPreserved": true
+  }
+}

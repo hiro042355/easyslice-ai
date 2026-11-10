@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-11-08T17:30:00Z",
+  "evaluatedCommit": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "phase": "2.27",
+  "task": "WP-03 Test-Run Isolation & Implementation Evidence",
+  "directory": "docs/implementation/tiktok-production-readiness/phase-2.27-wp03-test-run-evidence/",
+  "finalVerdict": "READY_WITH_LIMITATIONS",
+  "documents": [
+    "implementation-readiness-report.md",
+    "evidence-manifest.json"
+  ],
+  "testRunIsolationDesign": {
+    "columnExists": false,
+    "primaryKeyCompoundPattern": {
+      "ownerUid": "'staging_test_tiktok_' || RUN_ID",
+      "idempotencyKey": "'synthetic_test_' || RUN_ID || '_' || SEQUENCE_ID",
+      "canonicalSourceId": "'synthetic_' || RUN_ID || '_' || VIDEO_ID",
+      "normalizedUrl": "'https://www.tiktok.com/@staging_test_tiktok_' || RUN_ID || '/video/' || VIDEO_ID"
+    },
+    "otherTestRunsProtected": true,
+    "unauthorizedRowsAbortBeforeDelete": true
+  },
+  "readinessStatus": {
+    "localScriptImplementation": "READY_WITH_LIMITATIONS",
+    "liveDatabaseExecution": "BLOCKED"
+  },
+  "localCodeOnly": true,
+  "cloudOperationsExecuted": false
+}

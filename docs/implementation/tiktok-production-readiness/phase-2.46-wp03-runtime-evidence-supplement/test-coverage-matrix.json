@@ -1,0 +1,181 @@
+{
+  "phase": "2.46",
+  "taskType": "STRICT_READ_ONLY_INVESTIGATION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "currentHead": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "finalDecision": "NO_VERIFIED_NODE24_AND_POSTGRESQL_TEST_RUNTIME",
+  "runtimeEvidence": {
+    "nodeVersion": "v22.22.1",
+    "npmVersion": "11.11.0",
+    "nodePath": "/home/jules/.nvm/versions/node/v22.22.1/bin/node",
+    "npmPath": "/home/jules/.nvm/versions/node/v22.22.1/bin/npm",
+    "dockerVersion": "Docker version 29.2.1, build a5c7197",
+    "dockerSocketAccessible": true,
+    "localImagesCount": 0,
+    "node24EnforcingLines": "lib/postgresqlTestEnvironment/environmentValidator.ts:18-22"
+  },
+  "packageManagerAndTestCommands": {
+    "packageManager": "npm 11.11.0",
+    "lockfileVersion": 3,
+    "frozenInstallCommand": "npm ci",
+    "testCommands": [
+      {
+        "step": "Static Script Integrity",
+        "command": "npx tsx --test tests/workflowMigration/stagingMigrationScriptIntegrity.test.ts",
+        "nodeVersionRequired": ">= 18 (Works on Node 22)",
+        "dockerRequired": false
+      },
+      {
+        "step": "Rollback Logic & Mock Client",
+        "command": "npx tsx --test tests/workflowMigration/rollbackIsolationHarness.test.ts",
+        "nodeVersionRequired": ">= 18 (Works on Node 22)",
+        "dockerRequired": false
+      },
+      {
+        "step": "Local Connection Guard",
+        "command": "npx tsx --test tests/workflowMigration/localConnectionGuard.test.ts",
+        "nodeVersionRequired": ">= 18 (Works on Node 22)",
+        "dockerRequired": false
+      },
+      {
+        "step": "PostgreSQL 18 Integration",
+        "command": "npx tsx --test tests/postgresqlTestEnvironment/reconciliationMigration.test.ts",
+        "nodeVersionRequired": ">= 24",
+        "dockerRequired": true
+      }
+    ]
+  },
+  "coverageMapping": [
+    {
+      "step": 1,
+      "name": "Environment Validation",
+      "source": "environmentValidator.ts",
+      "test": "environmentValidator.test.ts",
+      "type": "unit",
+      "status": "UNIT_TEST_PASS_NODE24_RUNTIME_BLOCKED"
+    },
+    {
+      "step": 2,
+      "name": "PostgreSQL 18 Container Startup",
+      "source": "foundation.ts",
+      "test": "reconciliationMigration.test.ts",
+      "type": "testcontainers",
+      "status": "HARNESS_AVAILABLE_IMAGE_PULL_REQUIRED"
+    },
+    {
+      "step": 3,
+      "name": "Apply V000008",
+      "source": "V000008 migration",
+      "test": "stagingMigrationScriptIntegrity.test.ts",
+      "type": "static",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "step": 4,
+      "name": "Apply V000009",
+      "source": "V000009 migration",
+      "test": "stagingMigrationScriptIntegrity.test.ts",
+      "type": "static",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "step": 5,
+      "name": "Verify CHECK Constraints",
+      "source": "information_schema",
+      "test": "N/A",
+      "type": "none",
+      "status": "PENDING_LIVE_DB"
+    },
+    {
+      "step": 6,
+      "name": "Synthetic Fixture Ingestion",
+      "source": "fixture generator",
+      "test": "N/A",
+      "type": "none",
+      "status": "PENDING_LIVE_DB"
+    },
+    {
+      "step": 7,
+      "name": "Rollback Precheck Audit",
+      "source": "rollbackIsolationHarness.ts",
+      "test": "rollbackIsolationHarness.test.ts",
+      "type": "mock",
+      "status": "MOCK_VERIFIED"
+    },
+    {
+      "step": 8,
+      "name": "Controlled Rollback Deletion",
+      "source": "executeConservativeRollback",
+      "test": "rollbackIsolationHarness.test.ts",
+      "type": "mock",
+      "status": "MOCK_VERIFIED"
+    },
+    {
+      "step": 9,
+      "name": "Postcheck Audit",
+      "source": "POSTCHECK_AUDIT query",
+      "test": "rollbackIsolationHarness.test.ts",
+      "type": "mock",
+      "status": "MOCK_VERIFIED"
+    },
+    {
+      "step": 10,
+      "name": "Constraint Restoration",
+      "source": "ALTER TABLE DDL",
+      "test": "stagingMigrationScriptIntegrity.test.ts",
+      "type": "static",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "step": 11,
+      "name": "Transaction Failure Tests",
+      "source": "rollbackIsolationHarness.ts",
+      "test": "rollbackIsolationHarness.test.ts",
+      "type": "mock",
+      "status": "MOCK_VERIFIED"
+    },
+    {
+      "step": 12,
+      "name": "Connection Disposal",
+      "source": "client.release(true)",
+      "test": "rollbackIsolationHarness.test.ts",
+      "type": "mock",
+      "status": "MOCK_VERIFIED"
+    }
+  ],
+  "imagePins": {
+    "postgresql": {
+      "reference": "postgres:18.4@sha256:c2d42a104eb6b37b286a2d9c5cf83f349de4d6516d513d00a2bd9610e2c2e5e4",
+      "file": "lib/postgresqlTestEnvironment/constants.ts",
+      "lines": "1-2",
+      "cached": false
+    },
+    "flyway": {
+      "reference": "flyway/flyway:12.6.1@sha256:876479697e6f272e7897f9cebc5d43090e4e7ba164de9eb11e07767bff075011",
+      "file": "lib/postgresqlTestEnvironment/constants.ts",
+      "lines": "4-5",
+      "cached": false
+    }
+  },
+  "gitEvidence": {
+    "stagedFileCount": 74,
+    "unstagedModifications": 0,
+    "exitCodeGitDiffQuiet": 0,
+    "exitCodeGitDiffCachedQuiet": 1,
+    "phase246FilesStaged": false
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.46-wp03-runtime-evidence-supplement/runtime-evidence-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.46-wp03-runtime-evidence-supplement/test-coverage-matrix.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "sqlCommandsExecuted": 0,
+    "cloudApiCalls": 0,
+    "binariesDownloaded": 0,
+    "imagesPulled": 0,
+    "gitMutations": 0
+  }
+}

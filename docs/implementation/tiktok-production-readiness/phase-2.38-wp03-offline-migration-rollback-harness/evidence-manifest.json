@@ -1,0 +1,62 @@
+{
+  "phase": "2.38",
+  "taskType": "LOCAL_ONLY_IMPLEMENTATION_AND_TESTING",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "finalDecision": "WP03_OFFLINE_HARNESS_ACCEPTED",
+  "implementedFiles": [
+    "lib/workflowMigration/localConnectionGuard.ts",
+    "lib/workflowMigration/rollbackIsolationHarness.ts",
+    "tests/workflowMigration/stagingMigrationScriptIntegrity.test.ts",
+    "tests/workflowMigration/rollbackIsolationHarness.test.ts",
+    "tests/workflowMigration/localConnectionGuard.test.ts"
+  ],
+  "testExecutionSummary": {
+    "stagingMigrationScriptIntegrity": {
+      "command": "npx tsx --test tests/workflowMigration/stagingMigrationScriptIntegrity.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "durationMs": 365.299176
+    },
+    "rollbackIsolationHarness": {
+      "command": "npx tsx --test tests/workflowMigration/rollbackIsolationHarness.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "durationMs": 370.761173
+    },
+    "localConnectionGuard": {
+      "command": "npx tsx --test tests/workflowMigration/localConnectionGuard.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "durationMs": 366.486234
+    },
+    "productionMediaRuntimeAdapters": {
+      "command": "npx tsx --test tests/productionIdentity/productionMediaRuntimeAdapters.test.ts",
+      "passed": 16,
+      "failed": 0,
+      "durationMs": 773.15433
+    },
+    "gcsEnvironmentAuthority": {
+      "command": "npx tsx --test tests/productionMediaRuntime/gcsEnvironmentAuthority.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "durationMs": 481.506554
+    }
+  },
+  "gitEvidence": {
+    "stagedFileCount": 63,
+    "unstagedDiffLines": 0,
+    "newFilesStaged": false
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.38-wp03-offline-migration-rollback-harness/implementation-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.38-wp03-offline-migration-rollback-harness/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "sqlCommandsExecuted": 0,
+    "cloudApiCalls": 0,
+    "gitMutations": 0
+  }
+}
