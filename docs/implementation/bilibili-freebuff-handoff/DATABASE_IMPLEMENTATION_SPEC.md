@@ -147,6 +147,43 @@ CREATE TABLE workflow.publication_callback_ingress_y2026m11 PARTITION OF workflo
 
 ---
 
+### 2.5 Table: `workflow.publication_audit_ledger`
+Autonomous append-only immutable audit trail recording critical lifecycle events and administrative actions without hard foreign keys to business entities.
+
+```sql
+CREATE TABLE workflow.publication_audit_ledger (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  publication_id uuid NOT NULL,
+  owner_uid text NOT NULL,
+  tenant_id text NOT NULL DEFAULT 'default',
+  event_type text NOT NULL,
+  actor text NOT NULL,
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  payload_sha256 bytea,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+
+  CONSTRAINT pk_publication_audit_ledger PRIMARY KEY (id),
+  CONSTRAINT ck_audit_hash CHECK (payload_sha256 IS NULL OR octet_length(payload_sha256) = 32)
+);
+
+CREATE INDEX ix_publication_audit_ledger_pub ON workflow.publication_audit_ledger (publication_id, created_at ASC);
+CREATE INDEX ix_publication_audit_ledger_owner ON workflow.publication_audit_ledger (owner_uid, created_at DESC);
+
+-- Immutability enforcement trigger
+CREATE OR REPLACE FUNCTION workflow.fn_enforce_immutable_audit()
+RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Audit ledger records are immutable and cannot be updated or deleted.';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_ledger_immutable
+BEFORE UPDATE OR DELETE ON workflow.publication_audit_ledger
+FOR EACH ROW EXECUTE FUNCTION workflow.fn_enforce_immutable_audit();
+```
+
+---
+
 ## 3. Table Specifications (`publisher` schema - Microservice Local)
 
 ### 3.1 Table: `publisher.durable_ledger`
