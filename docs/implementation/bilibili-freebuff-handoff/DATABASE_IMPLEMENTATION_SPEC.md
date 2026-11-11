@@ -147,6 +147,60 @@ CREATE TABLE workflow.publication_callback_ingress_y2026m11 PARTITION OF workflo
 
 ---
 
+### 2.5 Table: `workflow.publication_audit_ledger`
+Autonomous append-only immutable audit trail recording critical lifecycle events and administrative actions without hard foreign keys to business entities.
+
+```sql
+CREATE TABLE workflow.publication_audit_ledger (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  publication_id uuid NOT NULL,
+  owner_uid text NOT NULL,
+  tenant_id text NOT NULL DEFAULT 'default',
+  event_type text NOT NULL,
+  actor text NOT NULL,
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  payload_sha256 bytea,
+  created_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+
+  CONSTRAINT pk_publication_audit_ledger PRIMARY KEY (id),
+  CONSTRAINT ck_audit_hash CHECK (payload_sha256 IS NULL OR octet_length(payload_sha256) = 32)
+);
+
+CREATE INDEX ix_publication_audit_ledger_pub ON workflow.publication_audit_ledger (publication_id, created_at ASC);
+CREATE INDEX ix_publication_audit_ledger_owner ON workflow.publication_audit_ledger (owner_uid, created_at DESC);
+
+-- Immutability enforcement trigger
+CREATE OR REPLACE FUNCTION workflow.fn_enforce_immutable_audit()
+RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'Audit ledger records are immutable and cannot be updated or deleted.';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_ledger_immutable
+BEFORE UPDATE OR DELETE ON workflow.publication_audit_ledger
+FOR EACH ROW EXECUTE FUNCTION workflow.fn_enforce_immutable_audit();
+```
+
+#### Transaction Semantics, Role Privileges & Isolation Boundaries
+1. **Transaction Semantics & Emission Modes**:
+   - **Atomic Business Events (Same-Transaction)**: Events altering operational state (`DISPATCHED`, `STATE_TRANSITION`, `PUBLISHED`, `FAILED`) MUST be inserted into `workflow.publication_audit_ledger` within the same transaction that updates `workflow.publications` and `workflow.publication_events` to ensure atomic consistency.
+   - **Forensic & Security Audits (Independent Connection)**: Security-sensitive events (such as cryptographic verification failure, SSRF rejection, rate limit violations, or bad HMAC tokens) MUST be recorded using an **independent database connection** from a dedicated auditing connection pool. PostgreSQL does *not* support native Oracle-style autonomous transactions (`PRAGMA AUTONOMOUS_TRANSACTION`); executing via an independent connection ensures that forensic audit entries persist even when the incoming operational request transaction is aborted or rolled back.
+   - **Consistency Trade-Off**: Independent connection recording means an audit record may commit while the business transaction is discarded. This is intentional for security forensics.
+2. **Role Privileges & Trigger Limitations**:
+   - Database application roles (`nexcut_app`) must be granted strictly append privileges:
+     ```sql
+     GRANT SELECT, INSERT ON workflow.publication_audit_ledger TO nexcut_app;
+     REVOKE UPDATE, DELETE, TRUNCATE ON workflow.publication_audit_ledger FROM nexcut_app;
+     ```
+   - **Immutability Limitations**: The PL/pgSQL trigger `trg_audit_ledger_immutable` provides defense-in-depth against accidental application-level mutations. However, triggers can be bypassed or dropped by table owners or PostgreSQL superusers (`rds_superuser` / `cloudsqlsuperuser`). Absolute audit immutability relies on database role segregation where runtime application credentials lack DDL and table-ownership privileges.
+3. **Payload Canonicalization & Integrity**:
+   - `payload_sha256` represents the SHA-256 digest of the canonical RFC 8785 JSON representation of `details`. Constraint `ck_audit_hash` enforces a 32-byte cryptographic digest.
+4. **Tenant Isolation**:
+   - Multi-tenant boundary is enforced by filtering on `(owner_uid, tenant_id)`. Administrative cross-tenant queries are restricted to dedicated operational auditing roles.
+
+---
+
 ## 3. Table Specifications (`publisher` schema - Microservice Local)
 
 ### 3.1 Table: `publisher.durable_ledger`
