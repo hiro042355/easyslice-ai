@@ -11,7 +11,7 @@ Your implementation must adhere strictly to the approved architecture specificat
 
 ### 1. Repository Demarcation & Safety Rules
 - Authoritative Microservice Repository: `hiro042355/nexcut-bilibili-publisher`
-- Core Platform Baseline: `hiro042355/easyslice-ai` at commit `7a12460` (PR #12 merge)
+- Core Platform Baseline: `hiro042355/easyslice-ai` at commit `7a12460` (PR #12 merge; historical foundation `6f1c5f9`)
 - DO NOT perform any live production uploads, credential purchases, or destructive database operations.
 - STRICTLY QUARANTINE community Web API scripts (Wbi signatures, SESSDATA cookies, openElec, noReprint). Only implement against official Bilibili Open Platform partner endpoints.
 - DO NOT claim successful live publication based solely on passing mock tests.

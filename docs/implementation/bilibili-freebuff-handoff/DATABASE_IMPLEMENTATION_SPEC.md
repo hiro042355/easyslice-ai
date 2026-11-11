@@ -182,6 +182,23 @@ BEFORE UPDATE OR DELETE ON workflow.publication_audit_ledger
 FOR EACH ROW EXECUTE FUNCTION workflow.fn_enforce_immutable_audit();
 ```
 
+#### Transaction Semantics, Role Privileges & Isolation Boundaries
+1. **Transaction Semantics & Emission Modes**:
+   - **Atomic Business Events (Same-Transaction)**: Events altering operational state (`DISPATCHED`, `STATE_TRANSITION`, `PUBLISHED`, `FAILED`) MUST be inserted into `workflow.publication_audit_ledger` within the same transaction that updates `workflow.publications` and `workflow.publication_events` to ensure atomic consistency.
+   - **Forensic & Security Audits (Independent Connection)**: Security-sensitive events (such as cryptographic verification failure, SSRF rejection, rate limit violations, or bad HMAC tokens) MUST be recorded using an **independent database connection** from a dedicated auditing connection pool. PostgreSQL does *not* support native Oracle-style autonomous transactions (`PRAGMA AUTONOMOUS_TRANSACTION`); executing via an independent connection ensures that forensic audit entries persist even when the incoming operational request transaction is aborted or rolled back.
+   - **Consistency Trade-Off**: Independent connection recording means an audit record may commit while the business transaction is discarded. This is intentional for security forensics.
+2. **Role Privileges & Trigger Limitations**:
+   - Database application roles (`nexcut_app`) must be granted strictly append privileges:
+     ```sql
+     GRANT SELECT, INSERT ON workflow.publication_audit_ledger TO nexcut_app;
+     REVOKE UPDATE, DELETE, TRUNCATE ON workflow.publication_audit_ledger FROM nexcut_app;
+     ```
+   - **Immutability Limitations**: The PL/pgSQL trigger `trg_audit_ledger_immutable` provides defense-in-depth against accidental application-level mutations. However, triggers can be bypassed or dropped by table owners or PostgreSQL superusers (`rds_superuser` / `cloudsqlsuperuser`). Absolute audit immutability relies on database role segregation where runtime application credentials lack DDL and table-ownership privileges.
+3. **Payload Canonicalization & Integrity**:
+   - `payload_sha256` represents the SHA-256 digest of the canonical RFC 8785 JSON representation of `details`. Constraint `ck_audit_hash` enforces a 32-byte cryptographic digest.
+4. **Tenant Isolation**:
+   - Multi-tenant boundary is enforced by filtering on `(owner_uid, tenant_id)`. Administrative cross-tenant queries are restricted to dedicated operational auditing roles.
+
 ---
 
 ## 3. Table Specifications (`publisher` schema - Microservice Local)

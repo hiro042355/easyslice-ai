@@ -5,7 +5,7 @@ Welcome, Freebuff. This package provides the authoritative architecture closure,
 
 ### Repository Identity & Portability Clarification
 - **Authoritative Microservice Repository**: `hiro042355/nexcut-bilibili-publisher` (Standalone GitHub repository for the Bilibili publisher microservice).
-- **Core Platform Repository**: `hiro042355/easyslice-ai` (Local working tree: `/app`, commit baseline: `7a12460684f8c4aeae99234bfbacd74b8857efb3` / PR #12 merge).
+- **Core Platform Repository**: `hiro042355/easyslice-ai` (Local working tree: `/app`, PR #12 merge commit: `7a12460684f8c4aeae99234bfbacd74b8857efb3`, historical origin commit: `6f1c5f9e222ec9603744af0cfd5a800ad209b660`).
 - **YouTube Publisher Microservice**: `hiro042355/nexcut-youtube-publisher` (Standalone repository).
 
 **Portability Directive**: This documentation package is completely self-contained. When initializing the standalone repository `hiro042355/nexcut-bilibili-publisher`, copy this entire directory (`docs/implementation/bilibili-freebuff-handoff/`) into the root of `nexcut-bilibili-publisher` under `docs/freebuff-handoff/`. No implementation step in the microservice depends on inspecting internal source code in `easyslice-ai`.
