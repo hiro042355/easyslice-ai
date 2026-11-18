@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
-import { exec } from "child_process";
+import {runMediaProcess,withRequestMediaWorkspace} from "@/lib/server/requestMediaWorkspace";
+import { parseJson3Subtitles, subtitleSourceUrl } from "@/lib/server/subtitleSafety";
 import path from "path";
-import os from "os";
 import fs from "fs";
-import { mkdir, readdir, readFile, rm } from "fs/promises";
+import { readdir, readFile } from "fs/promises";
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
+import {readBoundedJsonBody} from '@/lib/server/boundedJsonBody';
 
 export async function POST(req: Request) {
   const authentication = await requireAuthenticatedRequest(req);
   if (!authentication.ok) return authentication.response;
-  const body = await req.json();
-  const url = body.url;
+  if(req.headers.get('origin')!==new URL(req.url).origin)return Response.json({success:false,error:'invalid-origin'},{status:403});
+  const body = await readBoundedJsonBody(req,8192).catch(() => null);
+  const url = subtitleSourceUrl(body && typeof body === "object" && "url" in body ? body.url : undefined);
 
   if (!url) {
     return NextResponse.json(
@@ -20,84 +22,31 @@ export async function POST(req: Request) {
     );
   }
 
-  return new Promise<NextResponse>(async (resolve) => {
-    const ytDlpPath =
-      process.platform === "win32"
-        ? path.resolve("./yt-dlp.exe")
-        : "yt-dlp";
-
-    const subtitleDir = path.join(os.tmpdir(), `subtitle-${Date.now()}`);
-    const outputBase = path.join(subtitleDir, "subtitle");
-
-    await mkdir(subtitleDir, { recursive: true });
-
-    const cookiesPath = path.join(os.tmpdir(), "cookies.txt");
-
-    if (process.env.YOUTUBE_COOKIES) {
-      fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES);
-    }
-
-    const cookiesArg = fs.existsSync(cookiesPath)
-      ? `--cookies "${cookiesPath}"`
-      : "";
-
-const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-langs "ja,en" --skip-download --sub-format json3 -o "${outputBase}" "${url}"`;
-
-    console.log("subtitle exec:", cmd);
-
-    exec(cmd, async (error, stdout, stderr) => {
-      console.log("subtitle error:", error);
-      console.log("subtitle stderr:", stderr);
-
-      if (error) {
-        await rm(subtitleDir, { recursive: true, force: true });
-        resolve(
-          NextResponse.json(
-            { success: false, error: stderr || "字幕取得に失敗しました" },
-            { status: 500 }
-          )
-        );
-        return;
-      }
-
-      try {
+  try {
+    return await withRequestMediaWorkspace(async workspace => {
+    const ytDlpPath = process.platform === "win32" ? path.resolve("./yt-dlp.exe") : "yt-dlp";
+    const subtitleDir=workspace.root;
+    const outputBase=path.join(subtitleDir,"subtitle");
+    const cookiesPath=workspace.file("cookies.txt");
+    if(process.env.YOUTUBE_COOKIES) fs.writeFileSync(cookiesPath,process.env.YOUTUBE_COOKIES,{flag:"wx",mode:0o600});
+    const args=[...(fs.existsSync(cookiesPath)?["--cookies",cookiesPath]:[]),"--write-auto-subs","--write-subs","--sub-langs","ja,en","--skip-download","--sub-format","json3","-o",outputBase,"--",url];
+    await runMediaProcess(ytDlpPath,args,req.signal);
         const files = (await readdir(subtitleDir)).filter((file) =>
           file.endsWith(".json3")
         );
 
-        console.log("subtitle files:", files);
-
-        if (files.length === 0) {
-          await rm(subtitleDir, { recursive: true, force: true });
-          resolve(
-            NextResponse.json({
-              success: false,
-              error: "字幕ファイルが見つかりません",
-            })
-          );
-          return;
-        }
-
+        if(files.length===0)return NextResponse.json({success:false,error:"字幕ファイルが見つかりません"});
         const preferredFile =
           files.find((file) => file.includes(".ja.")) ??
           files.find((file) => file.includes(".en.")) ??
           files[0];
 
         const subtitlePath = path.join(subtitleDir, preferredFile);
-        const subtitleData = JSON.parse(await readFile(subtitlePath, "utf-8"));
+        const stat = await import("node:fs/promises").then(fs => fs.lstat(subtitlePath));
+        if(!stat.isFile() || stat.isSymbolicLink() || stat.size>4*1024*1024)throw Error("invalid-subtitle-file");
+        const subtitleData: unknown = JSON.parse(await readFile(subtitlePath, "utf-8"));
 
-        const subtitles =
-          subtitleData.events
-            ?.filter((event: any) => event.segs && event.segs.length > 0)
-            .map((event: any) => ({
-              second: Math.floor(event.tStartMs / 1000),
-              text: event.segs
-                .map((seg: any) => seg.utf8)
-                .join("")
-                .replace(/\n/g, " ")
-                .trim(),
-            }))
-            .filter((item: any) => item.text !== "") || [];
+        const subtitles = parseJson3Subtitles(subtitleData);
 
         const keywords: Record<string, number> = {
           衝撃: 5,
@@ -116,7 +65,7 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
         };
 
         const highlights = subtitles
-          .map((subtitle: any) => {
+          .map((subtitle) => {
             let score = 0;
 
             Object.entries(keywords).forEach(([word, value]) => {
@@ -127,35 +76,16 @@ const cmd = `"${ytDlpPath}" ${cookiesArg} --write-auto-subs --write-subs --sub-l
 
             return { ...subtitle, score };
           })
-          .filter((item: any) => item.score > 0)
-          .sort((a: any, b: any) => b.score - a.score)
+          .filter((item) => item.score > 0)
+          .sort((a, b) => b.score - a.score)
           .slice(0, CLIP_FINAL_SELECTION_POLICY_V1.candidatePoolLimit);
 
-        const fullText = subtitles.map((s: any) => s.text).join(" ");
+        const fullText = subtitles.map((s) => s.text).join(" ");
         const summary = fullText.slice(0, 500);
 
-        await rm(subtitleDir, { recursive: true, force: true });
-
-        resolve(
-          NextResponse.json({
-            success: true,
-            subtitles,
-            highlights,
-            fullText,
-            summary,
-            subtitleFile: preferredFile,
-          })
-        );
-      } catch (e) {
-        await rm(subtitleDir, { recursive: true, force: true });
-
-        resolve(
-          NextResponse.json(
-            { success: false, error: String(e) },
-            { status: 500 }
-          )
-        );
-      }
-    });
-  });
+        return NextResponse.json({success:true,subtitles,highlights,fullText,summary,subtitleFile:preferredFile});
+    },req.signal);
+  }catch{
+    return NextResponse.json({success:false,error:"字幕取得に失敗しました"},{status:502});
+  }
 }

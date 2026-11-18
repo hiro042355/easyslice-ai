@@ -24,9 +24,9 @@ test("durable transcript resolves ownership before GCS, FFmpeg, and provider", (
   const markers = [
     "requireAuthenticatedRequest(request)", "!isUuid(body.jobId) || !isUuid(body.mediaId)",
     "resolveOwnedJob(body.jobId, ownerUid)", "resolveOwnedMedia(body.mediaId, ownerUid)",
-    "media.jobId !== body.jobId", "file(media.storageKey).download", "inspectAudioMedia(executable, inputPath)",
-    "extractTranscriptAudio(executable, inputPath, audioPath)", "new GeminiTranscriptProvider(apiKey)",
-    "transcribeExtractedAudio(provider, audioPath, inspection.durationSeconds)",
+    "media.jobId !== body.jobId", "file(media.storageKey).createReadStream", "inspectAudioMedia(executable, inputPath)",
+    "extractTranscriptAudio(executable, inputPath, audioPath, request.signal)", "new GeminiTranscriptProvider(apiKey)",
+    "transcribeExtractedAudio(provider, audioPath, inspection.durationSeconds, request.signal)",
   ];
   let prior = -1;
   for (const marker of markers) {
@@ -39,10 +39,11 @@ test("durable transcript resolves ownership before GCS, FFmpeg, and provider", (
 });
 
 test("durable transcript uses isolated files, packaged FFmpeg, and cleanup", () => {
-  assert.match(route, /path\.join\(paths\.input, "source\.mp4"\)/);
-  assert.match(route, /path\.join\(paths\.work, "transcript\.flac"\)/);
+  assert.match(route, /workspace\.file\('source\.mp4'\)/);
+  assert.match(route, /workspace\.file\('transcript\.flac'\)/);
   assert.match(route, /resolvePackagedFfmpeg\(\)/);
-  assert.match(route, /finally \{[\s\S]*cleanupJobTempRoot\(body\.jobId\)/);
+  assert.match(route, /withRequestMediaWorkspace\(async workspace/);
+  assert.doesNotMatch(route, /cleanupJobTempRoot|createJobTempDirectories/);
   assert.doesNotMatch(route, /downloaded\.mp4|transcript-audio\.wav|os\.tmpdir|execFileAsync\("ffmpeg"|shell:\s*true/);
   assert.match(config, /"\/api\/transcript\/durable": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
 });

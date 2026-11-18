@@ -14,7 +14,6 @@ import {
   validateCameraMovement,
 } from "@/lib/camera/cameraEngine";
 import { Select } from "@/components/ui/Select";
-import { RadioGroup } from "@/components/ui/RadioGroup";
 import { Accordion, AccordionItem } from "@/components/ui/Accordion";
 import { Modal } from "@/components/ui/Modal";
 
@@ -33,7 +32,7 @@ export function CameraEditor({
   onChangeMovements,
   className = "",
 }: CameraEditorProps) {
-  const [selectedType, setSelectedType] = useState<CameraMovementType>("PAN");
+  const selectedType: CameraMovementType = "PAN";
   const [editingMovement, setEditingMovement] = useState<CameraMovement | null>(null);
   const [validationError, setValidationError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -136,8 +135,9 @@ export function CameraEditor({
   };
 
   const handleApplyRecommendation = (rec: CameraRecommendation) => {
+    if (recStates[rec.recommendationId] !== "ACCEPTED") return;
     const newMv: CameraMovement = Object.freeze({
-      id: `cam-rec-${Date.now()}`,
+      id: `cam-${rec.recommendationId}`,
       clipId: rec.clipId ?? clipId,
       movementType: rec.movementType,
       startTime: rec.startTime,
@@ -191,7 +191,7 @@ export function CameraEditor({
 
         {movements.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-gray-400 text-center">
-            No camera movements configured. Click "+ Add Camera Movement" or apply an AI recommendation below.
+            No camera movements configured. Click &quot;+ Add Camera Movement&quot; or apply an AI recommendation below.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -296,10 +296,12 @@ export function CameraEditor({
                           <>
                             <button
                               type="button"
-                              onClick={() => handleApplyRecommendation(rec)}
+                                onClick={() => status === "ACCEPTED"
+                                  ? handleApplyRecommendation(rec)
+                                  : setRecStates(prev => ({...prev, [rec.recommendationId]: "ACCEPTED"}))}
                               className="rounded-lg bg-cyan-300 px-3 py-1.5 text-xs font-bold text-zinc-950 hover:bg-cyan-200 transition"
                             >
-                              Apply
+                                {status === "ACCEPTED" ? "Apply" : "Accept"}
                             </button>
                             <button
                               type="button"

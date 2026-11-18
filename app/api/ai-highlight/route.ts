@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuthenticatedRequest } from "@/lib/server/productionIdentity/routeGuard";
+import {createGeneratedAssetBoundary,fetchGeneratedAsset} from '@/lib/server/generatedAssetBoundaryCore';
+export const POST=createGeneratedAssetBoundary(requireAuthenticatedRequest,handleGeneration);
 import { CLIP_FINAL_SELECTION_POLICY_V1 } from "@/lib/clipCandidates";
 
 export const runtime = "nodejs";
@@ -106,9 +108,7 @@ function createFallbackClip(
   };
 }
 
-export async function POST(req: Request) {
-  const authentication = await requireAuthenticatedRequest(req);
-  if (!authentication.ok) return authentication.response;
+async function handleGeneration(req: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -184,7 +184,7 @@ Markdownや説明文は不要です。
 ${subtitleText}
 `;
 
-    const res = await fetch(
+    const res = await fetchGeneratedAsset(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
         method: "POST",
@@ -200,7 +200,7 @@ ${subtitleText}
           ],
         }),
       }
-    );
+    ,req.signal);
 
     if (!res.ok) {
       const message = await res.text();
@@ -268,8 +268,7 @@ if (res.status === 429) {
       success: true,
       clips,
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
 
     return NextResponse.json(
       { success: false, error: "AIハイライト生成に失敗しました" },

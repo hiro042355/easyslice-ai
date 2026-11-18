@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type EditableSubtitle = {
   id: string;
@@ -64,30 +64,32 @@ export default function SubtitleEditor({
   const [message, setMessage] = useState("");
   const [syncedTranscriptText, setSyncedTranscriptText] = useState(transcriptText);
   const [translationSyncNeeded, setTranslationSyncNeeded] = useState(false);
+  const selectionSignature = JSON.stringify([selectedSubtitle?.id, selectedSubtitle?.start, selectedSubtitle?.end, selectedSubtitle?.text]);
+  const [draftSelection, setDraftSelection] = useState(selectionSignature);
 
-  useEffect(() => {
-    if (transcriptText === syncedTranscriptText) return;
-
+  // Adjust only this component's state when its external source changes.
+  // A stable guard avoids an effect-driven stale editor frame and render loops.
+  if (transcriptText !== syncedTranscriptText) {
     const nextRows = createSubtitleRows(transcriptText);
 
     setSubtitles(nextRows);
     setSelectedId(nextRows[0]?.id ?? "");
     setSyncedTranscriptText(transcriptText);
     setTranslationSyncNeeded(false);
-  }, [transcriptText, syncedTranscriptText]);
+  }
 
-  useEffect(() => {
+  if (selectionSignature !== draftSelection) {
+    setDraftSelection(selectionSignature);
     if (!selectedSubtitle) {
       setDraftText("");
       setDraftStart("0");
       setDraftEnd("2");
-      return;
+    } else {
+      setDraftText(selectedSubtitle.text);
+      setDraftStart(String(selectedSubtitle.start));
+      setDraftEnd(String(selectedSubtitle.end));
     }
-
-    setDraftText(selectedSubtitle.text);
-    setDraftStart(String(selectedSubtitle.start));
-    setDraftEnd(String(selectedSubtitle.end));
-  }, [selectedSubtitle?.id, selectedSubtitle?.start, selectedSubtitle?.end, selectedSubtitle?.text]);
+  }
 
   const syncTranscript = (nextSubtitles: EditableSubtitle[]) => {
     const nextTranscriptText = subtitlesToTranscript(nextSubtitles);

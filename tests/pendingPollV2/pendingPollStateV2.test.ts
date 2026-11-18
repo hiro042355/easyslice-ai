@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { omitProperties } from "../../lib/omitProperties";
 import type { ResolvedAsset, Sensitive } from "../../lib/assets/types";
 import { projectPendingUploadReadyAssetsV2, validatePendingUploadPollStateV2 } from "../../lib/pendingPollV2/pendingPollStateV2";
 
@@ -48,6 +49,40 @@ const projectValidated = (raw: unknown) => {
   if (!validatePendingUploadPollStateV2(raw)) assert.fail("expected valid pending-poll state");
   return projectPendingUploadReadyAssetsV2(raw);
 };
+
+test("unknown poll data rejects incomplete nested snapshots and completed access", () => {
+  const raw = completedState("ready");
+  if (!validatePendingUploadPollStateV2(raw)) assert.fail("invalid canonical fixture");
+  const item = raw.items[0];
+  if (item.status !== "completed") assert.fail("expected completed fixture");
+  const corruptions = [
+    { ...item, sourceSnapshot: { ...item.sourceSnapshot, metadata: { type: "audio" } } },
+    { ...item, sourceSnapshot: { ...item.sourceSnapshot, integrity: {} } },
+    { ...item, sourceSnapshot: { ...item.sourceSnapshot, assetRef: { kind: "audio" } } },
+    { ...item, completedAsset: { ...item.completedAsset, access: { mode: "provider-native-asset" } } },
+    { ...item, completedAsset: { ...item.completedAsset, metadata: {} } },
+  ];
+  for (const broken of corruptions) assert.equal(validatePendingUploadPollStateV2({ ...raw, items: [broken] }), false);
+  assert.equal(validatePendingUploadPollStateV2(raw), true);
+});
+
+test("unknown accepted sessions require the actual session reference and upload mode contract", () => {
+  const raw = completedState("ready");
+  if (!validatePendingUploadPollStateV2(raw)) assert.fail("invalid canonical fixture");
+  const item = raw.items[0];
+  const session = { sessionVersion: "1.0", sessionRef: "synthetic-session", providerId: raw.providerId, operation: raw.operation, mode: "single-request", expiresAt: raw.stateExpiresAt };
+  const pending = { ...raw, stateStatus: "pending", items: [{ ...omitProperties(item, ["completedAsset"]), status: "accepted", session }] };
+  assert.equal(validatePendingUploadPollStateV2(pending), true);
+  for (const broken of [{ ...session, sessionRef: undefined }, { ...session, mode: "invented-mode" }, { ...session, expiresAt: "invalid" }]) {
+    assert.equal(validatePendingUploadPollStateV2({ ...pending, items: [{ ...pending.items[0], session: broken }] }), false);
+  }
+});
+
+test("malformed accessor exceptions are rejected without escaping the validation boundary", () => {
+  const raw = completedState("ready");
+  Object.defineProperty(raw, "items", { get() { throw new Error("synthetic-malformed-accessor"); } });
+  assert.doesNotThrow(() => assert.equal(validatePendingUploadPollStateV2(raw), false));
+});
 
 test("projects a ready state's completed assets as a Sensitive collection without mutating the state", () => {
   const raw = completedState("ready");

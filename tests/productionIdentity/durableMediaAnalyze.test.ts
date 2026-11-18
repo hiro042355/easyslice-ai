@@ -48,9 +48,9 @@ test("durable Analyze resolves owner-scoped Job and Media before GCS or filesyst
     "resolveOwnedJob(jobId, ownerUid)",
     "resolveOwnedMedia(mediaId, ownerUid)",
     "media.jobId !== jobId",
-    "createJobTempDirectories(jobId)",
-    "file(media.storageKey).download({ destination: inputPath })",
-    "analyzeVideo(inputPath)",
+    "withRequestMediaWorkspace(async workspace",
+    "file(media.storageKey).createReadStream()",
+    "analyzeVideo(inputPath,signal)",
   ];
   let prior = -1;
   for (const marker of ordered) {
@@ -63,7 +63,7 @@ test("durable Analyze resolves owner-scoped Job and Media before GCS or filesyst
 test("Analyze keeps privacy-safe rejection and rejects client ownership or storage authority", () => {
   assert.match(analyze, /!media \|\| media\.jobId !== jobId[\s\S]*resource-not-found/);
   assert.doesNotMatch(analyze, /body\.(?:ownerUid|userId|storageKey)/);
-  assert.match(analyze, /bucket\.file\(media\.storageKey\)\.download\(\{ destination: inputPath \}\)/);
+  assert.match(analyze, /bucket\.file\(media\.storageKey\)\.createReadStream\(\)/);
 });
 
 test("missing durable references fail closed without legacy filesystem access", () => {
@@ -81,10 +81,11 @@ test("malformed IDs fail before runtime, ownership, GCS, temp, or FFmpeg", () =>
 
 test("Analyze uses argument arrays and cleans the isolated durable temp root", () => {
   assert.match(analyze, /resolvePackagedFfmpeg/);
-  assert.match(analyze, /execFileAsync\(ffmpegExecutable\(\), \[/);
+  assert.match(analyze, /captureMediaProcess\(ffmpegExecutable\(\), \[/);
   assert.doesNotMatch(analyze, /spawn ffprobe|execFileAsync\("ffprobe"/);
   assert.doesNotMatch(analyze, /\bexec\s*\(/);
-  assert.match(analyze, /finally \{[\s\S]*cleanupJobTempRoot\(jobId\)/);
+  assert.match(analyze, /withRequestMediaWorkspace\(async workspace/);
+  assert.doesNotMatch(analyze,/cleanupJobTempRoot|createJobTempDirectories/);
 });
 
 test("Production build materializes the canonical FFmpeg runtime asset for active processing routes", () => {

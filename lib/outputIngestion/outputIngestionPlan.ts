@@ -1,3 +1,4 @@
+import { omitProperties } from "@/lib/omitProperties";
 import type {
   GeneratedOutputRole,
   OutputIngestionInput,
@@ -157,7 +158,7 @@ export function buildOutputIngestionPlan(input: OutputIngestionInput): OutputIng
       requireDimensions: expected.requireDimensions as boolean,
     };
   });
-  const { allowedProviderIds: _allowedProviderIds, ...projectedPolicy } = policy as unknown as OutputIngestionPolicy;
+  const projectedPolicy = omitProperties(policy as unknown as OutputIngestionPolicy, ["allowedProviderIds"]);
   const plan: OutputIngestionPlan = {
     planVersion: "1.0",
     executorVersion: "reference-v1",

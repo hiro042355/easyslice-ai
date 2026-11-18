@@ -33,22 +33,24 @@ test("ownership and relationship precede GCS, temp, subtitle generation, and FFm
   const job = route.indexOf("resolveOwnedJob(body.jobId, ownerUid)");
   const media = route.indexOf("resolveOwnedMedia(body.mediaId, ownerUid)");
   const relation = route.indexOf("media.jobId !== body.jobId");
-  const temp = route.indexOf("createJobTempDirectories(body.jobId)");
-  const gcs = route.indexOf("file(media.storageKey).download");
+  const temp = route.indexOf("withRequestMediaWorkspace(async workspace");
+  const gcs = route.indexOf("file(media.storageKey).createReadStream");
   const subtitle = route.indexOf("createSubtitleLines(");
-  const ffmpeg = route.indexOf("await runFfmpeg");
+  const ffmpeg = route.indexOf("await runMediaProcess");
   assert.ok(job > 0 && media > job && relation > media && temp > relation && gcs > temp && subtitle > gcs && ffmpeg > subtitle);
   assert.match(route, /resource-not-found[\s\S]*status:\s*404/);
 });
 
 test("burn uses isolated files, packaged FFmpeg, argument arrays, and cleanup", () => {
   assert.doesNotMatch(route, /downloaded\.mp4|burned-subtitle\.mp4|os\.tmpdir|execFile|execAsync|spawn\(["']ffmpeg["']|shell:\s*true/);
-  assert.match(route, /path\.join\(paths\.input, "source\.mp4"\)/);
-  assert.match(route, /path\.join\(paths\.work, renderConfig\.enabled \? "subtitle\.ass" : "subtitle\.srt"\)/);
-  assert.match(route, /path\.join\(paths\.output, "subtitled\.mp4"\)/);
-  assert.match(route, /spawn\(executable, \[\.\.\.args\], \{ shell: false/);
+  assert.match(route, /workspace\.file\('source\.mp4'\)/);
+  assert.match(route, /workspace\.file\(subtitleName\)/);
+  assert.match(route, /workspace\.file\('subtitled\.mp4'\)/);
+  const processSource=readFileSync('lib/server/requestMediaWorkspace.ts','utf8');
+  assert.match(processSource, /spawn\(executable,\[\.\.\.args\],\{shell:false/);
   assert.match(route, /resolvePackagedFfmpeg\(\)/);
-  assert.match(route, /finally \{[\s\S]*cleanupJobTempRoot\(body\.jobId\)/);
+  assert.match(route, /withRequestMediaWorkspace\(async workspace/);
+  assert.doesNotMatch(route, /cleanupJobTempRoot|createJobTempDirectories/);
   assert.match(config, /"\/api\/burn-subtitle": \["\.\/node_modules\/\.nexcut-runtime\/ffmpeg\/ffmpeg\*"\]/);
 });
 

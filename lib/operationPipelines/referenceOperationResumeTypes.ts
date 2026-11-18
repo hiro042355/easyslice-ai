@@ -113,8 +113,8 @@ export type RestrictedAdapterRequestRegistrationResult =
   | Readonly<{ status: "registered" }>
   | Readonly<{ status: "conflict" | "invalid" }>;
 
-export type RestrictedAdapterRequestResolveResult =
-  | Readonly<{ status: "resolved"; request: Sensitive<OperationAdapterRequest> }>
+export type RestrictedAdapterRequestResolveResult<TRequest extends OperationAdapterRequest = OperationAdapterRequest> =
+  | Readonly<{ status: "resolved"; request: Sensitive<TRequest> }>
   | Readonly<{
       status: "missing" | "expired" | "unauthorized" | "deleted" | "schema-mismatch" | "adapter-mismatch" | "operation-mismatch" | "failed";
     }>;
@@ -209,7 +209,7 @@ export type OperationResumePipelineBinding<TRequest extends OperationAdapterRequ
   normalizerId: string;
   normalizerVersion: string;
   outputIngestionId: string;
-  restoreAdapterRequest(reference: string, input: OperationResumePipelineInput): Promise<RestrictedAdapterRequestResolveResult>;
+  restoreAdapterRequest(reference: string, input: OperationResumePipelineInput): Promise<RestrictedAdapterRequestResolveResult<TRequest>>;
   materialize(request: TRequest, resolution: AssetResolutionExecutionResult, baselineTime: string): RequestMaterializationResult<TMaterializedBody>;
   bridgeToClientBody(request: MaterializedProviderRequest<TMaterializedBody>): OperationTransportBridgeResult<TClientBody>;
   bridgeResponse(response: ReferenceSafeResponseDTO): TResponse;

@@ -3,10 +3,10 @@ import test from "node:test";
 import type { OperationPipelineResult, OperationPipelineRetryRecommendation } from "../../lib/operationPipelines/types";
 import {
   ReferenceGenerationWorkflow,
-  runReferenceGenerationWorkflow,
   type ReferenceWorkflowCancellation,
   type ReferenceWorkflowPipelineCapability,
 } from "../../lib/workflows/referenceGenerationWorkflow";
+import {runReferenceGenerationWorkflow} from "../../lib/workflows/referenceGenerationWorkflowFacade";
 import type { ReferenceWorkflowInput } from "../../lib/workflows/referenceWorkflowTypes";
 import type { ReferenceWorkflowResult, WorkflowDefinition, WorkflowInput, WorkflowPipelineReference } from "../../lib/workflows/types";
 import { runReferenceVocalWorkflow } from "../../lib/workflows/referenceVocalWorkflow";

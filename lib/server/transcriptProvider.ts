@@ -1,9 +1,11 @@
 import type { ClipTimedTextV1 } from "@/lib/clipEditing";
+import {readBoundedJsonBody} from './boundedJsonBody';
 
 export type TranscriptProviderInput = Readonly<{
   audio: Buffer;
   mimeType: "audio/flac";
   durationSeconds: number;
+  signal?: AbortSignal;
 }>;
 
 export interface TranscriptProvider {
@@ -58,6 +60,7 @@ export class GeminiTranscriptProvider implements TranscriptProvider {
   ) {}
 
   async transcribe(input: TranscriptProviderInput): Promise<readonly ClipTimedTextV1[]> {
+    if(input.signal?.aborted||input.audio.length>32*1024*1024)throw new TranscriptFailure('provider-failed');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
@@ -65,7 +68,7 @@ export class GeminiTranscriptProvider implements TranscriptProvider {
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
         {
           method: "POST",
-          signal: controller.signal,
+          signal: input.signal ? AbortSignal.any([controller.signal, input.signal]) : controller.signal,
           headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
           body: JSON.stringify({
             contents: [{ parts: [
@@ -90,7 +93,7 @@ export class GeminiTranscriptProvider implements TranscriptProvider {
       );
       if (response.status === 429) throw new TranscriptFailure("provider-rate-limited");
       if (!response.ok) throw new TranscriptFailure("provider-failed");
-      const payload = await response.json() as {
+      const payload = await readBoundedJsonBody(response,256*1024) as {
         candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
       };
       const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;

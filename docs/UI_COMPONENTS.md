@@ -35,4 +35,7 @@ This document describes the modern, accessible UI components created in `compone
 
 ## Styling & Design System Conventions
 - Styled with Tailwind CSS matching NEXCUT AI's dark glassmorphism theme (`zinc-950`, `cyan-300`, `cyan-300/20` borders).
-- Respects `prefers-reduced-motion` and keyboard focus outlines (`focus:ring-2 focus:ring-cyan-300`).
+- Keyboard focus outlines use `focus:ring-2 focus:ring-cyan-300`. Reduced-motion behavior is not yet independently verified and is not claimed.
+
+## Integration V4 evidence limits
+Executable DOM tests cover Modal focus/scroll restoration, enabled-element focus looping, RadioGroup arrow-key focus, HamburgerMenu Escape restoration, Accordion state and disabled SelectionCard behavior. Import/export tests alone are not behavioral evidence. Browser layout, screen-reader behavior, nested dialogs and complete responsive accessibility remain unverified. These primitives may support a later unified application shell; no screen-wide redesign is included.

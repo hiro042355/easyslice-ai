@@ -12,8 +12,8 @@ test("cut preserves authentication, ownership, materialization, process, upload,
     "resolveOwnedJob(jobId, ownerUid)",
     "resolveOwnedMedia(mediaId, ownerUid)",
     "Number(form.get(\"start\"))",
-    "file(media.storageKey).download()",
-    "writeFile(input, bytes)",
+    "file(media.storageKey).createReadStream()",
+    "workspace.assertRegular('source.mp4')",
     "runFfmpeg([",
     "file(uploadedKey).save(rendered",
     "createExportWithId(exportId, jobId, ownerUid",
@@ -28,17 +28,19 @@ test("cut preserves authentication, ownership, materialization, process, upload,
 
 test("cut does not accept client ownership, storage, filename, or shell authority", () => {
   assert.doesNotMatch(cut, /form\.get\(["'](?:userId|ownerUid|storageKey|filename)["']\)/);
-  assert.match(cut, /spawn\(executable, \[\.\.\.args\], \{ shell: false/);
+  assert.match(cut, /runMediaProcess\(executable,args,signal\)/);
+  assert.match(readFileSync('lib/server/requestMediaWorkspace.ts','utf8'),/shell:false/);
   assert.doesNotMatch(cut, /spawn\(["']ffmpeg["']/);
   assert.doesNotMatch(cut, /\bexec(?:Sync)?\s*\(/);
   assert.match(cut, /createExportStorageKey\(jobId, exportId/);
-  assert.match(cut, /cleanupJobTempRoot\(jobId\)/);
+  assert.match(cut, /withRequestMediaWorkspace\(async workspace/);
+  assert.doesNotMatch(cut,/cleanupJobTempRoot|createJobTempDirectories/);
 });
 
 test("cut uses the canonical packaged FFmpeg runtime with safe availability checks", () => {
   const resolve = cut.indexOf("resolvePackagedFfmpeg()");
   const inspect = cut.indexOf("collectFfmpegBinaryDiagnostic(executable)");
-  const spawn = cut.indexOf("spawn(executable, [...args]");
+  const spawn = cut.indexOf("runMediaProcess(executable,args,signal)");
   assert.ok(resolve > 0 && inspect > resolve && spawn > inspect);
   assert.match(cut, /ffmpeg-binary-missing/);
   assert.match(cut, /ffmpeg-not-executable/);
@@ -54,8 +56,8 @@ test("Production tracing packages FFmpeg only for the active audio and cut route
 test("ownership rejection precedes GCS, filesystem, and FFmpeg work", () => {
   const ownershipEnd = cut.indexOf("media.jobId !== jobId");
   assert.ok(ownershipEnd > 0);
-  assert.ok(cut.indexOf(".download()") > ownershipEnd);
-  assert.ok(cut.indexOf("writeFile(input") > ownershipEnd);
+  assert.ok(cut.indexOf(".createReadStream()") > ownershipEnd);
+  assert.ok(cut.indexOf("workspace.assertRegular('source.mp4')") > ownershipEnd);
   assert.ok(cut.indexOf("runFfmpeg([") > ownershipEnd);
 });
 

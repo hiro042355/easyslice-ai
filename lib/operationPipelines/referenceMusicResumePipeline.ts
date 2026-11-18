@@ -16,11 +16,15 @@ export const createReferenceMusicResumePipeline = (
   providerClientId: "reference-provider-client-v1", providerClientVersion: "1.0.0", providerId: "reference-provider",
   providerApiVersion: "reference-api-v1", normalizerId: "reference-music-v1", normalizerVersion: "1.0.0",
   outputIngestionId: "reference-output-ingestion-v1",
-  restoreAdapterRequest: (reference, input) => resolver.resolve(reference, "generate-music", input.context, input.authorization),
+  restoreAdapterRequest: async (reference, input) => {
+    const result=await resolver.resolve(reference,"generate-music",input.context,input.authorization);
+    if(result.status!=="resolved")return result;
+    return "lyricsMode" in result.request?{status:"resolved" as const,request:result.request}:{status:"operation-mismatch" as const};
+  },
   materialize: (request, resolution, baselineTime) => referenceMusicMaterializer.materialize({
     contractVersion: "1.0", providerId: "reference-provider", providerApiVersion: "reference-api-v1",
-    operation: "generate-music", adapterRequest: request as never, resolvedAssets: resolution,
+    operation: "generate-music", adapterRequest: request, resolvedAssets: resolution,
     profile: referenceMusicMaterializationProfile, context: { contextVersion: "1.0", baselineTime },
   }),
-  bridgeToClientBody: bridgeMusicRequest as never, bridgeResponse: bridgeMusicResponse, normalize: normalizeReferenceMusicResponse,
+  bridgeToClientBody: bridgeMusicRequest, bridgeResponse: bridgeMusicResponse, normalize: normalizeReferenceMusicResponse,
 }, config);

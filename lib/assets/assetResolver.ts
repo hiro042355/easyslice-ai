@@ -7,7 +7,6 @@ const checksum = "sha256:reference-fixture";
 const record = (assetId: string, kind: AssetRecord["kind"], mimeType: string, metadata: AssetMetadata, overrides: Partial<AssetRecord> = {}): AssetRecord => ({ schemaVersion: "1.0", assetId, kind, mimeType, sizeBytes: 1024, checksum, metadata, storageLocator: { locatorVersion: "1.0", locatorId: `opaque-${assetId}` }, status: "available", region: "reference-region", retentionClass: "project", integrityState: "verified", ...overrides } as AssetRecord);
 const inspection = (mimeType: string, overrides: Partial<ReferenceAssetInspection> = {}): ReferenceAssetInspection => ({ contentType: mimeType, detectedMimeType: mimeType, actualSizeBytes: 1024, actualChecksum: checksum, ...overrides });
 const audio = { type: "audio", durationSeconds: 30, sampleRateHz: 48000, channels: 2, codec: "reference-codec" } as const;
-const image = { type: "image", width: 1280, height: 720, orientation: 1, hasAlpha: false } as const;
 const video = { type: "video", durationSeconds: 30, width: 1280, height: 720, frameRate: 30, codec: "reference-codec" } as const;
 const statusFixture = (id: string, status: AssetRecord["status"]): Fixture => ({ record: record(id, "audio", "audio/wav", audio, { status }), inspection: inspection("audio/wav") });
 const catalogFixture = (key: "fixture-audio" | "fixture-image" | "fixture-video"): Fixture => {

@@ -1,8 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { UnoptimizedPreviewImage } from "@/components/UnoptimizedPreviewImage";
 import EmotionGraphPreview from "@/components/EmotionGraphPreview";
 import DirectorDecisionPreview from "@/components/DirectorDecisionPreview";
+import { AiMvSignalFoundation } from "@/components/AiMvSignalFoundation";
+import { CharacterSelector } from "@/components/characterEngineV2/CharacterSelector";
+import { CharacterBibleViewer } from "@/components/characterEngineV2/CharacterBibleViewer";
+import { ArtworkUploader } from "@/components/characterEngineV2/ArtworkUploader";
+import { SceneCharacterAssigner } from "@/components/characterEngineV2/SceneCharacterAssigner";
+import { CharacterEngineApiClient } from "@/lib/characterEngineV2/client";
+import { CastingManager } from "@/lib/characterEngineV2/castingManager";
+import { mapCharacterProjectStateToMVAssets } from "@/lib/characterEngineV2/mvPipelineIntegration";
+import type { CharacterBible, DimensionMode } from "@/lib/characterEngineV2/types";
 import { createDirectorDecision } from "@/lib/directorDecisionEngine";
 import {
   createEmotionGraph,
@@ -71,6 +82,32 @@ export default function AiMvPage() {
   const [length, setLength] = useState("medium");
   const [theme, setTheme] = useState("日記");
   const [directorPreset, setDirectorPreset] = useState<DirectorPreset>("auto");
+  const [castingManager] = useState(() => new CastingManager());
+  const [characterProjectState, setCharacterProjectState] = useState(() => castingManager.getState());
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>("hero_2d");
+
+  useEffect(() => {
+    let isMounted = true;
+    const client = new CharacterEngineApiClient();
+    Promise.all([
+      client.getCharacterBible("hero_2d"),
+      client.getCharacterBible("cyber_3d_hero"),
+    ]).then(([heroRes, cyberRes]) => {
+      if (!isMounted) return;
+      if (heroRes.success) {
+        castingManager.addCharacterBible(heroRes.data);
+        castingManager.castCharacter(heroRes.data.characterId, heroRes.data.currentRevisionId, heroRes.data.defaultDimensionMode, heroRes.data.identityLockEnforced);
+      }
+      if (cyberRes.success) {
+        castingManager.addCharacterBible(cyberRes.data);
+        castingManager.castCharacter(cyberRes.data.characterId, cyberRes.data.currentRevisionId, cyberRes.data.defaultDimensionMode, cyberRes.data.identityLockEnforced);
+      }
+      setCharacterProjectState(castingManager.getState());
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [castingManager]);
   const [result, setResult] = useState<AiMvResult | null>(null);
   const [history, setHistory] = useState<AiMvHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,6 +147,8 @@ const [coverError, setCoverError] = useState("");
     setLoading(true);
 
     try {
+      const mappedAssets = mapCharacterProjectStateToMVAssets(characterProjectState);
+
       const res = await fetch("/api/ai-mv", {
         method: "POST",
         headers: {
@@ -122,6 +161,9 @@ body: JSON.stringify({
   mood,
   length,
   revisionMode,
+  characterAssets: mappedAssets.characterAssets,
+  performerAsset: mappedAssets.performerAsset,
+  characterProjectState,
 }),
       });
 
@@ -205,6 +247,7 @@ const handleDownloadCover = () => {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
+      <div className="mx-auto max-w-7xl px-6 pt-6"><AiMvSignalFoundation /></div>
       <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[420px_1fr]">
         <section className="rounded-lg border border-white/10 bg-white/[0.04] p-6">
           <div className="mb-6">
@@ -213,12 +256,12 @@ const handleDownloadCover = () => {
       AI MV生成 β
     </div>
 
-    <a
+    <Link
       href="/"
       className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-cyan-400/50 hover:text-cyan-200"
     >
       トップへ戻る
-    </a>
+    </Link>
   </div>
 
   <h1 className="text-2xl font-bold">あなたの出来事を作品にする</h1>
@@ -323,6 +366,68 @@ const handleDownloadCover = () => {
             </div>
             <EmotionGraphPreview graph={emotionGraph} />
             <DirectorDecisionPreview decision={directorDecision} />
+
+            {/* Character Engine V2 Component Section */}
+            <div className="space-y-4 pt-4 border-t border-white/10">
+              <CharacterSelector
+                characters={characterProjectState.characters}
+                castings={characterProjectState.castings}
+                selectedCharacterId={selectedCharacterId}
+                onSelectCharacter={(id) => setSelectedCharacterId(id)}
+                onCastCharacter={(id, revId, mode, lock) => {
+                  castingManager.castCharacter(id, revId, mode, lock);
+                  setCharacterProjectState(castingManager.getState());
+                }}
+                onToggleIdentityLock={(id, lock) => {
+                  castingManager.toggleIdentityLock(id, !lock);
+                  setCharacterProjectState(castingManager.getState());
+                }}
+              />
+
+              {characterProjectState.characters.find((c) => c.characterId === selectedCharacterId) && (
+                <>
+                  <CharacterBibleViewer
+                    character={characterProjectState.characters.find((c) => c.characterId === selectedCharacterId)!}
+                    selectedRevisionId={
+                      characterProjectState.castings.find((c) => c.characterId === selectedCharacterId)?.selectedRevisionId ||
+                      characterProjectState.characters.find((c) => c.characterId === selectedCharacterId)!.currentRevisionId
+                    }
+                    onSelectRevision={(revId) => {
+                      const char = characterProjectState.characters.find((c) => c.characterId === selectedCharacterId)!;
+                      const casting = characterProjectState.castings.find((c) => c.characterId === selectedCharacterId);
+                      castingManager.castCharacter(
+                        char.characterId,
+                        revId,
+                        casting?.dimensionMode || char.defaultDimensionMode,
+                        casting?.identityLockEnforced ?? char.identityLockEnforced
+                      );
+                      setCharacterProjectState(castingManager.getState());
+                    }}
+                  />
+
+                  <ArtworkUploader
+                    character={characterProjectState.characters.find((c) => c.characterId === selectedCharacterId)!}
+                    onUpload={async (id, fileData, mode) => {
+                      const client = new CharacterEngineApiClient();
+                      const uploadRes = await client.uploadArtwork(id, fileData, mode);
+                      if (uploadRes.success) {
+                        const revRes = await client.createRevision(id, `Uploaded ${fileData.name}`, [uploadRes.data], true);
+                        if (revRes.success) {
+                          const char = castingManager.getCharacterBible(id);
+                          if (char) {
+                            char.revisions.push(revRes.data);
+                            char.currentRevisionId = revRes.data.revisionId;
+                            castingManager.addCharacterBible(char);
+                            castingManager.castCharacter(id, revRes.data.revisionId, mode, true, [uploadRes.data]);
+                            setCharacterProjectState(castingManager.getState());
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </>
+              )}
+            </div>
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-200">ジャンル</span>
               <select
@@ -727,10 +832,12 @@ window.setTimeout(() => setAllCopied(false), 1200);
 
 {coverImageUrl ? (
   <div className="space-y-3">
-    <img
+    <UnoptimizedPreviewImage
+      width={1024}
+      height={1024}
       src={coverImageUrl}
       alt="AI生成ジャケット"
-      className="aspect-square w-full max-w-sm rounded-md border border-white/10 object-cover"
+      className="aspect-square h-auto w-full max-w-sm rounded-md border border-white/10 object-cover"
     />
 
     <button
@@ -769,6 +876,19 @@ window.setTimeout(() => setAllCopied(false), 1200);
                       <p className="text-xs text-cyan-200">{scene.time || `Scene ${index + 1}`}</p>
                       <h4 className="mt-1 font-semibold">{scene.title}</h4>
                       <p className="mt-2 text-sm text-slate-300">{scene.description}</p>
+                      <SceneCharacterAssigner
+                        sceneId={`scene_${index + 1}`}
+                        characters={characterProjectState.characters}
+                        assignments={characterProjectState.sceneAssignments}
+                        onAssignCharacter={(scId, charId, role, mode) => {
+                          castingManager.assignCharacterToScene(scId, charId, role, mode);
+                          setCharacterProjectState(castingManager.getState());
+                        }}
+                        onRemoveAssignment={(scId, charId) => {
+                          castingManager.removeSceneAssignment(scId, charId);
+                          setCharacterProjectState(castingManager.getState());
+                        }}
+                      />
                     </div>
                   ))}
                 </div>

@@ -16,11 +16,15 @@ export const createReferenceVocalResumePipeline = (
   providerClientId: "reference-provider-client-v1", providerClientVersion: "1.0.0", providerId: "reference-provider",
   providerApiVersion: "reference-api-v1", normalizerId: "reference-vocal-v1", normalizerVersion: "1.0.0",
   outputIngestionId: "reference-output-ingestion-v1",
-  restoreAdapterRequest: (reference, input) => resolver.resolve(reference, "generate-vocal", input.context, input.authorization),
+  restoreAdapterRequest: async (reference, input) => {
+    const result=await resolver.resolve(reference,"generate-vocal",input.context,input.authorization);
+    if(result.status!=="resolved")return result;
+    return "language" in result.request?{status:"resolved" as const,request:result.request}:{status:"operation-mismatch" as const};
+  },
   materialize: (request, resolution, baselineTime) => referenceVocalMaterializer.materialize({
     contractVersion: "1.0", providerId: "reference-provider", providerApiVersion: "reference-api-v1",
-    operation: "generate-vocal", adapterRequest: request as never, resolvedAssets: resolution,
+    operation: "generate-vocal", adapterRequest: request, resolvedAssets: resolution,
     profile: referenceVocalMaterializationProfile, context: { contextVersion: "1.0", baselineTime },
   }),
-  bridgeToClientBody: bridgeVocalRequest as never, bridgeResponse: bridgeVocalResponse, normalize: normalizeReferenceVocalResponse,
+  bridgeToClientBody: bridgeVocalRequest, bridgeResponse: bridgeVocalResponse, normalize: normalizeReferenceVocalResponse,
 }, config);

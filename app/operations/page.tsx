@@ -97,7 +97,7 @@ export default function OperationsDashboardPage() {
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
             <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-6 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
               <h2 className="text-2xl font-black tracking-tight text-white">
-                Today's Activity
+                Today&apos;s Activity
               </h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {todayActivity.map((item) => (

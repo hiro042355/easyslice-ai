@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 
 export type NavLink = {
   label: string;
@@ -18,23 +18,35 @@ export function HamburgerMenu({ links, className = "" }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
 
   useEffect(() => {
+    const toggleButton = toggleButtonRef.current;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         setIsOpen(false);
         toggleButtonRef.current?.focus();
       }
+      if (e.key === "Tab" && isOpen) {
+        const nodes = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]');
+        if (!nodes?.length) return;
+        const first = nodes[0], last = nodes[nodes.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     };
 
+    const previousOverflow = document.body.style.overflow;
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
+      dialogRef.current?.querySelector<HTMLElement>('button')?.focus();
     }
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
+      if (isOpen) { document.body.style.overflow = previousOverflow; toggleButton?.focus(); }
     };
   }, [isOpen]);
 
@@ -70,7 +82,7 @@ export function HamburgerMenu({ links, className = "" }: HamburgerMenuProps) {
         type="button"
         onClick={toggleMenu}
         aria-expanded={isOpen}
-        aria-controls="mobile-navigation-menu"
+        aria-controls={menuId}
         aria-label={isOpen ? "Close menu" : "Open menu"}
         className="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-xl border border-white/10 bg-zinc-900 text-gray-200 hover:text-white hover:border-cyan-300/40 focus:outline-none focus:ring-2 focus:ring-cyan-300 transition-colors"
       >
@@ -101,7 +113,8 @@ export function HamburgerMenu({ links, className = "" }: HamburgerMenuProps) {
           />
 
           <div
-            id="mobile-navigation-menu"
+            id={menuId}
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label="Mobile Navigation"

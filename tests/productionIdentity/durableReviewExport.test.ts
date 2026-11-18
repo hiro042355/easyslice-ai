@@ -89,7 +89,7 @@ test("Review derives download authority from Export ID and classifies legacy ite
 test("Export retrieval enforces session and owner lookup before DB-derived GCS access", () => {
   const authentication = retrieval.indexOf("requireAuthenticatedRequest(request)");
   const lookup = retrieval.indexOf("resolveOwnedExport(exportId, ownerUid)");
-  const storage = retrieval.indexOf("file(exported.storageKey).download()");
+  const storage = retrieval.indexOf("file(exported.storageKey).createReadStream()");
   assert.ok(authentication > 0 && lookup > authentication && storage > lookup);
   assert.match(retrieval, /resource-not-found[\s\S]*status: 404/);
   assert.doesNotMatch(retrieval, /searchParams|get\(["'](?:uid|userId|storageKey|filename)["']\)/);

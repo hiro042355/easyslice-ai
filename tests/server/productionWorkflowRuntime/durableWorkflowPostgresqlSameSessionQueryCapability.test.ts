@@ -202,7 +202,7 @@ test("capability is compatible with Context V3 without changing Context V2", () 
   const capability = createDurableWorkflowPostgresqlSameSessionQueryCapability({
     transactionConnection: fakeConnection(async () => ({ status: "success", rows: [], rowCount: 0, command: "SELECT" })),
   });
-  const acceptsV3 = (_value: DurableWorkflowTransactionContextV3["sameSessionQuery"]): void => {};
+  const acceptsV3: (value: DurableWorkflowTransactionContextV3["sameSessionQuery"]) => void = () => {};
   acceptsV3(capability);
 });
 

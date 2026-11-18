@@ -353,7 +353,7 @@ test("Context V2 is not accepted by the public binding input", () => {
     ReturnType<typeof createWorkflowCompletionReplayBinding>["executeReplayCompletion"]
   >[0];
   type Context = BindingInput["transactionContext"];
-  const acceptsV3 = (_context: Context): void => {};
+  const acceptsV3: (context: Context) => void = () => {};
   const rejectsV2 = (contextV2: DurableWorkflowTransactionContext): void => {
     // @ts-expect-error Context V2 has no mandatory same-session query capability.
     acceptsV3(contextV2);

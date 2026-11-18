@@ -52,8 +52,8 @@ export interface CameraMovement {
 - Clamps position shifts dynamically to avoid rendering black borders.
 
 ## Video Export (`lib/server/ffmpegCameraFilter.ts` & `app/api/cut/route.ts`)
-- Converts active camera movements into dynamic FFmpeg `crop` and `scale` filtergraphs.
-- Sanitizes all numeric parameters as fixed-decimal tokens to guarantee immunity against shell command or FFmpeg expression injection.
+- Converts movements into FFmpeg `zoompan` expressions with the same four easing functions and first-match priority as the preview.
+- Only validated finite numeric values enter expressions; output dimensions, frame rate, duration and movement count are bounded. The route rejects malformed camera payloads instead of silently exporting without the requested effect.
 - Applied server-side via packaged FFmpeg execution.
 
 ## AI Camera Director Foundation
@@ -61,10 +61,10 @@ export interface CameraMovement {
 - Recommends movements with approval statuses (`PROPOSED`, `ACCEPTED`, `REJECTED`, `APPLIED`).
 - Operates zero external API calls or paid inference; users retain full manual control.
 
-## Feature Status Matrix
-- **PAN / TILT / ZOOM / CRANE_SIMULATION**: `IMPLEMENTED` & `VERIFIED`
-- **MANUAL CAMERA DIRECTION UI**: `IMPLEMENTED` & `VERIFIED`
-- **2D TIMELINE PREVIEW**: `IMPLEMENTED` & `VERIFIED`
-- **FFMPEG VIDEO EXPORT**: `IMPLEMENTED` & `VERIFIED`
-- **TRACKING SHOT**: `IMPLEMENTED` (Manual Keyframe Target Fallback)
-- **AI CAMERA DIRECTOR FOUNDATION**: `IMPLEMENTED` (Local Rule-Assisted Foundation)
+## Verification scope (integration V4)
+- Ten synthetic FFmpeg cases measure crop/zoom at seven frames and nine coordinates per frame against `interpolateCameraTransform`, within five RGB ramp levels (including chroma/crop rounding).
+- Three synthetic MP4 exports are encoded and decoded locally. These do not prove the authenticated storage/export route in Production.
+- Preview uses the same crop-centre direction, without an extra CSS easing transition. The fixed 16:9 preview stretches source imagery like the default 1280x720 export; alternative output aspect ratios and browser pixel-level parity remain unverified.
+- Continuous preview timing is sampled at discrete export frame times. Overlaps use the first matching movement, including shared inclusive endpoints.
+- Recommendation acceptance and application are separate explicit actions, covered by a DOM test. Rule scores are heuristics, not model confidence or scene understanding.
+- TRACKING is manual keyframe motion only: no computer vision tracking. CRANE_SIMULATION is 2D only.

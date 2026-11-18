@@ -58,7 +58,7 @@ export function createReferenceLogicalAssetReferenceFromCatalog(fixtureId: Refer
 }
 
 function createStoreRecord(entry: CatalogEntry, assetId: string): AssetRecord {
-  const schemaVersion: "1.0" = "1.0", locatorVersion: "1.0" = "1.0", status: "available" = "available", retentionClass: "project" = "project", integrityState: "verified" = "verified";
+  const schemaVersion = "1.0" as const, locatorVersion = "1.0" as const, status = "available" as const, retentionClass = "project" as const, integrityState = "verified" as const;
   const base = { schemaVersion, assetId, mimeType: entry.mimeType, sizeBytes: entry.sizeBytes, checksum: entry.checksum, storageLocator: { locatorVersion, locatorId: `opaque-${entry.internalStoreKey}` }, status, region: "reference-region", retentionClass, integrityState };
   if (entry.descriptor.kind === "audio" && entry.metadata.type === "audio") return { ...base, kind: "audio", metadata: copy(entry.metadata) };
   if (entry.descriptor.kind === "image" && entry.metadata.type === "image") return { ...base, kind: "image", metadata: copy(entry.metadata) };

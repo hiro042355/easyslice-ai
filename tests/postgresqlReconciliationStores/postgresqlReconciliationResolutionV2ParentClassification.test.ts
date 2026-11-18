@@ -147,7 +147,7 @@ for (const [caseIndex, caseLabel] of dynamicCases.entries()) {
           true,
           "safe-group3-parent-isolation",
         );
-        let expectedPriorStates = ["claimed"] as const;
+        const expectedPriorStates = ["claimed"] as const;
         if (caseLabel === "wrong-prior-state") {
           const observing = await run(async context =>
             durableTransactionSuccess(

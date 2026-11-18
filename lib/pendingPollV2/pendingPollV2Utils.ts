@@ -36,25 +36,26 @@ export const reasons = (codes: readonly (PendingUploadPollV2ReasonCode | string)
   Object.freeze(codes as PendingUploadPollV2ReasonCode[]);
 
 export const audit = (
-  status: any,
-  state: any,
-  op: any,
-  attempt: any,
-  reasonCodes: any,
-  selectedItemStatus?: any
+  status: PendingUploadPollV2Status,
+  state: unknown,
+  op: PendingUploadPollV2Audit["operation"],
+  attempt: unknown,
+  reasonCodes: PendingUploadPollV2Audit["reasonCodes"] | undefined,
+  selectedItemStatus?: PendingUploadPollV2Audit["selectedItemStatus"]
 ): PendingUploadPollV2Audit => {
-  const items = Array.isArray(state?.items) ? state.items : [];
+  const items: readonly unknown[] = state && typeof state === "object" && "items" in state && Array.isArray(state.items) ? state.items : [];
+  const statusOf = (item: unknown): unknown => item && typeof item === "object" && "status" in item ? item.status : undefined;
   return Object.freeze({
     auditVersion: "1.0" as const,
     status: status as PendingUploadPollV2Status,
     operation: op,
     attempt: Number(attempt) || 1,
     selectedItemStatus,
-    pendingItemCount: items.filter((i: any) => i.status === "accepted" || i.status === "processing").length,
-    processingItemCount: items.filter((i: any) => i.status === "processing").length,
-    completedItemCount: items.filter((i: any) => i.status === "completed").length,
-    omittedItemCount: items.filter((i: any) => i.status === "omitted").length,
-    failedItemCount: items.filter((i: any) => i.status === "failed").length,
+    pendingItemCount: items.filter((item) => statusOf(item) === "accepted" || statusOf(item) === "processing").length,
+    processingItemCount: items.filter((item) => statusOf(item) === "processing").length,
+    completedItemCount: items.filter((item) => statusOf(item) === "completed").length,
+    omittedItemCount: items.filter((item) => statusOf(item) === "omitted").length,
+    failedItemCount: items.filter((item) => statusOf(item) === "failed").length,
     reasonCodes: reasonCodes || [],
   });
 };

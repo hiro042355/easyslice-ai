@@ -91,3 +91,20 @@ test("job temp roots isolate collisions and cleanup only the selected job", asyn
   await cleanupJobTempRoot(JOB_B, authorityRoot);
   assert.throws(() => resolveJobTempPaths("../../shared"), /Invalid job ID/);
 });
+
+test("malformed database rows fail closed instead of becoming owned domain records", async () => {
+  for (const row of [{ id: JOB_A, owner_uid: "owner-a", status: "unknown" }, { id: "foreign/path", owner_uid: "owner-a", status: "created" }, { id: MEDIA_A, job_id: JOB_A, storage_key: 42, kind: "input" }]) {
+    const repository = createDurableMediaOwnershipRepository({ async query() { return { rows: [row], rowCount: 1 }; } });
+    await assert.rejects(repository.resolveOwnedJob(JOB_A, "owner-a"), /INVALID_OWNERSHIP_ROW/);
+    await assert.rejects(repository.resolveOwnedMedia(MEDIA_A, "owner-a"), /INVALID_OWNERSHIP_ROW/);
+    await assert.rejects(repository.resolveOwnedExport(EXPORT_A, "owner-a"), /INVALID_OWNERSHIP_ROW/);
+  }
+});
+
+test("unexpected foreign or mismatched database projections cannot authorize an owned job", async () => {
+  for (const row of [{ id: JOB_A, owner_uid: "owner-b", status: "created" }, { id: JOB_B, owner_uid: "owner-a", status: "created" }]) {
+    const repository = createDurableMediaOwnershipRepository({ async query() { return { rows: [row], rowCount: 1 }; } });
+    assert.equal(await repository.resolveOwnedJob(JOB_A, "owner-a"), undefined);
+    await assert.rejects(repository.createJobWithId(JOB_A, "owner-a"), /INVALID_OWNERSHIP_ROW/);
+  }
+});

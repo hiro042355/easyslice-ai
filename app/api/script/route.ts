@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import {requireAuthenticatedRequest} from '@/lib/server/productionIdentity/routeGuard';
+import {createGeneratedAssetBoundary,fetchGeneratedAsset} from '@/lib/server/generatedAssetBoundaryCore';
+export const POST=createGeneratedAssetBoundary(requireAuthenticatedRequest,handleGeneration);
 
 export const runtime = "nodejs";
 
@@ -17,7 +20,7 @@ function cleanJsonText(text: string) {
     .trim();
 }
 
-export async function POST(req: Request) {
+async function handleGeneration(req: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -100,7 +103,7 @@ ${summary || "なし"}
 ${clipText}
 `;
 
-    const res = await fetch(
+    const res = await fetchGeneratedAsset(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
         method: "POST",
@@ -116,7 +119,7 @@ ${clipText}
           ],
         }),
       }
-    );
+    ,req.signal);
 
     if (!res.ok) {
       const message = await res.text();
@@ -178,8 +181,7 @@ if (res.status === 503) {
         length: parsed.length || targetLength,
       },
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
 
     return NextResponse.json(
       { success: false, error: "台本生成に失敗しました" },

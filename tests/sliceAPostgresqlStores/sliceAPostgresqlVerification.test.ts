@@ -1,3 +1,4 @@
+import { omitProperties } from "../../lib/omitProperties";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { withPostgreSqlTestEnvironment } from "@/lib/postgresqlTestEnvironment";
@@ -47,7 +48,7 @@ test("real PostgreSQL lifecycle, rejection, visibility and concurrency matrix",a
 
 test("synthetic corruption, commit-unknown and mutation-isolation matrix",async()=>{
   const base=Object.freeze({result_id:"00000000-0000-4000-8000-000000000001",result_digest:new Uint8Array(32).fill(1),tenant_digest:new Uint8Array(32).fill(2),region:"test-region",operation:"generate-music",result_status:"completed",revision:"0",terminal_payload:'{"assets":["safe"]}',expires_at:"2027-01-01T00:00:00.000Z",retention_class:"standard",deletion_state:"active",legal_hold_state:"none"});
-  assert.ok(parseFinalResultRow(base));const {result_id:_omitted,...partial}=base;for(const corrupted of [partial,{...base,terminal_payload:'{"assets":'},{...base,operation:"impossible"},{...base,result_digest:new Uint8Array(2)},{...base,deletion_state:"deleted",legal_hold_state:"held"}])assert.equal(parseFinalResultRow(Object.freeze(corrupted)),undefined);
+  assert.ok(parseFinalResultRow(base));const partial=omitProperties(base,["result_id"]);for(const corrupted of [partial,{...base,terminal_payload:'{"assets":'},{...base,operation:"impossible"},{...base,result_digest:new Uint8Array(2)},{...base,deletion_state:"deleted",legal_hold_state:"held"}])assert.equal(parseFinalResultRow(Object.freeze(corrupted)),undefined);
   const classifications:PostgreSQLSliceAUnknownLookupResult["status"][]=["committed","not-committed","corrupted","still-unknown","unavailable"];for(const status of classifications)assert.equal(({status} satisfies PostgreSQLSliceAUnknownLookupResult).status,status);
   const resultFor=(counts:readonly[string,string,string][]|"failure"):DurableWorkflowDatabaseExecutionResult=>counts==="failure"?{status:"failure",failure:"unavailable",retryable:true}:{status:"success",rows:Object.freeze(counts.map(([result_count,reference_count,outbox_count])=>Object.freeze({result_count,reference_count,outbox_count}))),rowCount:counts.length};
   for(const [fixture,expected] of [[[["1","1","1"]],"committed"],[[["0","0","0"]],"not-committed"],[[["1","0","1"]],"corrupted"],[[["1","1","1"],["1","1","1"]],"corrupted"],["failure","unavailable"]] as const){const database:DurableWorkflowDatabaseCapability=Object.freeze({capabilityVersion:"1.0",execute:async()=>resultFor(fixture as readonly[string,string,string][]|"failure")});const atomic=createPostgreSQLSliceAAtomicCommit({finalResults:{} as never,references:{} as never,outbox:{} as never});const value=await atomic.lookup(fakeContext(database),group(1));assert.equal(value.status,expected);}

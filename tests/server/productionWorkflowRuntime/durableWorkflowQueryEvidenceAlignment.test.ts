@@ -16,7 +16,7 @@ import type {
 
 const connection = (result: PostgreSQLQueryResult): PostgreSQLTransactionConnection => Object.freeze({
   state: () => "active" as const,
-  query: async (_request: PostgreSQLQueryRequest) => result,
+  query: (async () => result) satisfies (request: PostgreSQLQueryRequest) => Promise<typeof result>,
   commit: async () => ({ status: "committed" as const }),
   rollback: async () => ({ status: "rolled-back" as const }),
   release: () => "transaction-active" as const,

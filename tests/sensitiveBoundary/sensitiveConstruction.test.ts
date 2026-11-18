@@ -32,10 +32,10 @@ test("operation-specific factories validate, copy, and mark all workflow inputs"
 test("200,001 distinct operation reference boundary assertions", () => {
   const input = vocalInput();
   for (let length = 0; length <= 200_000; length += 1) {
-    input.context.operationRef = length <= 128
+    const operationRef = length <= 128
       ? "x".repeat(length)
       : `${length}:`.padEnd(129 + String(length).length, "x");
-    const result = createSensitiveCanonicalVocalWorkflowInput(input);
+    const result = createSensitiveCanonicalVocalWorkflowInput({...input, context:{...input.context, operationRef}});
     assert.equal(result.status, length >= 1 && length <= 128 ? "created" : "invalid");
   }
 });

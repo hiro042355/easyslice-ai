@@ -56,7 +56,7 @@ export const inspectIngestedVideo = async (
   let stderr = "";
   try {
     const result = await execFileAsync(ffmpegExecutable, [
-      "-hide_banner", "-i", inputPath, "-map", "0:v:0", "-t", "0.001", "-f", "null", "-",
+      "-nostdin", "-hide_banner", "-protocol_whitelist", "file,pipe", "-format_whitelist", "mov", "-i", inputPath, "-map", "0:v:0", "-t", "0.001", "-f", "null", "-",
     ], { timeout: 30_000, maxBuffer: 64 * 1024, windowsHide: true });
     stderr = result.stderr;
   } catch (error) {

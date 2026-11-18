@@ -1,14 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  createDefaultCameraMovement,
-  validateCameraMovement,
-  validateCameraMovementArray,
-  applyEasing,
-  interpolateCameraTransform,
-  parseCameraMovements,
-} from "../../lib/camera/cameraEngine";
+import { createDefaultCameraMovement, validateCameraMovement, applyEasing, interpolateCameraTransform, parseCameraMovements } from "../../lib/camera/cameraEngine";
 import type { CameraMovement } from "../../lib/camera/cameraTypes";
 
 test("Camera Engine - createDefaultCameraMovement generates valid movement", () => {
