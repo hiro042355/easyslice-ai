@@ -1,0 +1,101 @@
+name: "Staging readiness: TikTok publisher"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "feature/tiktok-y75-staging-readiness"
+  pull_request:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tiktok-and-staging-tests:
+    name: "Offline TikTok + staging tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: "Set up Node.js 24"
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "24.x"
+          cache: "npm"
+
+      - name: "Install frozen dependencies"
+        run: |
+          set -euo pipefail
+          mkdir -p staging-evidence
+          npm ci --ignore-scripts 2>&1 | tee staging-evidence/npm-ci.log
+
+      - name: "Staging preflight and smoke runner tests"
+        run: |
+          set -eo pipefail
+          npx tsx --test --test-concurrency=1 \
+            tests/staging/stagingMigrationPreflight.test.ts \
+            tests/staging/stagingSmoke.test.ts 2>&1 | tee staging-evidence/staging-unit-tests.log
+
+      - name: "TikTok publisher offline tests"
+        run: |
+          set -eo pipefail
+          npx tsx --test --test-concurrency=1 \
+            tests/urlAcquisition/classifyTikTokUrl.test.ts \
+            tests/urlAcquisition/tiktokPipelineHandoff.test.ts \
+            tests/clipPlatform/platformAwareOptimization.test.ts \
+            tests/acquisitionWorker/acquisitionWorkerFoundation.test.ts \
+            tests/workflowMigration/stagingMigrationScriptIntegrity.test.ts \
+            tests/workflowMigration/rollbackIsolationHarness.test.ts 2>&1 | tee staging-evidence/tiktok-offline-tests.log
+
+      - name: "Staging CLI dry runs (no network, no database)"
+        run: |
+          set -eo pipefail
+          npx tsx scripts/staging/preflightStagingCloudSql.ts | tee staging-evidence/preflight-dry-run.log
+          npx tsx scripts/staging/verifyTikTokStagingFlow.ts | tee staging-evidence/smoke-dry-run.log
+          grep -q "DRY_RUN" staging-evidence/smoke-dry-run.log
+
+      - name: "Upload diagnostic artifacts"
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: staging-readiness-logs
+          path: staging-evidence/
+          retention-days: 7
+          if-no-files-found: warn
+
+  terraform-validation:
+    name: "Staging Terraform fmt/init/validate"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: infra/staging/gcp
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: "Set up Terraform 1.15.8"
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.15.8"
+          terraform_wrapper: false
+
+      - name: "Format check"
+        run: terraform fmt -check -diff -recursive
+
+      - name: "Init without backend"
+        run: terraform init -backend=false -input=false -no-color
+
+      - name: "Validate"
+        run: terraform validate -no-color
