@@ -61,8 +61,19 @@ constraints). No assertion was weakened and no test was removed.
 | Node | Host Node (>= 24) | Pinned `24.x` |
 | Docker daemon | Desktop engine, host networking | Runner service, no nested sandbox |
 | Whole-repository `tsc --noEmit` | 31 pre-existing errors outside the changed files | Not run as a gate (would fail on pre-existing errors) |
-| `terraform validate` | Blocked by Windows Application Control on the provider binary | Executed |
+| `terraform validate` | Blocked by Windows Application Control on the provider binary | **PASS** (run 45774338951) |
 | Staging smoke (`--execute`) | Not permitted (no approval) | Not permitted (no staging secrets/approval in CI) |
+
+## CI results for this branch
+
+- Staging readiness workflow, run 45774338951: **PASS** — offline TikTok and
+  staging suites, both CLI dry runs (`DRY_RUN`), `terraform fmt -check`,
+  `init -backend=false`, `validate`.
+- WP-03 PostgreSQL 18 + Flyway, run 45774339272: **PASS**.
+- First run failed on `spawn …/node_modules/ffmpeg-static/ffmpeg ENOENT` because
+  `npm ci --ignore-scripts` skips that package's install script. The workflow now
+  runs `npm rebuild ffmpeg-static` and `scripts/materializeFfmpegBinary.mjs`
+  before the media validation test. The test was not skipped or weakened.
 
 ## NOT_TESTED items
 
