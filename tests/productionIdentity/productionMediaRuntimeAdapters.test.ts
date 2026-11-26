@@ -19,10 +19,28 @@ import {
   validateMediaCloudSqlAuthority,
 } from "../../lib/server/productionMediaRuntime/cloudSqlAdapter";
 import {
-  validateMediaRuntimeConfiguration,
   executeProductionMediaRuntime,
   type MediaRuntimeClientFactories,
 } from "../../lib/server/productionMediaRuntime/compositionCore";
+import {
+  STAGING_DATABASE_IAM_USER,
+  STAGING_PROJECT_ID,
+  STAGING_SERVICE_ACCOUNT_EMAIL,
+} from "../../lib/staging/stagingEnvironment";
+
+const STAGING_WIF_PROVIDER_RESOURCE =
+  "projects/123456789012/locations/global/workloadIdentityPools/vercel-staging/providers/vercel-staging";
+
+const fullStagingEnv = Object.freeze({
+  APP_ENVIRONMENT: "staging",
+  GCP_PROJECT_ID: STAGING_PROJECT_ID,
+  GCP_WIF_PROVIDER_RESOURCE: STAGING_WIF_PROVIDER_RESOURCE,
+  GCP_MEDIA_WIF_SERVICE_ACCOUNT: STAGING_SERVICE_ACCOUNT_EMAIL,
+  MEDIA_BUCKET_NAME: "easyslice-staging-media-artifacts",
+  CLOUD_SQL_INSTANCE_CONNECTION_NAME: "nexcut-staging:asia-northeast1:easyslice-staging-pg",
+  POSTGRES_DATABASE: "easyslice_staging",
+  POSTGRES_IAM_USER: STAGING_DATABASE_IAM_USER,
+});
 
 const environment = Object.freeze({
   APP_ENVIRONMENT: "production",
@@ -77,15 +95,36 @@ test("readProductionMediaWifConfiguration enforces fail-closed environment valid
     () => readProductionMediaWifConfiguration(environment, "staging"),
     /production WIF authority cannot be used in staging/,
   );
-  // Staging without approved WIF parameters fails closed
+  // Staging accepts only the pinned staging project, pool/provider and service account
+  const staging = readProductionMediaWifConfiguration(fullStagingEnv, "staging");
+  assert.equal(staging.projectId, STAGING_PROJECT_ID);
+  assert.equal(staging.providerResource, STAGING_WIF_PROVIDER_RESOURCE);
+  assert.equal(staging.serviceAccountEmail, STAGING_SERVICE_ACCOUNT_EMAIL);
+
+  assert.throws(
+    () => readProductionMediaWifConfiguration({ ...fullStagingEnv, GCP_PROJECT_ID: "easyslice-staging" }, "staging"),
+    /Invalid Staging media project authority/,
+  );
   assert.throws(
     () => readProductionMediaWifConfiguration({
-      APP_ENVIRONMENT: "staging",
-      GCP_PROJECT_ID: "easyslice-staging",
+      ...fullStagingEnv,
       GCP_WIF_PROVIDER_RESOURCE: "projects/123/locations/global/workloadIdentityPools/staging/providers/vercel",
-      GCP_MEDIA_WIF_SERVICE_ACCOUNT: "staging-media@easyslice-staging.iam.gserviceaccount.com",
     }, "staging"),
-    /Staging media WIF authority requires explicit Product Owner configuration approval/,
+    /Invalid Staging media WIF provider authority/,
+  );
+  assert.throws(
+    () => readProductionMediaWifConfiguration({
+      ...fullStagingEnv,
+      GCP_WIF_PROVIDER_RESOURCE: "projects/123456789012/locations/global/workloadIdentityPools/vercel-staging/providers/vercel-production",
+    }, "staging"),
+    /Invalid Staging media WIF provider authority/,
+  );
+  assert.throws(
+    () => readProductionMediaWifConfiguration({
+      ...fullStagingEnv,
+      GCP_MEDIA_WIF_SERVICE_ACCOUNT: "other-sa@nexcut-staging.iam.gserviceaccount.com",
+    }, "staging"),
+    /Invalid Staging media service-account authority/,
   );
 });
 
@@ -138,14 +177,30 @@ test("validateMediaCloudSqlAuthority enforces fail-closed connection tuple valid
     /production database credentials cannot be used in staging/,
   );
 
-  // Staging without explicit PO approval fails closed
+  // Staging accepts only the pinned staging project, database and IAM user
+  const validStagingTuple = {
+    instanceConnectionName: "nexcut-staging:asia-northeast1:easyslice-staging-pg",
+    database: "easyslice_staging",
+    iamUser: STAGING_DATABASE_IAM_USER,
+  };
+  assert.doesNotThrow(() => validateMediaCloudSqlAuthority("staging", validStagingTuple));
   assert.throws(
     () => validateMediaCloudSqlAuthority("staging", {
+      ...validStagingTuple,
       instanceConnectionName: "easyslice-staging:asia-northeast1:staging-pg",
-      database: "easyslice_staging",
+    }),
+    /instance must belong to the nexcut-staging project/,
+  );
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("staging", { ...validStagingTuple, database: "nexcut_staging" }),
+    /expected database "easyslice_staging"/,
+  );
+  assert.throws(
+    () => validateMediaCloudSqlAuthority("staging", {
+      ...validStagingTuple,
       iamUser: "staging-app-sa@easyslice-staging.iam",
     }),
-    /Staging Cloud SQL authority requires explicit Product Owner configuration approval/,
+    /expected IAM user/,
   );
 });
 
@@ -458,4 +513,57 @@ test("media Connector close failure exposes only the closed cleanup error", asyn
     return true;
   });
   assert.deepEqual(events, ["pool-close", "connector-close"]);
+});
+
+test("staging runtime composition binds the staging project, bucket and environment", async () => {
+  const calls: string[] = [];
+  let bucketProjectId: string | undefined;
+  let poolEnvironment: string | undefined;
+  const factories: MediaRuntimeClientFactories = Object.freeze({
+    getOidcToken: async () => "oidc",
+    createWifClient: (configuration) => {
+      calls.push(`wif:${configuration.projectId}:${configuration.serviceAccountEmail}`);
+      return {} as IdentityPoolClient;
+    },
+    createBucket: (_auth, bucketName, environment, projectId) => {
+      calls.push(`bucket:${environment}:${bucketName}`);
+      bucketProjectId = projectId;
+      return {} as ReturnType<typeof createProductionMediaBucket>;
+    },
+    withCloudSqlPool: async (_auth, configuration, operation, _deps, environment) => {
+      calls.push(`sql:${environment}:${configuration.database}`);
+      poolEnvironment = environment;
+      return operation({} as Pool);
+    },
+  });
+
+  const result = await executeProductionMediaRuntime(
+    async () => "ok",
+    factories,
+    fullStagingEnv,
+  );
+
+  assert.equal(result, "ok");
+  assert.equal(bucketProjectId, STAGING_PROJECT_ID);
+  assert.equal(poolEnvironment, "staging");
+  assert.deepEqual(calls, [
+    `wif:${STAGING_PROJECT_ID}:${STAGING_SERVICE_ACCOUNT_EMAIL}`,
+    "bucket:staging:easyslice-staging-media-artifacts",
+    "sql:staging:easyslice_staging",
+  ]);
+});
+
+test("media storage rejects a project that does not belong to the active environment", () => {
+  const authClient = {} as IdentityPoolClient;
+  assert.throws(
+    () => createProductionMediaBucket(authClient, "easyslice-staging-media-artifacts", "staging", "nexcut-prod-jp-2026"),
+    /Invalid media storage project authority/,
+  );
+  assert.throws(
+    () => createProductionMediaBucket(authClient, "nexcut-prod-jp-2026-media", "production", "nexcut-staging"),
+    /Invalid media storage project authority/,
+  );
+  assert.doesNotThrow(
+    () => createProductionMediaBucket(authClient, "nexcut-prod-jp-2026-media", "production", "nexcut-prod-jp-2026"),
+  );
 });

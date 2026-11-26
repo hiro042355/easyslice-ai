@@ -1,6 +1,11 @@
 import type { IdentityPoolClient } from "google-auth-library";
 import { Pool } from "pg";
 import {
+  isStagingInstanceConnectionName,
+  STAGING_CLOUD_SQL_DATABASE,
+  STAGING_DATABASE_IAM_USER,
+} from "../../staging/stagingEnvironment";
+import {
   createProductionCloudSqlConnectorAuthority,
   type ProductionCloudSqlConfiguration,
   type ProductionCloudSqlConnectorAuthority,
@@ -56,7 +61,22 @@ export const validateMediaCloudSqlAuthority = (
     ) {
       throw new Error("Invalid Staging Cloud SQL authority: production database credentials cannot be used in staging");
     }
-    throw new Error("Staging Cloud SQL authority requires explicit Product Owner configuration approval");
+    // Staging is pinned to the dedicated staging project, database and IAM user (PO-03/PO-04).
+    if (!isStagingInstanceConnectionName(configuration.instanceConnectionName)) {
+      throw new Error(
+        "Invalid Staging Cloud SQL authority: instance must belong to the nexcut-staging project in asia-northeast1",
+      );
+    }
+    if (configuration.database !== STAGING_CLOUD_SQL_DATABASE) {
+      throw new Error(
+        `Invalid Staging Cloud SQL authority: expected database "${STAGING_CLOUD_SQL_DATABASE}", received "${configuration.database}"`,
+      );
+    }
+    if (configuration.iamUser !== STAGING_DATABASE_IAM_USER) {
+      throw new Error(
+        `Invalid Staging Cloud SQL authority: expected IAM user "${STAGING_DATABASE_IAM_USER}", received "${configuration.iamUser}"`,
+      );
+    }
   }
 };
 

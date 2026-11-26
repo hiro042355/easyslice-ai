@@ -43,3 +43,28 @@ output "rotation_service_account_email" {
   description = "Staging KMS rotation service account email."
   value       = google_service_account.rotation.email
 }
+
+output "staging_media_bucket_name" {
+  description = "Staging-only media bucket governed by the three-day lifecycle rule."
+  value       = google_storage_bucket.media.name
+}
+
+output "staging_media_service_account_email" {
+  description = "Staging media runtime service account consumed by GCP_MEDIA_WIF_SERVICE_ACCOUNT."
+  value       = google_service_account.media_runtime.email
+}
+
+output "staging_wif_provider_resource" {
+  description = "WIF provider resource consumed by GCP_WIF_PROVIDER_RESOURCE (numeric project form)."
+  value       = google_iam_workload_identity_pool_provider.vercel_staging.name
+}
+
+output "staging_cloud_sql_database" {
+  description = "Staging database name the media runtime must use."
+  value       = "easyslice_staging"
+}
+
+output "staging_database_iam_user" {
+  description = "Cloud SQL IAM database user the media runtime must use."
+  value       = "easyslice-staging-sa@nexcut-staging.iam"
+}

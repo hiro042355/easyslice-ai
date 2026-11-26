@@ -3,9 +3,11 @@ import test from "node:test";
 import { withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
 
 const EXPECTED_TABLES = [
+  "asset_import_requests",
   "exports",
   "jobs",
   "media",
+  "production_workflow_api_csrf_tokens",
   "workflow_completion_states",
   "workflow_final_results",
   "workflow_outbox_events",
@@ -56,6 +58,8 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
     assert.deepEqual(
       constraints.rows.filter((row) => row.constraint_type === "FOREIGN KEY").map((row) => row.constraint_name),
       [
+        "fk_asset_import_job_owner",
+        "fk_asset_import_media_job",
         "fk_exports_job",
         "fk_media_job",
         "workflow_outbox_events_result_fk",
@@ -71,6 +75,8 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
       "SELECT table_name FROM information_schema.columns WHERE table_schema = 'workflow' AND column_name = 'revision' ORDER BY table_name",
     );
     assert.deepEqual(revisions.rows.map((row) => row.table_name), [
+      "asset_import_requests",
+      "production_workflow_api_csrf_tokens",
       "workflow_completion_states",
       "workflow_final_results",
       "workflow_outbox_events",
@@ -105,6 +111,9 @@ test("replay is idempotent, validate succeeds, and migration version is unique",
       { version: "000004", success: true },
       { version: "000005", success: true },
       { version: "000006", success: true },
+      { version: "000007", success: true },
+      { version: "000008", success: true },
+      { version: "000009", success: true },
     ]);
   });
 });

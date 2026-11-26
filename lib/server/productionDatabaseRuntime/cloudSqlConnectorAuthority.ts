@@ -1,5 +1,10 @@
 import { AuthTypes, Connector, IpAddressTypes, type DriverOptions } from "@google-cloud/cloud-sql-connector";
 import type { IdentityPoolClient } from "google-auth-library";
+import {
+  isStagingInstanceConnectionName,
+  STAGING_CLOUD_SQL_DATABASE,
+  STAGING_DATABASE_IAM_USER,
+} from "../../staging/stagingEnvironment";
 
 export type ProductionCloudSqlConfiguration = Readonly<{
   instanceConnectionName: string;
@@ -35,6 +40,18 @@ const defaultDependencies: Dependencies = Object.freeze({
 });
 
 function validate(configuration: ProductionCloudSqlConfiguration): void {
+  // The staging tuple is recognized structurally. The caller (media runtime or
+  // PostgreSQL runtime) has already validated APP_ENVIRONMENT and the WIF service
+  // account, so a staging tuple can only reach this point under staging authority.
+  if (isStagingInstanceConnectionName(configuration.instanceConnectionName)) {
+    if (configuration.database !== STAGING_CLOUD_SQL_DATABASE) {
+      throw new Error("Invalid Staging database authority");
+    }
+    if (configuration.iamUser !== STAGING_DATABASE_IAM_USER) {
+      throw new Error("Invalid Staging IAM database user authority");
+    }
+    return;
+  }
   if (configuration.instanceConnectionName !== "nexcut-prod-jp-2026:asia-northeast1:nexcut-prod-postgresql") {
     throw new Error("Invalid Production Cloud SQL authority");
   }

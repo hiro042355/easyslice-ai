@@ -52,3 +52,60 @@ locals {
   key_ring_name                 = "nexcut-stg-identity"
   crypto_key_name               = "protected-identity-mac"
 }
+
+variable "staging_app_origin" {
+  description = "Exact HTTPS origin allowed to upload staging media objects through the bucket CORS policy."
+  type        = string
+  default     = "https://staging.nexcut.app"
+
+  validation {
+    condition     = var.staging_app_origin == "https://staging.nexcut.app"
+    error_message = "The only approved staging application origin is https://staging.nexcut.app."
+  }
+}
+
+variable "vercel_team_id" {
+  description = "Vercel team ID whose OIDC tokens may federate into the staging pool."
+  type        = string
+
+  validation {
+    condition     = can(regex("^team_[A-Za-z0-9]{6,64}$", var.vercel_team_id))
+    error_message = "vercel_team_id must be an exact Vercel team ID (team_...)."
+  }
+}
+
+variable "vercel_project_id" {
+  description = "Vercel project ID of the staging deployment whose OIDC tokens may federate."
+  type        = string
+
+  validation {
+    condition     = can(regex("^prj_[A-Za-z0-9]{6,64}$", var.vercel_project_id))
+    error_message = "vercel_project_id must be an exact Vercel project ID (prj_...)."
+  }
+}
+
+variable "vercel_oidc_issuer_uri" {
+  description = "Vercel OIDC issuer for the staging team, https://oidc.vercel.com/<team-slug>."
+  type        = string
+
+  validation {
+    condition = (
+      can(regex("^https://oidc\\.vercel\\.com/[a-z0-9][a-z0-9-]*$", var.vercel_oidc_issuer_uri)) &&
+      !can(regex("prod", var.vercel_oidc_issuer_uri))
+    )
+    error_message = "The staging OIDC issuer must be a Vercel team issuer and must not reference production."
+  }
+}
+
+variable "vercel_oidc_audience" {
+  description = "Vercel OIDC audience for the staging team, https://vercel.com/<team-slug>."
+  type        = string
+
+  validation {
+    condition = (
+      can(regex("^https://vercel\\.com/[a-z0-9][a-z0-9-]*$", var.vercel_oidc_audience)) &&
+      !can(regex("prod", var.vercel_oidc_audience))
+    )
+    error_message = "The staging OIDC audience must be a Vercel team audience and must not reference production."
+  }
+}
