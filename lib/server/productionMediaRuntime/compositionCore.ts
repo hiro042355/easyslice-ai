@@ -103,7 +103,12 @@ export const executeProductionMediaRuntime = async <T>(
   const auth = factories.createWifClient(validated.wifConfiguration, factories.getOidcToken);
 
   // 2. Create authorized GCS Storage bucket object
-  const bucket = factories.createBucket(auth, validated.authorizedBucketName, validated.environment);
+  const bucket = factories.createBucket(
+    auth,
+    validated.authorizedBucketName,
+    validated.environment,
+    validated.wifConfiguration.projectId,
+  );
 
   // 3. Connect Cloud SQL pool and execute callback with callback-scoped cleanup
   return factories.withCloudSqlPool(

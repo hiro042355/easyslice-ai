@@ -1,4 +1,11 @@
 import { IdentityPoolClient, type SubjectTokenSupplier } from "google-auth-library";
+import {
+  isStagingWifProviderResource,
+  STAGING_PROJECT_ID,
+  STAGING_SERVICE_ACCOUNT_EMAIL,
+  STAGING_WIF_PROVIDER_ID,
+  STAGING_WIF_POOL_ID,
+} from "../../staging/stagingEnvironment";
 
 const SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token";
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
@@ -37,12 +44,26 @@ export const readProductionMediaWifConfiguration = (
       throw new Error("Invalid Production media service-account authority");
     }
   } else if (activeEnvironment === "staging") {
-    // Authoritative staging WIF values require explicit Product Owner approval
-    // Mismatched or production values in staging fail closed
+    // Staging is pinned to dedicated, non-production identities (PO-04).
+    // Any production value, or any value outside the pinned staging pool/provider,
+    // fails closed so a misconfigured deployment cannot borrow production authority.
     if (projectId === "nexcut-prod-jp-2026" || serviceAccountEmail.includes("nexcut-prod") || providerResource.includes(PRODUCTION_PROJECT_NUMBER)) {
       throw new Error("Invalid Staging media authority: production WIF authority cannot be used in staging");
     }
-    throw new Error("Staging media WIF authority requires explicit Product Owner configuration approval");
+    if (projectId !== STAGING_PROJECT_ID) {
+      throw new Error(`Invalid Staging media project authority: expected "${STAGING_PROJECT_ID}", received "${projectId}"`);
+    }
+    if (!isStagingWifProviderResource(providerResource)) {
+      throw new Error(
+        `Invalid Staging media WIF provider authority: expected a numeric project with ` +
+        `workloadIdentityPools/${STAGING_WIF_POOL_ID}/providers/${STAGING_WIF_PROVIDER_ID}`,
+      );
+    }
+    if (serviceAccountEmail !== STAGING_SERVICE_ACCOUNT_EMAIL) {
+      throw new Error(
+        `Invalid Staging media service-account authority: expected "${STAGING_SERVICE_ACCOUNT_EMAIL}", received "${serviceAccountEmail}"`,
+      );
+    }
   }
 
   return Object.freeze({ projectId, providerResource, serviceAccountEmail });
