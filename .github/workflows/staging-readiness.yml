@@ -36,6 +36,12 @@ jobs:
           mkdir -p staging-evidence
           npm ci --ignore-scripts 2>&1 | tee staging-evidence/npm-ci.log
 
+      - name: "Materialize FFmpeg for media validation tests"
+        run: |
+          set -eo pipefail
+          npm rebuild ffmpeg-static 2>&1 | tee staging-evidence/ffmpeg-install.log
+          node scripts/materializeFfmpegBinary.mjs 2>&1 | tee staging-evidence/ffmpeg-materialize.log
+
       - name: "Staging preflight and smoke runner tests"
         run: |
           set -eo pipefail
