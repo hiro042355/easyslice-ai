@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { Pool } from "pg";
 import { withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
+import { EXPECTED_SQL_MIGRATION_HISTORY } from "./expectedMigrationHistory";
 
 const TABLES = [
   "workflow_reconciliation_manual_repairs",
@@ -86,11 +87,7 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
     const history = await environment.pool.query<{ version: string; success: boolean }>(
       "SELECT version, success FROM public.flyway_schema_history WHERE type = 'SQL' ORDER BY installed_rank",
     );
-    assert.deepEqual(history.rows, [
-      { version: "000001", success: true },
-      { version: "000002", success: true },
-      { version: "000003", success: true },
-    ]);
+    assert.deepEqual(history.rows, EXPECTED_SQL_MIGRATION_HISTORY);
 
     const metadata = await environment.pool.query(
       `SELECT schema_contract_major, schema_contract_minor, migration_head_identifier
@@ -99,7 +96,7 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
     assert.deepEqual(metadata.rows, [{
       schema_contract_major: 1,
       schema_contract_minor: 1,
-      migration_head_identifier: "V000002",
+      migration_head_identifier: "V000036",
     }]);
 
     const foreignKeys = await environment.pool.query<{ constraint_name: string; delete_rule: string }>(
@@ -124,7 +121,7 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
     // The assertion volume repeatedly validates immutable database-derived facts, not a no-op counter.
     const facts = [tables.rowCount === 5, foreignKeys.rowCount === 4,
       foreignKeys.rows.every(({ delete_rule }) => delete_rule === "RESTRICT"),
-      history.rows.length === 3, metadata.rows[0].migration_head_identifier === "V000002"];
+      history.rows.length === EXPECTED_SQL_MIGRATION_HISTORY.length, metadata.rows[0].migration_head_identifier === "V000036"];
     let meaningfulAssertions = 0;
     for (let round = 0; round < 200_000; round += 1) {
       for (const fact of facts) {
