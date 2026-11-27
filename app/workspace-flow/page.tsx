@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { AuthenticatedAccountControl } from "@/components/AuthenticatedAccountControl";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { HamburgerMenu } from "@/components/ui/HamburgerMenu";
+import { CameraPreview } from "@/components/CameraPreview";
+import { CameraEditor } from "@/components/CameraEditor";
+import type { CameraMovement } from "@/lib/camera/cameraTypes";
 import { admitDurableMedia, type DurableMediaReference } from "@/lib/client/durableMediaAdmission";
 import { parseSubtitleText, projectTimedTextForHighlight } from "@/lib/client/subtitleState";
 import type { ClipTimedTextV1 } from "@/lib/clipEditing";
@@ -11,6 +16,8 @@ import { createHookPreview, type AiHookConfig } from "../../lib/aiHook";
 import { getCreatorStyleConfig, type CreatorStyle } from "../../lib/creatorStyleConfig";
 import { addReviewQueueItem, isDurableExportId, type ReviewQueueItem } from "../../lib/reviewQueue";
 import { detectUrlSource, type UrlSource } from "../../lib/urlImport";
+import { classifyUrl } from "@/lib/urlAcquisition/classifyUrl";
+import { evaluateTikTokAcquisitionGuidance } from "@/lib/urlAcquisition/tiktokAcquisitionState";
 
 const steps = [
   {
@@ -156,6 +163,7 @@ export default function WorkspaceFlowPage() {
     enabled: false,
     mode: "smart",
   });
+  const [cameraMovements, setCameraMovements] = useState<readonly CameraMovement[]>([]);
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === currentStep) ?? steps[0],
@@ -166,6 +174,21 @@ export default function WorkspaceFlowPage() {
     [universalUrl]
   );
   const detectedUrlSourceLabel = urlSourceLabels[detectedUrlSource];
+
+  const universalUrlClassification = useMemo(() => {
+    return universalUrl.trim() ? classifyUrl(universalUrl.trim()) : null;
+  }, [universalUrl]);
+
+  const tikTokGuidance = useMemo(() => {
+    if (
+      universalUrlClassification &&
+      (universalUrlClassification.kind === "SUPPORTED_TIKTOK" ||
+        universalUrlClassification.kind === "UNSUPPORTED_TIKTOK")
+    ) {
+      return evaluateTikTokAcquisitionGuidance(universalUrlClassification);
+    }
+    return null;
+  }, [universalUrlClassification]);
 
   useEffect(() => {
     trackEvent("workspace_open", {
@@ -536,6 +559,9 @@ export default function WorkspaceFlowPage() {
       formData.append("start", primaryClip.start || "0");
       formData.append("end", primaryClip.end || "30");
       formData.append("creatorStyleConfig", JSON.stringify(creatorStyleConfig));
+      if (cameraMovements.length > 0) {
+        formData.append("cameraMovements", JSON.stringify(cameraMovements));
+      }
       console.log("CreatorStyleConfig -> /api/cut", creatorStyleConfig);
       if (hookPreview) {
         formData.append("aiHookConfig", JSON.stringify(aiHookConfig));
@@ -736,18 +762,27 @@ export default function WorkspaceFlowPage() {
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8 lg:px-10">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
           <div>
-            <a href="/workspace" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
-              ← Workspace Home
-            </a>
+            <Breadcrumb
+              items={[
+                { label: "NEXCUT AI", href: "/workspace" },
+                { label: "Clip Studio", href: "/workspace" },
+                { label: "Short Video Workspace", current: true },
+              ]}
+            />
             <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
               Short Video Workspace
             </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-              One Screen. One Goal.
-            </div>
+            <HamburgerMenu
+              links={[
+                { label: "Workspace Home", href: "/workspace" },
+                { label: "Short Video", href: "/workspace-flow", active: true },
+                { label: "AI MV Studio", href: "/ai-mv", badge: "β" },
+                { label: "Video Convert", href: "/convert" },
+              ]}
+            />
             <AuthenticatedAccountControl />
           </div>
         </header>
@@ -807,15 +842,59 @@ export default function WorkspaceFlowPage() {
                       className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-cyan-300/60 focus:bg-cyan-300/10"
                     />
 
-                    <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
-                      <p className="font-bold">URL Import Safety Notice</p>
-                      <ul className="mt-2 list-disc space-y-1 pl-4 text-yellow-100/85">
-                        <li>現在はURL判定のみです。</li>
-                        <li>YouTube URL取得はβ対応です。</li>
-                        <li>TikTok / Instagram / X は今後対応予定です。</li>
-                        <li>利用権限のある動画のみ使用してください。</li>
-                      </ul>
-                    </div>
+                    {tikTokGuidance ? (
+                      <div className="mt-4 rounded-2xl border border-cyan-400/30 bg-cyan-950/40 p-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                            TikTok Integration Guidance
+                          </span>
+                          <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-200">
+                            {universalUrlClassification?.kind === "SUPPORTED_TIKTOK"
+                              ? "URL Recognized"
+                              : "Unsupported Link"}
+                          </span>
+                        </div>
+                        <h4 className="mt-2 text-sm font-bold text-white">
+                          {tikTokGuidance.title}
+                        </h4>
+                        <p className="mt-1 text-xs leading-5 text-gray-300">
+                          {tikTokGuidance.explanation}
+                        </p>
+                        {universalUrlClassification?.kind === "SUPPORTED_TIKTOK" && (
+                          <div className="mt-3 rounded-xl border border-white/10 bg-black/50 p-3 text-xs text-gray-400 space-y-1">
+                            <div>
+                              <span className="font-semibold text-gray-300">Video ID: </span>
+                              <span className="font-mono text-cyan-200">{universalUrlClassification.videoId}</span>
+                            </div>
+                            {universalUrlClassification.authorUsername && (
+                              <div>
+                                <span className="font-semibold text-gray-300">Author: </span>
+                                <span className="font-mono text-cyan-200">@{universalUrlClassification.authorUsername}</span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="font-semibold text-gray-300">Canonical: </span>
+                              <span className="font-mono text-gray-400 break-all">{universalUrlClassification.normalizedUrl}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="mt-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs text-yellow-100">
+                          <span className="font-bold">必要なアクション: </span>
+                          <span>{tikTokGuidance.actionRequired}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
+                        <p className="font-bold">URL Import Safety Notice</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-yellow-100/85">
+                          <li>現在はURL判定のみです。</li>
+                          <li>YouTube URL取得はβ対応です。</li>
+                          <li>TikTok URLは認識・正規化と動画ファイル連携に対応しています。</li>
+                          <li>Instagram / X は今後対応予定です。</li>
+                          <li>利用権限のある動画のみ使用してください。</li>
+                        </ul>
+                      </div>
+                    )}
 
                     <p className="mt-2 text-xs text-gray-500">
                       判定のみのFoundationです。既存のYouTube取得処理とは分離しています。
@@ -1405,10 +1484,12 @@ export default function WorkspaceFlowPage() {
                       </h3>
 
                       {videoSrc ? (
-                        <video
+                        <CameraPreview
                           src={videoSrc}
-                          controls
-                          className="mt-4 aspect-video w-full rounded-2xl border border-white/10 bg-black object-contain"
+                          movements={cameraMovements}
+                          clipStart={Number(primaryClip.start || 0)}
+                          clipEnd={Number(primaryClip.end || 30)}
+                          className="mt-4"
                         />
                       ) : (
                         <div className="mt-4 flex aspect-video w-full items-center justify-center rounded-2xl border border-white/10 bg-black/40">
@@ -1417,6 +1498,14 @@ export default function WorkspaceFlowPage() {
                           </p>
                         </div>
                       )}
+
+                      <CameraEditor
+                        clipId={primaryClip.title || "primary-clip"}
+                        clipDuration={Math.max(1, Number(primaryClip.end || 30) - Number(primaryClip.start || 0))}
+                        movements={cameraMovements}
+                        onChangeMovements={setCameraMovements}
+                        className="mt-6"
+                      />
 
                       <div className="mt-4 grid gap-2 text-xs font-semibold sm:grid-cols-3">
                         <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">

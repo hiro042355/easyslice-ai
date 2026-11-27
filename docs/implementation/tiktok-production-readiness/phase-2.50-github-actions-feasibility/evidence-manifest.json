@@ -1,0 +1,49 @@
+{
+  "phase": "2.50",
+  "taskType": "STRICT_READ_ONLY_INVESTIGATION_AND_SPECIFICATION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "currentHead": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "finalDecision": "WORKFLOW_DESIGN_READY_FOR_APPROVAL",
+  "testHarnessFindings": {
+    "testcontainersUsage": "Hardcoded in lib/postgresqlTestEnvironment/foundation.ts:39-68",
+    "serviceContainersSufficient": false,
+    "testcontainersMandatory": true,
+    "nodeVersionRequired": ">= 24 (enforced by environmentValidator.ts:20)",
+    "dockerSocketRequired": true,
+    "githubRunnerCompatibility": "ubuntu-latest provides native Docker daemon with overlayfs whiteout support and Node 24 via setup-node"
+  },
+  "proposedWorkflow": {
+    "path": ".github/workflows/test-postgresql-wp03.yml",
+    "status": "SPECIFIED_NOT_CREATED",
+    "trigger": "workflow_dispatch (manual)",
+    "runner": "ubuntu-latest",
+    "nodeVersion": "24.x",
+    "pinnedPostgresImage": "postgres:18.4@sha256:c2d42a104eb6b37b286a2d9c5cf83f349de4d6516d513d00a2bd9610e2c2e5e4",
+    "pinnedFlywayImage": "flyway/flyway:12.6.1@sha256:876479697e6f272e7897f9cebc5d43090e4e7ba164de9eb11e07767bff075011",
+    "secretsRequired": 0,
+    "permissions": "contents: read"
+  },
+  "costBoundary": {
+    "publicRepoCost": "$0.00 (Unlimited free standard minutes)",
+    "privateRepoAllowance": "2,000 free minutes/month on Free tier (15 min run = 15 min consumption)",
+    "artifactRetention": "7 days (< 5 MB log storage)"
+  },
+  "requiredApprovals": [
+    "Approval to create .github/workflows/test-postgresql-wp03.yml",
+    "Approval to push verification branch to remote repository",
+    "Approval to dispatch workflow"
+  ],
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.50-github-actions-feasibility/github-actions-feasibility-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.50-github-actions-feasibility/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "workflowsCreated": 0,
+    "workflowDispatches": 0,
+    "branchesPushed": 0,
+    "cloudApiCalls": 0,
+    "gitMutations": 0
+  }
+}

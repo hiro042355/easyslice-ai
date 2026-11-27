@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "changeManifestVersion": "1.0",
+  "timestamp": "2026-11-07T08:16:31Z",
+  "author": "Jules",
+  "changes": [
+    {
+      "filePath": "lib/urlAcquisition/types.ts",
+      "action": "modified",
+      "purpose": "Add SupportedTikTokUrl and UNSUPPORTED_TIKTOK to UrlClassification union"
+    },
+    {
+      "filePath": "lib/urlAcquisition/classifyUrl.ts",
+      "action": "modified",
+      "purpose": "Implement TikTok host recognition, snowflake ID parsing, query stripping, and non-video rejection"
+    },
+    {
+      "filePath": "lib/assetImport/types.ts",
+      "action": "modified",
+      "purpose": "Add platform: 'tiktok' variant to CanonicalAssetImportSource"
+    },
+    {
+      "filePath": "lib/urlImport.ts",
+      "action": "modified",
+      "purpose": "Delegate TikTok detection to classifyUrl()"
+    },
+    {
+      "filePath": "db/workflow/migrations/V000009__expand_asset_import_platform.sql",
+      "action": "added",
+      "purpose": "Additive PostgreSQL migration expanding ck_asset_import_authority to IN ('youtube', 'tiktok')"
+    },
+    {
+      "filePath": "lib/urlAcquisition/tiktokRedirect.ts",
+      "action": "added",
+      "purpose": "Safe short URL / redirect resolution restricted to authorized TikTok hosts"
+    },
+    {
+      "filePath": "lib/urlAcquisition/tiktokAcquisitionState.ts",
+      "action": "added",
+      "purpose": "Acquisition capability assessment and user guidance helper"
+    },
+    {
+      "filePath": "app/workspace-flow/page.tsx",
+      "action": "modified",
+      "purpose": "Show TikTok classification metadata and guidance requiring user-provided authorized video file"
+    },
+    {
+      "filePath": "tests/urlAcquisition/classifyTikTokUrl.test.ts",
+      "action": "added",
+      "purpose": "Unit tests for TikTok URL classification, redirect resolution, and user guidance"
+    },
+    {
+      "filePath": "tests/urlAcquisition/tiktokPipelineHandoff.test.ts",
+      "action": "added",
+      "purpose": "Integration tests for CanonicalAssetImportSource handoff, fingerprinting, and clip profile selection"
+    }
+  ]
+}

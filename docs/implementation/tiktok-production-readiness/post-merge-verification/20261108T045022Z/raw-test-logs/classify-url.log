@@ -1,0 +1,59 @@
+TAP version 13
+# Subtest: canonical authority supports and normalizes the V1 YouTube forms
+ok 1 - canonical authority supports and normalizes the V1 YouTube forms
+  ---
+  duration_ms: 2.769762
+  type: 'test'
+  ...
+# Subtest: recognized YouTube hosts with unsupported V1 shapes stay unsupported
+ok 2 - recognized YouTube hosts with unsupported V1 shapes stay unsupported
+  ---
+  duration_ms: 0.696621
+  type: 'test'
+  ...
+# Subtest: lookalike and unrelated hosts never receive YouTube authority
+ok 3 - lookalike and unrelated hosts never receive YouTube authority
+  ---
+  duration_ms: 0.255614
+  type: 'test'
+  ...
+# Subtest: invalid input and non-http schemes fail closed without side effects
+ok 4 - invalid input and non-http schemes fail closed without side effects
+  ---
+  duration_ms: 0.613425
+  type: 'test'
+  ...
+# Subtest: raw input length is enforced before trimming at the baseline boundary
+ok 5 - raw input length is enforced before trimming at the baseline boundary
+  ---
+  duration_ms: 0.239934
+  type: 'test'
+  ...
+# Subtest: canonical support decisions match the baseline production validator
+ok 6 - canonical support decisions match the baseline production validator
+  ---
+  duration_ms: 0.771748
+  type: 'test'
+  ...
+# Subtest: UI and server delegate to the same support decision
+ok 7 - UI and server delegate to the same support decision
+  ---
+  duration_ms: 1.496298
+  type: 'test'
+  ...
+# Subtest: legacy routes remain deterministic non-executing retirement endpoints
+ok 8 - legacy routes remain deterministic non-executing retirement endpoints
+  ---
+  duration_ms: 0.451065
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 408.184859
+exit_code=0

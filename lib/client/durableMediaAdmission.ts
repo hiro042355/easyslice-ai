@@ -66,8 +66,22 @@ const classifyUploadFailure = async (response: Response): Promise<string> => {
   return `Media upload failed (${response.status}; gcsCode=${code}; reason=${reason}; response=${contentType}; message=${message}; errors=${details})`;
 };
 
+export const MAX_MEDIA_BYTES = 2 * 1024 * 1024 * 1024;
+
+export const validateMediaAdmissionFile = (file: File): void => {
+  if (file.type !== "video/mp4") {
+    throw new Error("Only a non-empty MP4 can be admitted: invalid MIME type");
+  }
+  if (!Number.isSafeInteger(file.size) || file.size <= 0) {
+    throw new Error("Only a non-empty MP4 can be admitted: invalid file size");
+  }
+  if (file.size > MAX_MEDIA_BYTES) {
+    throw new Error(`Media file exceeds maximum allowed size of 2GB: ${file.size} bytes`);
+  }
+};
+
 export const admitDurableMedia = async (file: File, request: typeof fetch = fetch): Promise<DurableMediaReference> => {
-  if (file.type !== "video/mp4" || file.size <= 0) throw new Error("Only a non-empty MP4 can be admitted");
+  validateMediaAdmissionFile(file);
   const initiateResponse = await request("/api/media/admit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -1,0 +1,32 @@
+{
+  "manifestVersion": "1.0",
+  "verificationTimestamp": "2026-11-07T13:55:00Z",
+  "baseCommit": "013fdcdd379e0ce962861e45d6b60720d622009c",
+  "branch": "jules-17810214896416270490-525661c9",
+  "modifiedSourceFiles": [],
+  "addedEvidenceFiles": [
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/post-merge-baseline.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/url-input-test-report.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/redirect-security-report.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/mp4-upload-handoff-report.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/pipeline-stage-verification.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/export-verification.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/test-coverage-report.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/defect-remediation-log.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/remaining-blockers.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/product-owner-action-checklist.md",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/readiness-gates.json",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/change-manifest.json",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/evidence-manifest.json",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/classify-tiktok-url.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/classify-url.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/tiktok-pipeline-handoff.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/clipping-platform-optimization.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/clipping-pipeline-stages.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/ffmpeg-export-execution.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/npm-prebuild.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/npm-build.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/npm-lint.log",
+    "docs/implementation/tiktok-url-to-clipping-verification/20261107T135500Z/raw-test-logs/npm-typecheck.log"
+  ]
+}

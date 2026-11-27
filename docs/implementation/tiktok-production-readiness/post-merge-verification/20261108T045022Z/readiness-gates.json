@@ -1,0 +1,49 @@
+{
+  "evaluationTimestamp": "2026-11-08T04:50:22Z",
+  "baselineCommit": "d636ae79045cca888757bf897e969d5d485f6640",
+  "branch": "main",
+  "mergedPullRequest": 7,
+  "gates": {
+    "URL_CLASSIFICATION_READY": {
+      "status": "PASS",
+      "evidence": "19/19 tests passing in tests/urlAcquisition/*.test.ts covering canonical desktop, mobile, short redirects, SSRF blocking, and canonical framing."
+    },
+    "AUTHORIZED_MP4_UPLOAD_READY": {
+      "status": "PASS",
+      "evidence": "Client request construction, fast-fail 2GB/MIME boundary checks, and resumable URL mock tests verified in tests/urlAcquisition/durableMediaAdmissionValidation.test.ts and tests/productionIdentity/durableMediaAdmissionClient.test.ts."
+    },
+    "UPLOAD_SECURITY_READY": {
+      "status": "PASS",
+      "evidence": "Server authoritative enforcement of 2GB boundary, video/mp4 MIME, origin check, authenticated session, UUID keys, ownerUid isolation, and GCS metadata size validation."
+    },
+    "DATABASE_MIGRATION_READY": {
+      "status": "NOT_VERIFIED",
+      "evidence": "Static SQL review is PASS (additive constraint, backward-compatible with YouTube in V000009), but production database application on Cloud SQL is NOT_VERIFIED pending authorized maintenance window."
+    },
+    "PERSISTENCE_AND_RECOVERY_READY": {
+      "status": "PASS",
+      "evidence": "Atomic PostgreSQL transaction with GCS delete compensation on failure and idempotent duplicate handling in app/api/media/admit/route.ts."
+    },
+    "CLIPPING_PIPELINE_READY": {
+      "status": "PASS",
+      "evidence": "Dedicated TikTok clipping profile (15-55s, vertical weighting) verified in tests/clipPlatform/platformAwareOptimization.test.ts."
+    },
+    "EXPORT_READY": {
+      "status": "PASS",
+      "evidence": "Packaged FFmpeg 7.0.2 verified locally for rendering vertical 9:16 MP4 crops and ZIP bundling."
+    },
+    "RUNTIME_DEPLOYMENT_READY": {
+      "status": "NOT_VERIFIED",
+      "evidence": "Requires verification of Vercel production environment variables, WIF OIDC credentials, and Cloud SQL connection pool settings in live cloud environment."
+    },
+    "PRODUCTION_OPERATION_READY": {
+      "status": "NOT_VERIFIED",
+      "evidence": "Requires live Cloud SQL migration V000009 deployment, staging smoke testing, and production monitoring configuration."
+    },
+    "REAL_EXTERNAL_SERVICE_READY": {
+      "status": "NOT_VERIFIED",
+      "evidence": "Requires live production GCS buckets, live Cloud SQL instance, and live Whisper/STT speech-to-text API connectivity."
+    }
+  },
+  "overallReadiness": "POST_MERGE_VERIFICATION_PASS_WITH_LIMITATIONS"
+}

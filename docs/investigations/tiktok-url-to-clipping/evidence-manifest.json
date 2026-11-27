@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TikTok URL to Clipping Investigation Evidence Manifest",
+  "investigationDate": "2026-11-07",
+  "repository": "C:\\Users\\hirom\\easyslice-ai",
+  "status": "BLOCKED_BY_EXTERNAL_REQUIREMENTS",
+  "deliverables": {
+    "executiveSummary": "docs/investigations/tiktok-url-to-clipping/executive-summary.md",
+    "existingPipelineArchitecture": "docs/investigations/tiktok-url-to-clipping/existing-pipeline-architecture.md",
+    "tiktokUrlHandlingAudit": "docs/investigations/tiktok-url-to-clipping/tiktok-url-handling-audit.md",
+    "acquisitionMethodAssessment": "docs/investigations/tiktok-url-to-clipping/acquisition-method-assessment.md",
+    "sourceContractIntegration": "docs/investigations/tiktok-url-to-clipping/source-contract-integration.md",
+    "implementationGapMatrix": "docs/investigations/tiktok-url-to-clipping/implementation-gap-matrix.md",
+    "endToEndFeasibility": "docs/investigations/tiktok-url-to-clipping/end-to-end-feasibility.md",
+    "testCoverageGap": "docs/investigations/tiktok-url-to-clipping/test-coverage-gap.md",
+    "implementationRoadmap": "docs/investigations/tiktok-url-to-clipping/implementation-roadmap.md",
+    "evidenceManifest": "docs/investigations/tiktok-url-to-clipping/evidence-manifest.json"
+  },
+  "supportingSourceReferences": [
+    {
+      "area": "URL Classification",
+      "filePath": "lib/urlAcquisition/classifyUrl.ts",
+      "lineRange": "1-51",
+      "description": "Restricts AUTHORIZED_HOSTS to YouTube; rejects all other domains as UNSUPPORTED_URL."
+    },
+    {
+      "area": "URL Detection UI Helper",
+      "filePath": "lib/urlImport.ts",
+      "lineRange": "1-33",
+      "description": "detectUrlSource() identifies 'tiktok' purely based on string matching hostname.endsWith('tiktok.com')."
+    },
+    {
+      "area": "Production Asset Import Route",
+      "filePath": "app/api/v1/assets/import/route.ts",
+      "lineRange": "1-26",
+      "description": "Authenticated entry point enforcing same-origin, CSRF token, and readAssetImportRequest()."
+    },
+    {
+      "area": "Asset Import Request Boundary",
+      "filePath": "lib/server/assetImport/requestBoundary.ts",
+      "lineRange": "35-46",
+      "description": "Validates JSON body and asserts classified.kind === 'SUPPORTED_YOUTUBE', rejecting non-YouTube inputs with 422."
+    },
+    {
+      "area": "Direct YouTube Importer",
+      "filePath": "lib/server/assetImport/directYouTubeImporter.ts",
+      "lineRange": "1-42",
+      "description": "Executes packaged yt-dlp, inspects MP4 via FFmpeg, streams to GCS, and commits PostgreSQL job/media records."
+    },
+    {
+      "area": "Durable Media Ownership",
+      "filePath": "lib/server/durableMediaOwnership/repository.ts",
+      "lineRange": "29-50",
+      "description": "Registers jobs and media records in workflow.jobs and workflow.media."
+    },
+    {
+      "area": "Database Migration V8",
+      "filePath": "db/workflow/migrations/V000008__add_asset_import_idempotency.sql",
+      "lineRange": "1-42",
+      "description": "Enforces check constraint ck_asset_import_authority: command_version = '1.0' AND platform = 'youtube'."
+    },
+    {
+      "area": "Source Artifact Identity ADR",
+      "filePath": "docs/SOURCE_ARTIFACT_IDENTITY_ADR_V1.md",
+      "lineRange": "1-80",
+      "description": "Defines Source Artifact identity semantics; states V1 source types are upload and youtube."
+    },
+    {
+      "area": "Acquisition Worker Architecture",
+      "filePath": "docs/ACQUISITION_WORKER_ARCHITECTURE_V1.md",
+      "lineRange": "1-64",
+      "description": "Outlines SourceAdapter boundary, mentions future TikTokSourceAdapter, and strictly forbids bypasses and scraping."
+    },
+    {
+      "area": "Clip Platform Profiles",
+      "filePath": "lib/clipPlatform/profiles.ts",
+      "lineRange": "1-30",
+      "description": "Defines TikTok clipping target profile with 15-55s duration policy and 0.22 hook weighting."
+    },
+    {
+      "area": "Batch Multi-Cut Route",
+      "filePath": "app/api/multi-cut/route.ts",
+      "lineRange": "80-120",
+      "description": "Renders 9:16 vertical MP4s via FFmpeg scale/crop and packages into ZIP via AdmZip."
+    },
+    {
+      "area": "Workspace Flow Page",
+      "filePath": "app/workspace-flow/page.tsx",
+      "lineRange": "270-340, 780-860",
+      "description": "UI component showing Universal URL Import text box, YouTube import handler, and video upload dropzone."
+    }
+  ],
+  "authoritativeExternalReferences": [
+    {
+      "title": "TikTok Content Posting API Documentation",
+      "url": "https://developers.tiktok.com/doc/content-posting-api-get-started",
+      "accessDate": "2026-11-07",
+      "claimSupported": "TikTok Content Posting API supports publishing video files to TikTok; does not support downloading videos from public URLs."
+    },
+    {
+      "title": "TikTok Display API & Embeds",
+      "url": "https://developers.tiktok.com/doc/display-api-get-started",
+      "accessDate": "2026-11-07",
+      "claimSupported": "TikTok Display / oEmbed API returns metadata (title, author, thumbnail) and iframe HTML snippet, but no downloadable MP4 binary."
+    },
+    {
+      "title": "TikTok Terms of Service (Section 5)",
+      "url": "https://www.tiktok.com/legal/page/row/terms-of-service/en",
+      "accessDate": "2026-11-07",
+      "claimSupported": "Prohibits automated scraping, crawling, or downloading of content without express written consent from TikTok."
+    }
+  ]
+}
