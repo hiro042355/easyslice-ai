@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { Pool } from "pg";
 import { startPostgreSqlTestEnvironment, withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
+import { EXPECTED_SQL_MIGRATION_HISTORY } from "./expectedMigrationHistory";
 
 const bytes = (seed: number, length = 32): Buffer => Buffer.alloc(length, seed);
 
@@ -59,12 +60,7 @@ test("fresh V000001 to V000003 migration validates catalog, history, and readine
     const history = await environment.pool.query<{ version: string; success: boolean }>(
       "SELECT version, success FROM public.flyway_schema_history WHERE type = 'SQL' ORDER BY installed_rank",
     );
-    assert.deepEqual(history.rows, [
-      { version: "000001", success: true },
-      { version: "000002", success: true },
-      { version: "000003", success: true },
-      { version: "000004", success: true },
-    ]);
+    assert.deepEqual(history.rows, EXPECTED_SQL_MIGRATION_HISTORY);
 
     const columns = await environment.pool.query<{ table_name: string; column_name: string }>(
       `SELECT table_name, column_name FROM information_schema.columns
@@ -91,7 +87,7 @@ test("fresh V000001 to V000003 migration validates catalog, history, and readine
     const metadata = await environment.pool.query(
       "SELECT metadata_key, schema_contract_minor, migration_head_identifier FROM workflow.workflow_schema_metadata",
     );
-    assert.deepEqual(metadata.rows, [{ metadata_key: "slice-a", schema_contract_minor: 1, migration_head_identifier: "V000002" }]);
+    assert.deepEqual(metadata.rows, [{ metadata_key: "slice-a", schema_contract_minor: 1, migration_head_identifier: "V000036" }]);
 
     const domains = ["reconciliation-request", "tenant", "workflow", "provider-request", "provider-job", "claim-owner", "observation", "resolution", "manual-repair", "operator-subject", "authorization-decision", "approval-decision", "reconciliation-outbox"];
     let assertions = 0;

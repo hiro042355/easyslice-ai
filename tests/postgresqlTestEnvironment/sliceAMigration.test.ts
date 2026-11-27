@@ -1,11 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { withPostgreSqlTestEnvironment } from "../../lib/postgresqlTestEnvironment";
+import { EXPECTED_SQL_MIGRATION_HISTORY } from "./expectedMigrationHistory";
 
 const EXPECTED_TABLES = [
+  "asset_import_requests",
   "exports",
   "jobs",
   "media",
+  "production_workflow_api_csrf_tokens",
+  "publication_events",
+  "publication_intents",
+  "publication_upload_chunks",
+  "publication_upload_sessions",
+  "rights_audit_events",
+  "rights_evidence",
   "workflow_completion_states",
   "workflow_final_results",
   "workflow_outbox_events",
@@ -56,8 +65,16 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
     assert.deepEqual(
       constraints.rows.filter((row) => row.constraint_type === "FOREIGN KEY").map((row) => row.constraint_name),
       [
+        "fk_asset_import_job_owner",
+        "fk_asset_import_media_job",
         "fk_exports_job",
         "fk_media_job",
+        "publication_events_publication_id_fkey",
+        "publication_intents_rights_record_fk",
+        "publication_upload_chunks_session_id_fkey",
+        "publication_upload_sessions_publication_fk",
+        "rights_audit_events_rights_id_fkey",
+        "rights_evidence_supersedes_id_fkey",
         "workflow_outbox_events_result_fk",
         "workflow_reconciliation_manual_repairs_request_fk",
         "workflow_reconciliation_observations_request_fk",
@@ -71,6 +88,12 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
       "SELECT table_name FROM information_schema.columns WHERE table_schema = 'workflow' AND column_name = 'revision' ORDER BY table_name",
     );
     assert.deepEqual(revisions.rows.map((row) => row.table_name), [
+      "asset_import_requests",
+      "production_workflow_api_csrf_tokens",
+      "publication_intents",
+      "publication_upload_sessions",
+      "rights_audit_events",
+      "rights_evidence",
       "workflow_completion_states",
       "workflow_final_results",
       "workflow_outbox_events",
@@ -84,7 +107,7 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
     const metadata = await environment.pool.query<{ schema_contract_major: number; migration_head_identifier: string }>(
       "SELECT schema_contract_major, migration_head_identifier FROM workflow.workflow_schema_metadata WHERE metadata_key = 'slice-a'",
     );
-    assert.deepEqual(metadata.rows[0], { schema_contract_major: 1, migration_head_identifier: "V000002" });
+    assert.deepEqual(metadata.rows[0], { schema_contract_major: 1, migration_head_identifier: "V000036" });
   });
 });
 
@@ -98,13 +121,6 @@ test("replay is idempotent, validate succeeds, and migration version is unique",
     const history = await environment.pool.query<{ version: string; success: boolean }>(
       "SELECT version, success FROM public.flyway_schema_history WHERE type = 'SQL' ORDER BY installed_rank",
     );
-    assert.deepEqual(history.rows, [
-      { version: "000001", success: true },
-      { version: "000002", success: true },
-      { version: "000003", success: true },
-      { version: "000004", success: true },
-      { version: "000005", success: true },
-      { version: "000006", success: true },
-    ]);
+    assert.deepEqual(history.rows, EXPECTED_SQL_MIGRATION_HISTORY);
   });
 });
