@@ -307,6 +307,58 @@ TikTok account: the adapter's publisher port is a mock.
 | Adapter `npm run build` | pass |
 | Core `npx tsc --noEmit` | 31 errors, all pre-existing; none in the publication files |
 
+## Staging pre-flight checklist
+
+Everything here can be checked without a live TikTok app, but the Staging apply
+itself needs owner approval and a Staging database that this branch has **not**
+touched.
+
+- [ ] Apply the chain in order on a copy first: `000001`–`000009`, `000026`–`000029`,
+      `000035`, `000036`; confirm `workflow_schema_metadata.migration_head_identifier`
+      ends at `V000036` and every row is `success = true`.
+- [ ] Confirm no existing migration file changed (checksum stability); the chain is
+      forward-only additions plus the metadata-only `V000036` repair.
+- [ ] Provide `NEXCUT_PUBLICATION_TENANT_ID` and the adapter signing secret through the
+      environment/secret store, never through the repo.
+- [ ] Point Core's adapter base URL at the Staging adapter over HTTPS; loopback is
+      development-only.
+- [ ] Confirm the adapter is reachable and rejects unsigned requests (`401`/`403`)
+      before any real publication is attempted.
+
+## Live-post pre-flight checklist
+
+Required before a real TikTok publication, and each item is a hard blocker for
+`J. LIVE_VERIFIED`:
+
+- [ ] TikTok Developer app approved with the `video.publish` scope, and the exact
+      redirect URI registered for the environment in use.
+- [ ] OAuth flow exercised end to end (consent, code exchange, refresh, revoke) with
+      the real account; tokens live only in the adapter vault.
+- [ ] Adapter reconcile/status route implemented, so an `OUTCOME_UNKNOWN` publication
+      can be resolved automatically instead of by operator investigation.
+- [ ] Private-post visibility verified against the real account, including the case
+      where TikTok accepts the upload but delays processing.
+- [ ] Duplicate prevention re-verified against the live provider: a repeated request
+      must return the existing intent, and an ambiguous outcome must never be
+      re-dispatched.
+- [ ] Failure recovery rehearsed for a lost observation, a rejected upload and an
+      expired grant.
+
+## Blocker classification
+
+| # | Item | Class | Why |
+| :-- | :--- | :--- | :--- |
+| 1 | Adapter reconcile/status endpoint | Required before a live post; Staging can proceed with the manual runbook | `OUTCOME_UNKNOWN` stays non-terminal and needs an operator without it |
+| 2 | OAuth redirect URI registration | Required before real OAuth | The provider rejects an unregistered URI; no code change needed |
+| 3 | TikTok Developer app review / scope | Required before real OAuth | External approval, outside the repo |
+| 4 | Token vault key material and rotation | Required before real OAuth | Only the adapter holds keys; Core stores no token material |
+| 5 | Real token refresh | Required before real OAuth | Single-flight refresh is unit-tested, not provider-tested |
+| 6 | Post-publication status reconciliation | Required before a live post | Same gap as item 1 |
+| 7 | Private-post verification | Required before a live post | Visibility is provider state, not local state |
+| 8 | Duplicate prevention | Verifiable in Staging without a live post | Enforced by unique keys, revision fencing and the no-redispatch rule |
+| 9 | Failure recovery | Verified during Staging | Rehearsed against the loopback adapter and real PostgreSQL |
+| 10 | User-facing publication result | Can follow Staging | The projected outcome is already returned by the API route |
+
 ## Unresolved
 
 - The adapter has no HTTP reconcile/status route, so `OUTCOME_UNKNOWN` cannot be
