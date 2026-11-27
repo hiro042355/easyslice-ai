@@ -1,0 +1,60 @@
+{
+  "phase": "2.31",
+  "taskType": "STRICT_READ_ONLY_DESIGN_CORRECTION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "status": "DESIGN_CORRECTIONS_COMPLETE",
+  "executionModel": {
+    "sqlDriver": "Node.js pg (PostgreSQL driver) parameterized queries ($1, $2, $3, $4) exclusively",
+    "psqlExampleStatus": "Formally removed from operational design",
+    "parameterInterpolation": "Zero in-band string concatenation; strict out-of-band typed protocol binding"
+  },
+  "ownerIsolation": {
+    "ownerUidCondition": "Exact equality owner_uid = $1",
+    "stagingQaUidStatus": "PENDING_PO_APPROVAL (PO-04)",
+    "operationalGuard": "Execution remains strictly blocked until approved Staging QA UID is provided"
+  },
+  "canonicalPredicate": {
+    "sql": "platform = 'tiktok' AND owner_uid = $1 AND starts_with(idempotency_key, $2) AND starts_with(canonical_source_id, $3) AND starts_with(normalized_url, $4) AND job_id IS NULL AND media_id IS NULL",
+    "equivalence": "Precheck audit and DELETE statements use identical predicate semantics",
+    "dependentTablesTouched": false
+  },
+  "transactionHandling": {
+    "sequence": [
+      "BEGIN;",
+      "SET LOCAL lock_timeout = '5s';",
+      "SET LOCAL statement_timeout = '30s';",
+      "PRECHECK AUDIT (abort if alien/ineligible rows > 0 or active FKs > 0);",
+      "DELETE (only eligible target-run rows);",
+      "POSTCHECK AUDIT (abort if remaining tiktok count != 0);",
+      "ALTER TABLE ... DROP CONSTRAINT ck_asset_import_authority;",
+      "ALTER TABLE ... ADD CONSTRAINT ck_asset_import_authority CHECK (command_version = '1.0' AND platform = 'youtube');",
+      "COMMIT;"
+    ],
+    "failureProtocol": "try...catch block explicitly issues ROLLBACK; on any error"
+  },
+  "migrationSourceEvidence": {
+    "v000009File": "db/workflow/migrations/V000009__expand_asset_import_platform.sql",
+    "v000009Constraint": "ck_asset_import_authority CHECK (command_version = '1.0' AND platform IN ('youtube', 'tiktok'))",
+    "v000009DropsAndRecreates": true,
+    "v000008File": "db/workflow/migrations/V000008__add_asset_import_idempotency.sql",
+    "v000008Constraint": "ck_asset_import_authority CHECK (command_version = '1.0' AND platform = 'youtube')"
+  },
+  "gitIntegrity": {
+    "stagedFileCount": 51,
+    "unstagedChanges": 0,
+    "phase230FilesExist": true,
+    "phase231FilesStaged": false
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.31-wp03-sql-safety/implementation-readiness-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.31-wp03-sql-safety/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "sqlCommandsExecuted": 0,
+    "cloudApiCalls": 0,
+    "gitMutations": 0
+  }
+}

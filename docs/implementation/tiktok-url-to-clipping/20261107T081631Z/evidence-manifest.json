@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TikTok URL to Clipping Implementation Evidence Manifest",
+  "timestamp": "2026-11-07T08:16:31Z",
+  "author": "Jules",
+  "deliverables": {
+    "readme": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/README.md",
+    "implementationSummary": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/implementation-summary.md",
+    "architectureAndContractChanges": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/architecture-and-contract-changes.md",
+    "filesChanged": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/files-changed.md",
+    "urlHandlingBehavior": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/url-handling-behavior.md",
+    "acquisitionLimitations": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/acquisition-limitations.md",
+    "userFileFallbackBehavior": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/user-file-fallback-behavior.md",
+    "testMatrixAndResults": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/test-matrix-and-results.md",
+    "rawTestLogs": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/raw-test-logs.txt",
+    "securityAndPermissionReview": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/security-and-permission-review.md",
+    "remainingBlockers": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/remaining-blockers.md",
+    "readinessGateEvaluation": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/readiness-gate-evaluation.md",
+    "changeManifest": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/change-manifest.json",
+    "evidenceManifest": "docs/implementation/tiktok-url-to-clipping/20261107T081631Z/evidence-manifest.json"
+  }
+}

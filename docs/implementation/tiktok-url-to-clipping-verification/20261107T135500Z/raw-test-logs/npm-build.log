@@ -1,0 +1,92 @@
+
+> easyslice-ai@0.2.0 prebuild
+> node scripts/materializeFfmpegBinary.mjs && node scripts/materializeYtDlpBinary.mjs
+
+Packaged FFmpeg binary materialized.
+Packaged yt-dlp 2026.03.13 materialized with verified SHA-256.
+
+> easyslice-ai@0.2.0 build
+> next build
+
+▲ Next.js 16.2.7 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 19.1s
+  Running TypeScript ...
+  Finished TypeScript in 29.2s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/58) ...
+  Generating static pages using 3 workers (14/58)
+  Generating static pages using 3 workers (28/58)
+  Generating static pages using 3 workers (43/58)
+✓ Generating static pages using 3 workers (58/58) in 614ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ○ /ai-mv
+├ ○ /analytics
+├ ƒ /api/ai-highlight
+├ ƒ /api/ai-mv
+├ ƒ /api/ai-mv/cover
+├ ƒ /api/audio-energy
+├ ƒ /api/auth/session
+├ ƒ /api/burn-subtitle
+├ ƒ /api/convert
+├ ƒ /api/cut
+├ ƒ /api/exports/[exportId]
+├ ƒ /api/health/live
+├ ƒ /api/health/ready
+├ ƒ /api/internal/acquisition-worker-owner-e2e
+├ ƒ /api/internal/acquisition-worker-provider-experiment
+├ ƒ /api/internal/environment-b-network-proof
+├ ƒ /api/internal/environment-b-owner-youtube-e2e
+├ ƒ /api/internal/production-owner-uid-proof
+├ ƒ /api/media/[jobId]/[mediaId]
+├ ƒ /api/media/admit
+├ ƒ /api/multi-cut
+├ ƒ /api/post-assets
+├ ƒ /api/script
+├ ƒ /api/subtitle
+├ ƒ /api/summary
+├ ƒ /api/transcript
+├ ƒ /api/transcript/durable
+├ ƒ /api/translate-subtitle
+├ ƒ /api/upload-video
+├ ƒ /api/v1/assets/import
+├ ƒ /api/v1/workflows/cancel
+├ ƒ /api/v1/workflows/csrf
+├ ƒ /api/v1/workflows/poll-generation
+├ ƒ /api/v1/workflows/poll-upload
+├ ƒ /api/v1/workflows/result
+├ ƒ /api/v1/workflows/start
+├ ƒ /api/video
+├ ƒ /api/youtube-download
+├ ƒ /api/youtube-info
+├ ƒ /api/youtube/ingest
+├ ○ /auth
+├ ○ /autopilot
+├ ○ /convert
+├ ○ /creator
+├ ○ /feedback
+├ ○ /guide
+├ ○ /intelligence
+├ ○ /landing
+├ ○ /operations
+├ ○ /pricing
+├ ○ /releases
+├ ○ /review
+├ ○ /roadmap
+├ ○ /workspace
+├ ○ /workspace-flow
+└ ○ /workspace-legacy
+
+Route (pages)
+─ ƒ /api/youtube
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+exit_code: 0

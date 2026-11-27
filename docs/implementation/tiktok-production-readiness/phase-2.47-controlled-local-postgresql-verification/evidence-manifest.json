@@ -1,0 +1,46 @@
+{
+  "phase": "2.47",
+  "taskType": "CONTROLLED_LOCAL_POSTGRESQL_VERIFICATION",
+  "repository": "/app",
+  "branch": "jules-3110607620436353703-ca56d790",
+  "baselineSha": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "currentHead": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "finalDecision": "LOCAL_POSTGRESQL_MIGRATION_BLOCKED",
+  "runtimeAcquisition": {
+    "version": "v24.0.0",
+    "location": "/tmp/node24_acquisition/node-v24.0.0-linux-x64",
+    "checksumPublished": "59b8af617dccd7f9f68cc8451b2aee1e86d6bd5cb92cd51dd6216a31b707efd7",
+    "checksumCalculated": "59b8af617dccd7f9f68cc8451b2aee1e86d6bd5cb92cd51dd6216a31b707efd7",
+    "verified": true,
+    "systemNodeReplaced": false
+  },
+  "dockerImageAcquisition": {
+    "attemptedImage": "postgres:18.4@sha256:c2d42a104eb6b37b286a2d9c5cf83f349de4d6516d513d00a2bd9610e2c2e5e4",
+    "failureReason": "failed to extract layer to overlayfs: failed to convert whiteout file 'etc/alternatives/.wh.pager.1.gz': operation not permitted",
+    "blockerCategory": "Nested container overlayfs capability limitation",
+    "actionTaken": "Execution halted safely per Section 4 directive"
+  },
+  "rollbackSafetyAssessment": {
+    "u000009MigrationPresent": false,
+    "inventedOrImprovised": false,
+    "mockHarnessVerified": true
+  },
+  "gitEvidence": {
+    "stagedFileCount": 74,
+    "unstagedModifications": 0,
+    "exitCodeGitDiffQuiet": 0,
+    "exitCodeGitDiffCachedQuiet": 1,
+    "phase247FilesStaged": false
+  },
+  "createdFiles": [
+    "docs/implementation/tiktok-production-readiness/phase-2.47-controlled-local-postgresql-verification/local-postgresql-verification-report.md",
+    "docs/implementation/tiktok-production-readiness/phase-2.47-controlled-local-postgresql-verification/evidence-manifest.json"
+  ],
+  "safetyVerification": {
+    "liveDbConnections": 0,
+    "stagingConnections": 0,
+    "productionConnections": 0,
+    "cloudApiCalls": 0,
+    "gitMutations": 0
+  }
+}

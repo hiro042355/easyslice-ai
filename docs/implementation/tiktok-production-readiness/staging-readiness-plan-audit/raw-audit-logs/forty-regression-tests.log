@@ -1,0 +1,250 @@
+TAP version 13
+# Subtest: profiles expose the exact versioned target union and are deeply readonly
+ok 1 - profiles expose the exact versioned target union and are deeply readonly
+  ---
+  duration_ms: 3.106385
+  type: 'test'
+  ...
+# Subtest: quality and portfolio weights sum to one for every profile
+ok 2 - quality and portfolio weights sum to one for every profile
+  ---
+  duration_ms: 0.593033
+  type: 'test'
+  ...
+# Subtest: omitted target resolves to generic and exactly preserves current Quality V2
+ok 3 - omitted target resolves to generic and exactly preserves current Quality V2
+  ---
+  duration_ms: 4.370666
+  type: 'test'
+  ...
+# Subtest: duration profiles remain bounded and only provide policy to canonical authority
+ok 4 - duration profiles remain bounded and only provide policy to canonical authority
+  ---
+  duration_ms: 1.489102
+  type: 'test'
+  ...
+# Subtest: story evidence remains primary over duration proximity for every platform
+ok 5 - story evidence remains primary over duration proximity for every platform
+  ---
+  duration_ms: 1.821076
+  type: 'test'
+  ...
+# Subtest: platform quality differences stay small and never rescue a weak candidate past the existing floor
+ok 6 - platform quality differences stay small and never rescue a weak candidate past the existing floor
+  ---
+  duration_ms: 1.126584
+  type: 'test'
+  ...
+# Subtest: portfolio preserves membership, duplicate rules, floor, and final count while allowing ordering evidence
+ok 7 - portfolio preserves membership, duplicate rules, floor, and final count while allowing ordering evidence
+  ---
+  duration_ms: 21.69552
+  type: 'test'
+  ...
+# Subtest: hook and filler adapters preserve strict context, QA, ratio, and generic behavior
+ok 8 - hook and filler adapters preserve strict context, QA, ratio, and generic behavior
+  ---
+  duration_ms: 3.538958
+  type: 'test'
+  ...
+# Subtest: source type and distribution target remain independent
+ok 9 - source type and distribution target remain independent
+  ---
+  duration_ms: 1.310122
+  type: 'test'
+  ...
+# Subtest: profiles and adapters are deterministic and contain no popularity, analytics, IO, clock, or random authority
+ok 10 - profiles and adapters are deterministic and contain no popularity, analytics, IO, clock, or random authority
+  ---
+  duration_ms: 23.404256
+  type: 'test'
+  ...
+# Subtest: media bytes go only to the server-issued resumable URL
+ok 11 - media bytes go only to the server-issued resumable URL
+  ---
+  duration_ms: 72.426183
+  type: 'test'
+  ...
+# Subtest: non-JSON platform failures are reported without a JSON parse exception
+ok 12 - non-JSON platform failures are reported without a JSON parse exception
+  ---
+  duration_ms: 1.981164
+  type: 'test'
+  ...
+# Subtest: GCS upload failures expose only safe protocol diagnostics
+ok 13 - GCS upload failures expose only safe protocol diagnostics
+  ---
+  duration_ms: 2.698048
+  type: 'test'
+  ...
+# Subtest: GCS JSON diagnostics preserve safe nested error fields and redact authority
+ok 14 - GCS JSON diagnostics preserve safe nested error fields and redact authority
+  ---
+  duration_ms: 3.367495
+  type: 'test'
+  ...
+# Subtest: classifyUrl recognizes and normalizes canonical desktop TikTok URLs
+ok 15 - classifyUrl recognizes and normalizes canonical desktop TikTok URLs
+  ---
+  duration_ms: 3.24655
+  type: 'test'
+  ...
+# Subtest: classifyUrl recognizes mobile path /v/:id.html
+ok 16 - classifyUrl recognizes mobile path /v/:id.html
+  ---
+  duration_ms: 0.566468
+  type: 'test'
+  ...
+# Subtest: classifyUrl rejects non-video TikTok URLs safely as UNSUPPORTED_TIKTOK
+ok 17 - classifyUrl rejects non-video TikTok URLs safely as UNSUPPORTED_TIKTOK
+  ---
+  duration_ms: 0.72953
+  type: 'test'
+  ...
+# Subtest: classifyUrl rejects phishing and lookalike hosts as UNSUPPORTED_URL
+ok 18 - classifyUrl rejects phishing and lookalike hosts as UNSUPPORTED_URL
+  ---
+  duration_ms: 0.416313
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect safely resolves short links without SSRF
+ok 19 - resolveSafeTikTokRedirect safely resolves short links without SSRF
+  ---
+  duration_ms: 48.957458
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains
+ok 20 - resolveSafeTikTokRedirect blocks SSRF redirects to non-TikTok domains
+  ---
+  duration_ms: 0.589794
+  type: 'test'
+  ...
+# Subtest: resolveSafeTikTokRedirect limits redirect count and detects loops
+ok 21 - resolveSafeTikTokRedirect limits redirect count and detects loops
+  ---
+  duration_ms: 1.45098
+  type: 'test'
+  ...
+# Subtest: evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints
+ok 22 - evaluateTikTokAcquisitionGuidance provides clear user guidance and constraints
+  ---
+  duration_ms: 0.653102
+  type: 'test'
+  ...
+# Subtest: canonical authority supports and normalizes the V1 YouTube forms
+ok 23 - canonical authority supports and normalizes the V1 YouTube forms
+  ---
+  duration_ms: 3.037601
+  type: 'test'
+  ...
+# Subtest: recognized YouTube hosts with unsupported V1 shapes stay unsupported
+ok 24 - recognized YouTube hosts with unsupported V1 shapes stay unsupported
+  ---
+  duration_ms: 0.785547
+  type: 'test'
+  ...
+# Subtest: lookalike and unrelated hosts never receive YouTube authority
+ok 25 - lookalike and unrelated hosts never receive YouTube authority
+  ---
+  duration_ms: 0.339977
+  type: 'test'
+  ...
+# Subtest: invalid input and non-http schemes fail closed without side effects
+ok 26 - invalid input and non-http schemes fail closed without side effects
+  ---
+  duration_ms: 0.637151
+  type: 'test'
+  ...
+# Subtest: raw input length is enforced before trimming at the baseline boundary
+ok 27 - raw input length is enforced before trimming at the baseline boundary
+  ---
+  duration_ms: 0.31622
+  type: 'test'
+  ...
+# Subtest: canonical support decisions match the baseline production validator
+ok 28 - canonical support decisions match the baseline production validator
+  ---
+  duration_ms: 0.978805
+  type: 'test'
+  ...
+# Subtest: UI and server delegate to the same support decision
+ok 29 - UI and server delegate to the same support decision
+  ---
+  duration_ms: 1.644554
+  type: 'test'
+  ...
+# Subtest: legacy routes remain deterministic non-executing retirement endpoints
+ok 30 - legacy routes remain deterministic non-executing retirement endpoints
+  ---
+  duration_ms: 0.589441
+  type: 'test'
+  ...
+# Subtest: validateMediaAdmissionFile accepts valid MP4 files below limit
+ok 31 - validateMediaAdmissionFile accepts valid MP4 files below limit
+  ---
+  duration_ms: 1.787261
+  type: 'test'
+  ...
+# Subtest: validateMediaAdmissionFile accepts valid MP4 file exactly at the 2GB limit
+ok 32 - validateMediaAdmissionFile accepts valid MP4 file exactly at the 2GB limit
+  ---
+  duration_ms: 0.347522
+  type: 'test'
+  ...
+# Subtest: validateMediaAdmissionFile rejects files exceeding the 2GB limit
+ok 33 - validateMediaAdmissionFile rejects files exceeding the 2GB limit
+  ---
+  duration_ms: 0.659736
+  type: 'test'
+  ...
+# Subtest: validateMediaAdmissionFile rejects empty or zero-byte files
+ok 34 - validateMediaAdmissionFile rejects empty or zero-byte files
+  ---
+  duration_ms: 0.199554
+  type: 'test'
+  ...
+# Subtest: validateMediaAdmissionFile rejects negative or NaN file sizes
+ok 35 - validateMediaAdmissionFile rejects negative or NaN file sizes
+  ---
+  duration_ms: 0.242894
+  type: 'test'
+  ...
+# Subtest: validateMediaAdmissionFile rejects non-MP4 MIME types
+ok 36 - validateMediaAdmissionFile rejects non-MP4 MIME types
+  ---
+  duration_ms: 0.639425
+  type: 'test'
+  ...
+# Subtest: admitDurableMedia fails immediately on oversized file without network requests
+ok 37 - admitDurableMedia fails immediately on oversized file without network requests
+  ---
+  duration_ms: 0.970687
+  type: 'test'
+  ...
+# Subtest: TikTok asset source produces deterministic fingerprint under CanonicalAssetImportSource contract
+ok 38 - TikTok asset source produces deterministic fingerprint under CanonicalAssetImportSource contract
+  ---
+  duration_ms: 3.469378
+  type: 'test'
+  ...
+# Subtest: Existing clipping profile engine contains dedicated TikTok profile with 15-55s duration window and vertical crop weighting
+ok 39 - Existing clipping profile engine contains dedicated TikTok profile with 15-55s duration window and vertical crop weighting
+  ---
+  duration_ms: 0.499381
+  type: 'test'
+  ...
+# Subtest: TikTok URL classification matches CanonicalAssetImportSource platform discriminator
+ok 40 - TikTok URL classification matches CanonicalAssetImportSource platform discriminator
+  ---
+  duration_ms: 0.860818
+  type: 'test'
+  ...
+1..40
+# tests 40
+# suites 0
+# pass 40
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1160.271723

@@ -9,8 +9,12 @@ export function detectUrlSource(url: string): UrlSource {
     return "unknown";
   }
 
-  if (classifyUrl(value).kind === "SUPPORTED_YOUTUBE") {
+  const classification = classifyUrl(value);
+  if (classification.kind === "SUPPORTED_YOUTUBE") {
     return "youtube";
+  }
+  if (classification.kind === "SUPPORTED_TIKTOK" || classification.kind === "UNSUPPORTED_TIKTOK") {
+    return "tiktok";
   }
 
   try {

@@ -1,0 +1,317 @@
+TAP version 13
+# Subtest: selects the closest available evidence to the adaptive target
+ok 1 - selects the closest available evidence to the adaptive target
+  ---
+  duration_ms: 4.255461
+  type: 'test'
+  ...
+# Subtest: keeps candidate lead-in policy inside the canonical authority
+ok 2 - keeps candidate lead-in policy inside the canonical authority
+  ---
+  duration_ms: 0.830502
+  type: 'test'
+  ...
+# Subtest: uses the source boundary when the source ends before the target
+ok 3 - uses the source boundary when the source ends before the target
+  ---
+  duration_ms: 0.619984
+  type: 'test'
+  ...
+# Subtest: keeps a candidate at source end inside a positive source boundary
+ok 4 - keeps a candidate at source end inside a positive source boundary
+  ---
+  duration_ms: 0.573325
+  type: 'test'
+  ...
+# Subtest: uses the adaptive target deterministically when no boundary evidence exists
+ok 5 - uses the adaptive target deterministically when no boundary evidence exists
+  ---
+  duration_ms: 0.589886
+  type: 'test'
+  ...
+# Subtest: preserves an explicit requested end instead of applying adaptive policy
+ok 6 - preserves an explicit requested end instead of applying adaptive policy
+  ---
+  duration_ms: 0.793001
+  type: 'test'
+  ...
+# Subtest: returns a frozen immutable decision
+ok 7 - returns a frozen immutable decision
+  ---
+  duration_ms: 1.061601
+  type: 'test'
+  ...
+# Subtest: prefers a Japanese semantic completion before 30 seconds
+ok 8 - prefers a Japanese semantic completion before 30 seconds
+  ---
+  duration_ms: 5.610032
+  type: 'test'
+  ...
+# Subtest: prefers a Japanese completion after 30 over an incomplete timing boundary
+ok 9 - prefers a Japanese completion after 30 over an incomplete timing boundary
+  ---
+  duration_ms: 0.645475
+  type: 'test'
+  ...
+# Subtest: supports English completion before and after the preferred duration
+ok 10 - supports English completion before and after the preferred duration
+  ---
+  duration_ms: 1.849151
+  type: 'test'
+  ...
+# Subtest: punctuation-less text falls back to adaptive timing
+ok 11 - punctuation-less text falls back to adaptive timing
+  ---
+  duration_ms: 0.554953
+  type: 'test'
+  ...
+# Subtest: chooses story priority before duration proximity
+ok 12 - chooses story priority before duration proximity
+  ---
+  duration_ms: 0.649652
+  type: 'test'
+  ...
+# Subtest: does not end on a question alone and includes the following answer
+ok 13 - does not end on a question alone and includes the following answer
+  ---
+  duration_ms: 0.569413
+  type: 'test'
+  ...
+# Subtest: bounds an answer beyond maximum duration
+ok 14 - bounds an answer beyond maximum duration
+  ---
+  duration_ms: 0.592068
+  type: 'test'
+  ...
+# Subtest: detects transition phrases only at an explicit phrase boundary
+ok 15 - detects transition phrases only at an explicit phrase boundary
+  ---
+  duration_ms: 0.635084
+  type: 'test'
+  ...
+# Subtest: recognizes a completed conclusion as payoff evidence
+ok 16 - recognizes a completed conclusion as payoff evidence
+  ---
+  duration_ms: 1.369379
+  type: 'test'
+  ...
+# Subtest: accepts an explicit AI end only when it matches story completion
+ok 17 - accepts an explicit AI end only when it matches story completion
+  ---
+  duration_ms: 1.512188
+  type: 'test'
+  ...
+# Subtest: refines a mid-utterance start within the bounded window
+ok 18 - refines a mid-utterance start within the bounded window
+  ---
+  duration_ms: 0.659677
+  type: 'test'
+  ...
+# Subtest: does not make a wide backwards start adjustment
+ok 19 - does not make a wide backwards start adjustment
+  ---
+  duration_ms: 6.363078
+  type: 'test'
+  ...
+# Subtest: never refines before source start
+ok 20 - never refines before source start
+  ---
+  duration_ms: 0.288803
+  type: 'test'
+  ...
+# Subtest: preserves maximum duration while selecting story boundaries
+ok 21 - preserves maximum duration while selecting story boundaries
+  ---
+  duration_ms: 0.203238
+  type: 'test'
+  ...
+# Subtest: is deterministic and does not mutate story input
+ok 22 - is deterministic and does not mutate story input
+  ---
+  duration_ms: 1.798545
+  type: 'test'
+  ...
+# Subtest: returns deeply frozen story evidence collections
+ok 23 - returns deeply frozen story evidence collections
+  ---
+  duration_ms: 0.280592
+  type: 'test'
+  ...
+# Subtest: strong original hook is retained deterministically
+ok 24 - strong original hook is retained deterministically
+  ---
+  duration_ms: 4.069303
+  type: 'test'
+  ...
+# Subtest: Japanese weak lead-in is trimmed
+ok 25 - Japanese weak lead-in is trimmed
+  ---
+  duration_ms: 1.216596
+  type: 'test'
+  ...
+# Subtest: English weak lead-in is trimmed
+ok 26 - English weak lead-in is trimmed
+  ---
+  duration_ms: 0.998536
+  type: 'test'
+  ...
+# Subtest: question and contrast become stronger utterance starts
+ok 27 - question and contrast become stronger utterance starts
+  ---
+  duration_ms: 0.500482
+  type: 'test'
+  ...
+# Subtest: hook candidate outside shift limit is ignored
+ok 28 - hook candidate outside shift limit is ignored
+  ---
+  duration_ms: 0.786825
+  type: 'test'
+  ...
+# Subtest: context-dependent and story-critical utterances are protected
+ok 29 - context-dependent and story-critical utterances are protected
+  ---
+  duration_ms: 0.664785
+  type: 'test'
+  ...
+# Subtest: long subtitle gap retains a natural pause and maps a contiguous output
+ok 30 - long subtitle gap retains a natural pause and maps a contiguous output
+  ---
+  duration_ms: 0.241233
+  type: 'test'
+  ...
+# Subtest: short natural pause is preserved
+ok 31 - short natural pause is preserved
+  ---
+  duration_ms: 0.216562
+  type: 'test'
+  ...
+# Subtest: contiguous production mode never removes an internal gap
+ok 32 - contiguous production mode never removes an internal gap
+  ---
+  duration_ms: 0.428163
+  type: 'test'
+  ...
+# Subtest: removal ratio and minimum duration protect aggressive edits
+ok 33 - removal ratio and minimum duration protect aggressive edits
+  ---
+  duration_ms: 0.687083
+  type: 'test'
+  ...
+# Subtest: timeline invariants and immutable copies hold
+ok 34 - timeline invariants and immutable copies hold
+  ---
+  duration_ms: 0.454519
+  type: 'test'
+  ...
+# Subtest: subtitle and translation use the same timing map and omit removed spans
+ok 35 - subtitle and translation use the same timing map and omit removed spans
+  ---
+  duration_ms: 0.704182
+  type: 'test'
+  ...
+# Subtest: isolated filler is removed but meaningful and story-critical text is retained
+ok 36 - isolated filler is removed but meaningful and story-critical text is retained
+  ---
+  duration_ms: 0.484036
+  type: 'test'
+  ...
+# Subtest: authority has no network, model, clock, random, database, or boundary dependency
+ok 37 - authority has no network, model, clock, random, database, or boundary dependency
+  ---
+  duration_ms: 21.042503
+  type: 'test'
+  ...
+# Subtest: production projection edits only the selected clip presentation boundary
+ok 38 - production projection edits only the selected clip presentation boundary
+  ---
+  duration_ms: 3.235561
+  type: 'test'
+  ...
+# Subtest: quality contract is versioned, bounded, readonly, and deterministic
+ok 39 - quality contract is versioned, bounded, readonly, and deterministic
+  ---
+  duration_ms: 4.602778
+  type: 'test'
+  ...
+# Subtest: question, contrast, story, payoff, and fallback evidence affect fixed dimensions
+ok 40 - question, contrast, story, payoff, and fallback evidence affect fixed dimensions
+  ---
+  duration_ms: 0.549441
+  type: 'test'
+  ...
+# Subtest: information density is deterministic without inventing missing text
+ok 41 - information density is deterministic without inventing missing text
+  ---
+  duration_ms: 0.401975
+  type: 'test'
+  ...
+# Subtest: similarity handles exact IDs, boundaries, temporal overlap, and distant wording
+ok 42 - similarity handles exact IDs, boundaries, temporal overlap, and distant wording
+  ---
+  duration_ms: 2.190863
+  type: 'test'
+  ...
+# Subtest: supports Japanese and English character-shingle similarity
+ok 43 - supports Japanese and English character-shingle similarity
+  ---
+  duration_ms: 0.986302
+  type: 'test'
+  ...
+# Subtest: normalizes missing segment evidence instead of treating it as similarity
+ok 44 - normalizes missing segment evidence instead of treating it as similarity
+  ---
+  duration_ms: 0.246475
+  type: 'test'
+  ...
+# Subtest: fixes duplicate and similar thresholds
+ok 45 - fixes duplicate and similar thresholds
+  ---
+  duration_ms: 0.52669
+  type: 'test'
+  ...
+# Subtest: duplicate grouping uses duplicate edges transitively but not similar-only edges
+ok 46 - duplicate grouping uses duplicate edges transitively but not similar-only edges
+  ---
+  duration_ms: 17.386815
+  type: 'test'
+  ...
+# Subtest: representative selection follows quality and deterministic tie-breaks
+ok 47 - representative selection follows quality and deterministic tie-breaks
+  ---
+  duration_ms: 1.27917
+  type: 'test'
+  ...
+# Subtest: portfolio selects at most five, quality first, with evidence and no duplicates
+ok 48 - portfolio selects at most five, quality first, with evidence and no duplicates
+  ---
+  duration_ms: 4.067131
+  type: 'test'
+  ...
+# Subtest: quality floor rejects a weak diverse candidate and permits fewer results
+ok 49 - quality floor rejects a weak diverse candidate and permits fewer results
+  ---
+  duration_ms: 0.581913
+  type: 'test'
+  ...
+# Subtest: portfolio selection is deterministic, copy-isolated, and candidate preserving
+ok 50 - portfolio selection is deterministic, copy-isolated, and candidate preserving
+  ---
+  duration_ms: 0.941096
+  type: 'test'
+  ...
+# Subtest: legacy projection preserves final output shape and boundaries
+ok 51 - legacy projection preserves final output shape and boundaries
+  ---
+  duration_ms: 0.442928
+  type: 'test'
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 51
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1180.155397
+exit_code: 0

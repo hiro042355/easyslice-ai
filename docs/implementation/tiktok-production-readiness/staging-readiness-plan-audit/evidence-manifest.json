@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-11-08T06:20:00Z",
+  "evaluatedCommit": "e8338e8b7dcd731dc9b494204e16749fc4918869",
+  "evaluatedPullRequest": 8,
+  "auditDirectory": "docs/implementation/tiktok-production-readiness/staging-readiness-plan-audit/",
+  "auditVerdict": "STAGING_PLAN_APPROVED_FOR_PO_REVIEW",
+  "auditDocuments": [
+    "gatekeeper-audit-report.md",
+    "evidence-manifest.json"
+  ],
+  "rawAuditLogs": [
+    "raw-audit-logs/forty-regression-tests.log"
+  ],
+  "evaluatedStagingPlanDirectory": "docs/implementation/tiktok-production-readiness/staging-readiness-plan/",
+  "stagedDocumentsAudited": 11,
+  "fortyTestResult": {
+    "total": 40,
+    "pass": 40,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "exitCode": 0
+  }
+}

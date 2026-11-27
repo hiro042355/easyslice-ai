@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-11-07T23:31:09Z",
+  "baseCommit": "ce24b71c3a626988335ddd7a28c4f037f54534d3",
+  "changes": [
+    {
+      "filePath": "lib/client/durableMediaAdmission.ts",
+      "action": "MODIFIED",
+      "purpose": "Add proactive client-side validation for MAX_MEDIA_BYTES (2GB) and MIME type with explicit descriptive error messaging to fail fast before network requests."
+    },
+    {
+      "filePath": "tests/urlAcquisition/durableMediaAdmissionValidation.test.ts",
+      "action": "CREATED",
+      "purpose": "Offline unit tests for client-side media admission file validation covering below limit, exactly at limit, above limit, invalid size, non-MP4 MIME, and network call suppression."
+    }
+  ]
+}

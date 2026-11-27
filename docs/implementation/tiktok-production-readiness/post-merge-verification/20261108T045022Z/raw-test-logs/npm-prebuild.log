@@ -1,0 +1,7 @@
+
+> easyslice-ai@0.2.0 prebuild
+> node scripts/materializeFfmpegBinary.mjs && node scripts/materializeYtDlpBinary.mjs
+
+Packaged FFmpeg binary materialized.
+Packaged yt-dlp 2026.03.13 materialized with verified SHA-256.
+exit_code=0
