@@ -7,6 +7,7 @@ import type { PublicationEvent } from "@/lib/publicationRecords/repository";
 import { executeTikTokPublication, type TikTokPublicationExecution } from "@/lib/tiktokPublication/execution";
 import type { TikTokPublicationCommand } from "@/lib/tiktokPublication/requestBoundary";
 import { applyAdapterObservation, type AdapterObservationOutcome } from "@/lib/tiktokPublication/observationApplication";
+import { reconcileTikTokPublication, type TikTokReconciliationResult } from "@/lib/tiktokPublication/reconciliation";
 import type { AdapterObservationReport } from "@/lib/tiktokPublication/observationBoundary";
 
 /**
@@ -98,6 +99,26 @@ export async function recordTikTokAdapterObservation(
   report: AdapterObservationReport,
 ): Promise<AdapterObservationOutcome> {
   return withProductionMediaRuntime(async ({ pool }) => applyAdapterObservation(pool, report));
+}
+
+/**
+ * Core side of OUTCOME_UNKNOWN reconciliation. Read-only towards the adapter: it asks
+ * for the adapter's recorded state and never triggers a new publication.
+ */
+export async function reconcileTikTokPublicationRecord(
+  ownerUid: string,
+  publicationId: string,
+  config: TikTokPublicationRuntimeConfig,
+): Promise<TikTokReconciliationResult> {
+  return withProductionMediaRuntime(async ({ pool }) => reconcileTikTokPublication({
+    client: pool,
+    adapter: {
+      endpoint: config.adapterUrl,
+      transportKeyId: config.transportKeyId,
+      transportSecret: config.transportSecret,
+    },
+    tenantId: config.tenantId,
+  }, { ownerUid, publicationId }));
 }
 
 export async function readTikTokPublication(

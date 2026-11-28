@@ -56,7 +56,7 @@ export async function POST(request: Request): Promise<Response> {
       configuration.config,
     );
     const projected = projectTikTokPublicationExecution(execution);
-    return tiktokPublicationJson(projected.status, projected.body);
+    return tiktokPublicationJson(projected.status, projected.body, projected.headers);
   } catch {
     // A failure here may follow a dispatched request, so no retry is suggested.
     return tiktokPublicationError(500, "publication_execution_failed");

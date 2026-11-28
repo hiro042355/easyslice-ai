@@ -19,6 +19,7 @@ import {
 import { applyAdapterObservation } from "../../lib/tiktokPublication/observationApplication";
 import { readTikTokObservationReport } from "../../lib/tiktokPublication/observationBoundary";
 import { executeTikTokPublication } from "../../lib/tiktokPublication/execution";
+import { reconcileTikTokPublication } from "../../lib/tiktokPublication/reconciliation";
 import {
   readTikTokPublicationRequest,
   TIKTOK_PUBLICATION_REQUEST_VERSION,
@@ -105,7 +106,10 @@ const commandFor = async (jobId: string, exportId: string, ownerUid: string, key
   return parsed.command;
 };
 
-const startAdapterProcess = async (observationUrl: string): Promise<{
+const startAdapterProcess = async (
+  observationUrl: string,
+  extraEnv: Readonly<Record<string, string>> = {},
+): Promise<{
   port: number;
   child: ChildProcessWithoutNullStreams;
   stop: () => Promise<void>;
@@ -123,6 +127,7 @@ const startAdapterProcess = async (observationUrl: string): Promise<{
       GRANT_KEY_ID: grantKeyId,
       GRANT_SIGNING_KEY: grantSecret,
       CORE_OBSERVATION_URL: observationUrl,
+      ...extraEnv,
     },
   }) as ChildProcessWithoutNullStreams;
 
@@ -177,8 +182,12 @@ const startAdapterProcess = async (observationUrl: string): Promise<{
   return { port, child, stop };
 };
 
-const startCoreObservationServer = async (pool: Parameters<typeof applyAdapterObservation>[0]) => {
+const startCoreObservationServer = async (
+  pool: Parameters<typeof applyAdapterObservation>[0],
+  options: Readonly<{ reject?: (observation: string) => boolean }> = {},
+) => {
   const applied: string[] = [];
+  const rejected: string[] = [];
   const server = createServer((request, response) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -206,6 +215,14 @@ const startCoreObservationServer = async (pool: Parameters<typeof applyAdapterOb
         if (boundary.code !== "REPORT_ACCEPTED") {
           response.writeHead(boundary.status, { "content-type": "application/json" });
           response.end(JSON.stringify({ error: { code: boundary.error } }));
+          return;
+        }
+        if (options.reject?.(boundary.report.observation)) {
+          // Test-only fault injection: Core loses this observation, so the durable row
+          // never learns the outcome the adapter already knows.
+          rejected.push(boundary.report.observation);
+          response.writeHead(404, { "content-type": "application/json" });
+          response.end(JSON.stringify({ error: { code: "publication_not_found" } }));
           return;
         }
         applied.push(boundary.report.observation);
@@ -236,13 +253,24 @@ const startCoreObservationServer = async (pool: Parameters<typeof applyAdapterOb
   return {
     url: `http://127.0.0.1:${port}${ADAPTER_OBSERVATION_PATH}`,
     applied,
+    rejected,
     close: () => new Promise<void>((done) => server.close(() => done())),
   };
 };
 
-const adapterStats = async (port: number): Promise<{ dispatches: number; publisherCalls: number; observations: number }> => {
+const adapterStats = async (port: number): Promise<{
+  dispatches: number;
+  publisherCalls: number;
+  observations: number;
+  statusCalls: number;
+}> => {
   const response = await fetch(`http://127.0.0.1:${port}/stats`);
-  return (await response.json()) as { dispatches: number; publisherCalls: number; observations: number };
+  return (await response.json()) as {
+    dispatches: number;
+    publisherCalls: number;
+    observations: number;
+    statusCalls: number;
+  };
 };
 
 test("Core and the adapter run as separate processes over a signed loopback socket", async () => {
@@ -354,6 +382,125 @@ test("Core and the adapter run as separate processes over a signed loopback sock
       assert.equal(second.code, "PUBLICATION_CONFIRMED");
       assert.notEqual(second.code === "PUBLICATION_CONFIRMED" ? second.record.id : "", published.record.id);
       assert.equal((await adapterStats(adapter.port)).publisherCalls, 1);
+    } finally {
+      await adapter.stop();
+      await core.close();
+    }
+  });
+});
+
+/**
+ * Recovery over real processes.
+ *
+ * The adapter publishes, Core loses the confirmation observation, so the durable
+ * row stays OUTCOME_UNKNOWN (INTERRUPTED). Reconciling against the same adapter
+ * must settle the row from the adapter's ledger without asking TikTok to publish
+ * again. After an adapter restart its in-memory ledger is empty: the answer is
+ * "no record", which is not evidence of absence, so Core keeps OUTCOME_UNKNOWN.
+ */
+test("a lost Core observation is reconciled against the real adapter without republishing", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const ownerUid = "owner-reconcile-two-process";
+    const tenantId = "local-tenant";
+    const ownership = createDurableMediaOwnershipRepository(environment.pool);
+    const rights = createRightsRegistry(environment.pool);
+    const job = await ownership.createJob(ownerUid);
+    const exported = await ownership.createExport(job.id, ownerUid, "video/mp4");
+    assert.ok(exported);
+    const seeded = await rights.create(rightsEvidence(ownerUid, tenantId, `rights-${ownerUid}`));
+    assert.ok(seeded.code === "APPLIED" || seeded.code === "CONFLICT");
+
+    const core = await startCoreObservationServer(environment.pool, {
+      // Core drops the one observation that carries the settled provider outcome.
+      reject: (observation) => observation === "PUBLISH_PRIVATE_CONFIRMED",
+    });
+    const lostResponseEnv = { MOCK_PUBLISH_MODE: "RESPONSE_LOST", MOCK_STATUS_MODE: "PUBLISHED" } as const;
+    let adapter = await startAdapterProcess(core.url, lostResponseEnv);
+
+    const publishDepsFor = (port: number) => ({
+      client: environment.pool,
+      ownership,
+      rights,
+      adapter: {
+        endpoint: `http://127.0.0.1:${port}`,
+        transportKeyId,
+        transportSecret,
+        grantKeyId,
+        grantSigningKey: grantSecret,
+      },
+      tenantId,
+    });
+    const reconcileDepsFor = (port: number) => ({
+      client: environment.pool,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret },
+      tenantId,
+    });
+
+    try {
+      // 1. The adapter does the work, Core never records the result.
+      const command = await commandFor(job.id, exported.id, ownerUid, "reconcile-1");
+      const lost = await executeTikTokPublication(publishDepsFor(adapter.port), {
+        ownerUid,
+        idempotencyKey: "idem-reconcile-1",
+        command,
+      });
+      assert.equal(lost.code, "PUBLICATION_IN_PROGRESS");
+      assert.equal(lost.code === "PUBLICATION_IN_PROGRESS" ? lost.record.state : "", "INTERRUPTED");
+      const publicationId = lost.record.id;
+      assert.ok(core.rejected.includes("PUBLISH_PRIVATE_CONFIRMED"));
+      const afterLoss = await adapterStats(adapter.port);
+      assert.equal(afterLoss.publisherCalls, 1);
+      assert.equal(afterLoss.dispatches, 1);
+
+      // 2. Reconciliation reads the adapter ledger and settles the row; nothing is republished.
+      const confirmed = await reconcileTikTokPublication(reconcileDepsFor(adapter.port), { ownerUid, publicationId });
+      assert.equal(confirmed.code, "PUBLICATION_CONFIRMED");
+      if (confirmed.code !== "PUBLICATION_CONFIRMED") return;
+      assert.equal(confirmed.record.state, "PUBLISHED_PRIVATE");
+      assert.equal(confirmed.record.remoteVideoId, `mock-publish-${publicationId}`);
+      const afterReconcile = await adapterStats(adapter.port);
+      assert.equal(afterReconcile.publisherCalls, 1, "reconciliation never publishes");
+      assert.equal(afterReconcile.dispatches, 1);
+      assert.equal(afterReconcile.statusCalls, 1);
+
+      // 3. Repeating it after the row settled touches neither the adapter nor TikTok.
+      const repeated = await reconcileTikTokPublication(reconcileDepsFor(adapter.port), { ownerUid, publicationId });
+      assert.equal(repeated.code, "PUBLICATION_NOT_RECONCILABLE");
+      assert.equal(repeated.code === "PUBLICATION_NOT_RECONCILABLE" ? repeated.record.state : "", "PUBLISHED_PRIVATE");
+      const stillOne = await adapterStats(adapter.port);
+      assert.equal(stillOne.publisherCalls, 1);
+      assert.equal(stillOne.dispatches, 1);
+      assert.equal(stillOne.statusCalls, 1, "a settled row is not re-queried");
+
+      // 4. A second publication is left unknown, then the adapter restarts and forgets its ledger.
+      const secondCommand = await commandFor(job.id, exported.id, ownerUid, "reconcile-2");
+      const secondLost = await executeTikTokPublication(publishDepsFor(adapter.port), {
+        ownerUid,
+        idempotencyKey: "idem-reconcile-2",
+        command: secondCommand,
+      });
+      assert.equal(secondLost.code, "PUBLICATION_IN_PROGRESS");
+      const secondId = secondLost.record.id;
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, 2);
+
+      await adapter.stop();
+      adapter = await startAdapterProcess(core.url, lostResponseEnv);
+      const afterRestart = await adapterStats(adapter.port);
+      assert.equal(afterRestart.publisherCalls, 0);
+
+      const unknown = await reconcileTikTokPublication(reconcileDepsFor(adapter.port), {
+        ownerUid,
+        publicationId: secondId,
+      });
+      assert.equal(unknown.code, "PUBLICATION_STILL_UNKNOWN");
+      assert.equal(unknown.code === "PUBLICATION_STILL_UNKNOWN" ? unknown.adapterState : "", "NOT_FOUND");
+      assert.ok(unknown.code === "PUBLICATION_STILL_UNKNOWN" && unknown.retryAfterSeconds > 0);
+
+      const stored = await createPublicationRepository(environment.pool).get(ownerUid, secondId);
+      assert.equal(stored?.state, "INTERRUPTED", "missing adapter evidence never resets to queued");
+      const afterUnknown = await adapterStats(adapter.port);
+      assert.equal(afterUnknown.publisherCalls, 0, "no publication was started by reconciliation");
+      assert.equal(afterUnknown.dispatches, 0);
     } finally {
       await adapter.stop();
       await core.close();

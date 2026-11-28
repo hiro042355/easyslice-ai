@@ -220,3 +220,194 @@ export async function sendTikTokPublication(
     clearTimeout(timer);
   }
 }
+
+/* ------------------------------------------------------------------------- *
+ * Status (reconciliation) leg.
+ *
+ * Read-only by contract: the adapter answers from its ledger and its provider
+ * status read. A status answer can never create a TikTok post, so Core may ask
+ * repeatedly without risking a duplicate publication.
+ * ------------------------------------------------------------------------- */
+export const ADAPTER_STATUS_PATH = "/publications/tiktok/status" as const;
+
+export const ADAPTER_STATUS_STATES = [
+  "NOT_FOUND",
+  "DISPATCHING",
+  "UPLOADING",
+  "PUBLISHING",
+  "PUBLISHED_PRIVATE",
+  "FAILED",
+  "UNKNOWN",
+  "RECONCILIATION_PENDING",
+] as const;
+export type AdapterStatusState = (typeof ADAPTER_STATUS_STATES)[number];
+
+export type AdapterPublicationStatusView = Readonly<{
+  statusVersion: "publication-status-v1";
+  publicationId: string;
+  adapterState: AdapterStatusState;
+  settled: boolean;
+  remotePublicationId: string | null;
+  providerStatus: string | null;
+  errorCategory: string | null;
+  dispatchEvidence: "LEDGER_RECORDED" | "NO_LEDGER_ENTRY";
+  reconciliationRequired: boolean;
+  lastCheckedAt: string | null;
+  updatedAt: string | null;
+}>;
+
+export type AdapterStatusOutcome =
+  | Readonly<{ code: "ADAPTER_STATUS"; status: AdapterPublicationStatusView }>
+  /** The adapter's own coarse guard (or a proxy) answered 429. Never retried blindly. */
+  | Readonly<{ code: "RATE_LIMITED"; retryAfterSeconds: number }>
+  | Readonly<{ code: "TRANSPORT_FAILURE"; reason: "NETWORK" | "TIMEOUT" | "STATUS"; status?: number }>
+  | Readonly<{ code: "MALFORMED_RESPONSE"; status: number }>;
+
+const STATUS_STATE_SET: ReadonlySet<string> = new Set(ADAPTER_STATUS_STATES);
+
+const optionalText = (value: unknown): string | null => (typeof value === "string" ? value : null);
+const optionalIso = (value: unknown): string | null | undefined => {
+  if (value === null || value === undefined) return null;
+  return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : undefined;
+};
+
+/** Strict decoder: anything unexpected is MALFORMED_RESPONSE, never a guess. */
+export function decodeAdapterPublicationStatus(
+  value: unknown,
+  publicationId: string,
+): AdapterPublicationStatusView | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const raw = value as Record<string, unknown>;
+  if (raw.statusVersion !== "publication-status-v1") return undefined;
+  if (raw.publicationId !== publicationId) return undefined;
+  if (typeof raw.adapterState !== "string" || !STATUS_STATE_SET.has(raw.adapterState)) return undefined;
+  if (typeof raw.settled !== "boolean" || typeof raw.reconciliationRequired !== "boolean") return undefined;
+  if (raw.dispatchEvidence !== "LEDGER_RECORDED" && raw.dispatchEvidence !== "NO_LEDGER_ENTRY") return undefined;
+  const remotePublicationId = raw.remotePublicationId === null ? null : optionalText(raw.remotePublicationId);
+  if (raw.remotePublicationId !== null && remotePublicationId === null) return undefined;
+  const lastCheckedAt = optionalIso(raw.lastCheckedAt);
+  const updatedAt = optionalIso(raw.updatedAt);
+  if (lastCheckedAt === undefined || updatedAt === undefined) return undefined;
+  return Object.freeze({
+    statusVersion: "publication-status-v1" as const,
+    publicationId,
+    adapterState: raw.adapterState as AdapterStatusState,
+    settled: raw.settled,
+    remotePublicationId,
+    providerStatus: optionalText(raw.providerStatus),
+    errorCategory: optionalText(raw.errorCategory),
+    dispatchEvidence: raw.dispatchEvidence,
+    reconciliationRequired: raw.reconciliationRequired,
+    lastCheckedAt,
+    updatedAt,
+  });
+}
+
+export type AdapterStatusRequest = Readonly<{
+  path: typeof ADAPTER_STATUS_PATH;
+  body: string;
+  headers: AdapterTransportHeaders;
+}>;
+
+export function buildAdapterStatusRequest(input: Readonly<{
+  publicationId: string;
+  tenantId: string;
+  keyId: string;
+  secret: string;
+  now?: number;
+}>): AdapterStatusRequest | undefined {
+  if (!input.publicationId || !input.tenantId || !input.keyId || !input.secret) return undefined;
+  const body = canonicalJson({ publicationId: input.publicationId, tenantId: input.tenantId });
+  if (body === undefined) return undefined;
+  const timestampMs = input.now ?? Date.now();
+  return Object.freeze({
+    path: ADAPTER_STATUS_PATH,
+    body,
+    headers: Object.freeze({
+      "content-type": "application/json" as const,
+      "x-nexcut-transport-key-id": input.keyId,
+      "x-nexcut-transport-timestamp": String(timestampMs),
+      "x-nexcut-transport-signature": hmacSha256Base64Url(
+        input.secret,
+        adapterSignatureMessage(ADAPTER_STATUS_PATH, body, timestampMs),
+      ),
+    }),
+  });
+}
+
+export type QueryAdapterStatusInput = Readonly<{
+  publicationId: string;
+  tenantId: string;
+  endpoint: string;
+  keyId: string;
+  secret: string;
+  now?: number;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+}>;
+
+const retryAfterFrom = (header: string | null, body: unknown): number => {
+  const fromHeader = Number(header);
+  if (Number.isSafeInteger(fromHeader) && fromHeader > 0) return Math.min(fromHeader, 3600);
+  if (typeof body === "object" && body !== null) {
+    const fromBody = Number((body as { retryAfterSeconds?: unknown }).retryAfterSeconds);
+    if (Number.isSafeInteger(fromBody) && fromBody > 0) return Math.min(fromBody, 3600);
+  }
+  return 60;
+};
+
+/**
+ * One status query. There is no internal retry: Core's reconciliation loop owns
+ * the schedule, so a 429 or a transport failure is reported to the caller as-is.
+ */
+export async function queryTikTokPublicationStatus(
+  input: QueryAdapterStatusInput,
+): Promise<AdapterStatusOutcome> {
+  const request = buildAdapterStatusRequest(input);
+  if (request === undefined) {
+    return Object.freeze({ code: "TRANSPORT_FAILURE" as const, reason: "NETWORK" as const });
+  }
+  const doFetch = input.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), input.timeoutMs ?? ADAPTER_REQUEST_TIMEOUT_MS);
+  try {
+    const response = await doFetch(`${input.endpoint.replace(/\/+$/, "")}${request.path}`, {
+      method: "POST",
+      headers: request.headers,
+      body: request.body,
+      signal: controller.signal,
+      redirect: "error",
+    });
+    const text = await response.text();
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return Object.freeze({ code: "MALFORMED_RESPONSE" as const, status: response.status });
+    }
+    if (response.status === 429) {
+      return Object.freeze({
+        code: "RATE_LIMITED" as const,
+        retryAfterSeconds: retryAfterFrom(response.headers.get("retry-after"), parsed),
+      });
+    }
+    if (!response.ok) {
+      return Object.freeze({ code: "TRANSPORT_FAILURE" as const, reason: "STATUS" as const, status: response.status });
+    }
+    const status = decodeAdapterPublicationStatus(
+      (parsed as { status?: unknown } | null)?.status,
+      input.publicationId,
+    );
+    return status
+      ? Object.freeze({ code: "ADAPTER_STATUS" as const, status })
+      : Object.freeze({ code: "MALFORMED_RESPONSE" as const, status: response.status });
+  } catch (error) {
+    const aborted = (error as { name?: string } | null)?.name === "AbortError";
+    return Object.freeze({
+      code: "TRANSPORT_FAILURE" as const,
+      reason: aborted ? ("TIMEOUT" as const) : ("NETWORK" as const),
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}

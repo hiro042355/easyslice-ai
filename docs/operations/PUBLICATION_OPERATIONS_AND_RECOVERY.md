@@ -307,6 +307,70 @@ TikTok account: the adapter's publisher port is a mock.
 | Adapter `npm run build` | pass |
 | Core `npx tsc --noEmit` | 31 errors, all pre-existing; none in the publication files |
 
+## Reconciliation (V000037)
+
+Reconciliation resolves a publication left in `OUTCOME_UNKNOWN` by asking the
+adapter what it recorded. It is a status query, never a post.
+
+- Core route: `POST /api/v1/publications/tiktok/reconcile`, body
+  `{publicationId}`. Guard order matches the publish route: same-origin, auth,
+  CSRF, body.
+- Adapter route: `POST /publications/tiktok/status`, body
+  `{publicationId, tenantId}`, signed with the existing HMAC contract. The
+  signed message includes the path, so a publish signature cannot be replayed
+  here.
+- The adapter status service never calls the publisher. Its `publish()` throws,
+  so a status request cannot create a publication.
+- Core applies a result only through the existing `applyPublicationObservation`.
+  A confirmed result takes two observations (`INTERRUPTED` -> `RECONCILING` ->
+  `PUBLISHED_PRIVATE`), using distinct observation IDs (`:confirm` suffix).
+  Replays of the same observation are idempotent.
+- `PROCESSING` retries after 30 seconds. `NOT_FOUND` (no adapter ledger record)
+  stays `UNKNOWN` and retries after 300 seconds. It is not treated as "not
+  posted".
+- A settled success without a remote publication ID stays `UNKNOWN`.
+- A publication already in a terminal confirmed state returns
+  `PUBLICATION_NOT_RECONCILABLE` without contacting the adapter.
+- Operators must never retry a publish from `OUTCOME_UNKNOWN`.
+
+### Rate limits
+
+- Core: `publication_adapter_rate_limits` in PostgreSQL. One SQL statement with
+  an advisory lock consumes the budget atomically across processes. Over budget
+  returns `429` with `Retry-After`.
+- Core publish budget and in-flight lease are consumed before the record is
+  created. An idempotency replay of an existing row consumes no budget and takes
+  no lease.
+- Adapter: in-memory coarse DoS guard. It is valid only for a single adapter
+  process and is not a distributed guarantee.
+- Do not retry a `429` immediately; wait for `Retry-After`.
+
+### Recovery and duplicate prevention
+
+- Core restart (design intent, not yet tested by a restart test): state lives in
+  PostgreSQL, so `OUTCOME_UNKNOWN` rows remain. Reconcile again; no publish is
+  issued.
+- Adapter restart (tested): the ledger is durable. Status answers from the ledger,
+  and `NOT_FOUND` means "no ledger record" only.
+- Core or adapter unreachable (tested for adapter unreachable): the publication
+  stays `UNKNOWN`.
+- PostgreSQL unreachable (design intent, not tested): the rate limiter and the
+  reconciliation writes are expected to fail closed. Nothing should be consumed
+  or applied.
+- Concurrent reconciliations converge: the first applied observation wins, and
+  later callers reload the row and re-apply `:confirm`.
+
+### Verified in this change
+
+- Real PostgreSQL: 8/8 reconciliation tests, including concurrency, 429 with
+  `Retry-After`, budget and lease gating, and foreign-tenant / unknown-ID
+  rejection.
+- Two processes: 2/2 loopback tests. An observation is lost, reconciliation
+  confirms it with exactly one publish call, and an adapter restart still returns
+  `STILL_UNKNOWN` without a second publish.
+- Not verified: multi-instance Core under real load, a real TikTok status API,
+  and real OAuth. These remain `NOT_TESTED`.
+
 ## Staging pre-flight checklist
 
 Everything here can be checked without a live TikTok app, but the Staging apply

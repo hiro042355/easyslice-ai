@@ -172,3 +172,49 @@ export async function readTikTokPublicationRequest(
     }),
   });
 }
+
+/**
+ * Request boundary for POST /api/v1/publications/tiktok/reconcile.
+ *
+ * The body is a single publication identifier and nothing else. Reconciliation is a
+ * read of the adapter's ledger, so there is no client-supplied state, observation or
+ * publish id to trust.
+ */
+export const TIKTOK_RECONCILIATION_MAX_BODY_BYTES = 4 * 1024;
+const reconcileRejected = (status: number, error: string): TikTokReconciliationRequestResult =>
+  Object.freeze({ code: "REQUEST_REJECTED" as const, status, error });
+const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+export type TikTokReconciliationRequestResult =
+  | Readonly<{ code: "REQUEST_ACCEPTED"; publicationId: string }>
+  | Readonly<{ code: "REQUEST_REJECTED"; status: number; error: string }>;
+
+export async function readTikTokReconciliationRequest(
+  request: Request,
+): Promise<TikTokReconciliationRequestResult> {
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > TIKTOK_RECONCILIATION_MAX_BODY_BYTES) {
+    return reconcileRejected(413, "request_body_too_large");
+  }
+  let text: string;
+  try {
+    text = await request.text();
+  } catch {
+    return reconcileRejected(400, "request_body_unreadable");
+  }
+  if (Buffer.byteLength(text, "utf8") > TIKTOK_RECONCILIATION_MAX_BODY_BYTES) {
+    return reconcileRejected(413, "request_body_too_large");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return reconcileRejected(400, "request_body_malformed");
+  }
+  if (!isRecord(parsed)) return reconcileRejected(400, "request_body_malformed");
+  if (!exactKeys(parsed, ["publicationId"])) return reconcileRejected(400, "request_body_unexpected_fields");
+  if (typeof parsed.publicationId !== "string" || !UUID.test(parsed.publicationId)) {
+    return reconcileRejected(400, "publication_id_invalid");
+  }
+  return Object.freeze({ code: "REQUEST_ACCEPTED" as const, publicationId: parsed.publicationId.toLowerCase() });
+}

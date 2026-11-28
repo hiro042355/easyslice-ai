@@ -10,6 +10,8 @@ on:
   pull_request:
     branches:
       - "main"
+      - "feature/publication-foundation"
+      - "feature/tiktok-publication-grant"
 
 permissions:
   contents: read
@@ -121,6 +123,11 @@ jobs:
         run: |
           set -eo pipefail
           npx tsx --test tests/workflowMigration/localConnectionGuard.test.ts 2>&1 | tee test-results/local-connection-guard.log
+
+      - name: "Step 9a: Execute TikTok Publication Request and Result Mapping Tests (Adapter-free)"
+        run: |
+          set -eo pipefail
+          npx tsx --test tests/tiktokPublication/publicationRequestAndResultMapping.test.ts 2>&1 | tee test-results/tiktok-publication-mapping.log
 
       - name: "Step 10: Execute Unconditional Rollback Isolation & Transaction Mock Tests"
         run: |
