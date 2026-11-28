@@ -522,6 +522,7 @@ test("a lost Core observation is reconciled against the real adapter without rep
 type DoublePostHarness = {
   readonly created: () => Promise<number>;
   readonly retire: (adapter: { port: number; stop: () => Promise<void> }) => Promise<void>;
+  readonly retireByKill: (adapter: { port: number; child: ChildProcessWithoutNullStreams; stop: () => Promise<void> }) => Promise<void>;
 };
 
 const doublePostHarness = (): DoublePostHarness => {
@@ -530,6 +531,21 @@ const doublePostHarness = (): DoublePostHarness => {
     created: async () => retired,
     retire: async (adapter) => {
       retired += (await adapterStats(adapter.port)).publicationsCreated;
+      await adapter.stop();
+    },
+    // Reads Mock creations first, then force-kills the process tree without a graceful
+    // shutdown. taskkill /F on Windows, SIGKILL elsewhere.
+    retireByKill: async (adapter) => {
+      retired += (await adapterStats(adapter.port)).publicationsCreated;
+      const pid = adapter.child.pid;
+      if (process.platform === "win32" && pid !== undefined) {
+        await new Promise<void>((done) => {
+          const killer = spawn("taskkill", ["/pid", String(pid), "/T", "/F"], { stdio: "ignore" });
+          killer.once("exit", () => done());
+        });
+      } else {
+        adapter.child.kill("SIGKILL");
+      }
       await adapter.stop();
     },
   };
@@ -622,6 +638,61 @@ test("double-post: Core restart, adapter restart, observation loss, timeout and 
     } finally {
       await harness.retire(adapter).catch(() => undefined);
       core.close();
+    }
+  });
+});
+
+test("process kill: a force-killed adapter after publishing never produces a second TikTok publication", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const ownerUid = "owner-process-kill-adapter";
+    const { ownership, rights, job, exported } = await doublePostSetup(environment as never, ownerUid);
+    const repo = createPublicationRepository(environment.pool as never);
+    const harness = doublePostHarness();
+    const reconcileDeps = (port: number) => ({
+      client: environment.pool as never,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret },
+      tenantId: "local-tenant",
+    });
+    const publishDeps = (port: number) => ({
+      client: environment.pool as never,
+      ownership,
+      rights,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret, grantKeyId, grantSigningKey: grantSecret },
+      tenantId: "local-tenant",
+    });
+    // Core never receives the adapter's observation, so the publication stays unknown to Core.
+    const core = await startCoreObservationServer(environment.pool as never, {
+      reject: (observation) => observation === "PUBLISH_PRIVATE_CONFIRMED",
+    });
+    // The adapter creates the TikTok publication, then its response is lost: Core never learns the outcome.
+    let adapter = await startAdapterProcess(core.url, { MOCK_PUBLISH_MODE: "RESPONSE_LOST", MOCK_STATUS_MODE: "PUBLISHED" });
+    try {
+      const command = await commandFor(job.id, exported.id, ownerUid, "pk-adapter");
+      const first = await executeTikTokPublication(publishDeps(adapter.port), {
+        ownerUid,
+        idempotencyKey: "idem-pk-adapter",
+        command,
+      });
+      assert.equal(first.code, "PUBLICATION_IN_PROGRESS");
+      const publicationId = first.code === "PUBLICATION_IN_PROGRESS" ? first.record.id : "";
+      assert.equal((await adapterStats(adapter.port)).publicationsCreated, 1, "Mock TikTok created the post before the kill");
+
+      // Hard kill of the adapter process (no graceful shutdown). Its counter is read first and carried into the total.
+      await harness.retireByKill(adapter);
+      adapter = await startAdapterProcess(core.url, { MOCK_PUBLISH_MODE: "SUCCESS", MOCK_STATUS_MODE: "PUBLISHED" });
+
+      // The restarted adapter has no ledger entry: reconciliation must not confirm, resend or create.
+      const reconciled = await reconcileTikTokPublication(reconcileDeps(adapter.port), { ownerUid, publicationId });
+      assert.notEqual(reconciled.code, "PUBLICATION_CONFIRMED", "no ledger record is not proof of a post");
+      assert.notEqual((await repo.get(ownerUid, publicationId))?.state, "PUBLISHED_PRIVATE");
+      const after = await adapterStats(adapter.port);
+      assert.equal(after.publisherCalls, 0, "reconciliation never reaches the publisher");
+      assert.equal(after.publicationsCreated, 0, "the restarted adapter created nothing");
+
+      assert.equal(await harness.created(), 1, "exactly one TikTok publication across the adapter kill and restart");
+    } finally {
+      await adapter.stop();
+      await core.close();
     }
   });
 });
