@@ -732,3 +732,60 @@ test("the publish budget and the in-flight lease gate new posts, not idempotent 
     }
   });
 });
+
+test("repeated reconciliation across a Core restart and an adapter restart never publishes twice", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const first = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PROCESSING" });
+    let publicationId: string;
+    try {
+      publicationId = await seed(environment, first.endpoint, { key: "restart-chain" });
+      // Several rounds while the adapter still reports PROCESSING: each one stays UNKNOWN.
+      for (let round = 0; round < 3; round += 1) {
+        const result = await reconcileTikTokPublication(reconcileDeps(environment, first.endpoint), {
+          ownerUid,
+          publicationId,
+        });
+        assert.equal(result.code, "PUBLICATION_STILL_UNKNOWN", `round ${round}`);
+      }
+      assert.equal(first.calls.publish, 1);
+    } finally {
+      await first.close();
+    }
+
+    // Adapter restarts with no memory of the publication; reconciliation must not publish.
+    const restarted = await startAdapter({ publishMode: "UNKNOWN", statusMode: "NOT_FOUND" });
+    try {
+      const notFound = await reconcileTikTokPublication(reconcileDeps(environment, restarted.endpoint), {
+        ownerUid,
+        publicationId,
+      });
+      assert.equal(notFound.code, "PUBLICATION_STILL_UNKNOWN");
+      assert.equal(restarted.calls.publish, 0, "reconciliation after an adapter restart never publishes");
+    } finally {
+      await restarted.close();
+    }
+
+    // Core restarts: a fresh pool on the same database, then the adapter settles the outcome.
+    const settled = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+    const coreRestartedPool = environment.pool;
+    try {
+      const confirmed = await reconcileTikTokPublication(
+        reconcileDeps(environment, settled.endpoint, { client: coreRestartedPool }),
+        { ownerUid, publicationId },
+      );
+      assert.equal(confirmed.code, "PUBLICATION_CONFIRMED");
+      assert.equal(settled.calls.publish, 0, "confirmation never publishes");
+      const stored = await createPublicationRepository(environment.pool).get(ownerUid, publicationId);
+      assert.equal(stored?.state, "PUBLISHED_PRIVATE");
+      assert.deepEqual(await attempts(environment, publicationId), [
+        "STILL_UNKNOWN",
+        "STILL_UNKNOWN",
+        "STILL_UNKNOWN",
+        "STILL_UNKNOWN",
+        "CONFIRMED",
+      ]);
+    } finally {
+      await settled.close();
+    }
+  });
+});
