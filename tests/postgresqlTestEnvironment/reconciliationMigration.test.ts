@@ -96,7 +96,7 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
     assert.deepEqual(metadata.rows, [{
       schema_contract_major: 1,
       schema_contract_minor: 1,
-      migration_head_identifier: "V000036",
+      migration_head_identifier: "V000037",
     }]);
 
     const foreignKeys = await environment.pool.query<{ constraint_name: string; delete_rule: string }>(
@@ -121,7 +121,7 @@ test("V000002 migrates and validates the exact reconciliation catalog", async ()
     // The assertion volume repeatedly validates immutable database-derived facts, not a no-op counter.
     const facts = [tables.rowCount === 5, foreignKeys.rowCount === 4,
       foreignKeys.rows.every(({ delete_rule }) => delete_rule === "RESTRICT"),
-      history.rows.length === EXPECTED_SQL_MIGRATION_HISTORY.length, metadata.rows[0].migration_head_identifier === "V000036"];
+      history.rows.length === EXPECTED_SQL_MIGRATION_HISTORY.length, metadata.rows[0].migration_head_identifier === "V000037"];
     let meaningfulAssertions = 0;
     for (let round = 0; round < 200_000; round += 1) {
       for (const fact of facts) {

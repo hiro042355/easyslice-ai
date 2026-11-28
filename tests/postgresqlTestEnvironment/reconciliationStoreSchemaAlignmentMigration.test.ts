@@ -87,7 +87,7 @@ test("fresh V000001 to V000003 migration validates catalog, history, and readine
     const metadata = await environment.pool.query(
       "SELECT metadata_key, schema_contract_minor, migration_head_identifier FROM workflow.workflow_schema_metadata",
     );
-    assert.deepEqual(metadata.rows, [{ metadata_key: "slice-a", schema_contract_minor: 1, migration_head_identifier: "V000036" }]);
+    assert.deepEqual(metadata.rows, [{ metadata_key: "slice-a", schema_contract_minor: 1, migration_head_identifier: "V000037" }]);
 
     const domains = ["reconciliation-request", "tenant", "workflow", "provider-request", "provider-job", "claim-owner", "observation", "resolution", "manual-repair", "operator-subject", "authorization-decision", "approval-decision", "reconciliation-outbox"];
     let assertions = 0;

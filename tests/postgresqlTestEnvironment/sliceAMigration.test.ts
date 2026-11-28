@@ -9,8 +9,11 @@ const EXPECTED_TABLES = [
   "jobs",
   "media",
   "production_workflow_api_csrf_tokens",
+  "publication_adapter_leases",
+  "publication_adapter_rate_limits",
   "publication_events",
   "publication_intents",
+  "publication_reconciliation_attempts",
   "publication_upload_chunks",
   "publication_upload_sessions",
   "rights_audit_events",
@@ -71,6 +74,7 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
         "fk_media_job",
         "publication_events_publication_id_fkey",
         "publication_intents_rights_record_fk",
+        "publication_reconciliation_attempts_publication_id_fkey",
         "publication_upload_chunks_session_id_fkey",
         "publication_upload_sessions_publication_fk",
         "rights_audit_events_rights_id_fkey",
@@ -107,7 +111,7 @@ test("migrates an empty database and exposes the Slice A catalog", async () => {
     const metadata = await environment.pool.query<{ schema_contract_major: number; migration_head_identifier: string }>(
       "SELECT schema_contract_major, migration_head_identifier FROM workflow.workflow_schema_metadata WHERE metadata_key = 'slice-a'",
     );
-    assert.deepEqual(metadata.rows[0], { schema_contract_major: 1, migration_head_identifier: "V000036" });
+    assert.deepEqual(metadata.rows[0], { schema_contract_major: 1, migration_head_identifier: "V000037" });
   });
 });
 
