@@ -106,6 +106,8 @@ const recordAttempt = async (
   }
 };
 
+const PUBLICATION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function reconcileTikTokPublication(
   deps: TikTokReconciliationDependencies,
   input: Readonly<{ ownerUid: string; publicationId: string }>,
@@ -128,6 +130,12 @@ export async function reconcileTikTokPublication(
       retryAfterSeconds: budget.retryAfterSeconds,
       nextCheckAt: nextCheck(now(), budget.retryAfterSeconds),
     });
+  }
+
+  // A malformed identifier can never name a publication. Reject it before the query,
+  // so the database never sees it and the adapter is never contacted.
+  if (!PUBLICATION_ID_PATTERN.test(input.publicationId)) {
+    return Object.freeze({ code: "PUBLICATION_NOT_FOUND" as const });
   }
 
   const repository = createPublicationRepository(deps.client);

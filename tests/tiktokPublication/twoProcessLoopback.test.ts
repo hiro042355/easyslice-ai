@@ -263,6 +263,7 @@ const adapterStats = async (port: number): Promise<{
   publisherCalls: number;
   observations: number;
   statusCalls: number;
+  publicationsCreated: number;
 }> => {
   const response = await fetch(`http://127.0.0.1:${port}/stats`);
   return (await response.json()) as {
@@ -270,6 +271,7 @@ const adapterStats = async (port: number): Promise<{
     publisherCalls: number;
     observations: number;
     statusCalls: number;
+    publicationsCreated: number;
   };
 };
 
@@ -501,6 +503,232 @@ test("a lost Core observation is reconciled against the real adapter without rep
       const afterUnknown = await adapterStats(adapter.port);
       assert.equal(afterUnknown.publisherCalls, 0, "no publication was started by reconciliation");
       assert.equal(afterUnknown.dispatches, 0);
+    } finally {
+      await adapter.stop();
+      await core.close();
+    }
+  });
+});
+
+/**
+ * Double-post proof.
+ *
+ * The count that matters is Mock TikTok's publication creations (`publicationsCreated`),
+ * not HTTP requests. A creation is counted once per publication id in each adapter
+ * process; creations are summed across adapter restarts, so a restart that clears the
+ * in-memory ledger cannot hide a second creation. Every scenario below must end with
+ * exactly one creation per publication and zero automatic resends.
+ */
+type DoublePostHarness = {
+  readonly created: () => Promise<number>;
+  readonly retire: (adapter: { port: number; stop: () => Promise<void> }) => Promise<void>;
+};
+
+const doublePostHarness = (): DoublePostHarness => {
+  let retired = 0;
+  return {
+    created: async () => retired,
+    retire: async (adapter) => {
+      retired += (await adapterStats(adapter.port)).publicationsCreated;
+      await adapter.stop();
+    },
+  };
+};
+
+const doublePostSetup = async (environment: { pool: Parameters<typeof applyAdapterObservation>[0] }, ownerUid: string) => {
+  const ownership = createDurableMediaOwnershipRepository(environment.pool as never);
+  const rights = createRightsRegistry(environment.pool as never);
+  const job = await ownership.createJob(ownerUid);
+  const exported = await ownership.createExport(job.id, ownerUid, "video/mp4");
+  assert.ok(exported);
+  const seeded = await rights.create(rightsEvidence(ownerUid, "local-tenant", `rights-${ownerUid}`));
+  assert.ok(seeded.code === "APPLIED" || seeded.code === "CONFLICT");
+  return { ownership, rights, job, exported };
+};
+
+test("double-post: Core restart, adapter restart, observation loss, timeout and status loss never create a second TikTok publication", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const ownerUid = "owner-double-post-restarts";
+    const { ownership, rights, job, exported } = await doublePostSetup(environment as never, ownerUid);
+    const repo = createPublicationRepository(environment.pool as never);
+    const harness = doublePostHarness();
+    const adapterDeps = (port: number, client: typeof environment.pool) => ({
+      client,
+      ownership,
+      rights,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret, grantKeyId, grantSigningKey: grantSecret },
+      tenantId: "local-tenant",
+    });
+    const reconcileDeps = (port: number, client: typeof environment.pool) => ({
+      client,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret },
+      tenantId: "local-tenant",
+    });
+
+    // Observation loss plus a lost publish response: the adapter creates, Core records nothing.
+    let core = await startCoreObservationServer(environment.pool as never, {
+      reject: (observation) => observation === "PUBLISH_PRIVATE_CONFIRMED",
+    });
+    let adapter = await startAdapterProcess(core.url, { MOCK_PUBLISH_MODE: "RESPONSE_LOST", MOCK_STATUS_MODE: "PUBLISHED" });
+    let publicationId = "";
+    try {
+      const command = await commandFor(job.id, exported.id, ownerUid, "dp-1");
+      const first = await executeTikTokPublication(adapterDeps(adapter.port, environment.pool as never), {
+        ownerUid,
+        idempotencyKey: "idem-dp-1",
+        command,
+      });
+      assert.equal(first.code, "PUBLICATION_IN_PROGRESS");
+      publicationId = first.record.id;
+      assert.equal((await adapterStats(adapter.port)).publicationsCreated, 1, "TikTok created the post once");
+
+      // Core restart: a brand-new observation server on the same database.
+      core.close();
+      core = await startCoreObservationServer(environment.pool as never, {
+        reject: (observation) => observation === "PUBLISH_PRIVATE_CONFIRMED",
+      });
+
+      // The same idempotency key after the Core restart must not reach the adapter.
+      const replay = await executeTikTokPublication(adapterDeps(adapter.port, environment.pool as never), {
+        ownerUid,
+        idempotencyKey: "idem-dp-1",
+        command,
+      });
+      assert.equal(replay.code, "PUBLICATION_IN_PROGRESS");
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, 1);
+
+      // Repeated reconciliation: the answer is settled from the ledger each time, never by a publish.
+      for (let pass = 0; pass < 3; pass += 1) {
+        await reconcileTikTokPublication(reconcileDeps(adapter.port, environment.pool as never), { ownerUid, publicationId });
+      }
+      const settled = await repo.get(ownerUid, publicationId);
+      assert.equal(settled?.state, "PUBLISHED_PRIVATE");
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, 1);
+
+      // Adapter restart: the in-memory ledger is gone. Core still holds the settled row and
+      // must not resend, and the restarted adapter must create nothing.
+      await harness.retire(adapter);
+      adapter = await startAdapterProcess(core.url, { MOCK_PUBLISH_MODE: "SUCCESS", MOCK_STATUS_MODE: "PUBLISHED" });
+      const afterRestart = await executeTikTokPublication(adapterDeps(adapter.port, environment.pool as never), {
+        ownerUid,
+        idempotencyKey: "idem-dp-1",
+        command,
+      });
+      assert.equal(afterRestart.code, "PUBLICATION_CONFIRMED");
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, 0);
+      assert.equal((await adapterStats(adapter.port)).publicationsCreated, 0);
+
+      assert.equal(await harness.created(), 1, "exactly one publication was created across Core and adapter restarts");
+    } finally {
+      await harness.retire(adapter).catch(() => undefined);
+      core.close();
+    }
+  });
+});
+
+test("double-post: an HTTP timeout leaves OUTCOME_UNKNOWN, which never auto-reposts", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const ownerUid = "owner-double-post-timeout";
+    const { ownership, rights, job, exported } = await doublePostSetup(environment as never, ownerUid);
+    const harness = doublePostHarness();
+    const deps = (port: number) => ({
+      client: environment.pool as never,
+      ownership,
+      rights,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret, grantKeyId, grantSigningKey: grantSecret },
+      tenantId: "local-tenant",
+    });
+    const core = await startCoreObservationServer(environment.pool as never);
+    // The mock creates the post, then the socket is reset before the answer returns.
+    const adapter = await startAdapterProcess(core.url, { MOCK_PUBLISH_MODE: "UNKNOWN_OUTCOME", MOCK_STATUS_MODE: "PUBLISHED" });
+    try {
+      const command = await commandFor(job.id, exported.id, ownerUid, "dp-timeout");
+      const timedOut = await executeTikTokPublication(deps(adapter.port), {
+        ownerUid,
+        idempotencyKey: "idem-dp-timeout",
+        command,
+      });
+      assert.notEqual(timedOut.code, "PUBLICATION_CONFIRMED", "a timeout is never recorded as success");
+      assert.equal(timedOut.code === "PUBLICATION_IN_PROGRESS" ? timedOut.outcomeUnknown : false, true);
+      assert.equal(timedOut.code, "PUBLICATION_IN_PROGRESS");
+      const publicationId = timedOut.code === "PUBLICATION_IN_PROGRESS" ? timedOut.record.id : "";
+      const publishCallsAfterTimeout = (await adapterStats(adapter.port)).publisherCalls;
+
+      // Retrying the same request while the row is UNKNOWN must not reach the publisher again.
+      const retry = await executeTikTokPublication(deps(adapter.port), {
+        ownerUid,
+        idempotencyKey: "idem-dp-timeout",
+        command,
+      });
+      assert.equal(retry.code, "PUBLICATION_IN_PROGRESS");
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, publishCallsAfterTimeout);
+
+      const reconciled = await reconcileTikTokPublication(
+        { client: environment.pool as never, adapter: { endpoint: `http://127.0.0.1:${adapter.port}`, transportKeyId, transportSecret }, tenantId: "local-tenant" },
+        { ownerUid, publicationId },
+      );
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, 1, "reconciliation never publishes");
+      // The adapter ledger recorded the reset as UNKNOWN, so reconciliation must not invent a confirmation.
+      assert.notEqual(reconciled.code, "PUBLICATION_CONFIRMED", "an UNKNOWN ledger entry is not confirmed by reconciliation");
+
+      await harness.retire(adapter);
+      assert.equal(await harness.created(), 1, "TikTok created exactly one post for the timed-out request");
+    } finally {
+      await adapter.stop();
+      await core.close();
+    }
+  });
+});
+
+test("double-post: status loss keeps the row UNKNOWN and repeated or concurrent reconciliation never creates a second post", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const ownerUid = "owner-double-post-status";
+    const { ownership, rights, job, exported } = await doublePostSetup(environment as never, ownerUid);
+    const harness = doublePostHarness();
+    const deps = (port: number) => ({
+      client: environment.pool as never,
+      ownership,
+      rights,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret, grantKeyId, grantSigningKey: grantSecret },
+      tenantId: "local-tenant",
+    });
+    const reconcileDeps = (port: number) => ({
+      client: environment.pool as never,
+      adapter: { endpoint: `http://127.0.0.1:${port}`, transportKeyId, transportSecret },
+      tenantId: "local-tenant",
+    });
+    const core = await startCoreObservationServer(environment.pool as never, {
+      reject: (observation) => observation === "PUBLISH_PRIVATE_CONFIRMED",
+    });
+    // The status endpoint fails, so the adapter's answer is lost to Core during reconciliation.
+    const adapter = await startAdapterProcess(core.url, { MOCK_PUBLISH_MODE: "RESPONSE_LOST", MOCK_STATUS_MODE: "ERROR" });
+    try {
+      const command = await commandFor(job.id, exported.id, ownerUid, "dp-status");
+      const lost = await executeTikTokPublication(deps(adapter.port), {
+        ownerUid,
+        idempotencyKey: "idem-dp-status",
+        command,
+      });
+      assert.equal(lost.code, "PUBLICATION_IN_PROGRESS");
+      const publicationId = lost.record.id;
+
+      const statusLost = await reconcileTikTokPublication(reconcileDeps(adapter.port), { ownerUid, publicationId });
+      assert.notEqual(statusLost.code, "PUBLICATION_CONFIRMED", "a failed status answer never confirms");
+      const stillUnknown = await createPublicationRepository(environment.pool as never).get(ownerUid, publicationId);
+      assert.equal(stillUnknown?.state, "INTERRUPTED");
+
+      // Concurrent reconciliations against the same row: they may settle or defer, but none publishes.
+      const burst = await Promise.allSettled(
+        Array.from({ length: 5 }, () => reconcileTikTokPublication(reconcileDeps(adapter.port), { ownerUid, publicationId })),
+      );
+      for (const outcome of burst) {
+        assert.equal(outcome.status, "fulfilled", "each concurrent reconciliation settles without throwing");
+        if (outcome.status === "fulfilled") assert.notEqual(outcome.value.code, "PUBLICATION_CONFIRMED", "a failed status answer never confirms");
+      }
+
+      assert.equal((await adapterStats(adapter.port)).publisherCalls, 1, "reconciliation never publishes");
+      await harness.retire(adapter);
+      assert.equal(await harness.created(), 1, "exactly one TikTok publication across status loss and a concurrent reconciliation burst");
     } finally {
       await adapter.stop();
       await core.close();

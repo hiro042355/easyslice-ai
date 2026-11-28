@@ -341,8 +341,13 @@ adapter what it recorded. It is a status query, never a post.
 - Core publish budget and in-flight lease are consumed before the record is
   created. An idempotency replay of an existing row consumes no budget and takes
   no lease.
-- Adapter: in-memory coarse DoS guard. It is valid only for a single adapter
-  process and is not a distributed guarantee.
+- Adapter: in-memory coarse DoS guard. This is a SECONDARY defense only. It is
+  valid only for a single adapter process and is NOT a distributed guarantee;
+  it does not share state across processes or instances. Multi-instance
+  tolerance is NOT achieved. The adapter must run as one instance, and the repo
+  does not yet enforce that at deploy time (NOT_VERIFIED). Direct adapter access
+  that bypasses Core is forbidden; Core is the only permitted caller. Moving to a
+  multi-instance design needs a separate shared-storage rate-limit design.
 - Do not retry a `429` immediately; wait for `Retry-After`.
 
 ### Recovery and duplicate prevention

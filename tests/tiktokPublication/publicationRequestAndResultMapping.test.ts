@@ -210,3 +210,14 @@ test("the response projector keeps secrets out and separates confirmed, failed a
   assert.equal(view.publishId, "publish-1");
   assert.equal(view.outcomeUnknown, false);
 });
+
+test("the publish route rejects a malformed idempotency key before any database or adapter work", async () => {
+  const { readFileSync } = await import("node:fs");
+  const route = readFileSync("app/api/v1/publications/tiktok/route.ts", "utf8");
+  const keyCheck = route.indexOf("IDEMPOTENCY_KEY.test(idempotencyKey)");
+  assert.ok(keyCheck > 0);
+  assert.ok(keyCheck < route.indexOf("readTikTokPublicationRequest("));
+  assert.ok(keyCheck < route.indexOf("dispatchTikTokPublication("));
+  assert.match(route, /idempotency_key_invalid/);
+  assert.match(route, /\^\[A-Za-z0-9_\.:@-\]\{1,128\}\$/);
+});

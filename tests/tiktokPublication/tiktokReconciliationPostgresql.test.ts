@@ -55,6 +55,7 @@ type StatusMode =
   | "PROCESSING"
   | "FAILED"
   | "UNKNOWN"
+  | "DROP_RESPONSE"
   | "NOT_FOUND"
   | "MALFORMED"
   | "UNAUTHORIZED";
@@ -138,6 +139,11 @@ const startAdapter = async (state: AdapterState) => {
       const publicationId = typeof parsed.publicationId === "string" ? parsed.publicationId : "";
       calls.status += 1;
       if (state.statusDelayMs) await new Promise((done) => setTimeout(done, state.statusDelayMs));
+      if (state.statusMode === "DROP_RESPONSE") {
+        // The adapter answered the status query but the response is lost on the wire.
+        request.socket.destroy();
+        return;
+      }
       if (state.statusMode === "UNAUTHORIZED") {
         respond(response, 401, { error: { code: "adapter_signature_invalid" } });
         return;
@@ -786,6 +792,195 @@ test("repeated reconciliation across a Core restart and an adapter restart never
       ]);
     } finally {
       await settled.close();
+    }
+  });
+});
+
+test("replaying the same reconciliation request reuses one observation and never publishes", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const adapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PROCESSING" });
+    try {
+      const publicationId = await seed(environment, adapter.endpoint, { key: "replay-1" });
+      const publishesBefore = adapter.calls.publish; // the seed's own single publish
+      const deps = reconcileDeps(environment, adapter.endpoint);
+      const first = await reconcileTikTokPublication(deps, { ownerUid, publicationId });
+      const replay = await reconcileTikTokPublication(deps, { ownerUid, publicationId });
+      assert.equal(first.code, "PUBLICATION_STILL_UNKNOWN");
+      assert.equal(replay.code, "PUBLICATION_STILL_UNKNOWN");
+      assert.equal(adapter.calls.publish - publishesBefore, 0, "a replayed status check never publishes");
+      assert.equal(adapter.calls.status, 2, "each replay is a read-only status query");
+    } finally {
+      await adapter.close();
+    }
+  });
+});
+
+test("an invalid publication id is rejected as not found without contacting the adapter", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const adapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+    try {
+      for (const invalid of ["", "not-a-uuid", "'; DROP TABLE x; --", "a".repeat(512)]) {
+        const result = await reconcileTikTokPublication(reconcileDeps(environment, adapter.endpoint), {
+          ownerUid,
+          publicationId: invalid,
+        });
+        assert.notEqual(result.code, "PUBLICATION_CONFIRMED", `id ${invalid.slice(0, 16)}`);
+      }
+      assert.equal(adapter.calls.publish, 0);
+      assert.equal(adapter.calls.status, 0, "invalid identifiers never reach the adapter");
+    } finally {
+      await adapter.close();
+    }
+  });
+});
+
+test("reconciliation against a stopped Core database fails closed and leaves the record UNKNOWN", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const adapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+    try {
+      const publicationId = await seed(environment, adapter.endpoint, { key: "core-db-outage" });
+      const publishesBefore = adapter.calls.publish;
+      const brokenClient = {
+        query: async () => {
+          throw new Error("Core database is unavailable");
+        },
+      };
+      await assert.rejects(
+        () =>
+          reconcileTikTokPublication(reconcileDeps(environment, adapter.endpoint, { client: brokenClient }), {
+            ownerUid,
+            publicationId,
+          }),
+        /Core database is unavailable/,
+      );
+      assert.equal(adapter.calls.status, 0, "no status query is sent without a budget decision");
+      assert.equal(adapter.calls.publish - publishesBefore, 0);
+
+      // Recovery: the record is still UNKNOWN and can be confirmed once the database is back.
+      const recovered = await reconcileTikTokPublication(reconcileDeps(environment, adapter.endpoint), {
+        ownerUid,
+        publicationId,
+      });
+      assert.equal(recovered.code, "PUBLICATION_CONFIRMED");
+      assert.equal(adapter.calls.publish - publishesBefore, 0, "recovery confirms and never publishes");
+    } finally {
+      await adapter.close();
+    }
+  });
+});
+
+test("a failed reconciliation attempt log never changes the recovery decision", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const adapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+    try {
+      const publicationId = await seed(environment, adapter.endpoint, { key: "log-failure" });
+      const publishesBefore = adapter.calls.publish;
+      // Only the attempt-log insert fails; the budget, read and status calls succeed.
+      const flakyLog = {
+        query: async (sql: string, params?: unknown[]) => {
+          if (sql.includes("publication_reconciliation_attempts")) throw new Error("log write failed");
+          return environment.pool.query(sql, params as never);
+        },
+      };
+      const result = await reconcileTikTokPublication(reconcileDeps(environment, adapter.endpoint, { client: flakyLog }), {
+        ownerUid,
+        publicationId,
+      });
+      assert.equal(result.code, "PUBLICATION_CONFIRMED", "auxiliary logging failure does not block confirmation");
+      assert.equal(adapter.calls.publish - publishesBefore, 0);
+    } finally {
+      await adapter.close();
+    }
+  });
+});
+
+test("a status answer lost on the wire leaves the record UNKNOWN and the next pass confirms it", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const lossy = await startAdapter({ publishMode: "UNKNOWN", statusMode: "DROP_RESPONSE" });
+    let publicationId = "";
+    try {
+      publicationId = await seed(environment, lossy.endpoint, { key: "lost-status" });
+      const publishesBefore = lossy.calls.publish;
+      const lost = await reconcileTikTokPublication(reconcileDeps(environment, lossy.endpoint), {
+        ownerUid,
+        publicationId,
+      });
+      assert.notEqual(lost.code, "PUBLICATION_CONFIRMED", "a lost answer is never a confirmation");
+      assert.equal(lossy.calls.publish - publishesBefore, 0, "a lost status answer never publishes");
+    } finally {
+      await lossy.close();
+    }
+
+    const healthy = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+    try {
+      const publishesBefore = healthy.calls.publish;
+      const next = await reconcileTikTokPublication(reconcileDeps(environment, healthy.endpoint), {
+        ownerUid,
+        publicationId,
+      });
+      assert.equal(next.code, "PUBLICATION_CONFIRMED");
+      assert.equal(healthy.calls.publish - publishesBefore, 0, "confirmation after a lost answer never publishes");
+    } finally {
+      await healthy.close();
+    }
+  });
+});
+
+test("a stale or replayed signed status request from a previous timestamp is rejected by the adapter", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const adapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+    try {
+      const publicationId = await seed(environment, adapter.endpoint, { key: "timestamp-replay" });
+      const body = JSON.stringify({ publicationId, tenantId });
+      const old = Date.now() - 10 * 60_000;
+      const signature = createHmac("sha256", transportSecret)
+        .update(adapterSignatureMessage(ADAPTER_STATUS_PATH, body, old))
+        .digest("base64url");
+      const response = await fetch(new URL(ADAPTER_STATUS_PATH, adapter.endpoint), {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-nexcut-transport-key-id": transportKeyId,
+          "x-nexcut-transport-timestamp": String(old),
+          "x-nexcut-transport-signature": signature,
+        },
+        body,
+      });
+      assert.equal(response.status, 401);
+      assert.ok(adapter.calls.rejected.includes("stale"));
+      assert.equal(adapter.calls.publish, 1, "only the seed's single publish exists");
+    } finally {
+      await adapter.close();
+    }
+  });
+});
+
+test("a reconciliation interrupted mid-run is resumed by a fresh run without publishing again", async () => {
+  await withPostgreSqlTestEnvironment(async (environment) => {
+    const adapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "DROP_RESPONSE" });
+    try {
+      const publicationId = await seed(environment, adapter.endpoint, { key: "mid-run-stop" });
+      const publishesBefore = adapter.calls.publish;
+      // The first run is cut off while its status call is in flight (connection dropped mid-run).
+      const cut: unknown = await reconcileTikTokPublication(reconcileDeps(environment, adapter.endpoint), {
+        ownerUid,
+        publicationId,
+      }).catch((error: unknown) => error);
+      assert.notEqual((cut as { code?: string } | null)?.code, "PUBLICATION_CONFIRMED", "a cut run never confirms");
+      const resumedAdapter = await startAdapter({ publishMode: "UNKNOWN", statusMode: "PUBLISHED" });
+      try {
+        const resumed = await reconcileTikTokPublication(reconcileDeps(environment, resumedAdapter.endpoint), {
+          ownerUid,
+          publicationId,
+        });
+        assert.equal(resumed.code, "PUBLICATION_CONFIRMED");
+        assert.equal(adapter.calls.publish - publishesBefore, 0, "an interrupted and resumed reconciliation never publishes");
+        assert.equal(resumedAdapter.calls.publish, 0, "the resumed run never publishes");
+      } finally {
+        await resumedAdapter.close();
+      }
+    } finally {
+      await adapter.close().catch(() => undefined);
     }
   });
 });
